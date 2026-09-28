@@ -1,7 +1,4 @@
-add_subdirectory(source)
-add_subdirectory(process)
-add_subdirectory(scheduler)
-add_subdirectory(sink)
-
-# common: 구조 미확정으로 보류
-# track, network: 담당자 작업 대기 중
+add_library(beam STATIC src/hello.cpp)
+target_include_directories(beam PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)

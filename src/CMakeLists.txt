@@ -1,0 +1,4 @@
+add_subdirectory(beam)
+add_subdirectory(target)
+add_subdirectory(comm)
+add_subdirectory(app)
