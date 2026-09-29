@@ -1,9 +1,21 @@
 #pragma once
+#include <beam/domain/beam_status.hpp>
+#include <cstdint>
 
-namespace beam {
-
-struct BeamDto
+namespace beam
 {
+
+struct BeamDto {
+    beam::BeamType    beamType;
+    std::uint32_t   timestamp_ms;
+    std::uint32_t   beamID;
+    std::uint32_t   commandCount;
+    float   beam_az_deg;
+    float   beam_el_deg;
+    float   az_width_deg;
+    float   el_width_deg;
 };
 
-} // namespace beam
+static_assert(sizeof(BeamDto) == 32, "BeamDto must be 32 bytes");
+
+}

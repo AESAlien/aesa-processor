@@ -1,3 +1,18 @@
+#include "scheduler.hpp"
+
+#include <iostream>
+
+namespace beam {
+
+void hello()
+{
+    std::cout << "Hello World from beam!\n";
+}
+
+} // namespace beam
+
+
+/*
 # scheduler
 
 time interrupt(현재 `clock_nanosleep` 기반, 추후 FPGA 클럭으로 교체 예정) 발생 시 내부 큐의 맨 위 작업을 pop하여 실행하는 이벤트 루프.
@@ -7,3 +22,4 @@ time interrupt(현재 `clock_nanosleep` 기반, 추후 FPGA 클럭으로 교체 
 - **출력**: 실행 결과를 별도 큐에 push → network 모듈이 그 큐를 소비해 TCP/IP로 모의기에 전달 (직접 호출 금지, 큐를 통해서만 전달)
 
 타이머 트리거는 인터페이스로 추상화하여 이후 클럭 소스 교체 시 큐 실행 로직은 변경하지 않는 것을 목표로 함.
+*/
