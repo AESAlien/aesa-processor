@@ -1,3 +1,6 @@
+find_package(Threads REQUIRED)
+
+
 add_executable(app src/main.cpp)
 set_target_properties(app PROPERTIES OUTPUT_NAME radar)
 
@@ -6,3 +9,4 @@ target_include_directories(app PRIVATE
 )
 
 target_link_libraries(app PRIVATE beam target comm)
+target_link_libraries(app PRIVATE Threads::Threads)
