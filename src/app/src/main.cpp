@@ -1,4 +1,3 @@
-#include <comm/hello.hpp>
 #include <pthread.h>
 #include <iostream>
 
@@ -12,8 +11,6 @@ void* print_hello(void* arg)
 
 int main()
 {
-    comm::hello();
-
     pthread_t threads[5];
 
     int idx[5]; // Thread Id
