@@ -2,6 +2,8 @@
 
 namespace target {
 
-void hello();
+struct Track
+{
+};
 
 } // namespace target
