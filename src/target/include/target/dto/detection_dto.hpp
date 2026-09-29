@@ -1,10 +1,10 @@
 #pragma once
 
-#include <beam/domain/beam_type.hpp>
+#include <beam/domain/beam_status.hpp>
 
 namespace target {
 
-struct Detection
+struct DetectionDto
 {
     beam::BeamType beamType{};
     float slantRange_km{};

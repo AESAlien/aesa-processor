@@ -1,6 +1,6 @@
 #pragma once
 
-#include <beam/dto/beam_request.hpp>
+#include <beam/dto/beam_dto.hpp>
 
 namespace target {
 
@@ -9,7 +9,7 @@ class BeamRequestSink
 public:
     virtual ~BeamRequestSink() = 0;
 
-    virtual void write(const beam::BeamRequest& request) = 0;
+    virtual void write(const beam::BeamDto& request) = 0;
 };
 
 inline BeamRequestSink::~BeamRequestSink() = default;

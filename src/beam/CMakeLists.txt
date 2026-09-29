@@ -1,4 +1,5 @@
-add_library(beam STATIC src/hello.cpp)
-target_include_directories(beam PUBLIC
+add_library(beam INTERFACE)
+
+target_include_directories(beam INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
