@@ -1,8 +1,8 @@
 #pragma once
 
-namespace target {
+namespace beam {
 
-struct Track
+struct BeamRequest
 {
 };
 
