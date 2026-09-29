@@ -1,4 +1,3 @@
-#include <beam/hello.hpp>
 #include <target/hello.hpp>
 #include <comm/hello.hpp>
 
@@ -6,7 +5,6 @@
 
 int main()
 {
-    beam::hello();
     target::hello();
     comm::hello();
 
