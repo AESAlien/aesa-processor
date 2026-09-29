@@ -1,7 +1,7 @@
 #pragma once
 
-#include <comm/protocol/MessageHeader.hpp>
-#include <comm/protocol/message/BeamTransmitMessage.hpp>
+#include <comm/protocol/message_header.hpp>
+#include <comm/protocol/message/beam_tx.hpp>
 
 #include <cstdint>
 

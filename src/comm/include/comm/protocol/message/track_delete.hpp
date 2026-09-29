@@ -1,6 +1,6 @@
 #pragma once
 
-#include <comm/protocol/message/TrackInformationMessage.hpp>
+#include <comm/protocol/message/track_info.hpp>
 
 #include <cstdint>
 
