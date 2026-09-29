@@ -1,6 +1,6 @@
 #pragma once
 #include <beam/domain/beam_status.hpp>
-#include <beam/dto/ControlDto.hpp>
+#include <beam/dto/control_dto.hpp>
 #include <chrono>
 #include <cstdint>
 
@@ -13,7 +13,7 @@ class BeamControlSource
 public:
     virtual ~BeamControlSource() = default;
 
-    virtual BeamQueStatus read(dto::ControlDto& out , 
+    virtual BeamQueStatus read(ControlDto& out , 
         std::chrono::milliseconds timeout) = 0;
 };
 

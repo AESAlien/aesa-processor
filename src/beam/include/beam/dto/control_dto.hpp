@@ -1,7 +1,7 @@
 #pragma once
 #include <beam/domain/beam_status.hpp>
 
-namespace dto
+namespace beam
 {
 
 struct ControlDto

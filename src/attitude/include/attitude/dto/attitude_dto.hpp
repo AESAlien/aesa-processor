@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace dto
+namespace attitude
 {
 
 struct AttitudeDto

@@ -2,12 +2,12 @@
 #include <beam/domain/beam_status.hpp>
 #include <cstdint>
 
-namespace dto
+namespace beam
 {
 
 struct BeamDto {
     beam::BeamType    beamType;
-    std::uint32_t   timestamp;    // msec
+    std::uint32_t   timestamp_ms;
     std::uint32_t   beamID;
     std::uint32_t   commandCount;
     float   beam_az_deg;

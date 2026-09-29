@@ -1,5 +1,5 @@
 #pragma once
-#include <attitude/dto/AttitudeDto.hpp>
+#include <attitude/dto/attitude_dto.hpp>
 #include <cstdint>
 #include <array>
 
@@ -8,7 +8,7 @@ namespace attitude
 
 struct AttTransformDto
 {
-    dto::AttitudeDto att{};
+    AttitudeDto att{};
     std::int64_t rx_time_ns = 0;
 
     // 안테나 -> ENU 회전 행렬 (3x3, 행 우선: 인덱스 = 행*3 + 열)
