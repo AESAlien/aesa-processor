@@ -1,4 +1,7 @@
-add_library(comm STATIC src/hello.cpp)
+add_library(comm STATIC
+    src/hello.cpp
+    src/network/network_manager.cpp
+)
 target_include_directories(comm PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
