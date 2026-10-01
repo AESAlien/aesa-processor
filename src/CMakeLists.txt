@@ -1,4 +1,3 @@
-add_subdirectory(attitude)
 add_subdirectory(beam)
 add_subdirectory(target)
 add_subdirectory(comm)

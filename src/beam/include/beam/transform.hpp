@@ -1,7 +1,7 @@
 #pragma once
-#include <attitude/dto/attTransform_dto.hpp>
+#include <beam/dto/attTransform_dto.hpp>
 
-namespace attitude
+namespace beam
 {
     
 bool antToEnuAngle(const AttTransformDto& xform,
@@ -14,4 +14,4 @@ bool enuToAntAngle(const AttTransformDto& xform,
     double& az_ant_deg, double& el_ant_deg
 );
 
-} // namespace attitude
+}   // namespace beam

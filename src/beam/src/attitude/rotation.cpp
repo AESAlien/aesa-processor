@@ -1,7 +1,7 @@
 #include "rotation.hpp"
 #include <cmath>
 
-namespace attitude
+namespace beam
 {
 
 namespace { constexpr double kDeg2Rad = 3.14159265358979323846 / 180.0; }
@@ -37,4 +37,4 @@ Mat3 bodyToEnu(double roll_deg, double pitch_deg, double yaw_deg)
     return mul(Rz, mul(Rx, Ry));
 }
 
-}   // namespace attitude
+}   // namespace beam

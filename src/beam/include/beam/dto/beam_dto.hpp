@@ -18,4 +18,4 @@ struct BeamDto {
 
 static_assert(sizeof(BeamDto) == 32, "BeamDto must be 32 bytes");
 
-}
+}   // namespace beam

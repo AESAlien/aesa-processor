@@ -10,4 +10,5 @@ struct ControlDto
 };
 
 static_assert(sizeof(ControlDto) == 1, "ControlDto must be 1 bytes");
-}
+
+}   // namespace beam

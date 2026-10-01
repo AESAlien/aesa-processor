@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace attitude
+namespace beam
 {
 
 struct AttitudeDto
@@ -16,4 +16,4 @@ struct AttitudeDto
 
 static_assert(sizeof(AttitudeDto) == 48, "AttitudeDto must be 48 bytes");
 
-}
+}   // namespace beam

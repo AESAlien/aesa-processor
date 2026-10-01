@@ -1,7 +1,7 @@
-#include <attitude/transform.hpp>
+#include <beam/transform.hpp>
 #include <cmath>
 
-namespace attitude
+namespace beam
 {
 
 namespace
@@ -71,4 +71,4 @@ bool enuToAntAngle(const AttTransformDto& xform,
     return true;
 }
 
-}   // namespace attitude
+}   // namespace beam

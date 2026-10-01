@@ -1,7 +1,7 @@
 #pragma once
 #include <array>
 
-namespace attitude
+namespace beam
 {
 
 using Mat3 = std::array<double, 9>;
@@ -14,4 +14,4 @@ Mat3 transpose(const Mat3& A);
 
 Mat3 bodyToEnu(double roll_deg, double pitch_deg, double yaw_deg);
 
-}   // namespace attitude
+}   // namespace beam
