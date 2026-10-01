@@ -15,7 +15,6 @@ struct AttTransformDto
     // v_enu = R * v_ant (열벡터 오른쪽 곱), 역변환은 전치
     std::array<double,9> rot_ant_to_enu{};
 
-    // valid == false 이면 무의미. 축, 각도 규약은 <문서 위치> 참조
     bool valid = false;
     std::uint32_t update_seq = 0;
 };
