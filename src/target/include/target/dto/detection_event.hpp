@@ -2,7 +2,8 @@
 
 #include <beam/dto/beam_command.hpp>
 
-namespace target {
+namespace target
+{
 
 struct DetectionEvent
 {

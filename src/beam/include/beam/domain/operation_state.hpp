@@ -8,4 +8,4 @@ namespace beam
         On = true,
         Off = false
     };
-}
+} // namespace beam

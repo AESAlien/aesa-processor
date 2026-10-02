@@ -3,16 +3,16 @@
 namespace math
 {
 
-const double Pi = 3.14159265358979323846;
+const double PI = 3.14159265358979323846;
 
-double DegToRad(double degrees) noexcept
+double degToRad(double degrees) noexcept
 {
-    return degrees * (Pi / 180.0);
+    return degrees * (PI / 180.0);
 }
 
-double RadToDeg(double radians) noexcept
+double radToDeg(double radians) noexcept
 {
-    return radians * (180.0 / Pi);
+    return radians * (180.0 / PI);
 }
 
 } // namespace math

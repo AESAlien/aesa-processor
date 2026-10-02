@@ -1,15 +1,16 @@
 #pragma once
 
-#include <target/dto/track_snapshot.hpp>
+#include <target/dto/track_event.hpp>
 
-namespace target {
+namespace target
+{
 
 class TrackSink
 {
 public:
     virtual ~TrackSink() = 0;
 
-    virtual void write(const TrackSnapshot& snapshot) = 0;
+    virtual void write(const TrackEvent& event) = 0;
 };
 
 inline TrackSink::~TrackSink() = default;

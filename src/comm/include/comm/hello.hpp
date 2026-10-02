@@ -5,4 +5,4 @@ namespace comm
 
 void hello();
 
-}   // namespace comm
+} // namespace comm

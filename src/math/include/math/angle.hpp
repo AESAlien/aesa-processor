@@ -3,10 +3,10 @@
 namespace math
 {
 
-extern const double Pi;
+extern const double PI;
 
-double DegToRad(double degrees) noexcept;
+double degToRad(double degrees) noexcept;
 
-double RadToDeg(double radians) noexcept;
+double radToDeg(double radians) noexcept;
 
 } // namespace math
