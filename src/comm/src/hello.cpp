@@ -2,7 +2,8 @@
 
 #include <iostream>
 
-namespace comm {
+namespace comm
+{
 
 void hello()
 {

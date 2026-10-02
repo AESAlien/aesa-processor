@@ -5,7 +5,7 @@ namespace beam
 {
     enum class OperationState : bool
     {
-        On = true,
-        Off = false
+        ON = true,
+        OFF = false
     };
-}
+} // namespace beam

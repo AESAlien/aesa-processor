@@ -6,11 +6,11 @@ namespace beam
 
 struct BeamInfo
 {
-    std::uint32_t beamID;
-    float   az_deg{};
-    float   el_deg{};
-    float   az_width_deg{};
-    float   el_width_deg{};
+    std::uint32_t beamId;
+    float azimuth_ant_deg{};
+    float elevation_ant_deg{};
+    float azimuthBeamWidth_deg{};
+    float elevationBeamWidth_deg{};
 };
 
-}   // namespace beam
+} // namespace beam

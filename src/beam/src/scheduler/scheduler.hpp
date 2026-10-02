@@ -3,4 +3,4 @@
 namespace beam
 {
 
-}   // namespace beam
+} // namespace beam
