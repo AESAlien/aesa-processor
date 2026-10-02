@@ -1,5 +1,4 @@
 #pragma once
-#include <beam/domain/beam_status.hpp>
 #include <cstdint>
 
 namespace beam
@@ -7,6 +6,13 @@ namespace beam
 
 struct BeamCommand
 {
+    enum class BeamType : std::uint8_t
+    {
+        Search = 1,
+        Confirmation = 2,
+        Tracking = 3
+    };
+
     BeamType beamType{};
     std::uint32_t timestamp_ms{};
     std::uint32_t beamId{};

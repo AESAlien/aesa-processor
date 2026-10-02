@@ -10,11 +10,4 @@ enum class OperationState : bool
     Off = false
 };
 
-enum class BeamType : std::uint8_t
-{
-    Search = 1,
-    Confirmation = 2,
-    Tracking = 3
-};
-
 } // namespace beam
