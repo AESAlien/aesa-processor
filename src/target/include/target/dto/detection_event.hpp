@@ -1,12 +1,12 @@
 #pragma once
 
-#include <beam/domain/beam_status.hpp>
+#include <beam/dto/beam_command.hpp>
 
 namespace target {
 
-struct DetectionDto
+struct DetectionEvent
 {
-    beam::BeamType beamType{};
+    beam::BeamCommand::BeamType beamType{};
     float slantRange_km{};
     float azimuth_deg{};
     float elevation_deg{};

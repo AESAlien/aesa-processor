@@ -2,12 +2,21 @@
 
 #include <cstdint>
 
+#include <cstdint>
+
 #include <target/domain/track_state.hpp>
 
-namespace target {
-
-struct TrackSnapshotDto
+namespace target
 {
+
+struct TrackEvent
+{
+    enum class TrackState
+    {
+        Init = 1,
+        Tracking = 2
+    };
+
     std::uint16_t id{};
     TrackState state{TrackState::Init};
     float slantRange_km{};
