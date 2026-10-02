@@ -1,4 +1,5 @@
 #include <beam/transform.hpp>
+#include <math/angle.hpp>
 #include <cmath>
 
 namespace beam
@@ -6,10 +7,6 @@ namespace beam
 
 namespace
 {
-constexpr double kPi    = 3.14159265358979323846;
-constexpr double kDeg2Rad = kPi / 180.0;
-constexpr double kRad2Deg = 180.0 / kPi;
-
 inline double clamp1(double x) { return std::fmax(-1.0, std::fmin(1.0, x)); }
 
 inline double wrap360(double d)
@@ -20,8 +17,8 @@ inline double wrap360(double d)
 
 inline void aedToVec(double az_deg, double el_deg, double v[3])
 {
-    const double az = az_deg * kDeg2Rad;
-    const double el = el_deg * kDeg2Rad;
+    const double az = math::DegToRad(az_deg);
+    const double el = math::DegToRad(el_deg);
     v[0] = std::cos(el) * std::sin(az);
     v[1] = std::cos(el) * std::cos(az);
     v[2] = std::sin(el);
@@ -29,8 +26,8 @@ inline void aedToVec(double az_deg, double el_deg, double v[3])
 
 inline void vecToAed(const double v[3], double& az_deg, double& el_deg)
 {
-    az_deg = wrap360(std::atan2(v[0], v[1]) * kRad2Deg);
-    el_deg = std::asin(clamp1(v[2])) * kRad2Deg;
+    az_deg = wrap360(math::RadToDeg(std::atan2(v[0], v[1])));
+    el_deg = math::RadToDeg(std::asin(clamp1(v[2])));
 }
 }   // namespace
 
