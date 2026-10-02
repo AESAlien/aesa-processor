@@ -10,7 +10,7 @@ class TrackInformationSource
 public:
     virtual ~TrackInformationSource() = default;
 
-    virtual bool read(target::TrackEvent& track) = 0;
+    virtual bool Read(target::TrackEvent& track) = 0;
 };
 
 } // namespace comm::port

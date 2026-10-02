@@ -2,15 +2,15 @@
 
 #include <iostream>
 
-namespace beam {
+namespace beam
+{
 
-void hello()
+void Hello()
 {
     std::cout << "Hello World from beam!\n";
 }
 
 } // namespace beam
-
 
 /*
 # scheduler

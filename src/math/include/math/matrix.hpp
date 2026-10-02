@@ -33,9 +33,9 @@ public:
     static Matrix Identity(std::size_t size);
 
 private:
-    std::size_t rows_ = 0;
-    std::size_t columns_ = 0;
-    std::vector<double> values_;
+    std::size_t _rows = 0;
+    std::size_t _columns = 0;
+    std::vector<double> _values;
 };
 
 Matrix operator*(double scalar, const Matrix& matrix);

@@ -20,42 +20,52 @@ int main(int argc, char** argv)
     int first = 1;
 
     double roll = 0.0, pitch = 0.0, yaw = 0.0;
-    if(argc - first == 3) {
-        roll  = std::atof(argv[first]);
+    if (argc - first == 3)
+    {
+        roll = std::atof(argv[first]);
         pitch = std::atof(argv[first + 1]);
-        yaw   = std::atof(argv[first + 2]);
-    } else if(argc - first != 0) {
+        yaw = std::atof(argv[first + 2]);
+    }
+    else if (argc - first != 0)
+    {
         std::fprintf(stderr, "usage: %s [roll_deg pitch_deg yaw_deg]\n", argv[0]);
         return 2;
     }
 
     beam::RadarAttitude att{};
-    att.radar_lat_deg = 37.0;
-    att.radar_lon_deg = 127.0;
-    att.radar_alt_km  = 0.1;
-    att.roll_deg      = roll;
-    att.pitch_deg     = pitch;
-    att.yaw_deg       = yaw;
+    att.radarLat_deg = 37.0;
+    att.radarLon_deg = 127.0;
+    att.radarAlt_km = 0.1;
+    att.roll_deg = roll;
+    att.pitch_deg = pitch;
+    att.yaw_deg = yaw;
 
     beam::AntennaToEnu xform = [&]() {
-        try {
+        try
+        {
             return beam::AntennaToEnu(att, beam::AttitudeConfig{});
-        } catch(const beam::AttitudeError& e) {
+        }
+        catch (const beam::AttitudeError& e)
+        {
             std::fprintf(stderr, "makeAntennaToEnu failed: code=%d (%s)\n",
-                         static_cast<int>(e.code()), e.what());
+                         static_cast<int>(e.Code()), e.what());
             std::exit(3);
         }
     }();
 
-    try {
+    try
+    {
         const beam::BeamTable table(xform);
         std::printf("idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg\n");
-        for(std::size_t i = 0; i < beam::BeamTable::size(); ++i) {
-            const beam::BeamInfo& b = table.get(i);
+        for (std::size_t i = 0; i < beam::BeamTable::Size(); ++i)
+        {
+            const beam::BeamInfo& b = table.Get(i);
             std::printf("%zu,%u,%.6f,%.6f,%.2f,%.2f\n",
-                        i, b.beamID, b.az_deg, b.el_deg, b.az_width_deg, b.el_width_deg);
+                        i, b.beamId, b.az_deg, b.el_deg, b.azWidth_deg, b.elWidth_deg);
         }
-    } catch(const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         std::fprintf(stderr, "BeamTable failed: %s\n", e.what());
         return 4;
     }

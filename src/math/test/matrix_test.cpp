@@ -31,15 +31,17 @@ TEST(MatrixTest, ConstructsAndInitializesRequestedDimensions)
     EXPECT_EQ(matrix.Rows(), 2);
     EXPECT_EQ(matrix.Columns(), 3);
     for (std::size_t row = 0; row < matrix.Rows(); ++row)
+    {
         for (std::size_t column = 0; column < matrix.Columns(); ++column)
+        {
             EXPECT_DOUBLE_EQ(matrix(row, column), 4.5);
+        }
+    }
 }
 
 TEST(MatrixTest, RejectsDimensionsThatOverflowStorageSize)
 {
-    EXPECT_THROW(
-        (math::Matrix(std::numeric_limits<std::size_t>::max(), 2)),
-        std::length_error);
+    EXPECT_THROW((math::Matrix(std::numeric_limits<std::size_t>::max(), 2)), std::length_error);
 }
 
 TEST(MatrixTest, ConstructsFromRectangularInitializerLists)
@@ -133,8 +135,12 @@ TEST(MatrixTest, MultipliesCompatibleZeroDimensionMatrices)
     ASSERT_EQ(product.Rows(), 2);
     ASSERT_EQ(product.Columns(), 3);
     for (std::size_t row = 0; row < product.Rows(); ++row)
+    {
         for (std::size_t column = 0; column < product.Columns(); ++column)
+        {
             EXPECT_DOUBLE_EQ(product(row, column), 0.0);
+        }
+    }
 }
 
 TEST(MatrixTest, RejectsMultiplicationOfIncompatibleDimensions)
@@ -152,10 +158,13 @@ TEST(MatrixTest, MultipliesByScalarsFromEitherSide)
     const math::Matrix leftProduct = 2.0 * matrix;
 
     for (std::size_t row = 0; row < matrix.Rows(); ++row)
-        for (std::size_t column = 0; column < matrix.Columns(); ++column) {
+    {
+        for (std::size_t column = 0; column < matrix.Columns(); ++column)
+        {
             EXPECT_DOUBLE_EQ(rightProduct(row, column), 2.0 * matrix(row, column));
             EXPECT_DOUBLE_EQ(leftProduct(row, column), 2.0 * matrix(row, column));
         }
+    }
 }
 
 TEST(MatrixTest, DividesByScalar)
@@ -198,8 +207,12 @@ TEST(MatrixTest, CreatesIdentityMatrices)
     ASSERT_EQ(identity.Rows(), 3);
     ASSERT_EQ(identity.Columns(), 3);
     for (std::size_t row = 0; row < identity.Rows(); ++row)
+    {
         for (std::size_t column = 0; column < identity.Columns(); ++column)
+        {
             EXPECT_DOUBLE_EQ(identity(row, column), row == column ? 1.0 : 0.0);
+        }
+    }
 }
 
 TEST(MatrixTest, CreatesEmptyIdentityMatrix)

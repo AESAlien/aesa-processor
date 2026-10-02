@@ -12,21 +12,15 @@ class AntennaToEnu
 public:
     AntennaToEnu(const RadarAttitude&, const AttitudeConfig&);
 
-    void antToEnuAngle(
-        double az_ant_deg,
-        double el_ant_deg,
-        double& az_enu_deg,
-        double& el_enu_deg) const;
+    void AntToEnuAngle(double azAnt_deg, double elAnt_deg,
+                       double& azEnu_deg, double& elEnu_deg) const;
 
-    void enuToAntAngle(
-        double az_enu_deg,
-        double el_enu_deg,
-        double& az_ant_deg,
-        double& el_ant_deg) const;
+    void EnuToAntAngle(double azEnu_deg, double elEnu_deg,
+                       double& azAnt_deg, double& elAnt_deg) const;
 
 private:
-    RadarAttitude attitude_{};
-    math::Matrix rot_ant_to_enu_;
+    RadarAttitude _attitude{};
+    math::Matrix _rotAntToEnu;
 };
 
-}   // namespace beam
+} // namespace beam

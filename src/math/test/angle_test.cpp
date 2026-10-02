@@ -25,8 +25,12 @@ TEST(AngleTest, ConvertsRepresentativeRadiansToDegrees)
 TEST(AngleTest, ConvertsBetweenUnitsInBothDirections)
 {
     for (const double degrees : {-360.0, -123.4, -1.0, 0.0, 1.0, 123.4, 360.0})
+    {
         EXPECT_NEAR(math::RadToDeg(math::DegToRad(degrees)), degrees, 1e-12);
+    }
 
     for (const double radians : {-2.5, -math::Pi, -0.1, 0.0, 0.1, math::Pi, 2.5})
+    {
         EXPECT_NEAR(math::DegToRad(math::RadToDeg(radians)), radians, 1e-12);
+    }
 }

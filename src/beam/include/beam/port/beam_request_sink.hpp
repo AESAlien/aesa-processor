@@ -3,7 +3,6 @@
 #include <beam/dto/beam_request.hpp>
 #include <cstdint>
 
-
 namespace beam
 {
 
@@ -12,7 +11,7 @@ class BeamRequestSink
 public:
     virtual ~BeamRequestSink() = default;
 
-    virtual bool write(const BeamRequest& in) = 0;
+    virtual bool Write(const BeamRequest& in) = 0;
 };
 
-}   // namespace beam
+} // namespace beam

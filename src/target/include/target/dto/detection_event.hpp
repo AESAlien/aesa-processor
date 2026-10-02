@@ -2,7 +2,8 @@
 
 #include <beam/domain/beam_status.hpp>
 
-namespace target {
+namespace target
+{
 
 struct DetectionEvent
 {

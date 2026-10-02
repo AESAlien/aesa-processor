@@ -10,7 +10,7 @@ class DetectionSink
 public:
     virtual ~DetectionSink() = default;
 
-    virtual void write(const target::DetectionEvent& detection) = 0;
+    virtual void Write(const target::DetectionEvent& detection) = 0;
 };
 
 } // namespace comm::port

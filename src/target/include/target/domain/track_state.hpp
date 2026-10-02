@@ -1,6 +1,7 @@
 #pragma once
 
-namespace target {
+namespace target
+{
 
 enum class TrackState
 {

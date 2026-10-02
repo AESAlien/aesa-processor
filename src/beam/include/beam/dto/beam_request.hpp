@@ -5,7 +5,8 @@
 namespace beam
 {
 
-struct BeamRequest {
+struct BeamRequest
+{
     BeamType beamType{};
     std::uint32_t timestamp_ms{};
     float azimuth_deg{};
@@ -14,4 +15,4 @@ struct BeamRequest {
 
 static_assert(sizeof(BeamRequest) == 16, "BeamRequest must be 16 bytes");
 
-}   // namespace beam
+} // namespace beam

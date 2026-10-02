@@ -5,7 +5,8 @@
 namespace beam
 {
 
-struct BeamCommand {
+struct BeamCommand
+{
     BeamType beamType{};
     std::uint32_t timestamp_ms{};
     std::uint32_t beamId{};
@@ -18,4 +19,4 @@ struct BeamCommand {
 
 static_assert(sizeof(BeamCommand) == 32, "BeamCommand must be 32 bytes");
 
-}   // namespace beam
+} // namespace beam

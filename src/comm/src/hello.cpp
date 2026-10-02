@@ -1,10 +1,11 @@
-#include <comm/hello.hpp>
+#include <comm/Hello.hpp>
 
 #include <iostream>
 
-namespace comm {
+namespace comm
+{
 
-void hello()
+void Hello()
 {
     std::cout << "Hello World from comm!\n";
 }

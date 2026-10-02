@@ -3,6 +3,6 @@
 namespace comm
 {
 
-void hello();
+void Hello();
 
-}   // namespace comm
+} // namespace comm

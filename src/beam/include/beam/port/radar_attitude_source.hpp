@@ -8,8 +8,8 @@ class RadarAttitudeSource
 {
 public:
     virtual ~RadarAttitudeSource() = default;
-    
-    virtual bool read(RadarAttitude& out) = 0;
+
+    virtual bool Read(RadarAttitude& out) = 0;
 };
 
-}   // namespace beam
+} // namespace beam

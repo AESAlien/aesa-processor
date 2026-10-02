@@ -4,7 +4,8 @@
 
 #include <target/domain/track_state.hpp>
 
-namespace target {
+namespace target
+{
 
 struct TrackEvent
 {

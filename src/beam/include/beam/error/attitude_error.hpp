@@ -19,17 +19,17 @@ class AttitudeError : public std::invalid_argument
 {
 public:
     AttitudeError(AttitudeErrorCode code, const std::string& message)
-        : std::invalid_argument(message), code_(code)
+        : std::invalid_argument(message), _code(code)
     {
     }
 
-    AttitudeErrorCode code() const noexcept
+    AttitudeErrorCode Code() const noexcept
     {
-        return code_;
+        return _code;
     }
 
 private:
-    AttitudeErrorCode code_;
+    AttitudeErrorCode _code;
 };
 
-}   // namespace beam
+} // namespace beam
