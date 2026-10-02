@@ -1,5 +1,6 @@
 #include <attitude/updater.hpp>
 #include <attitude/transform.hpp>
+#include <math/angle.hpp>
 
 #include <atomic>
 #include <cmath>
@@ -42,9 +43,6 @@ int g_cur_fail = 0;
 // ---------------------------------------------------------------------------
 namespace
 {
-constexpr double kPi  = 3.14159265358979323846;
-constexpr double kD2R = kPi / 180.0;
-constexpr double kR2D = 180.0 / kPi;
 constexpr std::int64_t kMs = 1'000'000LL;   // 1 ms in ns
 
 // 방위각 차이를 [-180, 180] 로
@@ -60,7 +58,8 @@ struct Vec3 { double x, y, z; };
 
 Vec3 toVec(double az_deg, double el_deg)
 {
-    const double az = az_deg * kD2R, el = el_deg * kD2R;
+    const double az = math::DegToRad(az_deg);
+    const double el = math::DegToRad(el_deg);
     return { std::cos(el) * std::sin(az), std::cos(el) * std::cos(az), std::sin(el) };
 }
 
@@ -70,7 +69,7 @@ double sepDeg(double az1, double el1, double az2, double el2)
     const Vec3 a = toVec(az1, el1), b = toVec(az2, el2);
     const double dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
     const double chord = std::sqrt(dx * dx + dy * dy + dz * dz);
-    return 2.0 * std::asin(std::fmin(1.0, chord / 2.0)) * kR2D;
+    return math::RadToDeg(2.0 * std::asin(std::fmin(1.0, chord / 2.0)));
 }
 
 AttitudeDto mkAtt(double roll, double pitch, double yaw)
@@ -300,8 +299,8 @@ TEST(scenario_ship_rolling_pitching_beam_stays_on_target)
     // 선박 롤/피치 흔들림 중에도 ENU 표적 -> 빔 각도 -> ENU 복원이 표적과 일치
     const double tgt_az = 200.0, tgt_el = 15.0;
     for (int t = 0; t < 360; t += 3) {
-        const double roll  = 20.0 * std::sin(t * kD2R);
-        const double pitch = 10.0 * std::sin(2 * t * kD2R);
+        const double roll  = 20.0 * std::sin(math::DegToRad(t));
+        const double pitch = 10.0 * std::sin(math::DegToRad(2 * t));
         const auto x = makeXform(roll, pitch, 80.0);
         double ba, be, ra, re;
         enuToAntAngle(x, tgt_az, tgt_el, ba, be);
