@@ -1,8 +1,10 @@
 #pragma once
 #include <beam/dto/radar_attitude.hpp>
 #include <beam/dto/antenna_to_enu.hpp>
+#include <math/matrix.hpp>
 #include <cstdint>
-#include <array>
+#include <stdexcept>
+#include <string>
 
 namespace beam
 {
@@ -10,12 +12,25 @@ namespace beam
 struct AttitudeConfig
 {
     double max_abs_pitch_deg = 89.0;
-    std::array<double,9> mount_ant_to_body{1,0,0, 0,1,0, 0,0,1};
+    math::Matrix mount_ant_to_body = math::Matrix::Identity(3);
     double mount_ortho_tol = 1e-6;
 };
 
-enum class AttitudeCheckResult : std::uint8_t { Ok, NotFinite, OutOfRange, GimbalLock, InvalidMount };
+enum class AttitudeErrorCode : std::uint8_t { NotFinite, OutOfRange, GimbalLock, InvalidMount };
 
-AttitudeCheckResult makeAntennaToEnu(const RadarAttitude&, const AttitudeConfig&, AntennaToEnu& out);
+class AttitudeError : public std::invalid_argument
+{
+public:
+    AttitudeError(AttitudeErrorCode code, const std::string& what)
+        : std::invalid_argument(what), code_(code) {}
+
+    AttitudeErrorCode code() const noexcept { return code_; }
+
+private:
+    AttitudeErrorCode code_;
+};
+
+// 실패 시 AttitudeError 를 던진다
+AntennaToEnu makeAntennaToEnu(const RadarAttitude&, const AttitudeConfig&);
 
 }   // namespace beam

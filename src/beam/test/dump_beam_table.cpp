@@ -44,15 +44,20 @@ int main(int argc, char** argv)
     att.yaw_deg       = yaw;
 
     beam::AntennaToEnu xform;
-    const auto result = beam::makeAntennaToEnu(att, beam::AttitudeConfig{}, xform);
-    if(result != beam::AttitudeCheckResult::Ok) {
-        std::fprintf(stderr, "makeAntennaToEnu failed: code=%d\n", static_cast<int>(result));
+    try {
+        xform = beam::makeAntennaToEnu(att, beam::AttitudeConfig{});
+    } catch(const beam::AttitudeError& e) {
+        std::fprintf(stderr, "makeAntennaToEnu failed: code=%d (%s)\n",
+                     static_cast<int>(e.code()), e.what());
         return 3;
     }
 
     if(matrixOnly) {
-        for(std::size_t i = 0; i < xform.rot_ant_to_enu.size(); ++i) {
-            std::printf(i ? " %.9f" : "%.9f", xform.rot_ant_to_enu[i]);
+        const math::Matrix& R = xform.rot_ant_to_enu;
+        for(std::size_t i = 0; i < R.Rows(); ++i) {
+            for(std::size_t j = 0; j < R.Columns(); ++j) {
+                std::printf((i || j) ? " %.9f" : "%.9f", R(i, j));
+            }
         }
         std::printf("\n");
         return 0;

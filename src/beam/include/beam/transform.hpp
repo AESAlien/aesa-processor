@@ -4,12 +4,12 @@
 namespace beam
 {
     
-bool antToEnuAngle(const AntennaToEnu& xform,
+void antToEnuAngle(const AntennaToEnu& xform,
     double az_ant_deg,  double el_ant_deg,
     double& az_enu_deg, double& el_enu_deg
 );
 
-bool enuToAntAngle(const AntennaToEnu& xform,
+void enuToAntAngle(const AntennaToEnu& xform,
     double az_enu_deg,  double el_enu_deg,
     double& az_ant_deg, double& el_ant_deg
 );

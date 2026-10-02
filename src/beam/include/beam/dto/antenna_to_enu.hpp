@@ -1,7 +1,7 @@
 #pragma once
 #include <beam/dto/radar_attitude.hpp>
+#include <math/matrix.hpp>
 #include <cstdint>
-#include <array>
 
 namespace beam
 {
@@ -9,11 +9,7 @@ namespace beam
 struct AntennaToEnu
 {
     RadarAttitude att{};
-
-    // 안테나 -> ENU 회전 행렬 (3x3, 행 우선: 인덱스 = 행*3 + 열)
-    // v_enu = R * v_ant (열벡터 오른쪽 곱), 역변환은 전치
-    std::array<double,9> rot_ant_to_enu{};
-
+    math::Matrix rot_ant_to_enu = math::Matrix(3, 3);
     bool valid = false;
 };
 

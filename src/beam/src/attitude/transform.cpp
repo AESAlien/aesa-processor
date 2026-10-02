@@ -1,6 +1,8 @@
 #include <beam/transform.hpp>
 #include <math/angle.hpp>
+#include <math/matrix.hpp>
 #include <cmath>
+#include <stdexcept>
 
 namespace beam
 {
@@ -15,57 +17,47 @@ inline double wrap180(double d)
     return d - 180.0;
 }
 
-inline void aedToVec(double az_deg, double el_deg, double v[3])
+// 방위/고각 -> 3x1 단위 열벡터
+inline math::Matrix aedToVec(double az_deg, double el_deg)
 {
     const double az = math::DegToRad(az_deg);
     const double el = math::DegToRad(el_deg);
-    v[0] = std::cos(el) * std::sin(az);
-    v[1] = std::cos(el) * std::cos(az);
-    v[2] = std::sin(el);
+    return math::Matrix{
+        { std::cos(el) * std::sin(az) },
+        { std::cos(el) * std::cos(az) },
+        { std::sin(el) }
+    };
 }
 
-inline void vecToAed(const double v[3], double& az_deg, double& el_deg)
+// 3x1 열벡터 -> 방위/고각
+inline void vecToAed(const math::Matrix& v, double& az_deg, double& el_deg)
 {
-    az_deg = wrap180(math::RadToDeg(std::atan2(v[0], v[1])));
-    el_deg = math::RadToDeg(std::asin(clamp1(v[2])));
+    az_deg = wrap180(math::RadToDeg(std::atan2(v(0,0), v(1,0))));
+    el_deg = math::RadToDeg(std::asin(clamp1(v(2,0))));
 }
 }   // namespace
 
 
-bool antToEnuAngle(const AntennaToEnu& xform,
+void antToEnuAngle(const AntennaToEnu& xform,
     double az_ant_deg,  double el_ant_deg,
     double& az_enu_deg, double& el_enu_deg)
 {
-    if(!xform.valid) { return false; }
+    if(!xform.valid) { throw std::invalid_argument("AntennaToEnu is not valid"); }
 
-    double a[3], e[3];
-    aedToVec(az_ant_deg, el_ant_deg, a);
-
-    const auto& R = xform.rot_ant_to_enu;
-    e[0] = R[0]*a[0] + R[1]*a[1] + R[2]*a[2];
-    e[1] = R[3]*a[0] + R[4]*a[1] + R[5]*a[2];
-    e[2] = R[6]*a[0] + R[7]*a[1] + R[8]*a[2];
+    const math::Matrix e = xform.rot_ant_to_enu * aedToVec(az_ant_deg, el_ant_deg);
 
     vecToAed(e, az_enu_deg, el_enu_deg);
-    return true;
 }
 
-bool enuToAntAngle(const AntennaToEnu& xform,
+void enuToAntAngle(const AntennaToEnu& xform,
     double az_enu_deg,  double el_enu_deg,
     double& az_ant_deg, double& el_ant_deg)
 {
-    if(!xform.valid) { return false; }
+    if(!xform.valid) { throw std::invalid_argument("AntennaToEnu is not valid"); }
 
-    double e[3], a[3];
-    aedToVec(az_enu_deg, el_enu_deg, e);
-
-    const auto& R = xform.rot_ant_to_enu;
-    a[0] = R[0]*e[0] + R[3]*e[1] + R[6]*e[2];
-    a[1] = R[1]*e[0] + R[4]*e[1] + R[7]*e[2];
-    a[2] = R[2]*e[0] + R[5]*e[1] + R[8]*e[2];
+    const math::Matrix a = xform.rot_ant_to_enu.Transpose() * aedToVec(az_enu_deg, el_enu_deg);
 
     vecToAed(a, az_ant_deg, el_ant_deg);
-    return true;
 }
 
 }   // namespace beam

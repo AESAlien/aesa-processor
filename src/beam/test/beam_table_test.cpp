@@ -24,9 +24,7 @@ beam::AntennaToEnu makeValid(double roll, double pitch, double yaw)
     a.pitch_deg     = pitch;
     a.yaw_deg       = yaw;
 
-    beam::AntennaToEnu x;
-    EXPECT_EQ(beam::makeAntennaToEnu(a, beam::AttitudeConfig{}, x), beam::AttitudeCheckResult::Ok);
-    return x;
+    return beam::makeAntennaToEnu(a, beam::AttitudeConfig{});
 }
 
 double gridAz(std::size_t idx) { return -42.0 + 4.2 * static_cast<double>(idx % kAzCount); }
@@ -105,7 +103,7 @@ TEST(BeamTableTest, TableMatchesAnglesConvertedToAntennaFrame)
 
     for(std::size_t i = 0; i < beam::BeamTable::size(); ++i) {
         double az = 0, el = 0;
-        ASSERT_TRUE(beam::enuToAntAngle(x, gridAz(i), gridEl(i), az, el));
+        beam::enuToAntAngle(x, gridAz(i), gridEl(i), az, el);
         EXPECT_NEAR(table.get(i).az_deg, az, 1e-3) << "idx=" << i;
         EXPECT_NEAR(table.get(i).el_deg, el, 1e-3) << "idx=" << i;
     }
@@ -118,7 +116,7 @@ TEST(BeamTableTest, TableConvertedBackToFixedFrameRestoresGrid)
 
     for(std::size_t i = 0; i < beam::BeamTable::size(); ++i) {
         double az = 0, el = 0;
-        ASSERT_TRUE(beam::antToEnuAngle(x, table.get(i).az_deg, table.get(i).el_deg, az, el));
+        beam::antToEnuAngle(x, table.get(i).az_deg, table.get(i).el_deg, az, el);
         EXPECT_NEAR(az, gridAz(i), 1e-3) << "idx=" << i;
         EXPECT_NEAR(el, gridEl(i), 1e-3) << "idx=" << i;
     }
