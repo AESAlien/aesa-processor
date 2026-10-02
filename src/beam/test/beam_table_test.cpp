@@ -1,7 +1,7 @@
 #include "beam_table.hpp"
 
-#include <beam/attitude_transform.hpp>
-#include <beam/transform.hpp>
+#include <beam/domain/antenna_to_enu.hpp>
+#include <beam/error/attitude_error.hpp>
 
 #include <gtest/gtest.h>
 
@@ -24,7 +24,7 @@ beam::AntennaToEnu makeValid(double roll, double pitch, double yaw)
     a.pitch_deg     = pitch;
     a.yaw_deg       = yaw;
 
-    return beam::makeAntennaToEnu(a, beam::AttitudeConfig{});
+    return beam::AntennaToEnu(a, beam::AttitudeConfig{});
 }
 
 double gridAz(std::size_t idx) { return -42.0 + 4.2 * static_cast<double>(idx % kAzCount); }
@@ -103,7 +103,7 @@ TEST(BeamTableTest, TableMatchesAnglesConvertedToAntennaFrame)
 
     for(std::size_t i = 0; i < beam::BeamTable::size(); ++i) {
         double az = 0, el = 0;
-        beam::enuToAntAngle(x, gridAz(i), gridEl(i), az, el);
+        x.enuToAntAngle(gridAz(i), gridEl(i), az, el);
         EXPECT_NEAR(table.get(i).az_deg, az, 1e-3) << "idx=" << i;
         EXPECT_NEAR(table.get(i).el_deg, el, 1e-3) << "idx=" << i;
     }
@@ -116,7 +116,7 @@ TEST(BeamTableTest, TableConvertedBackToFixedFrameRestoresGrid)
 
     for(std::size_t i = 0; i < beam::BeamTable::size(); ++i) {
         double az = 0, el = 0;
-        beam::antToEnuAngle(x, table.get(i).az_deg, table.get(i).el_deg, az, el);
+        x.antToEnuAngle(table.get(i).az_deg, table.get(i).el_deg, az, el);
         EXPECT_NEAR(az, gridAz(i), 1e-3) << "idx=" << i;
         EXPECT_NEAR(el, gridEl(i), 1e-3) << "idx=" << i;
     }
@@ -132,12 +132,6 @@ TEST(BeamTableTest, DifferentAttitudeProducesDifferentTable)
         if(a.get(i).az_deg != b.get(i).az_deg) { anyDifferent = true; break; }
     }
     EXPECT_TRUE(anyDifferent);
-}
-
-TEST(BeamTableTest, ThrowsOnInvalidTransform)
-{
-    const beam::AntennaToEnu invalid{};   // valid == false
-    EXPECT_THROW(beam::BeamTable{invalid}, std::invalid_argument);
 }
 
 TEST(BeamTableTest, GetThrowsOnOutOfRangeIndex)

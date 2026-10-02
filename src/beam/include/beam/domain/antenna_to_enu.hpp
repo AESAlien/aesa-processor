@@ -1,16 +1,32 @@
 #pragma once
+
+#include <beam/config/attitude_config.hpp>
 #include <beam/domain/radar_attitude.hpp>
 #include <math/matrix.hpp>
-#include <cstdint>
 
 namespace beam
 {
 
-struct AntennaToEnu
+class AntennaToEnu
 {
-    RadarAttitude att{};
-    math::Matrix rot_ant_to_enu = math::Matrix(3, 3);
-    bool valid = false;
+public:
+    AntennaToEnu(const RadarAttitude&, const AttitudeConfig&);
+
+    void antToEnuAngle(
+        double az_ant_deg,
+        double el_ant_deg,
+        double& az_enu_deg,
+        double& el_enu_deg) const;
+
+    void enuToAntAngle(
+        double az_enu_deg,
+        double el_enu_deg,
+        double& az_ant_deg,
+        double& el_ant_deg) const;
+
+private:
+    RadarAttitude attitude_{};
+    math::Matrix rot_ant_to_enu_;
 };
 
 }   // namespace beam
