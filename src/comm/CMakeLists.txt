@@ -4,7 +4,6 @@ target_include_directories(comm PUBLIC
 )
 
 target_link_libraries(comm PUBLIC
-    attitude
     beam
     target
 )
