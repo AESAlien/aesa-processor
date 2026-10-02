@@ -6,7 +6,7 @@ namespace beam
 
 struct SetOperationStateCommand
 {
-    beam::OperationState powerState = beam::OperationState::OFF;
+    OperationState powerState = OperationState::OFF;
 };
 
 static_assert(sizeof(SetOperationStateCommand) == 1, "SetOperationStateCommand must be 1 bytes");

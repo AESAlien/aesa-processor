@@ -1,5 +1,5 @@
 #pragma once
-#include <beam/dto/radar_attitude.hpp>
+#include <beam/domain/radar_attitude.hpp>
 #include <math/matrix.hpp>
 #include <cstdint>
 

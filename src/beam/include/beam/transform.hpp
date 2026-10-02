@@ -1,5 +1,5 @@
 #pragma once
-#include <beam/dto/antenna_to_enu.hpp>
+#include <beam/domain/antenna_to_enu.hpp>
 
 namespace beam
 {

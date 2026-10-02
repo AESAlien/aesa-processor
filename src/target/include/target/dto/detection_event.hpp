@@ -4,7 +4,7 @@
 
 namespace target {
 
-struct DetectionDto
+struct DetectionEvent
 {
     beam::BeamType beamType{};
     float slantRange_km{};

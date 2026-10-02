@@ -6,7 +6,7 @@
 
 namespace target {
 
-struct TrackSnapshotDto
+struct TrackEvent
 {
     std::uint16_t id{};
     TrackState state{TrackState::Init};

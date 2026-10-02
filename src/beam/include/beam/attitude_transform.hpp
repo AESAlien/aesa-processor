@@ -1,6 +1,6 @@
 #pragma once
-#include <beam/dto/radar_attitude.hpp>
-#include <beam/dto/antenna_to_enu.hpp>
+#include <beam/domain/radar_attitude.hpp>
+#include <beam/domain/antenna_to_enu.hpp>
 #include <math/matrix.hpp>
 #include <cstdint>
 #include <stdexcept>

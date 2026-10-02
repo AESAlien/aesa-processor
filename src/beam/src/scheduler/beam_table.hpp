@@ -1,6 +1,6 @@
 #pragma once
 #include "beam_info.hpp"
-#include <beam/dto/antenna_to_enu.hpp>
+#include <beam/domain/antenna_to_enu.hpp>
 #include <array>
 #include <cstddef>
 

@@ -6,14 +6,14 @@ namespace beam
 {
 
 struct BeamCommand {
-    beam::BeamType    beamType{};
-    std::uint32_t   timestamp_ms{};
-    std::uint32_t   beamID{};
-    std::uint32_t   commandCount{};
-    float   beam_az_deg{};
-    float   beam_el_deg{};
-    float   az_width_deg{};
-    float   el_width_deg{};
+    BeamType beamType{};
+    std::uint32_t timestamp_ms{};
+    std::uint32_t beamId{};
+    std::uint32_t commandCount{};
+    float azimuth_deg{};
+    float elevation_deg{};
+    float azimuthBeamWidth_deg{};
+    float elevationBeamWidth_deg{};
 };
 
 static_assert(sizeof(BeamCommand) == 32, "BeamCommand must be 32 bytes");
