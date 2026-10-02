@@ -1,6 +1,6 @@
 #pragma once
 
-#include <comm/protocol/message_header.hpp>
+#include <comm/protocol/ST_MsgHeader.hpp>
 
 namespace comm::protocol
 {
