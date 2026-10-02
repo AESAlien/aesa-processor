@@ -10,7 +10,7 @@ class AttitudeSink
 public:
     virtual ~AttitudeSink() = default;
 
-    virtual void Write(const beam::SetAttitudeCommand& command) = 0;
+    virtual void write(const beam::SetAttitudeCommand& command) = 0;
 };
 
 } // namespace comm::port

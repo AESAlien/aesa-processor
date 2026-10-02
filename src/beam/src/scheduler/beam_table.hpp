@@ -1,7 +1,7 @@
 #pragma once
+#include "attitude/ant_enu_transform.hpp"
 #include "beam_info.hpp"
 #include <array>
-#include <beam/domain/antenna_to_enu.hpp>
 #include <cstddef>
 
 namespace beam
@@ -10,16 +10,16 @@ namespace beam
 class BeamTable
 {
 public:
-    explicit BeamTable(const AntennaToEnu& in);
-    const BeamInfo& Get(std::size_t idx) const;
-    static constexpr std::size_t Size()
+    explicit BeamTable(const AntEnuTransform& in);
+    const BeamInfo& get(std::size_t idx) const;
+    static constexpr std::size_t size()
     {
         return 189;
     }
 
 private:
-    static constexpr std::size_t Count = 189;
-    std::array<BeamInfo, Count> _beams{};
+    static constexpr std::size_t COUNT = 189;
+    std::array<BeamInfo, COUNT> _beams{};
 };
 
 } // namespace beam

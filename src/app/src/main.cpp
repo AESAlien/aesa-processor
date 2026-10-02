@@ -2,7 +2,7 @@
 #include <thread>
 
 // Using Thread Function
-void PrintHello(int id)
+void printHello(int id)
 {
     std::cout << "Hello World from thread " << id << '\n';
 }
@@ -17,7 +17,7 @@ int main()
     {
         idx[i] = i + 1;
         // Create Thread
-        threads[i] = std::thread(PrintHello, idx[i]);
+        threads[i] = std::thread(printHello, idx[i]);
     }
 
     for (int i = 0; i < 5; ++i)

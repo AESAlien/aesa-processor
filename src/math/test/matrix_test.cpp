@@ -12,27 +12,27 @@ TEST(MatrixTest, DefaultAndZeroDimensionMatricesAreEmpty)
     const math::Matrix zeroRows(0, 3);
     const math::Matrix zeroColumns(3, 0);
 
-    EXPECT_TRUE(defaultMatrix.Empty());
-    EXPECT_EQ(defaultMatrix.Rows(), 0);
-    EXPECT_EQ(defaultMatrix.Columns(), 0);
-    EXPECT_TRUE(zeroRows.Empty());
-    EXPECT_EQ(zeroRows.Rows(), 0);
-    EXPECT_EQ(zeroRows.Columns(), 3);
-    EXPECT_TRUE(zeroColumns.Empty());
-    EXPECT_EQ(zeroColumns.Rows(), 3);
-    EXPECT_EQ(zeroColumns.Columns(), 0);
+    EXPECT_TRUE(defaultMatrix.empty());
+    EXPECT_EQ(defaultMatrix.rows(), 0);
+    EXPECT_EQ(defaultMatrix.columns(), 0);
+    EXPECT_TRUE(zeroRows.empty());
+    EXPECT_EQ(zeroRows.rows(), 0);
+    EXPECT_EQ(zeroRows.columns(), 3);
+    EXPECT_TRUE(zeroColumns.empty());
+    EXPECT_EQ(zeroColumns.rows(), 3);
+    EXPECT_EQ(zeroColumns.columns(), 0);
 }
 
 TEST(MatrixTest, ConstructsAndInitializesRequestedDimensions)
 {
     const math::Matrix matrix(2, 3, 4.5);
 
-    EXPECT_FALSE(matrix.Empty());
-    EXPECT_EQ(matrix.Rows(), 2);
-    EXPECT_EQ(matrix.Columns(), 3);
-    for (std::size_t row = 0; row < matrix.Rows(); ++row)
+    EXPECT_FALSE(matrix.empty());
+    EXPECT_EQ(matrix.rows(), 2);
+    EXPECT_EQ(matrix.columns(), 3);
+    for (std::size_t row = 0; row < matrix.rows(); ++row)
     {
-        for (std::size_t column = 0; column < matrix.Columns(); ++column)
+        for (std::size_t column = 0; column < matrix.columns(); ++column)
         {
             EXPECT_DOUBLE_EQ(matrix(row, column), 4.5);
         }
@@ -48,8 +48,8 @@ TEST(MatrixTest, ConstructsFromRectangularInitializerLists)
 {
     const math::Matrix matrix{{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}};
 
-    ASSERT_EQ(matrix.Rows(), 3);
-    ASSERT_EQ(matrix.Columns(), 2);
+    ASSERT_EQ(matrix.rows(), 3);
+    ASSERT_EQ(matrix.columns(), 2);
     EXPECT_DOUBLE_EQ(matrix(0, 0), 1.0);
     EXPECT_DOUBLE_EQ(matrix(1, 1), 4.0);
     EXPECT_DOUBLE_EQ(matrix(2, 0), 5.0);
@@ -65,14 +65,14 @@ TEST(MatrixTest, AccessorsReadAndWriteElements)
 {
     math::Matrix matrix{{1.0, 2.0}, {3.0, 4.0}};
     matrix(0, 1) = 5.0;
-    matrix.At(1, 0) = 6.0;
+    matrix.at(1, 0) = 6.0;
 
     EXPECT_DOUBLE_EQ(matrix(0, 1), 5.0);
-    EXPECT_DOUBLE_EQ(matrix.At(1, 0), 6.0);
+    EXPECT_DOUBLE_EQ(matrix.at(1, 0), 6.0);
 
     const math::Matrix& constMatrix = matrix;
     EXPECT_DOUBLE_EQ(constMatrix(0, 1), 5.0);
-    EXPECT_DOUBLE_EQ(constMatrix.At(1, 0), 6.0);
+    EXPECT_DOUBLE_EQ(constMatrix.at(1, 0), 6.0);
 }
 
 TEST(MatrixTest, RejectsOutOfRangeAccess)
@@ -82,10 +82,10 @@ TEST(MatrixTest, RejectsOutOfRangeAccess)
 
     EXPECT_THROW(matrix(2, 0), std::out_of_range);
     EXPECT_THROW(matrix(0, 2), std::out_of_range);
-    EXPECT_THROW(matrix.At(2, 0), std::out_of_range);
-    EXPECT_THROW(matrix.At(0, 2), std::out_of_range);
+    EXPECT_THROW(matrix.at(2, 0), std::out_of_range);
+    EXPECT_THROW(matrix.at(0, 2), std::out_of_range);
     EXPECT_THROW(constMatrix(2, 0), std::out_of_range);
-    EXPECT_THROW(constMatrix.At(0, 2), std::out_of_range);
+    EXPECT_THROW(constMatrix.at(0, 2), std::out_of_range);
 }
 
 TEST(MatrixTest, AddsAndSubtractsMatricesElementwise)
@@ -120,8 +120,8 @@ TEST(MatrixTest, MultipliesRectangularMatrices)
     const math::Matrix right{{7.0, 8.0}, {9.0, 10.0}, {11.0, 12.0}};
     const math::Matrix product = left * right;
 
-    ASSERT_EQ(product.Rows(), 2);
-    ASSERT_EQ(product.Columns(), 2);
+    ASSERT_EQ(product.rows(), 2);
+    ASSERT_EQ(product.columns(), 2);
     EXPECT_DOUBLE_EQ(product(0, 0), 58.0);
     EXPECT_DOUBLE_EQ(product(0, 1), 64.0);
     EXPECT_DOUBLE_EQ(product(1, 0), 139.0);
@@ -132,11 +132,11 @@ TEST(MatrixTest, MultipliesCompatibleZeroDimensionMatrices)
 {
     const math::Matrix product = math::Matrix(2, 0) * math::Matrix(0, 3);
 
-    ASSERT_EQ(product.Rows(), 2);
-    ASSERT_EQ(product.Columns(), 3);
-    for (std::size_t row = 0; row < product.Rows(); ++row)
+    ASSERT_EQ(product.rows(), 2);
+    ASSERT_EQ(product.columns(), 3);
+    for (std::size_t row = 0; row < product.rows(); ++row)
     {
-        for (std::size_t column = 0; column < product.Columns(); ++column)
+        for (std::size_t column = 0; column < product.columns(); ++column)
         {
             EXPECT_DOUBLE_EQ(product(row, column), 0.0);
         }
@@ -157,9 +157,9 @@ TEST(MatrixTest, MultipliesByScalarsFromEitherSide)
     const math::Matrix rightProduct = matrix * 2.0;
     const math::Matrix leftProduct = 2.0 * matrix;
 
-    for (std::size_t row = 0; row < matrix.Rows(); ++row)
+    for (std::size_t row = 0; row < matrix.rows(); ++row)
     {
-        for (std::size_t column = 0; column < matrix.Columns(); ++column)
+        for (std::size_t column = 0; column < matrix.columns(); ++column)
         {
             EXPECT_DOUBLE_EQ(rightProduct(row, column), 2.0 * matrix(row, column));
             EXPECT_DOUBLE_EQ(leftProduct(row, column), 2.0 * matrix(row, column));
@@ -188,10 +188,10 @@ TEST(MatrixTest, RejectsDivisionByZero)
 TEST(MatrixTest, TransposesRectangularMatrices)
 {
     const math::Matrix matrix{{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}};
-    const math::Matrix transposed = matrix.Transpose();
+    const math::Matrix transposed = matrix.transpose();
 
-    ASSERT_EQ(transposed.Rows(), 3);
-    ASSERT_EQ(transposed.Columns(), 2);
+    ASSERT_EQ(transposed.rows(), 3);
+    ASSERT_EQ(transposed.columns(), 2);
     EXPECT_DOUBLE_EQ(transposed(0, 0), 1.0);
     EXPECT_DOUBLE_EQ(transposed(0, 1), 4.0);
     EXPECT_DOUBLE_EQ(transposed(1, 0), 2.0);
@@ -202,13 +202,13 @@ TEST(MatrixTest, TransposesRectangularMatrices)
 
 TEST(MatrixTest, CreatesIdentityMatrices)
 {
-    const math::Matrix identity = math::Matrix::Identity(3);
+    const math::Matrix identity = math::Matrix::identity(3);
 
-    ASSERT_EQ(identity.Rows(), 3);
-    ASSERT_EQ(identity.Columns(), 3);
-    for (std::size_t row = 0; row < identity.Rows(); ++row)
+    ASSERT_EQ(identity.rows(), 3);
+    ASSERT_EQ(identity.columns(), 3);
+    for (std::size_t row = 0; row < identity.rows(); ++row)
     {
-        for (std::size_t column = 0; column < identity.Columns(); ++column)
+        for (std::size_t column = 0; column < identity.columns(); ++column)
         {
             EXPECT_DOUBLE_EQ(identity(row, column), row == column ? 1.0 : 0.0);
         }
@@ -217,9 +217,9 @@ TEST(MatrixTest, CreatesIdentityMatrices)
 
 TEST(MatrixTest, CreatesEmptyIdentityMatrix)
 {
-    const math::Matrix identity = math::Matrix::Identity(0);
+    const math::Matrix identity = math::Matrix::identity(0);
 
-    EXPECT_TRUE(identity.Empty());
-    EXPECT_EQ(identity.Rows(), 0);
-    EXPECT_EQ(identity.Columns(), 0);
+    EXPECT_TRUE(identity.empty());
+    EXPECT_EQ(identity.rows(), 0);
+    EXPECT_EQ(identity.columns(), 0);
 }

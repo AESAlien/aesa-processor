@@ -9,12 +9,12 @@ struct TrackEvent
 {
     enum class TrackState
     {
-        Init = 1,
-        Tracking = 2
+        INIT = 1,
+        TRACKING = 2
     };
 
     std::uint16_t id{};
-    TrackState state{TrackState::Init};
+    TrackState state{TrackState::INIT};
     float slantRange_km{};
     float groundRange_km{};
     float azimuth_deg{};

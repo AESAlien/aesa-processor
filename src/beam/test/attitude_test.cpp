@@ -1,5 +1,5 @@
-#include <beam/domain/antenna_to_enu.hpp>
-#include <beam/error/attitude_error.hpp>
+#include "attitude/ant_enu_transform.hpp"
+#include "attitude/attitude_error.hpp"
 
 #include <gtest/gtest.h>
 
@@ -10,200 +10,186 @@
 namespace
 {
 
-constexpr double Tol = 1e-9;
+constexpr double TOLERANCE = 1e-9;
 
-beam::RadarAttitude MakeAttitude(double roll, double pitch, double yaw)
+beam::RadarAttitude makeAttitude(double roll_deg, double pitch_deg, double yaw_deg)
 {
-    beam::RadarAttitude a{};
-    a.radarLat_deg = 37.0;
-    a.radarLon_deg = 127.0;
-    a.radarAlt_km = 0.1;
-    a.roll_deg = roll;
-    a.pitch_deg = pitch;
-    a.yaw_deg = yaw;
-    return a;
+    beam::RadarAttitude attitude{};
+    attitude.latitude_deg = 37.0;
+    attitude.longitude_deg = 127.0;
+    attitude.altitude_km = 0.1;
+    attitude.roll_deg = roll_deg;
+    attitude.pitch_deg = pitch_deg;
+    attitude.yaw_deg = yaw_deg;
+    return attitude;
 }
 
-beam::AntennaToEnu MakeValid(double roll, double pitch, double yaw)
+beam::AntEnuTransform makeValidTransform(double roll_deg, double pitch_deg, double yaw_deg)
 {
-    return beam::AntennaToEnu(MakeAttitude(roll, pitch, yaw), beam::AttitudeConfig{});
+    return beam::AntEnuTransform(makeAttitude(roll_deg, pitch_deg, yaw_deg), beam::AttitudeConfig{});
 }
 
 } // namespace
 
 // 실패 시 던지는 AttitudeError 의 code 를 확인하는 헬퍼
-#define EXPECT_ATTITUDE_ERROR(expr, expectedCode)                                                  \
-    do                                                                                             \
-    {                                                                                              \
-        try                                                                                        \
-        {                                                                                          \
-            (void)(expr);                                                                          \
-            ADD_FAILURE() << "AttitudeError not thrown";                                           \
-        }                                                                                          \
-        catch (const beam::AttitudeError& e)                                                       \
-        {                                                                                          \
-            EXPECT_EQ(e.Code(), expectedCode);                                                     \
-        }                                                                                          \
+#define EXPECT_ATTITUDE_ERROR(expression, expectedCode)                                                                \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        try                                                                                                            \
+        {                                                                                                              \
+            (void)(expression);                                                                                        \
+            ADD_FAILURE() << "AttitudeError not thrown";                                                               \
+        }                                                                                                              \
+        catch (const beam::AttitudeError& error)                                                                       \
+        {                                                                                                              \
+            EXPECT_EQ(error.code(), expectedCode);                                                                     \
+        }                                                                                                              \
     } while (0)
 
-// ---------------------------------------------------------------- makeAntennaToEnu
+// ---------------------------------------------------------------- makeAntToEnu
 
 TEST(AttitudeTransformTest, ZeroAttitudeKeepsAngles)
 {
-    const beam::AntennaToEnu x = MakeValid(0, 0, 0);
+    const beam::AntEnuTransform transform = makeValidTransform(0, 0, 0);
 
-    double az = 0.0;
-    double el = 0.0;
-    x.AntToEnuAngle(-30.0, 10.0, az, el);
+    const auto [azimuth_enu_deg, elevation_enu_deg] = transform.antToEnu(-30.0, 10.0);
 
-    EXPECT_NEAR(az, -30.0, Tol);
-    EXPECT_NEAR(el, 10.0, Tol);
+    EXPECT_NEAR(azimuth_enu_deg, -30.0, TOLERANCE);
+    EXPECT_NEAR(elevation_enu_deg, 10.0, TOLERANCE);
 }
 
 TEST(AttitudeTransformTest, ThrowsOnNonFiniteValues)
 {
-    const beam::AttitudeConfig cfg;
-    beam::RadarAttitude a = MakeAttitude(0, 0, 0);
+    const beam::AttitudeConfig config;
+    beam::RadarAttitude attitude = makeAttitude(0, 0, 0);
 
-    a.roll_deg = std::numeric_limits<double>::quiet_NaN();
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(a, cfg), beam::AttitudeErrorCode::NotFinite);
+    attitude.roll_deg = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::NOT_FINITE);
 
-    a = MakeAttitude(0, 0, 0);
-    a.radarAlt_km = std::numeric_limits<double>::infinity();
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(a, cfg), beam::AttitudeErrorCode::NotFinite);
+    attitude = makeAttitude(0, 0, 0);
+    attitude.altitude_km = std::numeric_limits<double>::infinity();
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::NOT_FINITE);
 }
 
 TEST(AttitudeTransformTest, ThrowsOnOutOfRangeValues)
 {
-    const beam::AttitudeConfig cfg;
-    beam::RadarAttitude a;
+    const beam::AttitudeConfig config;
+    beam::RadarAttitude attitude;
 
-    a = MakeAttitude(0, 0, 0);
-    a.radarLat_deg = 91;
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(a, cfg), beam::AttitudeErrorCode::OutOfRange);
+    attitude = makeAttitude(0, 0, 0);
+    attitude.latitude_deg = 91;
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
 
-    a = MakeAttitude(0, 0, 0);
-    a.radarLon_deg = -181;
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(a, cfg), beam::AttitudeErrorCode::OutOfRange);
+    attitude = makeAttitude(0, 0, 0);
+    attitude.longitude_deg = -181;
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
 
-    a = MakeAttitude(0, 0, 0);
-    a.radarAlt_km = 101;
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(a, cfg), beam::AttitudeErrorCode::OutOfRange);
+    attitude = makeAttitude(0, 0, 0);
+    attitude.altitude_km = 101;
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
 
-    a = MakeAttitude(181, 0, 0);
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(a, cfg), beam::AttitudeErrorCode::OutOfRange);
+    attitude = makeAttitude(181, 0, 0);
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
 
-    a = MakeAttitude(0, 0, 361);
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(a, cfg), beam::AttitudeErrorCode::OutOfRange);
+    attitude = makeAttitude(0, 0, 361);
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
 }
 
 TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
 {
-    const beam::AttitudeConfig cfg;
+    const beam::AttitudeConfig config;
 
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(MakeAttitude(0, 89, 0), cfg),
-                          beam::AttitudeErrorCode::GimbalLock);
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(MakeAttitude(0, -95, 0), cfg),
-                          beam::AttitudeErrorCode::GimbalLock);
-    EXPECT_NO_THROW(beam::AntennaToEnu(MakeAttitude(0, 88.9, 0), cfg));
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(makeAttitude(0, 89, 0), config), beam::AttitudeErrorCode::GIMBAL_LOCK);
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(makeAttitude(0, -95, 0), config), beam::AttitudeErrorCode::GIMBAL_LOCK);
+    EXPECT_NO_THROW(beam::AntEnuTransform(makeAttitude(0, 88.9, 0), config));
 }
 
 TEST(AttitudeTransformTest, AcceptsRotationMount)
 {
-    beam::AttitudeConfig cfg;
-    cfg.mountAntToBody = math::Matrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}}; // z축 90도 회전
+    beam::AttitudeConfig config;
+    config.mountAntToBodyRotation = math::Matrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}}; // z축 90도 회전
 
-    EXPECT_NO_THROW(beam::AntennaToEnu(MakeAttitude(0, 0, 0), cfg));
+    EXPECT_NO_THROW(beam::AntEnuTransform(makeAttitude(0, 0, 0), config));
 }
 
 TEST(AttitudeTransformTest, ThrowsOnInvalidMount)
 {
-    beam::AttitudeConfig cfg;
-    const auto a = MakeAttitude(0, 0, 0);
+    beam::AttitudeConfig config;
+    const auto attitude = makeAttitude(0, 0, 0);
 
-    cfg.mountAntToBody = math::Matrix{{2, 0, 0}, {0, 1, 0}, {0, 0, 1}}; // 스케일
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(a, cfg), beam::AttitudeErrorCode::InvalidMount);
+    config.mountAntToBodyRotation = math::Matrix{{2, 0, 0}, {0, 1, 0}, {0, 0, 1}}; // 스케일
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
 
-    cfg.mountAntToBody = math::Matrix{{1, 0, 0}, {0, 1, 0}, {0, 0, -1}}; // 반사 (det = -1)
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(a, cfg), beam::AttitudeErrorCode::InvalidMount);
+    config.mountAntToBodyRotation = math::Matrix{{1, 0, 0}, {0, 1, 0}, {0, 0, -1}}; // 반사 (det = -1)
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
 
-    cfg.mountAntToBody = math::Matrix{{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}; // 특이 행렬
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(a, cfg), beam::AttitudeErrorCode::InvalidMount);
+    config.mountAntToBodyRotation = math::Matrix{{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}; // 특이 행렬
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
 
-    cfg.mountAntToBody =
-        math::Matrix{{1, 0, 0}, {0, 1, 0}, {0, 0, std::numeric_limits<double>::infinity()}};
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(a, cfg), beam::AttitudeErrorCode::InvalidMount);
+    config.mountAntToBodyRotation = math::Matrix{{1, 0, 0}, {0, 1, 0}, {0, 0, std::numeric_limits<double>::infinity()}};
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
 
-    cfg.mountAntToBody = math::Matrix::Identity(2); // 3x3 이 아님
-    EXPECT_ATTITUDE_ERROR(beam::AntennaToEnu(a, cfg), beam::AttitudeErrorCode::InvalidMount);
+    config.mountAntToBodyRotation = math::Matrix::identity(2); // 3x3 이 아님
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
 }
 
 TEST(AttitudeTransformTest, AttitudeErrorIsInvalidArgument)
 {
-    EXPECT_THROW(beam::AntennaToEnu(MakeAttitude(0, 95, 0), beam::AttitudeConfig{}),
-                 std::invalid_argument);
+    EXPECT_THROW(beam::AntEnuTransform(makeAttitude(0, 95, 0), beam::AttitudeConfig{}), std::invalid_argument);
 }
 
 // ---------------------------------------------------------------- 각도 변환
 
 TEST(AttitudeTransformTest, IdentityKeepsAngles)
 {
-    const beam::AntennaToEnu x = MakeValid(0, 0, 0);
-    double az = 0, el = 0;
-
-    x.AntToEnuAngle(-30, 10, az, el);
-    EXPECT_NEAR(az, -30, 1e-9); // 음수 방위각이 0~360으로 바뀌지 않아야 함
-    EXPECT_NEAR(el, 10, 1e-9);
+    const beam::AntEnuTransform transform = makeValidTransform(0, 0, 0);
+    const auto [azimuth_enu_deg, elevation_enu_deg] = transform.antToEnu(-30, 10);
+    EXPECT_NEAR(azimuth_enu_deg, -30, 1e-9); // 음수 방위각이 0~360으로 바뀌지 않아야 함
+    EXPECT_NEAR(elevation_enu_deg, 10, 1e-9);
 }
 
 TEST(AttitudeTransformTest, YawRotatesAzimuthClockwise)
 {
-    const beam::AntennaToEnu x = MakeValid(0, 0, 90); // 정면이 동쪽
-    double az = 0, el = 0;
-
-    x.AntToEnuAngle(0, 0, az, el);
-    EXPECT_NEAR(az, 90, 1e-9);
-    EXPECT_NEAR(el, 0, 1e-9);
+    const beam::AntEnuTransform transform = makeValidTransform(0, 0, 90); // 정면이 동쪽
+    const auto [azimuth_enu_deg, elevation_enu_deg] = transform.antToEnu(0, 0);
+    EXPECT_NEAR(azimuth_enu_deg, 90, 1e-9);
+    EXPECT_NEAR(elevation_enu_deg, 0, 1e-9);
 }
 
 TEST(AttitudeTransformTest, PitchRaisesBoresight)
 {
-    const beam::AntennaToEnu x = MakeValid(0, 10, 0);
-    double az = 0, el = 0;
-
-    x.AntToEnuAngle(0, 0, az, el);
-    EXPECT_NEAR(az, 0, 1e-9);
-    EXPECT_NEAR(el, 10, 1e-9);
+    const beam::AntEnuTransform transform = makeValidTransform(0, 10, 0);
+    const auto [azimuth_enu_deg, elevation_enu_deg] = transform.antToEnu(0, 0);
+    EXPECT_NEAR(azimuth_enu_deg, 0, 1e-9);
+    EXPECT_NEAR(elevation_enu_deg, 10, 1e-9);
 }
 
 TEST(AttitudeTransformTest, AntToEnuAndBackRestoresAngles)
 {
-    const beam::AntennaToEnu x = MakeValid(10, 20, 30);
+    const beam::AntEnuTransform transform = makeValidTransform(10, 20, 30);
 
-    for (double azIn : {-45.0, -30.0, 0.0, 15.0, 45.0})
+    for (double azimuth_ant_deg : {-45.0, -30.0, 0.0, 15.0, 45.0})
     {
-        for (double elIn : {0.0, 10.0, 41.2})
+        for (double elevation_ant_deg : {0.0, 10.0, 41.2})
         {
-            double azEnu = 0, elEnu = 0, azOut = 0, elOut = 0;
-            x.AntToEnuAngle(azIn, elIn, azEnu, elEnu);
-            x.EnuToAntAngle(azEnu, elEnu, azOut, elOut);
-            EXPECT_NEAR(azOut, azIn, 1e-9);
-            EXPECT_NEAR(elOut, elIn, 1e-9);
+            const auto [azimuth_enu_deg, elevation_enu_deg] = transform.antToEnu(azimuth_ant_deg, elevation_ant_deg);
+            const auto [azimuthRestored_ant_deg, elevationRestored_ant_deg] =
+                transform.enuToAnt(azimuth_enu_deg, elevation_enu_deg);
+            EXPECT_NEAR(azimuthRestored_ant_deg, azimuth_ant_deg, 1e-9);
+            EXPECT_NEAR(elevationRestored_ant_deg, elevation_ant_deg, 1e-9);
         }
     }
 }
 
 TEST(AttitudeTransformTest, AzimuthIsWrappedToSignedRange)
 {
-    const beam::AntennaToEnu x = MakeValid(0, 0, 0);
-    double az = 0, el = 0;
+    const beam::AntEnuTransform transform = makeValidTransform(0, 0, 0);
+    const auto [azimuthAbove180_enu_deg, elevationAbove180_enu_deg] = transform.antToEnu(181, 0);
+    EXPECT_NEAR(azimuthAbove180_enu_deg, -179, 1e-9);
 
-    x.AntToEnuAngle(181, 0, az, el);
-    EXPECT_NEAR(az, -179, 1e-9);
+    const auto [azimuthBelow180_enu_deg, elevationBelow180_enu_deg] = transform.antToEnu(-181, 0);
+    EXPECT_NEAR(azimuthBelow180_enu_deg, 179, 1e-9);
 
-    x.AntToEnuAngle(-181, 0, az, el);
-    EXPECT_NEAR(az, 179, 1e-9);
-
-    x.AntToEnuAngle(180, 0, az, el);
-    EXPECT_NEAR(std::fabs(az), 180, 1e-9); // 후방은 ±180 (0이 되면 안 됨)
+    const auto [azimuthAt180_enu_deg, elevationAt180_enu_deg] = transform.antToEnu(180, 0);
+    EXPECT_NEAR(std::fabs(azimuthAt180_enu_deg), 180, 1e-9); // 후방은 ±180 (0이 되면 안 됨)
 }

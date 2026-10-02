@@ -8,17 +8,17 @@ struct BeamCommand
 {
     enum class BeamType : std::uint8_t
     {
-        Search = 1,
-        Confirmation = 2,
-        Tracking = 3
+        SEARCH = 1,
+        CONFIRMATION = 2,
+        TRACKING = 3
     };
 
     BeamType beamType{};
     std::uint32_t timestamp_ms{};
     std::uint32_t beamId{};
     std::uint32_t commandCount{};
-    float azimuth_deg{};
-    float elevation_deg{};
+    float azimuth_ant_deg{};
+    float elevation_ant_deg{};
     float azimuthBeamWidth_deg{};
     float elevationBeamWidth_deg{};
 };

@@ -29,32 +29,32 @@ Matrix::Matrix(std::initializer_list<std::initializer_list<double>> values)
     }
 }
 
-std::size_t Matrix::Rows() const noexcept
+std::size_t Matrix::rows() const noexcept
 {
     return _rows;
 }
 
-std::size_t Matrix::Columns() const noexcept
+std::size_t Matrix::columns() const noexcept
 {
     return _columns;
 }
 
-bool Matrix::Empty() const noexcept
+bool Matrix::empty() const noexcept
 {
     return _rows == 0 || _columns == 0;
 }
 
 double& Matrix::operator()(std::size_t row, std::size_t column)
 {
-    return At(row, column);
+    return at(row, column);
 }
 
 const double& Matrix::operator()(std::size_t row, std::size_t column) const
 {
-    return At(row, column);
+    return at(row, column);
 }
 
-double& Matrix::At(std::size_t row, std::size_t column)
+double& Matrix::at(std::size_t row, std::size_t column)
 {
     if (row >= _rows || column >= _columns)
     {
@@ -63,7 +63,7 @@ double& Matrix::At(std::size_t row, std::size_t column)
     return _values[row * _columns + column];
 }
 
-const double& Matrix::At(std::size_t row, std::size_t column) const
+const double& Matrix::at(std::size_t row, std::size_t column) const
 {
     if (row >= _rows || column >= _columns)
     {
@@ -142,7 +142,7 @@ Matrix Matrix::operator/(double scalar) const
     return *this * (1.0 / scalar);
 }
 
-Matrix Matrix::Transpose() const
+Matrix Matrix::transpose() const
 {
     Matrix result(_columns, _rows);
     for (std::size_t row = 0; row < _rows; ++row)
@@ -155,7 +155,7 @@ Matrix Matrix::Transpose() const
     return result;
 }
 
-Matrix Matrix::Identity(std::size_t size)
+Matrix Matrix::identity(std::size_t size)
 {
     Matrix result(size, size);
     for (std::size_t i = 0; i < size; ++i)

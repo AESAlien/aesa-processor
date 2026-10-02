@@ -7,8 +7,8 @@
 
 #include "beam_table.hpp"
 
-#include <beam/domain/antenna_to_enu.hpp>
-#include <beam/error/attitude_error.hpp>
+#include "attitude/ant_enu_transform.hpp"
+#include "attitude/attitude_error.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -33,22 +33,21 @@ int main(int argc, char** argv)
     }
 
     beam::RadarAttitude att{};
-    att.radarLat_deg = 37.0;
-    att.radarLon_deg = 127.0;
-    att.radarAlt_km = 0.1;
+    att.latitude_deg = 37.0;
+    att.longitude_deg = 127.0;
+    att.altitude_km = 0.1;
     att.roll_deg = roll;
     att.pitch_deg = pitch;
     att.yaw_deg = yaw;
 
-    beam::AntennaToEnu xform = [&]() {
+    beam::AntEnuTransform xform = [&]() {
         try
         {
-            return beam::AntennaToEnu(att, beam::AttitudeConfig{});
+            return beam::AntEnuTransform(att, beam::AttitudeConfig{});
         }
         catch (const beam::AttitudeError& e)
         {
-            std::fprintf(stderr, "makeAntennaToEnu failed: code=%d (%s)\n",
-                         static_cast<int>(e.Code()), e.what());
+            std::fprintf(stderr, "makeAntToEnu failed: code=%d (%s)\n", static_cast<int>(e.code()), e.what());
             std::exit(3);
         }
     }();
@@ -57,11 +56,11 @@ int main(int argc, char** argv)
     {
         const beam::BeamTable table(xform);
         std::printf("idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg\n");
-        for (std::size_t i = 0; i < beam::BeamTable::Size(); ++i)
+        for (std::size_t i = 0; i < beam::BeamTable::size(); ++i)
         {
-            const beam::BeamInfo& b = table.Get(i);
+            const beam::BeamInfo& b = table.get(i);
             std::printf("%zu,%u,%.6f,%.6f,%.2f,%.2f\n",
-                        i, b.beamId, b.az_deg, b.el_deg, b.azWidth_deg, b.elWidth_deg);
+                        i, b.beamId, b.azimuth_ant_deg, b.elevation_ant_deg, b.azimuthBeamWidth_deg, b.elevationBeamWidth_deg);
         }
     }
     catch (const std::exception& e)

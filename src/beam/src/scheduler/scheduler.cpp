@@ -5,7 +5,7 @@
 namespace beam
 {
 
-void Hello()
+void hello()
 {
     std::cout << "Hello World from beam!\n";
 }

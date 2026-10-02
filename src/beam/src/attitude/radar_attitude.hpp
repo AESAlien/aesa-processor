@@ -6,9 +6,9 @@ namespace beam
 
 struct RadarAttitude
 {
-    double radarLat_deg{};
-    double radarLon_deg{};
-    double radarAlt_km{};
+    double latitude_deg{};
+    double longitude_deg{};
+    double altitude_km{};
     double roll_deg{};
     double pitch_deg{};
     double yaw_deg{};

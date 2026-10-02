@@ -10,7 +10,7 @@ class DetectionSource
 public:
     virtual ~DetectionSource() = 0;
 
-    virtual void Read(const DetectionEvent& detection) = 0;
+    virtual void read(const DetectionEvent& detection) = 0;
 };
 
 inline DetectionSource::~DetectionSource() = default;

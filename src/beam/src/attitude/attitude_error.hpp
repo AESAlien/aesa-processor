@@ -9,21 +9,20 @@ namespace beam
 
 enum class AttitudeErrorCode : std::uint8_t
 {
-    NotFinite,
-    OutOfRange,
-    GimbalLock,
-    InvalidMount
+    NOT_FINITE,
+    OUT_OF_RANGE,
+    GIMBAL_LOCK,
+    INVALID_MOUNT
 };
 
 class AttitudeError : public std::invalid_argument
 {
 public:
-    AttitudeError(AttitudeErrorCode code, const std::string& message)
-        : std::invalid_argument(message), _code(code)
+    AttitudeError(AttitudeErrorCode code, const std::string& message) : std::invalid_argument(message), _code(code)
     {
     }
 
-    AttitudeErrorCode Code() const noexcept
+    AttitudeErrorCode code() const noexcept
     {
         return _code;
     }
