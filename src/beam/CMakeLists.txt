@@ -1,9 +1,7 @@
 add_library(beam STATIC 
     src/scheduler/beam_table.cpp
     src/scheduler/scheduler.cpp
-    src/attitude/rotation.cpp
-    src/attitude/transform.cpp
-    src/attitude/attitude_transform.cpp
+    src/attitude/antenna_to_enu.cpp
 )
 
 target_include_directories(beam PUBLIC

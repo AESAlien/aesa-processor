@@ -1,6 +1,4 @@
 #include "beam_table.hpp"
-#include <beam/transform.hpp>
-#include <stdexcept>
 
 namespace beam
 {
@@ -17,14 +15,12 @@ BeamTable::BeamTable(const AntennaToEnu& in)
 {
     static_assert(kAzCount * kElCount == 189, "grid size must match BeamTable::size()");
 
-    if(!in.valid) { throw std::invalid_argument("BeamTable: invalid AntennaToEnu"); }
-
     for(std::size_t e=0; e<kElCount; ++e) {
         for(std::size_t a=0; a<kAzCount; ++a) {
             const std::size_t idx = e * kAzCount + a;
 
             double az_ant = 0.0, el_ant = 0.0;
-            enuToAntAngle(in, kAzStart_deg + kAzStep_deg * a, 
+            in.enuToAntAngle(kAzStart_deg + kAzStep_deg * a,
                 kElStart_deg + kElStep_deg * e, az_ant, el_ant);
             
             BeamInfo& b = beams_[idx];
