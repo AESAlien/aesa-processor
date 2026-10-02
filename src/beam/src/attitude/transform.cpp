@@ -4,15 +4,15 @@
 
 namespace beam
 {
-
 namespace
 {
 inline double clamp1(double x) { return std::fmax(-1.0, std::fmin(1.0, x)); }
 
-inline double wrap360(double d)
+inline double wrap180(double d)
 {
-    d = std::fmod(d, 360.0);
-    return ((d < 0.0) ? (d + 360.0) : d);
+    d = std::fmod(d + 180.0, 360.0);
+    if(d < 0.0) { d += 360.0; }
+    return d - 180.0;
 }
 
 inline void aedToVec(double az_deg, double el_deg, double v[3])
@@ -26,13 +26,13 @@ inline void aedToVec(double az_deg, double el_deg, double v[3])
 
 inline void vecToAed(const double v[3], double& az_deg, double& el_deg)
 {
-    az_deg = wrap360(math::RadToDeg(std::atan2(v[0], v[1])));
+    az_deg = wrap180(math::RadToDeg(std::atan2(v[0], v[1])));
     el_deg = math::RadToDeg(std::asin(clamp1(v[2])));
 }
 }   // namespace
 
 
-bool antToEnuAngle(const AttTransformDto& xform,
+bool antToEnuAngle(const AntennaToEnu& xform,
     double az_ant_deg,  double el_ant_deg,
     double& az_enu_deg, double& el_enu_deg)
 {
@@ -50,7 +50,7 @@ bool antToEnuAngle(const AttTransformDto& xform,
     return true;
 }
 
-bool enuToAntAngle(const AttTransformDto& xform,
+bool enuToAntAngle(const AntennaToEnu& xform,
     double az_enu_deg,  double el_enu_deg,
     double& az_ant_deg, double& el_ant_deg)
 {

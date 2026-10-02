@@ -1,15 +1,15 @@
 #pragma once
-#include <beam/dto/attTransform_dto.hpp>
+#include <beam/dto/antenna_to_enu.hpp>
 
 namespace beam
 {
     
-bool antToEnuAngle(const AttTransformDto& xform,
+bool antToEnuAngle(const AntennaToEnu& xform,
     double az_ant_deg,  double el_ant_deg,
     double& az_enu_deg, double& el_enu_deg
 );
 
-bool enuToAntAngle(const AttTransformDto& xform,
+bool enuToAntAngle(const AntennaToEnu& xform,
     double az_enu_deg,  double el_enu_deg,
     double& az_ant_deg, double& el_ant_deg
 );

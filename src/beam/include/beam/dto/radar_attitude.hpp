@@ -4,7 +4,7 @@
 namespace beam
 {
 
-struct AttitudeDto
+struct RadarAttitude
 {
     double  radar_lat_deg   {};
     double  radar_lon_deg   {};
@@ -14,6 +14,6 @@ struct AttitudeDto
     double  yaw_deg         {};
 };
 
-static_assert(sizeof(AttitudeDto) == 48, "AttitudeDto must be 48 bytes");
+static_assert(sizeof(RadarAttitude) == 48, "RadarAttitude must be 48 bytes");
 
 }   // namespace beam
