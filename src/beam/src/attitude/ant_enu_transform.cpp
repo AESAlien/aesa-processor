@@ -2,8 +2,10 @@
 #include "attitude/attitude_error.hpp"
 
 #include <cmath>
+#include <stdexcept>
 #include <math/angle.hpp>
-#include <math/matrix.hpp>
+#include <math/square_matrix.hpp>
+#include <math/vector.hpp>
 
 namespace beam
 {
@@ -11,7 +13,7 @@ namespace
 {
 using namespace math::literals;
 
-math::Matrix bodyToEnu(math::Angle roll, math::Angle pitch, math::Angle yaw)
+math::SquareMatrix bodyToEnu(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     const double cr = std::cos(roll.rad());
     const double sr = std::sin(roll.rad());
@@ -20,9 +22,9 @@ math::Matrix bodyToEnu(math::Angle roll, math::Angle pitch, math::Angle yaw)
     const double cy = std::cos(yaw.rad());
     const double sy = std::sin(yaw.rad());
 
-    const math::Matrix Rz{{cy, sy, 0}, {-sy, cy, 0}, {0, 0, 1}};
-    const math::Matrix Rx{{1, 0, 0}, {0, cp, -sp}, {0, sp, cp}};
-    const math::Matrix Ry{{cr, 0, sr}, {0, 1, 0}, {-sr, 0, cr}};
+    const math::SquareMatrix Rz{{cy, sy, 0}, {-sy, cy, 0}, {0, 0, 1}};
+    const math::SquareMatrix Rx{{1, 0, 0}, {0, cp, -sp}, {0, sp, cp}};
+    const math::SquareMatrix Ry{{cr, 0, sr}, {0, 1, 0}, {-sr, 0, cr}};
 
     return Rz * (Rx * Ry);
 }
@@ -34,41 +36,60 @@ bool allFinite(const RadarAttitude& attitude)
            std::isfinite(attitude.pitch.deg()) && std::isfinite(attitude.yaw.deg());
 }
 
-bool isRotationMatrix(const math::Matrix& m, double tolerance)
+bool isOrthogonalMatrix(const math::SquareMatrix& matrix, double tolerance)
 {
-    if (m.rows() != 3 || m.columns() != 3)
+    if (!std::isfinite(tolerance) || tolerance < 0.0)
+    {
+        throw std::invalid_argument("Orthogonality tolerance must be finite and non-negative");
+    }
+    for (std::size_t row = 0; row < matrix.rows(); ++row)
+    {
+        for (std::size_t column = 0; column < matrix.columns(); ++column)
+        {
+            if (!std::isfinite(matrix(row, column)))
+            {
+                return false;
+            }
+        }
+    }
+
+    for (std::size_t i = 0; i < matrix.columns(); ++i)
+    {
+        for (std::size_t j = i; j < matrix.columns(); ++j)
+        {
+            double dot = 0.0;
+            for (std::size_t row = 0; row < matrix.rows(); ++row)
+            {
+                dot += matrix(row, i) * matrix(row, j);
+            }
+            const double expected = i == j ? 1.0 : 0.0;
+            if (!std::isfinite(dot) || std::abs(dot - expected) > tolerance)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool isRotationMatrix(const math::SquareMatrix& matrix, double tolerance)
+{
+    if (matrix.rows() != 3 || matrix.columns() != 3 || !std::isfinite(tolerance) || tolerance < 0.0)
     {
         return false;
     }
 
-    for (std::size_t i = 0; i < 3; ++i)
+    if (isOrthogonalMatrix(matrix, tolerance) == false)
     {
-        for (std::size_t j = 0; j < 3; ++j)
-        {
-            if (!std::isfinite(m(i, j)))
-            {
-                return false;
-            }
-        }
+        return false;
     }
 
-    // R^T * R = I
-    const math::Matrix RtR = m.transpose() * m;
-    for (std::size_t i = 0; i < 3; ++i)
+    if (std::fabs(matrix.det() - 1.0) > tolerance)
     {
-        for (std::size_t j = 0; j < 3; ++j)
-        {
-            if (std::fabs(RtR(i, j) - (i == j ? 1.0 : 0.0)) > tolerance)
-            {
-                return false;
-            }
-        }
+        return false;
     }
 
-    const double det = m(0, 0) * (m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1)) -
-                       m(0, 1) * (m(1, 0) * m(2, 2) - m(1, 2) * m(2, 0)) +
-                       m(0, 2) * (m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0));
-    return std::fabs(det - 1.0) <= tolerance;
+    return true;
 }
 
 double clamp1(double x)
@@ -76,19 +97,19 @@ double clamp1(double x)
     return std::fmax(-1.0, std::fmin(1.0, x));
 }
 
-math::Matrix aedToVector(math::Angle azimuth, math::Angle elevation)
+math::Vector aedToVector(math::Angle azimuth, math::Angle elevation)
 {
-    return math::Matrix{
-        {std::cos(elevation.rad()) * std::sin(azimuth.rad())},
-        {std::cos(elevation.rad()) * std::cos(azimuth.rad())},
-        {std::sin(elevation.rad())}
+    return math::Vector{
+        std::cos(elevation.rad()) * std::sin(azimuth.rad()),
+        std::cos(elevation.rad()) * std::cos(azimuth.rad()),
+        std::sin(elevation.rad())
     };
 }
 
-std::tuple<math::Angle, math::Angle> vectorToAed(const math::Matrix& v)
+std::tuple<math::Angle, math::Angle> vectorToAed(const math::Vector& v)
 {
-    const auto azimuth = math::Angle::fromRadians(std::atan2(v(0, 0), v(1, 0))).wrap180();
-    const auto elevation = math::Angle::fromRadians(std::asin(clamp1(v(2, 0))));
+    const auto azimuth = math::Angle::fromRadians(std::atan2(v(0), v(1))).wrap180();
+    const auto elevation = math::Angle::fromRadians(std::asin(clamp1(v(2))));
 
     return {azimuth, elevation};
 }
@@ -126,15 +147,15 @@ AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeCo
 
 std::tuple<math::Angle, math::Angle> AntEnuTransform::antToEnu(math::Angle azimuth_ant, math::Angle elevation_ant) const
 {
-    const math::Matrix vector_ant = aedToVector(azimuth_ant, elevation_ant);
-    const math::Matrix vector_enu = _rotationMatrix * vector_ant;
+    const math::Vector vector_ant = aedToVector(azimuth_ant, elevation_ant);
+    const math::Vector vector_enu = _rotationMatrix * vector_ant;
     return vectorToAed(vector_enu);
 }
 
 std::tuple<math::Angle, math::Angle> AntEnuTransform::enuToAnt(math::Angle azimuth_enu, math::Angle elevation_enu) const
 {
-    const math::Matrix vector_enu = aedToVector(azimuth_enu, elevation_enu);
-    const math::Matrix vector_ant = _rotationMatrix.transpose() * vector_enu;
+    const math::Vector vector_enu = aedToVector(azimuth_enu, elevation_enu);
+    const math::Vector vector_ant = _rotationMatrix.transpose() * vector_enu;
     return vectorToAed(vector_ant);
 }
 

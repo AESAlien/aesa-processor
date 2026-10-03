@@ -3,7 +3,7 @@
 #include "attitude/attitude_config.hpp"
 #include "attitude/radar_attitude.hpp"
 #include <math/angle.hpp>
-#include <math/matrix.hpp>
+#include <math/square_matrix.hpp>
 #include <tuple>
 
 namespace beam
@@ -22,7 +22,7 @@ public:
 
 private:
     RadarAttitude _attitude{};
-    math::Matrix _rotationMatrix;
+    math::SquareMatrix _rotationMatrix;
 };
 
 } // namespace beam

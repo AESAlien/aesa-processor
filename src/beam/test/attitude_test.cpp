@@ -135,7 +135,7 @@ TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
 TEST(AttitudeTransformTest, AcceptsRotationMount)
 {
     beam::AttitudeConfig config;
-    config.mountAntToBodyRotation = math::Matrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}}; // z축 90도 회전
+    config.mountAntToBodyRotation = math::SquareMatrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}}; // z축 90도 회전
 
     EXPECT_NO_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 0_deg, 0_deg), config));
 }
@@ -145,20 +145,76 @@ TEST(AttitudeTransformTest, ThrowsOnInvalidMount)
     beam::AttitudeConfig config;
     const auto attitude = makeAttitude(0_deg, 0_deg, 0_deg);
 
-    config.mountAntToBodyRotation = math::Matrix{{2, 0, 0}, {0, 1, 0}, {0, 0, 1}}; // 스케일
+    config.mountAntToBodyRotation = math::SquareMatrix{{2, 0, 0}, {0, 1, 0}, {0, 0, 1}}; // 스케일
     EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
 
-    config.mountAntToBodyRotation = math::Matrix{{1, 0, 0}, {0, 1, 0}, {0, 0, -1}}; // 반사 (det = -1)
+    config.mountAntToBodyRotation = math::SquareMatrix{{1, 0, 0}, {0, 1, 0}, {0, 0, -1}}; // 반사 (det = -1)
     EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
 
-    config.mountAntToBodyRotation = math::Matrix{{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}; // 특이 행렬
+    config.mountAntToBodyRotation = math::SquareMatrix{{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}; // 특이 행렬
     EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
 
-    config.mountAntToBodyRotation = math::Matrix{{1, 0, 0}, {0, 1, 0}, {0, 0, std::numeric_limits<double>::infinity()}};
+    config.mountAntToBodyRotation = math::SquareMatrix{{1, 0, 0}, {0, 1, 0}, {0, 0, std::numeric_limits<double>::infinity()}};
     EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
 
-    config.mountAntToBodyRotation = math::Matrix::identity(2); // 3x3 이 아님
+    config.mountAntToBodyRotation = math::SquareMatrix::identity(2); // 3x3 이 아님
     EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
+}
+
+TEST(AttitudeTransformTest, AcceptsRotationMountWithFloatingPointEntries)
+{
+    beam::AttitudeConfig config;
+    const double c = std::cos(0.37);
+    const double s = std::sin(0.37);
+    config.mountAntToBodyRotation = math::SquareMatrix{{c, -s, 0}, {s, c, 0}, {0, 0, 1}};
+
+    EXPECT_NO_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 0_deg, 0_deg), config));
+}
+
+TEST(AttitudeTransformTest, MountOrthogonalityUsesConfiguredTolerance)
+{
+    beam::AttitudeConfig config;
+    const auto attitude = makeAttitude(0_deg, 0_deg, 0_deg);
+
+    config.mountAntToBodyRotation = math::SquareMatrix{{1.0 + 1e-7, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+    EXPECT_NO_THROW(beam::AntEnuTransform(attitude, config));
+    config.mountOrthogonalTolerance = 1e-8;
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
+
+    config.mountAntToBodyRotation = math::SquareMatrix{{1, 1e-7, 0}, {0, 1, 0}, {0, 0, 1}};
+    config.mountOrthogonalTolerance = 1e-7;
+    EXPECT_NO_THROW(beam::AntEnuTransform(attitude, config));
+    config.mountOrthogonalTolerance = 1e-8;
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
+}
+
+TEST(AttitudeTransformTest, RejectsNonFiniteMountEntriesAndOverflow)
+{
+    beam::AttitudeConfig config;
+    const auto attitude = makeAttitude(0_deg, 0_deg, 0_deg);
+
+    for (double value : {std::numeric_limits<double>::quiet_NaN(),
+                         std::numeric_limits<double>::infinity(),
+                         std::numeric_limits<double>::max()})
+    {
+        config.mountAntToBodyRotation = math::SquareMatrix{{value, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+        EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
+    }
+}
+
+TEST(AttitudeTransformTest, RejectsInvalidMountOrthogonalTolerance)
+{
+    beam::AttitudeConfig config;
+    const auto attitude = makeAttitude(0_deg, 0_deg, 0_deg);
+
+    config.mountOrthogonalTolerance = 0.0;
+    EXPECT_NO_THROW(beam::AntEnuTransform(attitude, config));
+    for (double tolerance : {-1.0, std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::infinity()})
+    {
+        config.mountOrthogonalTolerance = tolerance;
+        EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
+    }
 }
 
 TEST(AttitudeTransformTest, AttitudeErrorIsInvalidArgument)
