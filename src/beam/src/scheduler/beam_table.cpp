@@ -4,11 +4,13 @@ namespace beam
 {
 namespace
 {
+using namespace math::literals;
+
 constexpr std::size_t AZIMUTH_COUNT = 21;
 constexpr std::size_t ELEVATION_COUNT = 9;
-constexpr double AZIMUTH_START_DEG = -42.0, AZIMUTH_STEP_DEG = 4.2;
-constexpr double ELEVATION_START_DEG = 3.0, ELEVATION_STEP_DEG = 4.4;
-constexpr float BEAM_WIDTH_DEG = 6.0f;
+const math::Angle AZIMUTH_START = -42_deg, AZIMUTH_STEP = 4.2_deg;
+const math::Angle ELEVATION_START = 3_deg, ELEVATION_STEP = 4.4_deg;
+const math::Angle BEAM_WIDTH = 6_deg;
 } // namespace
 
 BeamTable::BeamTable(const AntEnuTransform& transform)
@@ -21,15 +23,17 @@ BeamTable::BeamTable(const AntEnuTransform& transform)
         {
             const std::size_t index = e * AZIMUTH_COUNT + a;
 
-            const auto [azimuth_ant_deg, elevation_ant_deg] = transform.enuToAnt(
-                AZIMUTH_START_DEG + AZIMUTH_STEP_DEG * a, ELEVATION_START_DEG + ELEVATION_STEP_DEG * e);
+            const auto [azimuth_ant, elevation_ant] = transform.enuToAnt(
+                AZIMUTH_START + AZIMUTH_STEP * static_cast<double>(a),
+                ELEVATION_START + ELEVATION_STEP * static_cast<double>(e)
+            );
 
             BeamInfo& beam = _beams[index];
             beam.beamId = static_cast<std::uint32_t>(index + 1);
-            beam.azimuth_ant_deg = static_cast<float>(azimuth_ant_deg);
-            beam.elevation_ant_deg = static_cast<float>(elevation_ant_deg);
-            beam.azimuthBeamWidth_deg = BEAM_WIDTH_DEG;
-            beam.elevationBeamWidth_deg = BEAM_WIDTH_DEG;
+            beam.azimuth_ant = azimuth_ant;
+            beam.elevation_ant = elevation_ant;
+            beam.azimuthBeamWidth = BEAM_WIDTH;
+            beam.elevationBeamWidth = BEAM_WIDTH;
         }
     }
 }

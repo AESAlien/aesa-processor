@@ -17,14 +17,18 @@
 
 int main(int argc, char** argv)
 {
+    using namespace math::literals;
+
     int first = 1;
 
-    double roll = 0.0, pitch = 0.0, yaw = 0.0;
+    auto roll = 0_deg;
+    auto pitch = 0_deg;
+    auto yaw = 0_deg;
     if (argc - first == 3)
     {
-        roll = std::atof(argv[first]);
-        pitch = std::atof(argv[first + 1]);
-        yaw = std::atof(argv[first + 2]);
+        roll = math::Angle::fromDegrees(std::atof(argv[first]));
+        pitch = math::Angle::fromDegrees(std::atof(argv[first + 1]));
+        yaw = math::Angle::fromDegrees(std::atof(argv[first + 2]));
     }
     else if (argc - first != 0)
     {
@@ -33,12 +37,12 @@ int main(int argc, char** argv)
     }
 
     beam::RadarAttitude att{};
-    att.latitude_deg = 37.0;
-    att.longitude_deg = 127.0;
-    att.altitude_km = 0.1;
-    att.roll_deg = roll;
-    att.pitch_deg = pitch;
-    att.yaw_deg = yaw;
+    att.latitude = 37_deg;
+    att.longitude = 127_deg;
+    att.altitude = 0.1_km;
+    att.roll = roll;
+    att.pitch = pitch;
+    att.yaw = yaw;
 
     beam::AntEnuTransform xform = [&]() {
         try
@@ -60,7 +64,8 @@ int main(int argc, char** argv)
         {
             const beam::BeamInfo& b = table.get(i);
             std::printf("%zu,%u,%.6f,%.6f,%.2f,%.2f\n",
-                        i, b.beamId, b.azimuth_ant_deg, b.elevation_ant_deg, b.azimuthBeamWidth_deg, b.elevationBeamWidth_deg);
+                        i, b.beamId, b.azimuth_ant.deg(), b.elevation_ant.deg(),
+                        b.azimuthBeamWidth.deg(), b.elevationBeamWidth.deg());
         }
     }
     catch (const std::exception& e)
