@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <math/angle.hpp>
+#include <math/distance.hpp>
+#include <chrono>
 
 #include <cstdint>
 
@@ -8,6 +11,10 @@
 
 namespace target
 {
+
+using math::literals::operator""_deg;
+using math::literals::operator""_km;
+using std::chrono_literals::operator""ms;
 
 struct TrackEvent
 {
@@ -17,20 +24,21 @@ struct TrackEvent
         TRACKING = 2
     };
 
-    std::uint16_t id{};
-    TrackState state{TrackState::INIT};
-    float slantRange_km{};
-    float groundRange_km{};
-    float azimuth_deg{};
-    float elevation_deg{};
-    float dopplerVelocity_mps{};
-    float latitude_deg{};
-    float longitude_deg{};
-    float altitude_km{};
-    float velocity_mps{};
-    float heading_deg{};
-    float flightPathAngle_deg{};
-    std::uint32_t timestamp_ms{};
+    std::uint16_t id;
+    TrackState state;
+    math::Distance slantRange;
+    math::Distance groundRange;
+    math::Angle azimuth;
+    math::Angle elevation;
+    float dopplerVelocity_mps;
+    math::Angle latitude;
+    math::Angle longitude;
+    math::Distance altitude;
+    float velocity_mps;
+    math::Angle heading;
+    math::Angle flightPathAngle;
+    // Elapsed time since the shared start at 0 ms.
+    std::chrono::milliseconds timestamp = 0ms;
 };
 
 } // namespace target

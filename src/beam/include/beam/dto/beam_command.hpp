@@ -1,8 +1,14 @@
 #pragma once
+
+#include <math/angle.hpp>
+#include <chrono>
 #include <cstdint>
 
 namespace beam
 {
+
+using math::literals::operator""_deg;
+using std::chrono_literals::operator""ms;
 
 struct BeamCommand
 {
@@ -14,18 +20,14 @@ struct BeamCommand
     };
 
     BeamType beamType{};
-    std::uint32_t timestamp_ms{};
-    std::uint32_t beamId{};
-    BeamType beamType{};
-    std::uint32_t timestamp_ms{};
+    // Elapsed time since the shared start at 0 ms.
+    std::chrono::milliseconds timestamp = 0ms;
     std::uint32_t beamId{};
     std::uint32_t commandCount{};
-    float azimuth_ant_deg{};
-    float elevation_ant_deg{};
-    float azimuthBeamWidth_deg{};
-    float elevationBeamWidth_deg{};
+    math::Angle azimuth_ant = 0_deg;
+    math::Angle elevation_ant = 0_deg;
+    math::Angle azimuthBeamWidth = 0_deg;
+    math::Angle elevationBeamWidth = 0_deg;
 };
-
-static_assert(sizeof(BeamCommand) == 32, "BeamCommand must be 32 bytes");
 
 } // namespace beam

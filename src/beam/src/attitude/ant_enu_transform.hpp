@@ -2,6 +2,7 @@
 
 #include "attitude/attitude_config.hpp"
 #include "attitude/radar_attitude.hpp"
+#include <math/angle.hpp>
 #include <math/matrix.hpp>
 #include <tuple>
 
@@ -13,11 +14,11 @@ class AntEnuTransform
 public:
     AntEnuTransform(const RadarAttitude&, const AttitudeConfig&);
 
-    // return (azimuth_enu_deg, elevation_enu_deg)
-    std::tuple<double, double> antToEnu(double azimuth_ant_deg, double elevation_ant_deg) const;
+    // return (azimuth_enu, elevation_enu)
+    std::tuple<math::Angle, math::Angle> antToEnu(math::Angle azimuth_ant, math::Angle elevation_ant) const;
 
-    // return (azimuth_ant_deg, elevation_ant_deg)
-    std::tuple<double, double> enuToAnt(double azimuth_enu_deg, double elevation_enu_deg) const;
+    // return (azimuth_ant, elevation_ant)
+    std::tuple<math::Angle, math::Angle> enuToAnt(math::Angle azimuth_enu, math::Angle elevation_enu) const;
 
 private:
     RadarAttitude _attitude{};

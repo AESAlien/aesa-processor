@@ -9,14 +9,16 @@ namespace beam
 {
 namespace
 {
-math::Matrix bodyToEnu(double roll_deg, double pitch_deg, double yaw_deg)
+using namespace math::literals;
+
+math::Matrix bodyToEnu(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    const double cr = std::cos(math::degToRad(roll_deg));
-    const double sr = std::sin(math::degToRad(roll_deg));
-    const double cp = std::cos(math::degToRad(pitch_deg));
-    const double sp = std::sin(math::degToRad(pitch_deg));
-    const double cy = std::cos(math::degToRad(yaw_deg));
-    const double sy = std::sin(math::degToRad(yaw_deg));
+    const double cr = std::cos(roll.rad());
+    const double sr = std::sin(roll.rad());
+    const double cp = std::cos(pitch.rad());
+    const double sp = std::sin(pitch.rad());
+    const double cy = std::cos(yaw.rad());
+    const double sy = std::sin(yaw.rad());
 
     const math::Matrix Rz{{cy, sy, 0}, {-sy, cy, 0}, {0, 0, 1}};
     const math::Matrix Rx{{1, 0, 0}, {0, cp, -sp}, {0, sp, cp}};
@@ -27,9 +29,9 @@ math::Matrix bodyToEnu(double roll_deg, double pitch_deg, double yaw_deg)
 
 bool allFinite(const RadarAttitude& attitude)
 {
-    return std::isfinite(attitude.latitude_deg) && std::isfinite(attitude.longitude_deg) &&
-           std::isfinite(attitude.altitude_km) && std::isfinite(attitude.roll_deg) &&
-           std::isfinite(attitude.pitch_deg) && std::isfinite(attitude.yaw_deg);
+    return std::isfinite(attitude.latitude.deg()) && std::isfinite(attitude.longitude.deg()) &&
+           std::isfinite(attitude.altitude.km()) && std::isfinite(attitude.roll.deg()) &&
+           std::isfinite(attitude.pitch.deg()) && std::isfinite(attitude.yaw.deg());
 }
 
 bool isRotationMatrix(const math::Matrix& matrix, double tolerance)
@@ -57,32 +59,21 @@ double clamp1(double x)
     return std::fmax(-1.0, std::fmin(1.0, x));
 }
 
-double wrap180(double d)
+math::Matrix aedToVector(math::Angle azimuth, math::Angle elevation)
 {
-    d = std::fmod(d + 180.0, 360.0);
-    if (d < 0.0)
-    {
-        d += 360.0;
-    }
-    return d - 180.0;
+    return math::Matrix{
+        {std::cos(elevation.rad()) * std::sin(azimuth.rad())},
+        {std::cos(elevation.rad()) * std::cos(azimuth.rad())},
+        {std::sin(elevation.rad())}
+    };
 }
 
-math::Matrix aedToVector(double azimuth_deg, double elevation_deg)
+std::tuple<math::Angle, math::Angle> vectorToAed(const math::Matrix& v)
 {
-    const double azimuth_rad = math::degToRad(azimuth_deg);
-    const double elevation_rad = math::degToRad(elevation_deg);
+    const auto azimuth = math::Angle::fromRadians(std::atan2(v(0, 0), v(1, 0))).wrap180();
+    const auto elevation = math::Angle::fromRadians(std::asin(clamp1(v(2, 0))));
 
-    return math::Matrix{{std::cos(elevation_rad) * std::sin(azimuth_rad)},
-                        {std::cos(elevation_rad) * std::cos(azimuth_rad)},
-                        {std::sin(elevation_rad)}};
-}
-
-std::tuple<double, double> vectorToAed(const math::Matrix& v)
-{
-    const double azimuth_deg = wrap180(math::radToDeg(std::atan2(v(0, 0), v(1, 0))));
-    const double elevation_deg = math::radToDeg(std::asin(clamp1(v(2, 0))));
-
-    return {azimuth_deg, elevation_deg};
+    return {azimuth, elevation};
 }
 } // namespace
 
@@ -93,14 +84,16 @@ AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeCo
         throw AttitudeError(AttitudeErrorCode::NOT_FINITE, "RadarAttitude contains NaN or Inf");
     }
 
-    if (attitude.latitude_deg < -90 || attitude.latitude_deg > 90 || attitude.longitude_deg < -180 ||
-        attitude.longitude_deg > 180 || attitude.altitude_km < -0.5 || attitude.altitude_km > 100 ||
-        attitude.roll_deg < -180 || attitude.roll_deg > 180 || attitude.yaw_deg < -360 || attitude.yaw_deg > 360)
-    {
+    if (attitude.latitude < -90_deg || attitude.latitude > 90_deg ||
+        attitude.longitude < -180_deg || attitude.longitude > 180_deg ||
+        attitude.altitude < -0.5_km || attitude.altitude > 100_km ||
+        attitude.roll < -180_deg || attitude.roll > 180_deg ||
+        attitude.yaw < -360_deg || attitude.yaw > 360_deg
+    ) {
         throw AttitudeError(AttitudeErrorCode::OUT_OF_RANGE, "RadarAttitude value is out of range");
     }
 
-    if (std::fabs(attitude.pitch_deg) >= config.maxAbsPitch_deg)
+    if (attitude.pitch <= -config.maxAbsPitch || attitude.pitch >= config.maxAbsPitch)
     {
         throw AttitudeError(AttitudeErrorCode::GIMBAL_LOCK, "pitch is too close to gimbal lock");
     }
@@ -111,19 +104,19 @@ AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeCo
     }
 
     _rotationMatrix =
-        bodyToEnu(attitude.roll_deg, attitude.pitch_deg, attitude.yaw_deg) * config.mountAntToBodyRotation;
+        bodyToEnu(attitude.roll, attitude.pitch, attitude.yaw) * config.mountAntToBodyRotation;
 }
 
-std::tuple<double, double> AntEnuTransform::antToEnu(double azimuth_ant_deg, double elevation_ant_deg) const
+std::tuple<math::Angle, math::Angle> AntEnuTransform::antToEnu(math::Angle azimuth_ant, math::Angle elevation_ant) const
 {
-    const math::Matrix vector_ant = aedToVector(azimuth_ant_deg, elevation_ant_deg);
+    const math::Matrix vector_ant = aedToVector(azimuth_ant, elevation_ant);
     const math::Matrix vector_enu = _rotationMatrix * vector_ant;
     return vectorToAed(vector_enu);
 }
 
-std::tuple<double, double> AntEnuTransform::enuToAnt(double azimuth_enu_deg, double elevation_enu_deg) const
+std::tuple<math::Angle, math::Angle> AntEnuTransform::enuToAnt(math::Angle azimuth_enu, math::Angle elevation_enu) const
 {
-    const math::Matrix vector_enu = aedToVector(azimuth_enu_deg, elevation_enu_deg);
+    const math::Matrix vector_enu = aedToVector(azimuth_enu, elevation_enu);
     const math::Matrix vector_ant = _rotationMatrix.transpose() * vector_enu;
     return vectorToAed(vector_ant);
 }
