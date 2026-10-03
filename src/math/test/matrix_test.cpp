@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cmath>
 #include <limits>
 #include <stdexcept>
 
@@ -222,4 +223,111 @@ TEST(MatrixTest, CreatesEmptyIdentityMatrix)
     EXPECT_TRUE(identity.empty());
     EXPECT_EQ(identity.rows(), 0);
     EXPECT_EQ(identity.columns(), 0);
+}
+
+TEST(MatrixTest, RecognizesOrthogonalMatricesIncludingReflections)
+{
+    EXPECT_TRUE(math::Matrix::identity(4).isOrthogonal(0.0));
+    EXPECT_TRUE((math::Matrix{{0.0, -1.0}, {1.0, 0.0}}).isOrthogonal(0.0));
+    EXPECT_TRUE((math::Matrix{{1.0, 0.0}, {0.0, -1.0}}).isOrthogonal(0.0));
+    const double angle = 0.37;
+    const double c = std::cos(angle);
+    const double s = std::sin(angle);
+    EXPECT_TRUE((math::Matrix{{c, -s}, {s, c}}).isOrthogonal());
+}
+
+TEST(MatrixTest, RejectsNonOrthogonalMatrices)
+{
+    EXPECT_FALSE(math::Matrix(3, 3).isOrthogonal());
+    EXPECT_FALSE((math::Matrix{{2.0, 0.0}, {0.0, 1.0}}).isOrthogonal());
+    // Both columns have unit length, but they are not perpendicular.
+    EXPECT_FALSE((math::Matrix{{1.0, 0.6}, {0.0, 0.8}}).isOrthogonal());
+}
+
+TEST(MatrixTest, RejectsRectangularMatricesEvenWithOrthonormalColumns)
+{
+    EXPECT_FALSE((math::Matrix{{1.0, 0.0}, {0.0, 1.0}, {0.0, 0.0}}).isOrthogonal());
+    EXPECT_FALSE(math::Matrix(0, 3).isOrthogonal());
+    EXPECT_FALSE(math::Matrix(3, 0).isOrthogonal());
+}
+
+TEST(MatrixTest, EmptySquareMatrixIsOrthogonal)
+{
+    EXPECT_TRUE(math::Matrix().isOrthogonal());
+    EXPECT_TRUE(math::Matrix::identity(0).isOrthogonal(0.0));
+}
+
+TEST(MatrixTest, OrthogonalityUsesAbsoluteToleranceForEveryEntry)
+{
+    const math::Matrix scaled{{1.0 + 1e-7, 0.0}, {0.0, 1.0}};
+    EXPECT_TRUE(scaled.isOrthogonal());
+    EXPECT_FALSE(scaled.isOrthogonal(1e-8));
+    const math::Matrix sheared{{1.0, 1e-7}, {0.0, 1.0}};
+    EXPECT_TRUE(sheared.isOrthogonal(1e-7));
+    EXPECT_FALSE(sheared.isOrthogonal(1e-8));
+}
+
+TEST(MatrixTest, OrthogonalityRejectsNonFiniteValuesAndOverflow)
+{
+    EXPECT_FALSE((math::Matrix{{std::numeric_limits<double>::quiet_NaN()}}).isOrthogonal());
+    EXPECT_FALSE((math::Matrix{{std::numeric_limits<double>::infinity()}}).isOrthogonal());
+    EXPECT_FALSE((math::Matrix{{std::numeric_limits<double>::max()}}).isOrthogonal());
+}
+
+TEST(MatrixTest, OrthogonalityRejectsInvalidTolerance)
+{
+    const math::Matrix matrix = math::Matrix::identity(2);
+    EXPECT_THROW(matrix.isOrthogonal(-1.0), std::invalid_argument);
+    EXPECT_THROW(matrix.isOrthogonal(std::numeric_limits<double>::quiet_NaN()), std::invalid_argument);
+    EXPECT_THROW(matrix.isOrthogonal(std::numeric_limits<double>::infinity()), std::invalid_argument);
+}
+
+TEST(MatrixTest, ComputesDeterminantsOfSquareMatrices)
+{
+    EXPECT_DOUBLE_EQ((math::Matrix{{-3.5}}).det(), -3.5);
+    EXPECT_DOUBLE_EQ((math::Matrix{{1.0, 2.0}, {3.0, 4.0}}).det(), -2.0);
+    EXPECT_NEAR((math::Matrix{{6.0, 1.0, 1.0}, {4.0, -2.0, 5.0}, {2.0, 8.0, 7.0}}).det(), -306.0, 1e-12);
+    EXPECT_DOUBLE_EQ(math::Matrix::identity(4).det(), 1.0);
+}
+
+TEST(MatrixTest, DeterminantAccountsForRowSwaps)
+{
+    EXPECT_DOUBLE_EQ((math::Matrix{{0.0, 1.0}, {2.0, 3.0}}).det(), -2.0);
+    EXPECT_DOUBLE_EQ((math::Matrix{{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {1.0, 0.0, 0.0}}).det(), 1.0);
+}
+
+TEST(MatrixTest, SingularMatricesHaveZeroDeterminant)
+{
+    EXPECT_DOUBLE_EQ((math::Matrix{{1.0, 2.0}, {2.0, 4.0}}).det(), 0.0);
+    EXPECT_DOUBLE_EQ((math::Matrix{{0.0, 1.0}, {0.0, 2.0}}).det(), 0.0);
+    EXPECT_DOUBLE_EQ(math::Matrix(3, 3).det(), 0.0);
+}
+
+TEST(MatrixTest, DeterminantPreservesSmallNonzeroPivots)
+{
+    EXPECT_DOUBLE_EQ((math::Matrix{{1e-20, 0.0}, {0.0, 2.0}}).det(), 2e-20);
+}
+
+TEST(MatrixTest, DeterminantDoesNotModifyOriginalMatrix)
+{
+    const math::Matrix matrix{{0.0, 2.0}, {3.0, 4.0}};
+
+    EXPECT_DOUBLE_EQ(matrix.det(), -6.0);
+    EXPECT_DOUBLE_EQ(matrix(0, 0), 0.0);
+    EXPECT_DOUBLE_EQ(matrix(0, 1), 2.0);
+    EXPECT_DOUBLE_EQ(matrix(1, 0), 3.0);
+    EXPECT_DOUBLE_EQ(matrix(1, 1), 4.0);
+}
+
+TEST(MatrixTest, EmptySquareMatrixHasUnitDeterminant)
+{
+    EXPECT_DOUBLE_EQ(math::Matrix().det(), 1.0);
+    EXPECT_DOUBLE_EQ(math::Matrix::identity(0).det(), 1.0);
+}
+
+TEST(MatrixTest, RejectsDeterminantOfNonSquareMatrices)
+{
+    EXPECT_THROW(math::Matrix(2, 3).det(), std::invalid_argument);
+    EXPECT_THROW(math::Matrix(0, 3).det(), std::invalid_argument);
+    EXPECT_THROW(math::Matrix(3, 0).det(), std::invalid_argument);
 }

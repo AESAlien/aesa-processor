@@ -30,6 +30,11 @@ public:
     Matrix operator/(double scalar) const;
 
     Matrix transpose() const;
+    // Checks A^T * A against identity using an absolute tolerance; 0x0 returns true.
+    // Returns false for non-square or non-finite matrices. Throws for invalid tolerance.
+    bool isOrthogonal(double tolerance = 1e-6) const;
+    // Returns the determinant; the 0x0 determinant is 1. Throws for non-square matrices.
+    double det() const;
     static Matrix identity(std::size_t size);
 
 private:

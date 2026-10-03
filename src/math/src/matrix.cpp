@@ -1,7 +1,9 @@
 #include "math/matrix.hpp"
 
+#include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace math
 {
@@ -153,6 +155,91 @@ Matrix Matrix::transpose() const
         }
     }
     return result;
+}
+
+bool Matrix::isOrthogonal(double tolerance) const
+{
+    if (!std::isfinite(tolerance) || tolerance < 0.0)
+    {
+        throw std::invalid_argument("Orthogonality tolerance must be finite and non-negative");
+    }
+    if (_rows != _columns)
+    {
+        return false;
+    }
+    for (double value : _values)
+    {
+        if (!std::isfinite(value))
+        {
+            return false;
+        }
+    }
+
+    for (std::size_t i = 0; i < _columns; ++i)
+    {
+        for (std::size_t j = i; j < _columns; ++j)
+        {
+            double dot = 0.0;
+            for (std::size_t row = 0; row < _rows; ++row)
+            {
+                dot += (*this)(row, i) * (*this)(row, j);
+            }
+            const double expected = i == j ? 1.0 : 0.0;
+            if (!std::isfinite(dot) || std::abs(dot - expected) > tolerance)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+double Matrix::det() const
+{
+    if (_rows != _columns)
+    {
+        throw std::invalid_argument("Determinant requires a square matrix");
+    }
+
+    Matrix upper = *this;
+    double determinant = 1.0;
+    for (std::size_t column = 0; column < _columns; ++column)
+    {
+        std::size_t pivotRow = column;
+        for (std::size_t row = column + 1; row < _rows; ++row)
+        {
+            if (std::abs(upper(row, column)) > std::abs(upper(pivotRow, column)))
+            {
+                pivotRow = row;
+            }
+        }
+
+        if (upper(pivotRow, column) == 0.0)
+        {
+            return 0.0;
+        }
+        if (pivotRow != column)
+        {
+            for (std::size_t entry = column; entry < _columns; ++entry)
+            {
+                std::swap(upper(column, entry), upper(pivotRow, entry));
+            }
+            determinant = -determinant;
+        }
+
+        const double pivot = upper(column, column);
+        determinant *= pivot;
+        for (std::size_t row = column + 1; row < _rows; ++row)
+        {
+            const double factor = upper(row, column) / pivot;
+            upper(row, column) = 0.0;
+            for (std::size_t entry = column + 1; entry < _columns; ++entry)
+            {
+                upper(row, entry) -= factor * upper(column, entry);
+            }
+        }
+    }
+    return determinant;
 }
 
 Matrix Matrix::identity(std::size_t size)

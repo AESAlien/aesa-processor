@@ -32,41 +32,24 @@ bool allFinite(const RadarAttitude& attitude)
            std::isfinite(attitude.pitch_deg) && std::isfinite(attitude.yaw_deg);
 }
 
-bool isRotationMatrix(const math::Matrix& m, double tolerance)
+bool isRotationMatrix(const math::Matrix& matrix, double tolerance)
 {
-    if (m.rows() != 3 || m.columns() != 3)
+    if (matrix.rows() != 3 || matrix.columns() != 3 || !std::isfinite(tolerance) || tolerance < 0.0)
     {
         return false;
     }
 
-    for (std::size_t i = 0; i < 3; ++i)
+    if (matrix.isOrthogonal(tolerance) == false)
     {
-        for (std::size_t j = 0; j < 3; ++j)
-        {
-            if (!std::isfinite(m(i, j)))
-            {
-                return false;
-            }
-        }
+        return false;
     }
 
-    // R^T * R = I
-    const math::Matrix RtR = m.transpose() * m;
-    for (std::size_t i = 0; i < 3; ++i)
+    if (std::fabs(matrix.det() - 1.0) > tolerance)
     {
-        for (std::size_t j = 0; j < 3; ++j)
-        {
-            if (std::fabs(RtR(i, j) - (i == j ? 1.0 : 0.0)) > tolerance)
-            {
-                return false;
-            }
-        }
+        return false;
     }
 
-    const double det = m(0, 0) * (m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1)) -
-                       m(0, 1) * (m(1, 0) * m(2, 2) - m(1, 2) * m(2, 0)) +
-                       m(0, 2) * (m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0));
-    return std::fabs(det - 1.0) <= tolerance;
+    return true;
 }
 
 double clamp1(double x)
