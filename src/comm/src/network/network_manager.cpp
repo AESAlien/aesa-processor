@@ -1,8 +1,16 @@
-#include <comm/network/network_manager.hpp>
+#include <network/network_manager.hpp>
 
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 
 #ifdef ERROR
 #undef ERROR
