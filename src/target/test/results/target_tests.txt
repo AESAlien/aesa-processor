@@ -1,0 +1,31 @@
+Running main() from /workspace/scratch/03534ecd5e22/tooling/googletest/googletest/src/gtest_main.cc
+[==========] Running 11 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 11 tests from TargetController
+[ RUN      ] TargetController.EmptyRepositoryCreatesConfirmationRequest
+[       OK ] TargetController.EmptyRepositoryCreatesConfirmationRequest (0 ms)
+[ RUN      ] TargetController.SamePositionDoesNotCreateRequestRegardlessOfDopplerAndPower
+[       OK ] TargetController.SamePositionDoesNotCreateRequestRegardlessOfDopplerAndPower (0 ms)
+[ RUN      ] TargetController.DifferentRangeAzimuthOrElevationCreatesRequest
+[       OK ] TargetController.DifferentRangeAzimuthOrElevationCreatesRequest (0 ms)
+[ RUN      ] TargetController.ChecksLaterTracksForMatchingPosition
+[       OK ] TargetController.ChecksLaterTracksForMatchingPosition (0 ms)
+[ RUN      ] TargetController.TrackEventsReturnsWholeIndependentSnapshotOnEveryCall
+[       OK ] TargetController.TrackEventsReturnsWholeIndependentSnapshotOnEveryCall (0 ms)
+[ RUN      ] TargetController.UpdatedTrackAppearsOnceWithLatestReport
+[       OK ] TargetController.UpdatedTrackAppearsOnceWithLatestReport (0 ms)
+[ RUN      ] TargetController.RemovedTrackDisappearsFromSnapshotAndComparison
+[       OK ] TargetController.RemovedTrackDisappearsFromSnapshotAndComparison (0 ms)
+[ RUN      ] TargetController.DetectionHandlingDoesNotChangeStoredTrackReports
+[       OK ] TargetController.DetectionHandlingDoesNotChangeStoredTrackReports (0 ms)
+[ RUN      ] TargetController.InvalidSearchRangeIsRejected
+[       OK ] TargetController.InvalidSearchRangeIsRejected (0 ms)
+[ RUN      ] TargetController.InvalidSearchDirectionIsRejectedAndValidElevationBoundaryIsAccepted
+[       OK ] TargetController.InvalidSearchDirectionIsRejectedAndValidElevationBoundaryIsAccepted (0 ms)
+[ RUN      ] TargetController.NullRepositoryIsRejected
+[       OK ] TargetController.NullRepositoryIsRejected (0 ms)
+[----------] 11 tests from TargetController (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 11 tests.
