@@ -1,4 +1,4 @@
-#include <comm/network/network_manager.hpp>
+#include <network/network_manager.hpp>
 
 #include <chrono>
 #include <csignal>

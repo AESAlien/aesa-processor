@@ -17,6 +17,14 @@ using SocketHandle = std::uintptr_t;
 using SocketHandle = int;
 #endif
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 struct NetworkEndpoint
 {
     std::string address;
