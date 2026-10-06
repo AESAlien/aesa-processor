@@ -52,8 +52,8 @@ TEST(VelocityTest, CreatesVelocitiesFromMetersPerSecondLiterals)
         "Integer meters per second literals must produce a Velocity");
     static_assert(std::is_same<decltype(2.5_mps), math::Velocity>::value,
         "Floating-point meters per second literals must produce a Velocity");
-    EXPECT_DOUBLE_EQ(2_mps.mps(), 2.0);
-    EXPECT_DOUBLE_EQ(2.5_mps.mps(), 2.5);
+    EXPECT_DOUBLE_EQ((2_mps).mps(), 2.0);
+    EXPECT_DOUBLE_EQ((2.5_mps).mps(), 2.5);
 }
 
 // 음수·0·양수 속도의 대소 비교와 같은 값에 대한 엄격·비엄격 비교를 검증한다.
