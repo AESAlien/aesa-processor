@@ -1,8 +1,7 @@
 #pragma once
-#include <beam/domain/beam_status.hpp>
+#include <beam/domain/operation_state.hpp>
 #include <beam/dto/set_operation_state_command.hpp>
 #include <cstdint>
-
 
 namespace beam
 {
@@ -15,4 +14,4 @@ public:
     virtual bool read(SetOperationStateCommand& out) = 0;
 };
 
-}   // namespace beam
+} // namespace beam

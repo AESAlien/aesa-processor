@@ -1,46 +1,46 @@
 #include "beam_table.hpp"
-#include <beam/transform.hpp>
-#include <stdexcept>
 
 namespace beam
 {
 namespace
 {
-constexpr std::size_t kAzCount = 21;
-constexpr std::size_t kElCount = 9;
-constexpr double kAzStart_deg = -42.0, kAzStep_deg = 4.2;
-constexpr double kElStart_deg = 3.0, kElStep_deg = 4.4;
-constexpr float kBeamWidth_deg = 6.0f;
-}   // namespace
+using namespace math::literals;
 
-BeamTable::BeamTable(const AntennaToEnu& in)
+constexpr std::size_t AZIMUTH_COUNT = 21;
+constexpr std::size_t ELEVATION_COUNT = 9;
+const math::Angle AZIMUTH_START = -42_deg, AZIMUTH_STEP = 4.2_deg;
+const math::Angle ELEVATION_START = 3_deg, ELEVATION_STEP = 4.4_deg;
+const math::Angle BEAM_WIDTH = 6_deg;
+} // namespace
+
+BeamTable::BeamTable(const AntEnuTransform& transform)
 {
-    static_assert(kAzCount * kElCount == 189, "grid size must match BeamTable::size()");
+    static_assert(AZIMUTH_COUNT * ELEVATION_COUNT == 189, "grid size must match BeamTable::size()");
 
-    if(!in.valid) { throw std::invalid_argument("BeamTable: invalid AntennaToEnu"); }
+    for (std::size_t e = 0; e < ELEVATION_COUNT; ++e)
+    {
+        for (std::size_t a = 0; a < AZIMUTH_COUNT; ++a)
+        {
+            const std::size_t index = e * AZIMUTH_COUNT + a;
 
-    for(std::size_t e=0; e<kElCount; ++e) {
-        for(std::size_t a=0; a<kAzCount; ++a) {
-            const std::size_t idx = e * kAzCount + a;
+            const auto [azimuth_ant, elevation_ant] = transform.enuToAnt(
+                AZIMUTH_START + AZIMUTH_STEP * static_cast<double>(a),
+                ELEVATION_START + ELEVATION_STEP * static_cast<double>(e)
+            );
 
-            double az_ant = 0.0, el_ant = 0.0;
-            enuToAntAngle(in, kAzStart_deg + kAzStep_deg * a, 
-                kElStart_deg + kElStep_deg * e, az_ant, el_ant);
-            
-            BeamInfo& b = beams_[idx];
-            b.beamID        = static_cast<std::uint32_t>(idx + 1);
-            b.az_deg        = static_cast<float>(az_ant);
-            b.el_deg        = static_cast<float>(el_ant);
-            b.az_width_deg  = kBeamWidth_deg;
-            b.el_width_deg  = kBeamWidth_deg;
+            BeamInfo& beam = _beams[index];
+            beam.beamId = static_cast<std::uint32_t>(index + 1);
+            beam.azimuth_ant = azimuth_ant;
+            beam.elevation_ant = elevation_ant;
+            beam.azimuthBeamWidth = BEAM_WIDTH;
+            beam.elevationBeamWidth = BEAM_WIDTH;
         }
     }
 }
 
-const BeamInfo& BeamTable::get(std::size_t idx) const
+const BeamInfo& BeamTable::get(std::size_t index) const
 {
-    return beams_.at(idx);
+    return _beams.at(index);
 }
 
-}   // namespace beam
-
+} // namespace beam

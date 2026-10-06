@@ -2,7 +2,8 @@
 
 #include <iostream>
 
-namespace beam {
+namespace beam
+{
 
 void hello()
 {
@@ -10,7 +11,6 @@ void hello()
 }
 
 } // namespace beam
-
 
 /*
 # scheduler

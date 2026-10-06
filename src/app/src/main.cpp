@@ -1,29 +1,29 @@
-#include <pthread.h>
 #include <iostream>
+#include <thread>
 
 // Using Thread Function
-void* print_hello(void* arg)
+void printHello(int id)
 {
-    const int id = *static_cast<int*>(arg);
     std::cout << "Hello World from thread " << id << '\n';
-    return nullptr;
 }
 
 int main()
 {
-    pthread_t threads[5];
+    std::thread threads[5];
 
     int idx[5]; // Thread Id
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 5; ++i)
+    {
         idx[i] = i + 1;
         // Create Thread
-        pthread_create(&threads[i], nullptr, print_hello, &idx[i]);
+        threads[i] = std::thread(printHello, idx[i]);
     }
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 5; ++i)
+    {
         // Wait Thread
-        pthread_join(threads[i], nullptr);
+        threads[i].join();
     }
 
     return 0;

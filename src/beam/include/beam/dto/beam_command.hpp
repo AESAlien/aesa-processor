@@ -1,21 +1,33 @@
 #pragma once
-#include <beam/domain/beam_status.hpp>
+
+#include <math/angle.hpp>
+#include <chrono>
 #include <cstdint>
 
 namespace beam
 {
 
-struct BeamCommand {
-    beam::BeamType    beamType{};
-    std::uint32_t   timestamp_ms{};
-    std::uint32_t   beamID{};
-    std::uint32_t   commandCount{};
-    float   beam_az_deg{};
-    float   beam_el_deg{};
-    float   az_width_deg{};
-    float   el_width_deg{};
+using math::literals::operator""_deg;
+using std::chrono_literals::operator""ms;
+
+struct BeamCommand
+{
+    enum class BeamType : std::uint8_t
+    {
+        SEARCH = 1,
+        CONFIRMATION = 2,
+        TRACKING = 3
+    };
+
+    BeamType beamType{};
+    // Elapsed time since the shared start at 0 ms.
+    std::chrono::milliseconds timestamp = 0ms;
+    std::uint32_t beamId{};
+    std::uint32_t commandCount{};
+    math::Angle azimuth_ant = 0_deg;
+    math::Angle elevation_ant = 0_deg;
+    math::Angle azimuthBeamWidth = 0_deg;
+    math::Angle elevationBeamWidth = 0_deg;
 };
 
-static_assert(sizeof(BeamCommand) == 32, "BeamCommand must be 32 bytes");
-
-}   // namespace beam
+} // namespace beam

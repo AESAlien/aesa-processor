@@ -1,5 +1,5 @@
 #pragma once
-#include <beam/dto/radar_attitude.hpp>
+#include <beam/dto/set_attitude_command.hpp>
 
 namespace beam
 {
@@ -8,8 +8,8 @@ class RadarAttitudeSource
 {
 public:
     virtual ~RadarAttitudeSource() = default;
-    
-    virtual bool read(RadarAttitude& out) = 0;
+
+    virtual bool read(SetAttitudeCommand& out) = 0;
 };
 
-}   // namespace beam
+} // namespace beam

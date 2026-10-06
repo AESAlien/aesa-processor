@@ -1,19 +1,23 @@
 #pragma once
-#include <cstdint>
 
-namespace dto
+#include <comm/protocol/ST_MsgHeader.hpp>
+
+namespace comm::protocol
 {
 
+#pragma pack(push, 1)
 struct ST_RadarAttMsg
 {
-    double  radar_lat_deg;
-    double  radar_lon_deg;
-    double  radar_alt_km;
-    double  roll_deg;
-    double  pitch_deg;
-    double  yaw_deg;
+    ST_MsgHeader msgHeader;
+    double radar_lat_deg;
+    double radar_lon_deg;
+    double radar_alt_km;
+    double roll_deg;
+    double pitch_deg;
+    double yaw_deg;
 };
+#pragma pack(pop)
 
-static_assert(sizeof(ST_RadarAttMsg) == 48, "ST_RadarAttMsg must be 48 bytes");
+static_assert(sizeof(ST_RadarAttMsg) == 68, "ST_RadarAttMsg must be 68 bytes");
 
-}
+} // namespace comm::protocol
