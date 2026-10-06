@@ -152,6 +152,11 @@ std::tuple<math::Angle, math::Angle> AntEnuTransform::antToEnu(math::Angle azimu
     return vectorToAed(vector_enu);
 }
 
+const math::SquareMatrix& AntEnuTransform::rotationMatrix() const
+{
+    return _rotationMatrix;
+}
+
 std::tuple<math::Angle, math::Angle> AntEnuTransform::enuToAnt(math::Angle azimuth_enu, math::Angle elevation_enu) const
 {
     const math::Vector vector_enu = aedToVector(azimuth_enu, elevation_enu);

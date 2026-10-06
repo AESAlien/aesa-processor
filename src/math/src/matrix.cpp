@@ -59,7 +59,8 @@ bool Matrix::empty() const noexcept
 
 bool Matrix::equals(const Matrix& other, double relativeTolerance) const noexcept
 {
-    if (_rows != other._rows || _columns != other._columns)
+    if (_rows != other._rows || _columns != other._columns ||
+        !std::isfinite(relativeTolerance) || relativeTolerance < 0.0)
     {
         return false;
     }

@@ -1,6 +1,6 @@
 // BeamTable 내용을 CSV로 출력하는 시각화용 도구
 //
-// 사용법: beam_table_dump [roll_deg pitch_deg yaw_deg]
+// 사용법: beam_table_dump [--matrix] [roll_deg pitch_deg yaw_deg]
 // 출력  : idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg   (안테나 기준 각도)
 //
 // visualize_beam_table.py 가 이 프로그램을 실행해서 결과를 그린다.
@@ -20,6 +20,11 @@ int main(int argc, char** argv)
     using namespace math::literals;
 
     int first = 1;
+    const bool printMatrix = argc > first && std::strcmp(argv[first], "--matrix") == 0;
+    if (printMatrix)
+    {
+        ++first;
+    }
 
     auto roll = 0_deg;
     auto pitch = 0_deg;
@@ -32,7 +37,7 @@ int main(int argc, char** argv)
     }
     else if (argc - first != 0)
     {
-        std::fprintf(stderr, "usage: %s [roll_deg pitch_deg yaw_deg]\n", argv[0]);
+        std::fprintf(stderr, "usage: %s [--matrix] [roll_deg pitch_deg yaw_deg]\n", argv[0]);
         return 2;
     }
 
@@ -55,6 +60,19 @@ int main(int argc, char** argv)
             std::exit(3);
         }
     }();
+
+    if (printMatrix)
+    {
+        const auto& matrix = xform.rotationMatrix();
+        for (std::size_t row = 0; row < matrix.rows(); ++row)
+        {
+            for (std::size_t column = 0; column < matrix.columns(); ++column)
+            {
+                std::printf("%.17g%c", matrix(row, column), column + 1 == matrix.columns() ? '\n' : ' ');
+            }
+        }
+        return 0;
+    }
 
     try
     {
