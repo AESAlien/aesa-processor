@@ -1,6 +1,6 @@
 #pragma once
 
-#include <comm/protocol/ST_TrkMsg.hpp>
+#include <protocol/ST_TrkMsg.hpp>
 
 #include <cstdint>
 

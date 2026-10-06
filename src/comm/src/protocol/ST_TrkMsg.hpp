@@ -1,6 +1,6 @@
 #pragma once
 
-#include <comm/protocol/ST_MsgHeader.hpp>
+#include <protocol/ST_MsgHeader.hpp>
 
 #include <cstdint>
 

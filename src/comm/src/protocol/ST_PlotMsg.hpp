@@ -1,7 +1,7 @@
 #pragma once
 
-#include <comm/protocol/ST_BeamTxMsg.hpp>
-#include <comm/protocol/ST_MsgHeader.hpp>
+#include <protocol/ST_BeamTxMsg.hpp>
+#include <protocol/ST_MsgHeader.hpp>
 
 #include <cstdint>
 
