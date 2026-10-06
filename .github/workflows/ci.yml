@@ -28,6 +28,15 @@ jobs:
             -B build \
             -DCMAKE_BUILD_TYPE=Debug
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtest-dev
+          cd /usr/src/gtest
+          sudo cmake .
+          sudo make
+          sudo make install
+
       - name: Build
         run: |
           cmake --build build --parallel
