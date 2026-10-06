@@ -1,5 +1,4 @@
 add_library(comm STATIC
-    src/hello.cpp
     src/network/network_manager.cpp
 )
 target_include_directories(comm PUBLIC
@@ -10,3 +9,10 @@ target_link_libraries(comm PUBLIC
     beam
     target
 )
+
+if(WIN32)
+    target_link_libraries(comm PUBLIC ws2_32)
+endif()
+
+add_executable(comm_main test/comm_main.cpp)
+target_link_libraries(comm_main PRIVATE comm)
