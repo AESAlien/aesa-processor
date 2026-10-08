@@ -66,8 +66,8 @@ TEST(DistanceTest, CreatesDistancesFromKilometerLiterals)
         "Integer kilometer literals must produce a Distance");
     static_assert(std::is_same<decltype(2.5_km), math::Distance>::value,
         "Floating-point kilometer literals must produce a Distance");
-    EXPECT_DOUBLE_EQ(2_km.km(), 2.0);
-    EXPECT_DOUBLE_EQ(2.5_km.km(), 2.5);
+    EXPECT_DOUBLE_EQ((2_km).km(), 2.0);
+    EXPECT_DOUBLE_EQ((2.5_km).km(), 2.5);
 }
 
 // 정수와 실수 미터 리터럴이 올바른 Distance 값과 타입을 생성한다.
@@ -79,8 +79,8 @@ TEST(DistanceTest, CreatesDistancesFromMeterLiterals)
         "Integer meter literals must produce a Distance");
     static_assert(std::is_same<decltype(2.5_m), math::Distance>::value,
         "Floating-point meter literals must produce a Distance");
-    EXPECT_DOUBLE_EQ(2_m.m(), 2.0);
-    EXPECT_DOUBLE_EQ(2.5_m.m(), 2.5);
+    EXPECT_DOUBLE_EQ((2_m).m(), 2.0);
+    EXPECT_DOUBLE_EQ((2.5_m).m(), 2.5);
 }
 
 // 미터와 킬로미터를 혼용해도 값과 허용오차를 같은 단위로 환산하여 비교한다.
@@ -88,10 +88,10 @@ TEST(DistanceTest, ComparesMixedUnitsWithMeterTolerance)
 {
     using namespace math::literals;
 
-    EXPECT_TRUE(1_km.equals(1000_m, 0_m));
-    EXPECT_TRUE(1_km.equals(1000.25_m, 0.25_m));
-    EXPECT_FALSE(1_km.equals(1000.25_m, 0.125_m));
-    EXPECT_TRUE(1000_m.equals(1.125_km, 0.125_km));
+    EXPECT_TRUE((1_km).equals(1000_m, 0_m));
+    EXPECT_TRUE((1_km).equals(1000.25_m, 0.25_m));
+    EXPECT_FALSE((1_km).equals(1000.25_m, 0.125_m));
+    EXPECT_TRUE((1000_m).equals(1.125_km, 0.125_km));
     EXPECT_TRUE(999_m < 1_km);
     EXPECT_TRUE(1001_m > 1_km);
     EXPECT_TRUE(1000_m <= 1_km);

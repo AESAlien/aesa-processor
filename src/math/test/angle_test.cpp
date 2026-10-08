@@ -37,8 +37,8 @@ TEST(AngleTest, EqualsAcceptsToleranceCreatedFromRadians)
     using namespace math::literals;
 
     const auto tolerance = math::Angle::fromRadians(math::PI / 180.0);
-    EXPECT_TRUE(0_deg.equals(0.5_deg, tolerance));
-    EXPECT_FALSE(0_deg.equals(2_deg, tolerance));
+    EXPECT_TRUE((0_deg).equals(0.5_deg, tolerance));
+    EXPECT_FALSE((0_deg).equals(2_deg, tolerance));
 }
 
 // 정수와 실수 도 리터럴이 올바른 Angle 값과 타입을 생성한다.
@@ -48,8 +48,8 @@ TEST(AngleTest, CreatesAnglesFromDegreeLiterals)
 
     static_assert(std::is_same<decltype(30_deg), math::Angle>::value,
         "Degree literals must produce an Angle");
-    EXPECT_DOUBLE_EQ(30_deg.deg(), 30.0);
-    EXPECT_DOUBLE_EQ(30.5_deg.deg(), 30.5);
+    EXPECT_DOUBLE_EQ((30_deg).deg(), 30.0);
+    EXPECT_DOUBLE_EQ((30.5_deg).deg(), 30.5);
 }
 
 // 범위 안의 값, ±180도 경계와 여러 회전 값을 [-180, 180) 범위로 정규화한다.
@@ -57,16 +57,16 @@ TEST(AngleTest, WrapsToSignedDegreeRange)
 {
     using namespace math::literals;
 
-    EXPECT_TRUE((0_deg.wrap180()).equals(0_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE((179.5_deg.wrap180()).equals(179.5_deg, math::Angle::fromDegrees(0.0)));
+    EXPECT_TRUE(((0_deg).wrap180()).equals(0_deg, math::Angle::fromDegrees(0.0)));
+    EXPECT_TRUE(((179.5_deg).wrap180()).equals(179.5_deg, math::Angle::fromDegrees(0.0)));
     EXPECT_TRUE(((-179.5_deg).wrap180()).equals(-179.5_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE((180_deg.wrap180()).equals(-180_deg, math::Angle::fromDegrees(0.0)));
+    EXPECT_TRUE(((180_deg).wrap180()).equals(-180_deg, math::Angle::fromDegrees(0.0)));
     EXPECT_TRUE(((-180_deg).wrap180()).equals(-180_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE((181_deg.wrap180()).equals(-179_deg, math::Angle::fromDegrees(0.0)));
+    EXPECT_TRUE(((181_deg).wrap180()).equals(-179_deg, math::Angle::fromDegrees(0.0)));
     EXPECT_TRUE(((-181_deg).wrap180()).equals(179_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE((540_deg.wrap180()).equals(-180_deg, math::Angle::fromDegrees(0.0)));
+    EXPECT_TRUE(((540_deg).wrap180()).equals(-180_deg, math::Angle::fromDegrees(0.0)));
     EXPECT_TRUE(((-540_deg).wrap180()).equals(-180_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE((1080_deg.wrap180()).equals(0_deg, math::Angle::fromDegrees(0.0)));
+    EXPECT_TRUE(((1080_deg).wrap180()).equals(0_deg, math::Angle::fromDegrees(0.0)));
     EXPECT_TRUE(((-1080_deg).wrap180()).equals(0_deg, math::Angle::fromDegrees(0.0)));
 
     // 정규화는 새 각도를 반환하며 원본 값은 유지한다.
