@@ -144,8 +144,11 @@ inline bool sameAngle(math::Angle left, math::Angle right)
 }
 
 // 송신된 요청 빔을 보낸 요청과 짝짓는다(종류와 각도가 같은 아직 짝이 없는 요청).
-inline void markSent(std::vector<RequestSpec>& requests, const beam::BeamCommand& command, long long tickMs)
-{
+inline void markSent(
+    std::vector<RequestSpec>& requests,
+    const beam::BeamCommand& command,
+    long long tickMs
+) {
     for (RequestSpec& spec : requests)
     {
         const bool sameType = static_cast<int>(spec.request.beamType) == static_cast<int>(command.beamType);

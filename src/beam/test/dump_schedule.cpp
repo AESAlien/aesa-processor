@@ -136,20 +136,31 @@ int main(int argc, char** argv)
             }
 
             const beam::BeamCommand& command = *tick.command;
-            std::printf("%lld,%s,%s,%u,%u,%.6f,%.6f,%.2f,%.2f\n",
-                        tick.tickMs, statusName(tick.status), typeName(command.beamType), command.beamId,
-                        command.commandCount, command.azimuth_ant.deg(), command.elevation_ant.deg(),
-                        command.azimuthBeamWidth.deg(), command.elevationBeamWidth.deg());
+            std::printf(
+                "%lld,%s,%s,%u,%u,%.6f,%.6f,%.2f,%.2f\n",
+                tick.tickMs,
+                statusName(tick.status),
+                typeName(command.beamType),
+                command.beamId,
+                command.commandCount,
+                command.azimuth_ant.deg(),
+                command.elevation_ant.deg(),
+                command.azimuthBeamWidth.deg(),
+                command.elevationBeamWidth.deg());
         }
 
         std::printf("# requests\n");
         std::printf("name,type,timestamp_ms,az_deg,el_deg,sent_tick_ms\n");
         for (const schedule_scenario::RequestSpec& spec : result.requests)
         {
-            std::printf("%s,%s,%lld,%.6f,%.6f,%lld\n",
-                        spec.name.c_str(), typeName(spec.request.beamType),
-                        static_cast<long long>(spec.request.timestamp.count()),
-                        spec.request.azimuth_ant.deg(), spec.request.elevation_ant.deg(), spec.sentTickMs);
+            std::printf(
+                "%s,%s,%lld,%.6f,%.6f,%lld\n",
+                spec.name.c_str(),
+                typeName(spec.request.beamType),
+                static_cast<long long>(spec.request.timestamp.count()),
+                spec.request.azimuth_ant.deg(),
+                spec.request.elevation_ant.deg(),
+                spec.sentTickMs);
         }
 
         std::printf("# grid\n");

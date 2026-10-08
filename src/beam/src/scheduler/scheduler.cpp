@@ -30,8 +30,11 @@ BeamCommand::BeamType toCommandBeamType(BeamRequest::BeamType beamType)
     throw std::invalid_argument("Unknown beam request type");
 }
 
-BeamCommand makeSearchCommand(const BeamInfo& beamInfo, std::chrono::milliseconds currentTime, std::uint32_t commandCount)
-{
+BeamCommand makeSearchCommand(
+    const BeamInfo& beamInfo,
+    std::chrono::milliseconds currentTime,
+    std::uint32_t commandCount
+) {
     BeamCommand command;
     command.beamType = BeamCommand::BeamType::SEARCH;
     command.timestamp = currentTime;
@@ -44,8 +47,11 @@ BeamCommand makeSearchCommand(const BeamInfo& beamInfo, std::chrono::millisecond
     return command;
 }
 
-BeamCommand makeRequestCommand(const BeamRequest& request, std::chrono::milliseconds currentTime, std::uint32_t commandCount)
-{
+BeamCommand makeRequestCommand(
+    const BeamRequest& request,
+    std::chrono::milliseconds currentTime,
+    std::uint32_t commandCount
+) {
     BeamCommand command;
     command.beamType = toCommandBeamType(request.beamType);
     command.timestamp = currentTime;
