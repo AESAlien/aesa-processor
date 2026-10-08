@@ -1,6 +1,6 @@
 #pragma once
 
-#include <comm/network/network_types.hpp>
+#include <network/network_types.hpp>
 
 #include <chrono>
 #include <cstdint>

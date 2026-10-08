@@ -3,23 +3,30 @@
 #include <beam/dto/beam_command.hpp>
 #include <beam/dto/set_attitude_command.hpp>
 #include <beam/dto/set_operation_state_command.hpp>
-#include <comm/network/network_types.hpp>
 #include <target/dto/detection_event.hpp>
 #include <target/dto/track_event.hpp>
 
-#include <chrono>
+#include <cstdint>
 #include <memory>
+#include <optional>
+#include <string>
 #include <variant>
 #include <vector>
 
 namespace comm
 {
 
+struct CommEndpoint
+{
+    std::string address;
+    std::uint16_t port = 0;
+};
+
 struct CommConfiguration
 {
-    NetworkEndpoint server;
-    NetworkEndpoint operatorConsole;
-    NetworkEndpoint scenarioSimulator;
+    CommEndpoint server;
+    CommEndpoint operatorConsole;
+    CommEndpoint scenarioSimulator;
 };
 
 using IncomingDto = std::variant<
@@ -28,26 +35,6 @@ using IncomingDto = std::variant<
     target::DetectionEvent
 >;
 
-enum class ReceiveStatus
-{
-    EVENTS,
-    TIMEOUT,
-    NOT_STARTED,
-    INVALID_ARGUMENT,
-    NETWORK_ERROR,
-    PROTOCOL_ERROR
-};
-
-struct ReceiveResult
-{
-    ReceiveStatus status = ReceiveStatus::TIMEOUT;
-    std::vector<IncomingDto> dtos;
-    NetworkOperation failedOperation = NetworkOperation::NONE;
-    int errorCode = 0;
-};
-
-// Facade for network connection, framing, protocol conversion, and transport.
-// Call every method from the same communication worker thread.
 class CommController
 {
 public:
@@ -59,17 +46,20 @@ public:
     CommController(CommController&&) = delete;
     CommController& operator=(CommController&&) = delete;
 
-    OperationResult start();
+    void openServer();
 
-    ReceiveResult receive(std::chrono::milliseconds timeout);
+    std::optional<IncomingDto> receiveData();
 
-    SendResult sendBeamCommand(const beam::BeamCommand& command);
+    void sendBeamCommand(
+        const beam::BeamCommand& command
+    );
 
-    SendResult sendTrackEvents(
+    void sendTrackEvents(
         const std::vector<target::TrackEvent>& trackEvents
     );
 
-    OperationResult stop();
+    // void requestStop() noexcept;
+    // void closeServer() noexcept;
 
 private:
     class Impl;
