@@ -19,7 +19,6 @@ struct BeamRequest
     };
 
     BeamType beamType{};
-    // Elapsed time since the shared start at 0 ms.
     std::chrono::milliseconds timestamp = 0ms;
     math::Angle azimuth_ant = 0_deg;
     math::Angle elevation_ant = 0_deg;
