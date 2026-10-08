@@ -35,16 +35,16 @@ BeamCommand makeSearchCommand(
     std::chrono::milliseconds currentTime,
     std::uint32_t commandCount
 ) {
-    BeamCommand command;
-    command.beamType = BeamCommand::BeamType::SEARCH;
-    command.timestamp = currentTime;
-    command.beamId = beamInfo.beamId;
-    command.commandCount = commandCount;
-    command.azimuth_ant = beamInfo.azimuth_ant;
-    command.elevation_ant = beamInfo.elevation_ant;
-    command.azimuthBeamWidth = beamInfo.azimuthBeamWidth;
-    command.elevationBeamWidth = beamInfo.elevationBeamWidth;
-    return command;
+    return BeamCommand::Builder()
+        .beamType(BeamCommand::BeamType::SEARCH)
+        .transmitTime(currentTime)
+        .beamId(beamInfo.beamId)
+        .commandCount(commandCount)
+        .azimuth_ant(beamInfo.azimuth_ant)
+        .elevation_ant(beamInfo.elevation_ant)
+        .azimuthBeamWidth(beamInfo.azimuthBeamWidth)
+        .elevationBeamWidth(beamInfo.elevationBeamWidth)
+        .build();
 }
 
 BeamCommand makeRequestCommand(
@@ -52,16 +52,16 @@ BeamCommand makeRequestCommand(
     std::chrono::milliseconds currentTime,
     std::uint32_t commandCount
 ) {
-    BeamCommand command;
-    command.beamType = toCommandBeamType(request.beamType);
-    command.timestamp = currentTime;
-    command.beamId = NON_GRID_BEAM_ID;
-    command.commandCount = commandCount;
-    command.azimuth_ant = request.azimuth_ant;
-    command.elevation_ant = request.elevation_ant;
-    command.azimuthBeamWidth = REQUEST_BEAM_WIDTH;
-    command.elevationBeamWidth = REQUEST_BEAM_WIDTH;
-    return command;
+    return BeamCommand::Builder()
+        .beamType(toCommandBeamType(request.beamType))
+        .transmitTime(currentTime)
+        .beamId(NON_GRID_BEAM_ID)
+        .commandCount(commandCount)
+        .azimuth_ant(request.azimuth_ant)
+        .elevation_ant(request.elevation_ant)
+        .azimuthBeamWidth(REQUEST_BEAM_WIDTH)
+        .elevationBeamWidth(REQUEST_BEAM_WIDTH)
+        .build();
 }
 } // namespace
 

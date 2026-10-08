@@ -28,13 +28,13 @@ std::chrono::milliseconds maxDelay(BeamRequest::BeamType beamType)
 
 bool isExpired(const BeamRequest& request, std::chrono::milliseconds currentTime)
 {
-    return currentTime - request.timestamp >= maxDelay(request.beamType);
+    return currentTime - request.transmitTime >= maxDelay(request.beamType);
 }
 } // namespace
 
 void RequestQueue::add(const BeamRequest& request)
 {
-    _requests.emplace(request.timestamp, request);
+    _requests.emplace(request.transmitTime, request);
 }
 
 std::optional<BeamRequest> RequestQueue::popNextDue(std::chrono::milliseconds currentTime)

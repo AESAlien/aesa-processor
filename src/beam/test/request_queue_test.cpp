@@ -12,24 +12,26 @@ namespace
 
 beam::BeamRequest makeRequest(
     beam::BeamRequest::BeamType beamType,
-    std::chrono::milliseconds timestamp,
+    std::chrono::milliseconds transmitTime,
     double azimuthDeg = 0.0
 ) {
-    beam::BeamRequest request;
-    request.beamType = beamType;
-    request.timestamp = timestamp;
-    request.azimuth_ant = math::Angle::fromDegrees(azimuthDeg);
-    return request;
+    return beam::BeamRequest::Builder()
+        .beamType(beamType)
+        .transmitTime(transmitTime)
+        .requestId(0)
+        .azimuth_ant(math::Angle::fromDegrees(azimuthDeg))
+        .elevation_ant(0_deg)
+        .build();
 }
 
-beam::BeamRequest makeConfirmation(std::chrono::milliseconds timestamp, double azimuthDeg = 0.0)
+beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, double azimuthDeg = 0.0)
 {
-    return makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, timestamp, azimuthDeg);
+    return makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, transmitTime, azimuthDeg);
 }
 
-beam::BeamRequest makeTracking(std::chrono::milliseconds timestamp, double azimuthDeg = 0.0)
+beam::BeamRequest makeTracking(std::chrono::milliseconds transmitTime, double azimuthDeg = 0.0)
 {
-    return makeRequest(beam::BeamRequest::BeamType::TRACKING, timestamp, azimuthDeg);
+    return makeRequest(beam::BeamRequest::BeamType::TRACKING, transmitTime, azimuthDeg);
 }
 
 } // namespace
@@ -59,7 +61,7 @@ TEST(RequestQueueTest, RequestExactlyAtCurrentTimeIsDue)
     const auto request = queue.popNextDue(1000ms);
 
     ASSERT_TRUE(request.has_value());
-    EXPECT_EQ(request->timestamp, 1000ms);
+    EXPECT_EQ(request->transmitTime, 1000ms);
 }
 
 TEST(RequestQueueTest, PoppedRequestIsRemovedFromQueue)
@@ -84,7 +86,7 @@ TEST(RequestQueueTest, EarliestDueRequestComesFirstRegardlessOfInsertionOrder)
     EXPECT_DOUBLE_EQ(queue.popNextDue(1010ms)->azimuth_ant.deg(), 3.0);
 }
 
-TEST(RequestQueueTest, SameTimestampConfirmationComesBeforeTracking)
+TEST(RequestQueueTest, SameTransmitTimeConfirmationComesBeforeTracking)
 {
     beam::RequestQueue queue;
     queue.add(makeTracking(1000ms, 1.0));
@@ -99,7 +101,7 @@ TEST(RequestQueueTest, SameTimestampConfirmationComesBeforeTracking)
     EXPECT_EQ(second->beamType, beam::BeamRequest::BeamType::TRACKING);
 }
 
-TEST(RequestQueueTest, SameTimestampAndTypeKeepsInsertionOrder)
+TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
 {
     beam::RequestQueue queue;
     queue.add(makeTracking(1000ms, 1.0));
@@ -185,7 +187,7 @@ TEST(RequestQueueTest, ExpiryDoesNotAffectFutureRequests)
 
     const auto request = queue.popNextDue(2000ms);
     ASSERT_TRUE(request.has_value());
-    EXPECT_EQ(request->timestamp, 2000ms);
+    EXPECT_EQ(request->transmitTime, 2000ms);
 }
 
 TEST(RequestQueueTest, UnknownBeamTypeIsDropped)

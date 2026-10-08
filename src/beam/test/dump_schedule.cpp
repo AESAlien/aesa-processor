@@ -157,7 +157,7 @@ int main(int argc, char** argv)
                 "%s,%s,%lld,%.6f,%.6f,%lld\n",
                 spec.name.c_str(),
                 typeName(spec.request.beamType),
-                static_cast<long long>(spec.request.timestamp.count()),
+                static_cast<long long>(spec.request.transmitTime.count()),
                 spec.request.azimuth_ant.deg(),
                 spec.request.elevation_ant.deg(),
                 spec.sentTickMs);

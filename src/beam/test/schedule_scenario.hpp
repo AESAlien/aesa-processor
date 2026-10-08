@@ -64,17 +64,20 @@ struct Result
 inline RequestSpec makeRequestSpec(
     const std::string& name,
     beam::BeamRequest::BeamType beamType,
-    std::chrono::milliseconds timestamp,
+    std::chrono::milliseconds transmitTime,
     double azimuthDeg,
     double elevationDeg
 ) {
-    RequestSpec spec;
-    spec.name = name;
-    spec.request.beamType = beamType;
-    spec.request.timestamp = timestamp;
-    spec.request.azimuth_ant = math::Angle::fromDegrees(azimuthDeg);
-    spec.request.elevation_ant = math::Angle::fromDegrees(elevationDeg);
-    return spec;
+    return RequestSpec{
+        name,
+        beam::BeamRequest::Builder()
+            .beamType(beamType)
+            .transmitTime(transmitTime)
+            .requestId(0)
+            .azimuth_ant(math::Angle::fromDegrees(azimuthDeg))
+            .elevation_ant(math::Angle::fromDegrees(elevationDeg))
+            .build()
+    };
 }
 
 inline Scenario makeMixedScenario()
@@ -85,7 +88,7 @@ inline Scenario makeMixedScenario()
     scenario.duration = 400ms;
     scenario.onTime = 20ms;
     scenario.attitudeTime = 40ms;
-    scenario.requests = {
+    scenario.requests = std::vector<RequestSpec>{
         makeRequestSpec("C1", Type::CONFIRMATION, 100ms, -10.0, 12.0),
         makeRequestSpec("T1", Type::TRACKING, 150ms, 20.0, 25.0),
         // 200ms 부근에 네 요청이 몰린다: 송신 순서는 A -> B(확인 우선) -> C, D는 지연이 길어져 폐기.
@@ -118,8 +121,8 @@ inline Scenario makeTracksScenario()
     {
         for (int track = 0; track < TRACK_COUNT; ++track)
         {
-            const std::chrono::milliseconds timestamp(100 + 50 * track + 1000 * round);
-            if (timestamp > scenario.duration)
+            const std::chrono::milliseconds transmitTime(100 + 50 * track + 1000 * round);
+            if (transmitTime > scenario.duration)
             {
                 continue;
             }
@@ -129,7 +132,7 @@ inline Scenario makeTracksScenario()
             const double elevationDeg = 3.0 + 5.0 * (track % 10) + 0.1 * round;
             scenario.requests.push_back(makeRequestSpec(
                 "T" + std::to_string(track + 1) + "." + std::to_string(round + 1),
-                Type::TRACKING, timestamp, azimuthDeg, elevationDeg));
+                Type::TRACKING, transmitTime, azimuthDeg, elevationDeg));
         }
     }
     return scenario;
@@ -187,10 +190,11 @@ inline Result run(Scenario scenario, const beam::RadarAttitude& attitude)
             status = Status::READY;
         }
 
-        TickRecord record;
-        record.tickMs = time.count();
-        record.status = status;
-        record.command = scheduler.next(time);
+        TickRecord record{
+            time.count(),
+            status,
+            scheduler.next(time)
+        };
         if (record.command.has_value() && record.command->beamType != beam::BeamCommand::BeamType::SEARCH)
         {
             detail::markSent(scenario.requests, *record.command, record.tickMs);

@@ -47,16 +47,17 @@ void makeReady(beam::Scheduler& scheduler)
 
 beam::BeamRequest makeRequest(
     beam::BeamRequest::BeamType beamType,
-    std::chrono::milliseconds timestamp,
+    std::chrono::milliseconds transmitTime,
     double azimuthDeg,
     double elevationDeg
 ) {
-    beam::BeamRequest request;
-    request.beamType = beamType;
-    request.timestamp = timestamp;
-    request.azimuth_ant = math::Angle::fromDegrees(azimuthDeg);
-    request.elevation_ant = math::Angle::fromDegrees(elevationDeg);
-    return request;
+    return beam::BeamRequest::Builder()
+        .beamType(beamType)
+        .transmitTime(transmitTime)
+        .requestId(0)
+        .azimuth_ant(math::Angle::fromDegrees(azimuthDeg))
+        .elevation_ant(math::Angle::fromDegrees(elevationDeg))
+        .build();
 }
 
 // 영 자세에서 탐색 빔 index번째(0부터)의 방위각/고각
@@ -179,13 +180,13 @@ TEST(SchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
     EXPECT_EQ(wrapped->beamId, 1u);
 }
 
-TEST(SchedulerTest, SearchBeamTimestampIsCurrentTime)
+TEST(SchedulerTest, SearchBeamTransmitTimeIsCurrentTime)
 {
     beam::Scheduler scheduler;
     makeReady(scheduler);
 
-    EXPECT_EQ(scheduler.next(1230ms)->timestamp, 1230ms);
-    EXPECT_EQ(scheduler.next(1240ms)->timestamp, 1240ms);
+    EXPECT_EQ(scheduler.next(1230ms)->transmitTime, 1230ms);
+    EXPECT_EQ(scheduler.next(1240ms)->transmitTime, 1240ms);
 }
 
 TEST(SchedulerTest, SearchBeamsFollowAttitude)
@@ -214,7 +215,7 @@ TEST(SchedulerTest, ConfirmationRequestProducesConfirmationBeam)
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::CONFIRMATION);
     EXPECT_EQ(command->beamId, 0u);
-    EXPECT_EQ(command->timestamp, 100ms);
+    EXPECT_EQ(command->transmitTime, 100ms);
     EXPECT_DOUBLE_EQ(command->azimuth_ant.deg(), 12.5);
     EXPECT_DOUBLE_EQ(command->elevation_ant.deg(), 20.5);
     EXPECT_DOUBLE_EQ(command->azimuthBeamWidth.deg(), 3.0);
@@ -264,7 +265,7 @@ TEST(SchedulerTest, RequestBeamDoesNotAdvanceSearchCursor)
     EXPECT_EQ(scheduler.next(30ms)->beamId, 3u);
 }
 
-TEST(SchedulerTest, DelayedRequestUsesCurrentTimeAsTimestamp)
+TEST(SchedulerTest, DelayedRequestUsesCurrentTimeAsTransmitTime)
 {
     beam::Scheduler scheduler;
     makeReady(scheduler);
@@ -274,7 +275,7 @@ TEST(SchedulerTest, DelayedRequestUsesCurrentTimeAsTimestamp)
 
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::TRACKING);
-    EXPECT_EQ(command->timestamp, 1010ms);
+    EXPECT_EQ(command->transmitTime, 1010ms);
 }
 
 TEST(SchedulerTest, ExpiredRequestIsDroppedAndSearchBeamIsReturned)

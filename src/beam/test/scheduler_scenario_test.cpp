@@ -105,7 +105,7 @@ void expectCommonRules(const Result& result)
         }
 
         const beam::BeamCommand& command = *tick.command;
-        EXPECT_EQ(command.timestamp, std::chrono::milliseconds(tick.tickMs));
+        EXPECT_EQ(command.transmitTime, std::chrono::milliseconds(tick.tickMs));
         if (command.beamType == beam::BeamCommand::BeamType::SEARCH)
         {
             EXPECT_DOUBLE_EQ(command.azimuthBeamWidth.deg(), 6.0) << "tick " << tick.tickMs << "ms";
@@ -127,7 +127,7 @@ void expectCommonRules(const Result& result)
             continue;
         }
 
-        const long long delay = spec.sentTickMs - spec.request.timestamp.count();
+        const long long delay = spec.sentTickMs - spec.request.transmitTime.count();
         const long long limit = spec.request.beamType == beam::BeamRequest::BeamType::CONFIRMATION ? 20 : 30;
         EXPECT_GE(delay, 0) << spec.name;
         EXPECT_LT(delay, limit) << spec.name;
@@ -246,7 +246,7 @@ TEST(SchedulerScenarioTest, TracksSendsEveryRequestWithoutDelay)
     ASSERT_EQ(result.requests.size(), 59u);
     for (const schedule_scenario::RequestSpec& spec : result.requests)
     {
-        EXPECT_EQ(spec.sentTickMs, spec.request.timestamp.count()) << spec.name;
+        EXPECT_EQ(spec.sentTickMs, spec.request.transmitTime.count()) << spec.name;
     }
 }
 

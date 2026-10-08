@@ -16,21 +16,21 @@ namespace
 
 beam::SetOperationStateCommand makeOperationState(beam::OperationState state)
 {
-    beam::SetOperationStateCommand command;
-    command.powerState = state;
-    return command;
+    return beam::SetOperationStateCommand::Builder()
+        .powerState(state)
+        .build();
 }
 
 beam::SetAttitudeCommand makeAttitudeCommand(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    beam::SetAttitudeCommand command;
-    command.latitude = 37.0_deg;
-    command.longitude = 127.0_deg;
-    command.altitude = 0.1_km;
-    command.roll = roll;
-    command.pitch = pitch;
-    command.yaw = yaw;
-    return command;
+    return beam::SetAttitudeCommand::Builder()
+        .latitude(37.0_deg)
+        .longitude(127.0_deg)
+        .altitude(0.1_km)
+        .roll(roll)
+        .pitch(pitch)
+        .yaw(yaw)
+        .build();
 }
 
 } // namespace
@@ -92,11 +92,13 @@ TEST(BeamControllerTest, RequestBeamIsDeliveredToScheduler)
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
-    beam::BeamRequest request;
-    request.beamType = beam::BeamRequest::BeamType::TRACKING;
-    request.timestamp = 100ms;
-    request.azimuth_ant = 7.5_deg;
-    request.elevation_ant = 15.5_deg;
+    const beam::BeamRequest request = beam::BeamRequest::Builder()
+        .beamType(beam::BeamRequest::BeamType::TRACKING)
+        .transmitTime(100ms)
+        .requestId(0)
+        .azimuth_ant(7.5_deg)
+        .elevation_ant(15.5_deg)
+        .build();
     controller.requestBeam(request);
 
     const auto command = controller.nextBeamCommand(100ms);
