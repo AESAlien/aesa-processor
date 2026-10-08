@@ -1,3 +1,4 @@
+#include <network/message_framer.hpp>
 #include <network/network_manager.hpp>
 
 #include <chrono>
@@ -5,6 +6,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <variant>
 #include <vector>
@@ -14,12 +16,32 @@ namespace
 
 volatile std::sig_atomic_t running = 1;
 
-constexpr char SERVER_ADDRESS[] = "192.168.10.20";
+constexpr char SERVER_ADDRESS[] = "127.0.0.20";
 constexpr std::uint16_t SERVER_PORT = 3200;
-constexpr char OPERATOR_CONSOLE_ADDRESS[] = "192.168.10.10";
+constexpr char OPERATOR_CONSOLE_ADDRESS[] = "127.0.0.10";
 constexpr std::uint16_t OPERATOR_CONSOLE_PORT = 3100;
-constexpr char SCENARIO_SIMULATOR_ADDRESS[] = "192.168.10.100";
+constexpr char SCENARIO_SIMULATOR_ADDRESS[] = "127.0.0.100";
 constexpr std::uint16_t SCENARIO_SIMULATOR_PORT = 3300;
+
+struct PeerMessageFramers
+{
+    comm::MessageFramer operatorConsole;
+    comm::MessageFramer scenarioSimulator;
+
+    comm::MessageFramer& get(comm::NetworkPeer peer)
+    {
+        switch (peer)
+        {
+        case comm::NetworkPeer::OPERATOR_CONSOLE:
+            return operatorConsole;
+
+        case comm::NetworkPeer::SCENARIO_SIMULATOR:
+            return scenarioSimulator;
+        }
+
+        throw std::invalid_argument("Unknown network peer");
+    }
+};
 
 void stopRunning(int)
 {
@@ -153,6 +175,23 @@ const char* sendStatusName(comm::SendStatus status)
     return "unknown";
 }
 
+const char* framingErrorName(comm::FramingError error)
+{
+    switch (error)
+    {
+    case comm::FramingError::NONE:
+        return "none";
+
+    case comm::FramingError::UNKNOWN_MESSAGE_ID:
+        return "unknown-message-id";
+
+    case comm::FramingError::INVALID_FRAME_SIZE:
+        return "invalid-frame-size";
+    }
+
+    return "unknown";
+}
+
 void printSystemError(std::ostream& output, int errorCode)
 {
     if (errorCode != 0)
@@ -187,12 +226,34 @@ void handleConnectionEvent(const comm::ConnectionEvent& event)
 
 void handleDataReceivedEvent(
     comm::NetworkManager& networkManager,
+    comm::MessageFramer& messageFramer,
     const comm::DataReceivedEvent& event
 )
 {
     std::cout << "[receive] peer=" << peerName(event.peer)
               << ", bytes=" << event.bytes.size() << ", data=";
     printBytes(event.bytes);
+
+    comm::FrameResult frameResult = messageFramer.append(event.bytes);
+    for (const comm::MessageFrame& frame : frameResult.frames)
+    {
+        const auto payloadBegin =
+            frame.bytes.cbegin() +
+            static_cast<std::ptrdiff_t>(sizeof(comm::protocol::ST_MsgHeader));
+        const std::string payload(payloadBegin, frame.bytes.cend());
+
+        std::cout << "[payload] peer=" << peerName(event.peer)
+                  << ", bytes=" << payload.size()
+                  << ", data=" << payload << '\n';
+    }
+
+    if (frameResult.error != comm::FramingError::NONE)
+    {
+        std::cerr << "[framing-error] peer=" << peerName(event.peer)
+                  << ", error=" << framingErrorName(frameResult.error)
+                  << '\n';
+        messageFramer.reset();
+    }
 
     comm::SendResult sendResult = networkManager.send(event.peer, event.bytes);
     std::cout << "[echo] peer=" << peerName(event.peer)
@@ -209,18 +270,23 @@ void handleDataReceivedEvent(
 
 void handleEvent(
     comm::NetworkManager& networkManager,
+    PeerMessageFramers& messageFramers,
     const comm::NetworkEvent& event
 )
 {
     if (const auto* connection = std::get_if<comm::ConnectionEvent>(&event))
     {
+        messageFramers.get(connection->peer).reset();
         handleConnectionEvent(*connection);
         return;
     }
 
     if (const auto* received = std::get_if<comm::DataReceivedEvent>(&event))
     {
-        handleDataReceivedEvent(networkManager, *received);
+        handleDataReceivedEvent(
+            networkManager,
+            messageFramers.get(received->peer),
+            *received);
         return;
     }
 
@@ -252,6 +318,7 @@ int main()
         serverEndpoint,
         operatorConsoleEndpoint,
         scenarioSimulatorEndpoint);
+    PeerMessageFramers messageFramers;
 
     comm::OperationResult startResult = networkManager.start();
     if (startResult.status != comm::OperationStatus::SUCCESS)
@@ -297,7 +364,7 @@ int main()
 
         for (const comm::NetworkEvent& event : pollResult.events)
         {
-            handleEvent(networkManager, event);
+            handleEvent(networkManager, messageFramers, event);
         }
     }
 

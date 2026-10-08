@@ -1,4 +1,5 @@
 add_library(comm STATIC
+    src/network/message_framer.cpp
     src/network/network_manager.cpp
 )
 target_include_directories(comm
@@ -22,3 +23,9 @@ target_include_directories(comm_main PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 target_link_libraries(comm_main PRIVATE comm)
+
+add_executable(comm_sender test/comm_sender.cpp)
+target_include_directories(comm_sender PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(comm_sender PRIVATE comm)
