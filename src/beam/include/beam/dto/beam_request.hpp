@@ -19,7 +19,7 @@ struct BeamRequest
     };
 
     BeamType beamType{};
-    std::chrono::milliseconds timestamp = 0ms;
+    std::chrono::milliseconds transmitTime = 0ms;
     math::Angle azimuth_ant = 0_deg;
     math::Angle elevation_ant = 0_deg;
 };

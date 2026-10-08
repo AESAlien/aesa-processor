@@ -20,8 +20,7 @@ struct BeamCommand
     };
 
     BeamType beamType{};
-    // Elapsed time since the shared start at 0 ms.
-    std::chrono::milliseconds timestamp = 0ms;
+    std::chrono::milliseconds transmitTime = 0ms;
     uint32_t beamId{};
     uint32_t commandCount{};
     math::Angle azimuth_ant = 0_deg;
