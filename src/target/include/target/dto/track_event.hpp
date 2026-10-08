@@ -6,8 +6,6 @@
 #include <math/distance.hpp>
 #include <math/velocity.hpp>
 
-#include <target/domain/track_state.hpp>
-
 namespace target
 {
 
