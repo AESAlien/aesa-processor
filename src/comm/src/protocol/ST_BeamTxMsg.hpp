@@ -1,6 +1,6 @@
 #pragma once
 
-#include <comm/protocol/ST_MsgHeader.hpp>
+#include <protocol/ST_MsgHeader.hpp>
 
 #include <cstdint>
 
@@ -10,16 +10,16 @@ namespace comm::protocol
 #pragma pack(push, 1)
 struct ST_BeamTx
 {
-    std::uint8_t beamType;
-    std::uint8_t padding[3];
-    std::uint32_t timestamp;
-    std::uint32_t beamID;
-    std::uint32_t commandCount;
+    uint8_t beamType;
+    uint8_t padding[3];
+    uint32_t timestamp;
+    uint32_t beamID;
+    uint32_t commandCount;
     float beam_az_deg;
     float beam_el_deg;
     float az_width_deg;
     float el_width_deg;
-    std::uint8_t padding_data[28];
+    uint8_t padding_data[28];
 };
 
 struct ST_BeamTxMsg
