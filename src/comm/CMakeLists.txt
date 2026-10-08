@@ -1,5 +1,4 @@
 add_library(comm STATIC
-    src/controller/comm_controller.cpp
     src/network/message_framer.cpp
     src/network/network_manager.cpp
 )
