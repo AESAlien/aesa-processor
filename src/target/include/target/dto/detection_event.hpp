@@ -5,6 +5,8 @@
 #include <math/distance.hpp>
 #include <math/velocity.hpp>
 
+#include <cstdint>
+
 namespace target
 {
 
@@ -12,12 +14,14 @@ struct DetectionEvent
 {
     DetectionEvent(
         beam::BeamCommand::BeamType beamType,
+        uint32_t requestId,
         math::Distance slantRange,
         math::Angle azimuth,
         math::Angle elevation,
         math::Velocity dopplerVelocity,
         float power_db
     ) : beamType(beamType),
+        requestId(requestId),
         slantRange(slantRange),
         azimuth(azimuth),
         elevation(elevation),
@@ -27,6 +31,7 @@ struct DetectionEvent
     }
 
     const beam::BeamCommand::BeamType beamType;
+    const uint32_t requestId;
     const math::Distance slantRange;
     const math::Angle azimuth;
     const math::Angle elevation;

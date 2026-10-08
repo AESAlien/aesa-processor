@@ -18,10 +18,12 @@ struct BeamRequest
     BeamRequest(
         BeamType beamType,
         std::chrono::milliseconds transmitTime,
+        uint32_t requestId,
         math::Angle azimuth_ant,
         math::Angle elevation_ant
     ) : beamType(beamType),
         transmitTime(transmitTime),
+        requestId(requestId),
         azimuth_ant(azimuth_ant),
         elevation_ant(elevation_ant)
     {
@@ -29,6 +31,7 @@ struct BeamRequest
 
     const BeamType beamType;
     const std::chrono::milliseconds transmitTime;
+    const uint32_t requestId;
     const math::Angle azimuth_ant;
     const math::Angle elevation_ant;
 };
