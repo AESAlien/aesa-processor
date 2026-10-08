@@ -6,17 +6,30 @@
 namespace beam
 {
 
-using math::literals::operator""_deg;
-using math::literals::operator""_km;
-
 struct SetAttitudeCommand
 {
-    math::Angle latitude = 0_deg;
-    math::Angle longitude = 0_deg;
-    math::Distance altitude = 0_km;
-    math::Angle roll = 0_deg;
-    math::Angle pitch = 0_deg;
-    math::Angle yaw = 0_deg;
+    SetAttitudeCommand(
+        math::Angle latitude,
+        math::Angle longitude,
+        math::Distance altitude,
+        math::Angle roll,
+        math::Angle pitch,
+        math::Angle yaw
+    ) : latitude(latitude),
+        longitude(longitude),
+        altitude(altitude),
+        roll(roll),
+        pitch(pitch),
+        yaw(yaw)
+    {
+    }
+
+    const math::Angle latitude;
+    const math::Angle longitude;
+    const math::Distance altitude;
+    const math::Angle roll;
+    const math::Angle pitch;
+    const math::Angle yaw;
 };
 
 static_assert(sizeof(SetAttitudeCommand) == 48, "SetAttitudeCommand must be 48 bytes");

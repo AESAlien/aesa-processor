@@ -7,9 +7,6 @@
 namespace beam
 {
 
-using math::literals::operator""_deg;
-using std::chrono_literals::operator""ms;
-
 struct BeamRequest
 {
     enum class BeamType : uint8_t
@@ -18,10 +15,22 @@ struct BeamRequest
         TRACKING = 3
     };
 
-    BeamType beamType{};
-    std::chrono::milliseconds transmitTime = 0ms;
-    math::Angle azimuth_ant = 0_deg;
-    math::Angle elevation_ant = 0_deg;
+    BeamRequest(
+        BeamType beamType,
+        std::chrono::milliseconds transmitTime,
+        math::Angle azimuth_ant,
+        math::Angle elevation_ant
+    ) : beamType(beamType),
+        transmitTime(transmitTime),
+        azimuth_ant(azimuth_ant),
+        elevation_ant(elevation_ant)
+    {
+    }
+
+    const BeamType beamType;
+    const std::chrono::milliseconds transmitTime;
+    const math::Angle azimuth_ant;
+    const math::Angle elevation_ant;
 };
 
 } // namespace beam

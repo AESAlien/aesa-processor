@@ -8,16 +8,30 @@
 namespace target
 {
 
-using math::literals::operator""_deg;
-using math::literals::operator""_km;
 struct DetectionEvent
 {
-    beam::BeamCommand::BeamType beamType;
-    math::Distance slantRange;
-    math::Angle azimuth;
-    math::Angle elevation;
-    math::Velocity dopplerVelocity;
-    float power_db;
+    DetectionEvent(
+        beam::BeamCommand::BeamType beamType,
+        math::Distance slantRange,
+        math::Angle azimuth,
+        math::Angle elevation,
+        math::Velocity dopplerVelocity,
+        float power_db
+    ) : beamType(beamType),
+        slantRange(slantRange),
+        azimuth(azimuth),
+        elevation(elevation),
+        dopplerVelocity(dopplerVelocity),
+        power_db(power_db)
+    {
+    }
+
+    const beam::BeamCommand::BeamType beamType;
+    const math::Distance slantRange;
+    const math::Angle azimuth;
+    const math::Angle elevation;
+    const math::Velocity dopplerVelocity;
+    const float power_db;
 };
 
 } // namespace target

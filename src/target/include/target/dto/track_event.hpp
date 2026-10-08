@@ -1,21 +1,15 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <math/angle.hpp>
 #include <math/distance.hpp>
 #include <math/velocity.hpp>
-#include <chrono>
-
-#include <cstdint>
 
 #include <target/domain/track_state.hpp>
 
 namespace target
 {
-
-using math::literals::operator""_deg;
-using math::literals::operator""_km;
-using std::chrono_literals::operator""ms;
 
 struct TrackEvent
 {
@@ -25,21 +19,53 @@ struct TrackEvent
         TRACKING = 2
     };
 
-    uint16_t id;
-    TrackState state;
-    math::Distance slantRange;
-    math::Distance groundRange;
-    math::Angle azimuth;
-    math::Angle elevation;
-    math::Velocity dopplerVelocity;
-    math::Angle latitude;
-    math::Angle longitude;
-    math::Distance altitude;
-    math::Velocity velocity;
-    math::Angle heading;
-    math::Angle flightPathAngle;
+    TrackEvent(
+        uint16_t id,
+        TrackState state,
+        math::Distance slantRange,
+        math::Distance groundRange,
+        math::Angle azimuth,
+        math::Angle elevation,
+        math::Velocity dopplerVelocity,
+        math::Angle latitude,
+        math::Angle longitude,
+        math::Distance altitude,
+        math::Velocity velocity,
+        math::Angle heading,
+        math::Angle flightPathAngle,
+        std::chrono::milliseconds timestamp
+    ) : id(id),
+        state(state),
+        slantRange(slantRange),
+        groundRange(groundRange),
+        azimuth(azimuth),
+        elevation(elevation),
+        dopplerVelocity(dopplerVelocity),
+        latitude(latitude),
+        longitude(longitude),
+        altitude(altitude),
+        velocity(velocity),
+        heading(heading),
+        flightPathAngle(flightPathAngle),
+        timestamp(timestamp)
+    {
+    }
+
+    const uint16_t id;
+    const TrackState state;
+    const math::Distance slantRange;
+    const math::Distance groundRange;
+    const math::Angle azimuth;
+    const math::Angle elevation;
+    const math::Velocity dopplerVelocity;
+    const math::Angle latitude;
+    const math::Angle longitude;
+    const math::Distance altitude;
+    const math::Velocity velocity;
+    const math::Angle heading;
+    const math::Angle flightPathAngle;
     // Elapsed time since the shared start at 0 ms.
-    std::chrono::milliseconds timestamp = 0ms;
+    const std::chrono::milliseconds timestamp;
 };
 
 } // namespace target
