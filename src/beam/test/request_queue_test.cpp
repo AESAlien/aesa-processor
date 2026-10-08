@@ -13,25 +13,25 @@ namespace
 beam::BeamRequest makeRequest(
     beam::BeamRequest::BeamType beamType,
     std::chrono::milliseconds transmitTime,
-    double azimuthDeg = 0.0
+    double azimuth_deg = 0.0
 ) {
     return beam::BeamRequest::Builder()
         .beamType(beamType)
         .transmitTime(transmitTime)
         .requestId(0)
-        .azimuth_ant(math::Angle::fromDegrees(azimuthDeg))
+        .azimuth_ant(math::Angle::fromDegrees(azimuth_deg))
         .elevation_ant(0_deg)
         .build();
 }
 
-beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, double azimuthDeg = 0.0)
+beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, double azimuth_deg = 0.0)
 {
-    return makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, transmitTime, azimuthDeg);
+    return makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, transmitTime, azimuth_deg);
 }
 
-beam::BeamRequest makeTracking(std::chrono::milliseconds transmitTime, double azimuthDeg = 0.0)
+beam::BeamRequest makeTracking(std::chrono::milliseconds transmitTime, double azimuth_deg = 0.0)
 {
-    return makeRequest(beam::BeamRequest::BeamType::TRACKING, transmitTime, azimuthDeg);
+    return makeRequest(beam::BeamRequest::BeamType::TRACKING, transmitTime, azimuth_deg);
 }
 
 } // namespace

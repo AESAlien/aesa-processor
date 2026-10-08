@@ -37,7 +37,7 @@ struct RequestSpec
     std::string name;
     beam::BeamRequest request;
     // 이 요청 때문에 송신된 빔의 틱(ms). 송신되지 못하고 폐기되었으면 -1
-    long long sentTickMs = -1;
+    long long sentTick_ms = -1;
 };
 
 struct Scenario
@@ -50,7 +50,7 @@ struct Scenario
 
 struct TickRecord
 {
-    long long tickMs = 0;
+    long long tick_ms = 0;
     Status status = Status::OFF;
     std::optional<beam::BeamCommand> command;
 };
@@ -65,8 +65,8 @@ inline RequestSpec makeRequestSpec(
     const std::string& name,
     beam::BeamRequest::BeamType beamType,
     std::chrono::milliseconds transmitTime,
-    double azimuthDeg,
-    double elevationDeg
+    double azimuth_deg,
+    double elevation_deg
 ) {
     return RequestSpec{
         name,
@@ -74,8 +74,8 @@ inline RequestSpec makeRequestSpec(
             .beamType(beamType)
             .transmitTime(transmitTime)
             .requestId(0)
-            .azimuth_ant(math::Angle::fromDegrees(azimuthDeg))
-            .elevation_ant(math::Angle::fromDegrees(elevationDeg))
+            .azimuth_ant(math::Angle::fromDegrees(azimuth_deg))
+            .elevation_ant(math::Angle::fromDegrees(elevation_deg))
             .build()
     };
 }
@@ -128,11 +128,11 @@ inline Scenario makeTracksScenario()
             }
 
             // 요청과 송신 결과를 짝지을 수 있도록 각도가 요청마다 서로 다르게 정한다.
-            const double azimuthDeg = -55.0 + 5.5 * track + 0.25 * round;
-            const double elevationDeg = 3.0 + 5.0 * (track % 10) + 0.1 * round;
+            const double azimuth_deg = -55.0 + 5.5 * track + 0.25 * round;
+            const double elevation_deg = 3.0 + 5.0 * (track % 10) + 0.1 * round;
             scenario.requests.push_back(makeRequestSpec(
                 "T" + std::to_string(track + 1) + "." + std::to_string(round + 1),
-                Type::TRACKING, transmitTime, azimuthDeg, elevationDeg));
+                Type::TRACKING, transmitTime, azimuth_deg, elevation_deg));
         }
     }
     return scenario;
@@ -150,15 +150,15 @@ inline bool sameAngle(math::Angle left, math::Angle right)
 inline void markSent(
     std::vector<RequestSpec>& requests,
     const beam::BeamCommand& command,
-    long long tickMs
+    long long tick_ms
 ) {
     for (RequestSpec& spec : requests)
     {
         const bool sameType = static_cast<int>(spec.request.beamType) == static_cast<int>(command.beamType);
-        if (spec.sentTickMs < 0 && sameType && sameAngle(spec.request.azimuth_ant, command.azimuth_ant) &&
+        if (spec.sentTick_ms < 0 && sameType && sameAngle(spec.request.azimuth_ant, command.azimuth_ant) &&
             sameAngle(spec.request.elevation_ant, command.elevation_ant))
         {
-            spec.sentTickMs = tickMs;
+            spec.sentTick_ms = tick_ms;
             return;
         }
     }
@@ -197,7 +197,7 @@ inline Result run(Scenario scenario, const beam::RadarAttitude& attitude)
         };
         if (record.command.has_value() && record.command->beamType != beam::BeamCommand::BeamType::SEARCH)
         {
-            detail::markSent(scenario.requests, *record.command, record.tickMs);
+            detail::markSent(scenario.requests, *record.command, record.tick_ms);
         }
         result.ticks.push_back(std::move(record));
     }

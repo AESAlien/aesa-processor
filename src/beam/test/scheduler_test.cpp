@@ -48,15 +48,15 @@ void makeReady(beam::Scheduler& scheduler)
 beam::BeamRequest makeRequest(
     beam::BeamRequest::BeamType beamType,
     std::chrono::milliseconds transmitTime,
-    double azimuthDeg,
-    double elevationDeg
+    double azimuth_deg,
+    double elevation_deg
 ) {
     return beam::BeamRequest::Builder()
         .beamType(beamType)
         .transmitTime(transmitTime)
         .requestId(0)
-        .azimuth_ant(math::Angle::fromDegrees(azimuthDeg))
-        .elevation_ant(math::Angle::fromDegrees(elevationDeg))
+        .azimuth_ant(math::Angle::fromDegrees(azimuth_deg))
+        .elevation_ant(math::Angle::fromDegrees(elevation_deg))
         .build();
 }
 

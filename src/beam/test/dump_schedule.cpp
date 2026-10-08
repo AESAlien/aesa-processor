@@ -131,14 +131,14 @@ int main(int argc, char** argv)
         {
             if (!tick.command.has_value())
             {
-                std::printf("%lld,%s,NONE,,,,,,\n", tick.tickMs, statusName(tick.status));
+                std::printf("%lld,%s,NONE,,,,,,\n", tick.tick_ms, statusName(tick.status));
                 continue;
             }
 
             const beam::BeamCommand& command = *tick.command;
             std::printf(
                 "%lld,%s,%s,%u,%u,%.6f,%.6f,%.2f,%.2f\n",
-                tick.tickMs,
+                tick.tick_ms,
                 statusName(tick.status),
                 typeName(command.beamType),
                 command.beamId,
@@ -160,7 +160,7 @@ int main(int argc, char** argv)
                 static_cast<long long>(spec.request.transmitTime.count()),
                 spec.request.azimuth_ant.deg(),
                 spec.request.elevation_ant.deg(),
-                spec.sentTickMs);
+                spec.sentTick_ms);
         }
 
         std::printf("# grid\n");

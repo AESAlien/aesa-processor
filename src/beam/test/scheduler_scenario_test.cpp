@@ -39,11 +39,11 @@ beam::RadarAttitude makeZeroAttitude()
     return makeAttitude(0_deg, 0_deg, 0_deg);
 }
 
-const TickRecord& tickAt(const Result& result, long long tickMs)
+const TickRecord& tickAt(const Result& result, long long tick_ms)
 {
     const auto found = std::find_if(result.ticks.begin(), result.ticks.end(),
-                                    [tickMs](const TickRecord& tick) { return tick.tickMs == tickMs; });
-    EXPECT_NE(found, result.ticks.end()) << "no tick at " << tickMs << "ms";
+                                    [tick_ms](const TickRecord& tick) { return tick.tick_ms == tick_ms; });
+    EXPECT_NE(found, result.ticks.end()) << "no tick at " << tick_ms << "ms";
     return *found;
 }
 
@@ -98,36 +98,36 @@ void expectCommonRules(const Result& result)
 
     for (const TickRecord& tick : result.ticks)
     {
-        EXPECT_EQ(tick.command.has_value(), tick.status == Status::READY) << "tick " << tick.tickMs << "ms";
+        EXPECT_EQ(tick.command.has_value(), tick.status == Status::READY) << "tick " << tick.tick_ms << "ms";
         if (!tick.command.has_value())
         {
             continue;
         }
 
         const beam::BeamCommand& command = *tick.command;
-        EXPECT_EQ(command.transmitTime, std::chrono::milliseconds(tick.tickMs));
+        EXPECT_EQ(command.transmitTime, std::chrono::milliseconds(tick.tick_ms));
         if (command.beamType == beam::BeamCommand::BeamType::SEARCH)
         {
-            EXPECT_DOUBLE_EQ(command.azimuthBeamWidth.deg(), 6.0) << "tick " << tick.tickMs << "ms";
-            EXPECT_DOUBLE_EQ(command.elevationBeamWidth.deg(), 6.0) << "tick " << tick.tickMs << "ms";
+            EXPECT_DOUBLE_EQ(command.azimuthBeamWidth.deg(), 6.0) << "tick " << tick.tick_ms << "ms";
+            EXPECT_DOUBLE_EQ(command.elevationBeamWidth.deg(), 6.0) << "tick " << tick.tick_ms << "ms";
         }
         else
         {
-            EXPECT_EQ(command.beamId, 0u) << "tick " << tick.tickMs << "ms";
-            EXPECT_DOUBLE_EQ(command.azimuthBeamWidth.deg(), 3.0) << "tick " << tick.tickMs << "ms";
-            EXPECT_DOUBLE_EQ(command.elevationBeamWidth.deg(), 3.0) << "tick " << tick.tickMs << "ms";
+            EXPECT_EQ(command.beamId, 0u) << "tick " << tick.tick_ms << "ms";
+            EXPECT_DOUBLE_EQ(command.azimuthBeamWidth.deg(), 3.0) << "tick " << tick.tick_ms << "ms";
+            EXPECT_DOUBLE_EQ(command.elevationBeamWidth.deg(), 3.0) << "tick " << tick.tick_ms << "ms";
         }
     }
 
     // 송신된 요청은 원한 시각 이후 종류별 허용 지연(확인 20ms, 추적 30ms) 안에서만 나간다.
     for (const schedule_scenario::RequestSpec& spec : result.requests)
     {
-        if (spec.sentTickMs < 0)
+        if (spec.sentTick_ms < 0)
         {
             continue;
         }
 
-        const long long delay = spec.sentTickMs - spec.request.transmitTime.count();
+        const long long delay = spec.sentTick_ms - spec.request.transmitTime.count();
         const long long limit = spec.request.beamType == beam::BeamRequest::BeamType::CONFIRMATION ? 20 : 30;
         EXPECT_GE(delay, 0) << spec.name;
         EXPECT_LT(delay, limit) << spec.name;
@@ -146,9 +146,9 @@ TEST(SchedulerScenarioTest, MixedSendsNothingUntilReady)
     EXPECT_EQ(tickAt(result, 10).status, Status::OFF);
     EXPECT_EQ(tickAt(result, 20).status, Status::ON_WAIT_ATTITUDE);
     EXPECT_EQ(tickAt(result, 30).status, Status::ON_WAIT_ATTITUDE);
-    for (long long tickMs : {0, 10, 20, 30})
+    for (long long tick_ms : {0, 10, 20, 30})
     {
-        EXPECT_FALSE(tickAt(result, tickMs).command.has_value()) << "tick " << tickMs << "ms";
+        EXPECT_FALSE(tickAt(result, tick_ms).command.has_value()) << "tick " << tick_ms << "ms";
     }
 
     const TickRecord& firstReady = tickAt(result, 40);
@@ -165,7 +165,7 @@ TEST(SchedulerScenarioTest, MixedSendsRequestBeamsAtTheDesignedTicks)
 
     struct Expected
     {
-        long long tickMs;
+        long long tick_ms;
         Type beamType;
     };
     const std::vector<Expected> expected = {
@@ -182,9 +182,9 @@ TEST(SchedulerScenarioTest, MixedSendsRequestBeamsAtTheDesignedTicks)
     };
     for (const Expected& item : expected)
     {
-        const TickRecord& tick = tickAt(result, item.tickMs);
-        ASSERT_TRUE(tick.command.has_value()) << "tick " << item.tickMs << "ms";
-        EXPECT_EQ(tick.command->beamType, item.beamType) << "tick " << item.tickMs << "ms";
+        const TickRecord& tick = tickAt(result, item.tick_ms);
+        ASSERT_TRUE(tick.command.has_value()) << "tick " << item.tick_ms << "ms";
+        EXPECT_EQ(tick.command->beamType, item.beamType) << "tick " << item.tick_ms << "ms";
     }
 }
 
@@ -192,14 +192,14 @@ TEST(SchedulerScenarioTest, MixedMatchesEachRequestToItsSentTick)
 {
     const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitude());
 
-    EXPECT_EQ(requestNamed(result, "C1").sentTickMs, 100);
-    EXPECT_EQ(requestNamed(result, "T1").sentTickMs, 150);
-    EXPECT_EQ(requestNamed(result, "A").sentTickMs, 210);
-    EXPECT_EQ(requestNamed(result, "B").sentTickMs, 220);
-    EXPECT_EQ(requestNamed(result, "C").sentTickMs, 230);
-    EXPECT_EQ(requestNamed(result, "E").sentTickMs, 300);
-    EXPECT_EQ(requestNamed(result, "F").sentTickMs, 310);
-    EXPECT_EQ(requestNamed(result, "G").sentTickMs, 320);
+    EXPECT_EQ(requestNamed(result, "C1").sentTick_ms, 100);
+    EXPECT_EQ(requestNamed(result, "T1").sentTick_ms, 150);
+    EXPECT_EQ(requestNamed(result, "A").sentTick_ms, 210);
+    EXPECT_EQ(requestNamed(result, "B").sentTick_ms, 220);
+    EXPECT_EQ(requestNamed(result, "C").sentTick_ms, 230);
+    EXPECT_EQ(requestNamed(result, "E").sentTick_ms, 300);
+    EXPECT_EQ(requestNamed(result, "F").sentTick_ms, 310);
+    EXPECT_EQ(requestNamed(result, "G").sentTick_ms, 320);
 }
 
 TEST(SchedulerScenarioTest, MixedDropsOnlyRequestsThatWaitedTooLong)
@@ -209,7 +209,7 @@ TEST(SchedulerScenarioTest, MixedDropsOnlyRequestsThatWaitedTooLong)
     std::vector<std::string> dropped;
     for (const schedule_scenario::RequestSpec& spec : result.requests)
     {
-        if (spec.sentTickMs < 0)
+        if (spec.sentTick_ms < 0)
         {
             dropped.push_back(spec.name);
         }
@@ -246,7 +246,7 @@ TEST(SchedulerScenarioTest, TracksSendsEveryRequestWithoutDelay)
     ASSERT_EQ(result.requests.size(), 59u);
     for (const schedule_scenario::RequestSpec& spec : result.requests)
     {
-        EXPECT_EQ(spec.sentTickMs, spec.request.transmitTime.count()) << spec.name;
+        EXPECT_EQ(spec.sentTick_ms, spec.request.transmitTime.count()) << spec.name;
     }
 }
 
@@ -260,7 +260,7 @@ TEST(SchedulerScenarioTest, TracksFirstSearchSweepIsLongerByTheNumberOfRequestBe
         if (tick.command.has_value() && tick.command->beamType == beam::BeamCommand::BeamType::SEARCH &&
             tick.command->beamId == 1)
         {
-            sweepStartTicks.push_back(tick.tickMs);
+            sweepStartTicks.push_back(tick.tick_ms);
         }
     }
     ASSERT_GE(sweepStartTicks.size(), 2u);
@@ -273,7 +273,7 @@ TEST(SchedulerScenarioTest, TracksFirstSearchSweepIsLongerByTheNumberOfRequestBe
     long long requestBeamsInSweep = 0;
     for (const schedule_scenario::RequestSpec& spec : result.requests)
     {
-        if (spec.sentTickMs >= sweepStart && spec.sentTickMs < nextSweepStart)
+        if (spec.sentTick_ms >= sweepStart && spec.sentTick_ms < nextSweepStart)
         {
             ++requestBeamsInSweep;
         }
@@ -315,16 +315,16 @@ TEST(SchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
     {
         const TickRecord& left = zero.ticks[index];
         const TickRecord& right = rotated.ticks[index];
-        ASSERT_EQ(left.command.has_value(), right.command.has_value()) << "tick " << left.tickMs << "ms";
+        ASSERT_EQ(left.command.has_value(), right.command.has_value()) << "tick " << left.tick_ms << "ms";
         if (!left.command.has_value())
         {
             continue;
         }
 
         // 어떤 빔이 나가는지(종류, 번호, 카운트)는 자세와 무관하다.
-        EXPECT_EQ(left.command->beamType, right.command->beamType) << "tick " << left.tickMs << "ms";
-        EXPECT_EQ(left.command->beamId, right.command->beamId) << "tick " << left.tickMs << "ms";
-        EXPECT_EQ(left.command->commandCount, right.command->commandCount) << "tick " << left.tickMs << "ms";
+        EXPECT_EQ(left.command->beamType, right.command->beamType) << "tick " << left.tick_ms << "ms";
+        EXPECT_EQ(left.command->beamId, right.command->beamId) << "tick " << left.tick_ms << "ms";
+        EXPECT_EQ(left.command->commandCount, right.command->commandCount) << "tick " << left.tick_ms << "ms";
 
         if (left.command->beamType == beam::BeamCommand::BeamType::SEARCH)
         {
@@ -343,6 +343,6 @@ TEST(SchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
 
     for (std::size_t index = 0; index < zero.requests.size(); ++index)
     {
-        EXPECT_EQ(zero.requests[index].sentTickMs, rotated.requests[index].sentTickMs) << zero.requests[index].name;
+        EXPECT_EQ(zero.requests[index].sentTick_ms, rotated.requests[index].sentTick_ms) << zero.requests[index].name;
     }
 }
