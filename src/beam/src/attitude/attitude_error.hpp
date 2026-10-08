@@ -7,7 +7,7 @@
 namespace beam
 {
 
-enum class AttitudeErrorCode : std::uint8_t
+enum class AttitudeErrorCode : uint8_t
 {
     NOT_FINITE,
     OUT_OF_RANGE,

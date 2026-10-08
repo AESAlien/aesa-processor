@@ -20,7 +20,7 @@ MessageFramer::MessageFramer(std::size_t maximumFrameSize) :
 }
 
 FrameResult MessageFramer::append(
-    const std::vector<std::uint8_t>& bytes
+    const std::vector<uint8_t>& bytes
 )
 {
     FrameResult result;
@@ -98,7 +98,7 @@ FramingError MessageFramer::validateHeader(
 }
 
 bool MessageFramer::isKnownMessageId(
-    std::uint16_t messageId
+    uint16_t messageId
 ) const
 {
     switch (static_cast<protocol::MessageId>(messageId))

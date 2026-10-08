@@ -10,15 +10,15 @@ namespace comm::protocol
 #pragma pack(push, 1)
 struct ST_TrkHeader
 {
-    std::uint16_t number;
-    std::uint8_t padding[2];
+    uint16_t number;
+    uint8_t padding[2];
 };
 
 struct ST_Trk
 {
-    std::uint16_t ID;
-    std::uint8_t type;
-    std::uint8_t memFlag;
+    uint16_t ID;
+    uint8_t type;
+    uint8_t memFlag;
     float slantR_km;
     float groundR_km;
     float azi_deg;
@@ -30,10 +30,10 @@ struct ST_Trk
     float velocity_mps;
     float heading_deg;
     float fpa_deg;
-    std::uint32_t timeStamp;
-    std::uint32_t beamID;
-    std::uint32_t commandCount;
-    std::uint8_t padding[28];
+    uint32_t timeStamp;
+    uint32_t beamID;
+    uint32_t commandCount;
+    uint8_t padding[28];
 };
 
 struct ST_TrkMsg

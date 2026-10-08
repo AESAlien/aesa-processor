@@ -9,8 +9,8 @@ namespace comm::protocol
 struct ST_OperatorMsg
 {
     ST_MsgHeader msgHeader;
-    std::uint8_t oper_status;
-    std::uint8_t padding[3];
+    uint8_t oper_status;
+    uint8_t padding[3];
 };
 #pragma pack(pop)
 

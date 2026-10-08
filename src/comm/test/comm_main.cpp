@@ -17,11 +17,11 @@ namespace
 volatile std::sig_atomic_t running = 1;
 
 constexpr char SERVER_ADDRESS[] = "127.0.0.20";
-constexpr std::uint16_t SERVER_PORT = 3200;
+constexpr uint16_t SERVER_PORT = 3200;
 constexpr char OPERATOR_CONSOLE_ADDRESS[] = "127.0.0.10";
-constexpr std::uint16_t OPERATOR_CONSOLE_PORT = 3100;
+constexpr uint16_t OPERATOR_CONSOLE_PORT = 3100;
 constexpr char SCENARIO_SIMULATOR_ADDRESS[] = "127.0.0.100";
-constexpr std::uint16_t SCENARIO_SIMULATOR_PORT = 3300;
+constexpr uint16_t SCENARIO_SIMULATOR_PORT = 3300;
 
 struct PeerMessageFramers
 {
@@ -200,10 +200,10 @@ void printSystemError(std::ostream& output, int errorCode)
     }
 }
 
-void printBytes(const std::vector<std::uint8_t>& bytes)
+void printBytes(const std::vector<uint8_t>& bytes)
 {
     std::cout << std::hex << std::setfill('0');
-    for (std::uint8_t byte : bytes)
+    for (uint8_t byte : bytes)
     {
         std::cout << std::setw(2) << static_cast<unsigned int>(byte) << ' ';
     }
