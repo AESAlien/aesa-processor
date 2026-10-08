@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <math/angle.hpp>
 #include <math/distance.hpp>
+#include <math/velocity.hpp>
 #include <chrono>
 
 #include <cstdint>
@@ -30,11 +31,11 @@ struct TrackEvent
     math::Distance groundRange;
     math::Angle azimuth;
     math::Angle elevation;
-    float dopplerVelocity_mps;
+    math::Velocity dopplerVelocity;
     math::Angle latitude;
     math::Angle longitude;
     math::Distance altitude;
-    float velocity_mps;
+    math::Velocity velocity;
     math::Angle heading;
     math::Angle flightPathAngle;
     // Elapsed time since the shared start at 0 ms.
