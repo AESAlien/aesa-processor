@@ -12,7 +12,7 @@ struct ST_DelTrkMsg
 {
     ST_MsgHeader msgHeader;
     ST_TrkHeader trkHd;
-    std::uint16_t delTrkID[100];
+    uint16_t delTrkID[100];
 };
 #pragma pack(pop)
 

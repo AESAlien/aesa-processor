@@ -12,7 +12,7 @@ namespace comm
 struct MessageFrame
 {
     protocol::ST_MsgHeader header;
-    std::vector<std::uint8_t> bytes;
+    std::vector<uint8_t> bytes;
 };
 
 enum class FramingError
@@ -38,7 +38,7 @@ public:
         std::size_t maximumFrameSize = DEFAULT_MAXIMUM_FRAME_SIZE
     );
 
-    FrameResult append(const std::vector<std::uint8_t>& bytes);
+    FrameResult append(const std::vector<uint8_t>& bytes);
 
     void reset();
 
@@ -49,7 +49,7 @@ private:
         const protocol::ST_MsgHeader& header
     ) const;
 
-    bool isKnownMessageId(std::uint16_t messageId) const;
+    bool isKnownMessageId(uint16_t messageId) const;
 
     std::size_t getFrameSize(
         const protocol::ST_MsgHeader& header
@@ -63,7 +63,7 @@ private:
     std::size_t availableSize() const;
     void compactBuffer();
 
-    std::vector<std::uint8_t> _buffer;
+    std::vector<uint8_t> _buffer;
     std::size_t _readOffset = 0;
     std::size_t _maximumFrameSize;
 };

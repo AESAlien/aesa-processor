@@ -12,14 +12,13 @@ using std::chrono_literals::operator""ms;
 
 struct BeamRequest
 {
-    enum class BeamType : std::uint8_t
+    enum class BeamType : uint8_t
     {
         CONFIRMATION = 2,
         TRACKING = 3
     };
 
     BeamType beamType{};
-    // Elapsed time since the shared start at 0 ms.
     std::chrono::milliseconds timestamp = 0ms;
     math::Angle azimuth_ant = 0_deg;
     math::Angle elevation_ant = 0_deg;

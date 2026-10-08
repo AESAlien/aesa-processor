@@ -12,7 +12,7 @@ namespace comm
 struct NetworkEndpoint
 {
     std::string address;
-    std::uint16_t port = 0;
+    uint16_t port = 0;
 };
 
 enum class NetworkPeer
@@ -80,13 +80,13 @@ struct ConnectionEvent
 struct DataReceivedEvent
 {
     NetworkPeer peer;
-    std::vector<std::uint8_t> bytes;
+    std::vector<uint8_t> bytes;
 };
 
 struct ConnectionRejectedEvent
 {
     std::string remoteAddress;
-    std::uint16_t remotePort = 0;
+    uint16_t remotePort = 0;
 };
 
 using NetworkEvent = std::variant<

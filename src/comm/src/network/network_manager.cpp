@@ -152,7 +152,7 @@ int socketSelect(
 #endif
 }
 
-int sendBytes(SocketHandle socket, const std::uint8_t* data, int size)
+int sendBytes(SocketHandle socket, const uint8_t* data, int size)
 {
 #ifdef _WIN32
     return ::send(
@@ -165,7 +165,7 @@ int sendBytes(SocketHandle socket, const std::uint8_t* data, int size)
 #endif
 }
 
-int receiveBytes(SocketHandle socket, std::uint8_t* buffer, int size)
+int receiveBytes(SocketHandle socket, uint8_t* buffer, int size)
 {
 #ifdef _WIN32
     return recv(socket, reinterpret_cast<char*>(buffer), size, 0);
@@ -203,7 +203,7 @@ OperationResult NetworkManager::validateConfiguration()
 
     auto parseEndpoint = [](
         const NetworkEndpoint& endpoint,
-        std::optional<std::uint32_t>& parsedAddress,
+        std::optional<uint32_t>& parsedAddress,
         bool allowDisabled
     ) {
         bool disabled = endpoint.address.empty() && endpoint.port == 0;
@@ -474,7 +474,7 @@ PollResult NetworkManager::poll(std::chrono::milliseconds timeout)
 
 SendResult NetworkManager::send(
     NetworkPeer peer,
-    const std::vector<std::uint8_t>& data,
+    const std::vector<uint8_t>& data,
     std::chrono::milliseconds timeout
 )
 {
@@ -725,7 +725,7 @@ bool NetworkManager::acceptConnection(
         return false;
     }
 
-    const std::uint16_t clientPort = ntohs(clientAddress.sin_port);
+    const uint16_t clientPort = ntohs(clientAddress.sin_port);
     std::optional<NetworkPeer> peer;
     if (_operatorConsoleAddress.has_value() &&
         clientAddress.sin_addr.s_addr == *_operatorConsoleAddress &&
@@ -785,7 +785,7 @@ void NetworkManager::receiveFromSocket(
     std::vector<NetworkEvent>& events
 )
 {
-    std::uint8_t buffer[RECEIVE_BUFFER_SIZE];
+    uint8_t buffer[RECEIVE_BUFFER_SIZE];
     int receivedSize = receiveBytes(socket, buffer, sizeof(buffer));
 
     if (receivedSize > 0)

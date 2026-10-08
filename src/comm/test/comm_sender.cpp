@@ -29,12 +29,12 @@ namespace
 {
 
 constexpr char SERVER_IP[] = "127.0.0.20";
-constexpr std::uint16_t SERVER_PORT = 3200;
+constexpr uint16_t SERVER_PORT = 3200;
 constexpr char CLIENT_IP[] = "127.0.0.100";
-constexpr std::uint16_t CLIENT_PORT = 3300;
-constexpr std::uint8_t MESSAGE_VERSION = 1;
-constexpr std::uint8_t SOURCE_ID = 100;
-constexpr std::uint8_t DESTINATION_ID = 20;
+constexpr uint16_t CLIENT_PORT = 3300;
+constexpr uint8_t MESSAGE_VERSION = 1;
+constexpr uint8_t SOURCE_ID = 100;
+constexpr uint8_t DESTINATION_ID = 20;
 constexpr std::chrono::seconds RECEIVE_TIMEOUT{3};
 constexpr std::string_view PAYLOAD = "Hello World";
 
@@ -95,7 +95,7 @@ void waitForExit()
 bool setAddress(
     sockaddr_in& socketAddress,
     const char* ipAddress,
-    std::uint16_t port
+    uint16_t port
 )
 {
     socketAddress = {};
@@ -107,7 +107,7 @@ bool setAddress(
         &socketAddress.sin_addr) == 1;
 }
 
-std::vector<std::uint8_t> makeMessage()
+std::vector<uint8_t> makeMessage()
 {
     using Clock = std::chrono::system_clock;
 
@@ -119,18 +119,18 @@ std::vector<std::uint8_t> makeMessage()
             elapsed - elapsedSeconds);
 
     comm::protocol::ST_MsgHeader header{};
-    header.message_Id = static_cast<std::uint16_t>(
+    header.message_Id = static_cast<uint16_t>(
         comm::protocol::MessageId::RadarAttitudeFromSimulator);
     header.version = MESSAGE_VERSION;
-    header.block_size = static_cast<std::uint32_t>(
+    header.block_size = static_cast<uint32_t>(
         sizeof(header) + PAYLOAD.size());
-    header.timeSec = static_cast<std::uint32_t>(elapsedSeconds.count());
-    header.timeNsec = static_cast<std::uint32_t>(
+    header.timeSec = static_cast<uint32_t>(elapsedSeconds.count());
+    header.timeNsec = static_cast<uint32_t>(
         elapsedNanoseconds.count());
     header.source_id = SOURCE_ID;
     header.dest_id = DESTINATION_ID;
 
-    std::vector<std::uint8_t> message(header.block_size);
+    std::vector<uint8_t> message(header.block_size);
     std::memcpy(message.data(), &header, sizeof(header));
     std::memcpy(
         message.data() + sizeof(header),
@@ -141,7 +141,7 @@ std::vector<std::uint8_t> makeMessage()
 
 bool sendAll(
     SocketHandle socket,
-    const std::vector<std::uint8_t>& message
+    const std::vector<uint8_t>& message
 )
 {
     std::size_t bytesSent = 0;
@@ -195,7 +195,7 @@ bool waitForReadable(SocketHandle socket)
 
 bool receiveAll(
     SocketHandle socket,
-    std::vector<std::uint8_t>& receivedMessage
+    std::vector<uint8_t>& receivedMessage
 )
 {
     std::size_t bytesReceived = 0;
@@ -328,7 +328,7 @@ int runSender()
         return 1;
     }
 
-    const std::vector<std::uint8_t> message = makeMessage();
+    const std::vector<uint8_t> message = makeMessage();
     if (!sendAll(socketHandle, message))
     {
         std::cerr << "Failed to send message: error="
@@ -342,7 +342,7 @@ int runSender()
               << SERVER_IP << ':' << SERVER_PORT << '\n'
               << "Payload: " << PAYLOAD << '\n';
 
-    std::vector<std::uint8_t> echoedMessage(message.size());
+    std::vector<uint8_t> echoedMessage(message.size());
     if (!receiveAll(socketHandle, echoedMessage))
     {
         std::cerr << "Failed to receive the echo within "

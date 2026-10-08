@@ -19,7 +19,7 @@ namespace comm
 struct CommEndpoint
 {
     std::string address;
-    std::uint16_t port = 0;
+    uint16_t port = 0;
 };
 
 struct CommConfiguration

@@ -48,7 +48,7 @@ public:
 
     SendResult send(
         NetworkPeer peer,
-        const std::vector<std::uint8_t>& data,
+        const std::vector<uint8_t>& data,
         std::chrono::milliseconds timeout = std::chrono::milliseconds{1000}
     );
 
@@ -78,9 +78,9 @@ private:
     NetworkEndpoint _serverEndpoint;
     NetworkEndpoint _operatorConsoleEndpoint;
     NetworkEndpoint _scenarioSimulatorEndpoint;
-    std::optional<std::uint32_t> _serverAddress;
-    std::optional<std::uint32_t> _operatorConsoleAddress;
-    std::optional<std::uint32_t> _scenarioSimulatorAddress;
+    std::optional<uint32_t> _serverAddress;
+    std::optional<uint32_t> _operatorConsoleAddress;
+    std::optional<uint32_t> _scenarioSimulatorAddress;
 
     bool _socketApiStarted;
     SocketHandle _listenSocket;

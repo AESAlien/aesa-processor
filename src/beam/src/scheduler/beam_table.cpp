@@ -29,7 +29,7 @@ BeamTable::BeamTable(const AntEnuTransform& transform)
             );
 
             BeamInfo& beam = _beams[index];
-            beam.beamId = static_cast<std::uint32_t>(index + 1);
+            beam.beamId = static_cast<uint32_t>(index + 1);
             beam.azimuth_ant = azimuth_ant;
             beam.elevation_ant = elevation_ant;
             beam.azimuthBeamWidth = BEAM_WIDTH;
