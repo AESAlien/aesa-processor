@@ -19,21 +19,25 @@ bool isFinite(math::Angle angle)
 
 void validate(const SearchGridConfig& config)
 {
-    if(config.azimuthCount == 0 || config.elevationCount == 0) {
+    if(config.azimuthCount == 0 || config.elevationCount == 0)
+    {
         throw std::invalid_argument("SearchGridConfig: count must be greater than 0");
     }
 
-    if(config.azimuthCount > std::numeric_limits<std::uint32_t>::max() / config.elevationCount) {
+    if(config.azimuthCount > std::numeric_limits<std::uint32_t>::max() / config.elevationCount)
+    {
         throw std::invalid_argument("SearchGridConfig: beam count exceeds uint32 range");
     }
 
     if(!isFinite(config.azimuthStart) || !isFinite(config.azimuthStep) ||
        !isFinite(config.elevationStart) || !isFinite(config.elevationStep) ||
-       !isFinite(config.beamWidth)) {
+       !isFinite(config.beamWidth))
+    {
         throw std::invalid_argument("SearchGridConfig: angle must be finite");
     }
 
-    if(config.beamWidth <= 0_deg) {
+    if(config.beamWidth <= 0_deg)
+    {
         throw std::invalid_argument("SearchGridConfig: beamWidth must be greater than 0");
     }
 }

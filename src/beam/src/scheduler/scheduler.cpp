@@ -3,6 +3,7 @@
 #include "attitude/ant_enu_transform.hpp"
 #include "beam/config/beam_config.hpp"
 
+#include <cmath>
 #include <stdexcept>
 
 namespace beam
@@ -10,6 +11,25 @@ namespace beam
 namespace
 {
 using namespace math::literals;
+
+bool isFinite(math::Angle angle)
+{
+    return std::isfinite(angle.deg());
+}
+
+void validate(const RequestBeamConfig& config)
+{
+    // NaN은 크기 비교가 모두 false이므로 유한성을 먼저 확인한다.
+    if (!isFinite(config.confirmationBeamWidth) || !isFinite(config.trackingBeamWidth))
+    {
+        throw std::invalid_argument("RequestBeamConfig: beam width must be finite");
+    }
+
+    if (config.confirmationBeamWidth <= 0_deg || config.trackingBeamWidth <= 0_deg)
+    {
+        throw std::invalid_argument("RequestBeamConfig: beam width must be greater than 0");
+    }
+}
 
 BeamCommand::BeamType toCommandBeamType(BeamRequest::BeamType beamType)
 {
@@ -78,6 +98,7 @@ BeamCommand makeRequestCommand(
 Scheduler::Scheduler(const BeamConfig& config)
     : _config(config), _requestQueue(config.requestQueue)
 {
+    validate(_config.requestBeam);
 }
 
 void Scheduler::setOperationState(OperationState state)
