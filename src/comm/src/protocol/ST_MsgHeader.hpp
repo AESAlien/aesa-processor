@@ -5,6 +5,8 @@
 namespace comm::protocol
 {
 
+constexpr uint8_t MESSAGE_VERSION = 1;
+
 enum class MessageId : uint16_t
 {
     OperatorControl = 0xCA01,

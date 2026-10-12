@@ -1,16 +1,13 @@
 #pragma once
 
 #include <beam/dto/beam_command.hpp>
-#include <beam/dto/set_attitude_command.hpp>
-#include <beam/dto/set_operation_state_command.hpp>
-#include <target/dto/detection_event.hpp>
+#include <comm/dto/incoming_dto.hpp>
 #include <target/dto/track_event.hpp>
 
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
-#include <variant>
 #include <vector>
 
 namespace comm
@@ -28,12 +25,6 @@ struct CommConfiguration
     CommEndpoint operatorConsole;
     CommEndpoint scenarioSimulator;
 };
-
-using IncomingDto = std::variant<
-    beam::SetOperationStateCommand,
-    beam::SetAttitudeCommand,
-    target::DetectionEvent
->;
 
 class CommController
 {
