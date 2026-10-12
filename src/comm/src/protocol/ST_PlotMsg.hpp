@@ -1,7 +1,7 @@
 #pragma once
 
-#include <comm/protocol/ST_BeamTxMsg.hpp>
-#include <comm/protocol/ST_MsgHeader.hpp>
+#include <protocol/ST_BeamTxMsg.hpp>
+#include <protocol/ST_MsgHeader.hpp>
 
 #include <cstdint>
 
@@ -11,13 +11,13 @@ namespace comm::protocol
 #pragma pack(push, 1)
 struct ST_PlotHeader
 {
-    std::uint16_t number;
-    std::uint8_t padding[2];
+    uint16_t number;
+    uint8_t padding[2];
 };
 
 struct ST_Plot
 {
-    std::uint32_t ID;
+    uint32_t ID;
     float slantR_km;
     float azi_deg;
     float elv_deg;
