@@ -1,4 +1,5 @@
 add_library(comm STATIC
+    src/network/message_decoder.cpp
     src/network/message_framer.cpp
     src/network/network_manager.cpp
 )
@@ -29,3 +30,11 @@ target_include_directories(comm_sender PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 target_link_libraries(comm_sender PRIVATE comm)
+
+add_executable(comm_message_decoder_test test/message_decoder_test.cpp)
+target_include_directories(comm_message_decoder_test PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(comm_message_decoder_test PRIVATE
+    comm
+)
