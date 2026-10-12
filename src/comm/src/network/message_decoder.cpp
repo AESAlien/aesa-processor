@@ -258,7 +258,7 @@ DecodeResult MessageDecoder::decodePlotInformation(
     return decoded(
         target::DetectionEvent::Builder()
             .beamType(*beamType)
-            .requestId(beamCommand.commandCount)
+            .requestId(beamCommand.beamID)
             .transmitTime(
                 std::chrono::milliseconds(beamCommand.timestamp))
             .plots(std::move(plots))
