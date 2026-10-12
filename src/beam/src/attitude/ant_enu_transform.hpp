@@ -1,6 +1,6 @@
 #pragma once
 
-#include "attitude/attitude_config.hpp"
+#include <beam/config/beam_config.hpp>
 #include "attitude/radar_attitude.hpp"
 #include <math/angle.hpp>
 #include <math/square_matrix.hpp>

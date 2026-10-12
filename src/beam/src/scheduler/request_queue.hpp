@@ -1,6 +1,7 @@
 #pragma once
 
 #include <beam/dto/beam_request.hpp>
+#include <beam/config/beam_config.hpp>
 
 #include <chrono>
 #include <cstddef>
@@ -15,6 +16,8 @@ namespace beam
 class RequestQueue
 {
 public:
+    RequestQueue(const RequestQueueConfig& config = beam::RequestQueueConfig{});
+
     void add(const BeamRequest& request);
 
     // 시각이 currentTime 이하인 요청 중 만료되지 않은 가장 이른 요청을 꺼낸다.
@@ -28,6 +31,7 @@ public:
     bool empty() const;
 
 private:
+    RequestQueueConfig _config;
     // 같은 키의 요소는 삽입 순서가 유지된다.
     std::multimap<std::chrono::milliseconds, BeamRequest> _requests;
 };

@@ -169,12 +169,13 @@ TEST(SchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
     beam::Scheduler scheduler;
     makeReady(scheduler);
 
-    for (std::size_t index = 0; index < beam::BeamTable::size(); ++index)
+    beam::BeamTable table(beam::AntEnuTransform(makeZeroAttitude(), beam::AttitudeConfig{}), beam::SearchGridConfig{});
+    for (std::size_t index = 0; index < table.size(); ++index)
     {
         ASSERT_TRUE(scheduler.next(std::chrono::milliseconds(10 * index)).has_value());
     }
 
-    const auto wrapped = scheduler.next(std::chrono::milliseconds(10 * beam::BeamTable::size()));
+    const auto wrapped = scheduler.next(std::chrono::milliseconds(10 * table.size()));
 
     ASSERT_TRUE(wrapped.has_value());
     EXPECT_EQ(wrapped->beamId, 1u);

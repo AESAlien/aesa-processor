@@ -1,7 +1,8 @@
 #pragma once
 #include "attitude/ant_enu_transform.hpp"
+#include <beam/config/beam_config.hpp>
 #include "beam_info.hpp"
-#include <array>
+#include <vector>
 #include <cstddef>
 
 namespace beam
@@ -10,16 +11,12 @@ namespace beam
 class BeamTable
 {
 public:
-    explicit BeamTable(const AntEnuTransform& transform);
+    explicit BeamTable(const AntEnuTransform& transform, const SearchGridConfig&);
     const BeamInfo& get(std::size_t index) const;
-    static constexpr std::size_t size()
-    {
-        return 189;
-    }
+    std::size_t size(void) const;
 
 private:
-    static constexpr std::size_t COUNT = 189;
-    std::array<BeamInfo, COUNT> _beams{};
+    std::vector<BeamInfo> _beams{};
 };
 
 } // namespace beam

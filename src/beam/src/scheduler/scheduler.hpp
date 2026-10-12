@@ -30,6 +30,8 @@ namespace beam
 class Scheduler
 {
 public:
+    explicit Scheduler(const BeamConfig& config = BeamConfig{});
+
     void setOperationState(OperationState state);
 
     // ON이고 BeamTable이 아직 없을 때만 받아들이고, 그 외에는 무시한다.
@@ -46,6 +48,8 @@ public:
 private:
     bool isReady() const;
     void reset();
+
+    BeamConfig _config;
 
     OperationState _operationState = OperationState::OFF;
     std::optional<BeamTable> _beamTable;

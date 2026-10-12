@@ -76,9 +76,9 @@ int main(int argc, char** argv)
 
     try
     {
-        const beam::BeamTable table(xform);
+        const beam::BeamTable table(xform, beam::SearchGridConfig{});
         std::printf("idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg\n");
-        for (std::size_t i = 0; i < beam::BeamTable::size(); ++i)
+        for (std::size_t i = 0; i < table.size(); ++i)
         {
             const beam::BeamInfo& b = table.get(i);
             std::printf("%zu,%u,%.6f,%.6f,%.2f,%.2f\n",

@@ -165,8 +165,8 @@ int main(int argc, char** argv)
 
         std::printf("# grid\n");
         std::printf("idx,beamID,az_deg,el_deg\n");
-        const beam::BeamTable table(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}));
-        for (std::size_t index = 0; index < beam::BeamTable::size(); ++index)
+        const beam::BeamTable table(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}), beam::SearchGridConfig{});
+        for (std::size_t index = 0; index < table.size(); ++index)
         {
             const beam::BeamInfo& info = table.get(index);
             std::printf("%zu,%u,%.6f,%.6f\n", index, info.beamId, info.azimuth_ant.deg(), info.elevation_ant.deg());
