@@ -26,6 +26,12 @@ numpy 계산은 C++ 결과를 검증하기 위한 독립 구현이다.
 오차가 허용치를 넘으면 종료 코드 1로 끝난다.
 --csv 를 주면 189개 전체의 "고정 각도 / 안테나 각도"를 CSV로 저장한다 (자세별 파일).
 
+저장 위치
+  기본값: <aesa-processor 의 상위 폴더>/document/testImage/<오늘 날짜>/beam_table.png
+          폴더가 없으면 만든다. 같은 날 다시 실행하면 같은 이름의 파일을 덮어쓴다.
+  --out-dir 폴더   저장 폴더를 직접 지정한다 (날짜 폴더를 만들지 않는다).
+  --out 경로       PNG 파일 경로를 직접 지정한다 (--out-dir 보다 우선).
+
 사용 예 (aesa-processor 루트에서 빌드한 뒤):
   cmake --build build --target beam_table_dump
   python3 src/beam/test/visualize_beam_table.py --binary build/src/beam/beam_table_dump
@@ -35,9 +41,11 @@ numpy 계산은 C++ 결과를 검증하기 위한 독립 구현이다.
 
 import argparse
 import csv
+import datetime
 import io
 import subprocess
 import sys
+from pathlib import Path
 
 import numpy as np
 import matplotlib
@@ -294,6 +302,12 @@ def draw_table_panel(ax, att, az_f, el_f, az_a, el_a, R):
             transform=ax.transAxes, fontsize=8, color=C_MUTED, va="top")
 
 
+def default_out_dir():
+    """aesa-processor 와 같은 위치의 document/testImage/<오늘 날짜>."""
+    repo_root = Path(__file__).resolve().parents[3]  # .../aesa-processor/src/beam/test/<이 파일>
+    return repo_root.parent / "document" / "testImage" / datetime.date.today().isoformat()
+
+
 def parse_att(text):
     try:
         r, p, y = (float(v) for v in text.split(","))
@@ -315,7 +329,9 @@ def main():
     ap.add_argument("--binary", required=True, help="beam_table_dump 실행 파일 경로")
     ap.add_argument("--att", action="append", type=parse_att,
                     help="자세 roll,pitch,yaw (여러 번 지정 가능, 기본: 3가지)")
-    ap.add_argument("--out", default="beam_table.png", help="저장할 PNG 경로")
+    ap.add_argument("--out", default=None, help="저장할 PNG 경로 (--out-dir 보다 우선)")
+    ap.add_argument("--out-dir", type=Path, default=None,
+                    help="저장 폴더 (기본: <aesa-processor 상위>/document/testImage/<오늘 날짜>)")
     ap.add_argument("--csv", metavar="PREFIX",
                     help="189개 전체 변환값을 PREFIX_roll_pitch_yaw.csv 로 저장")
     ap.add_argument("--verify", action="store_true",
@@ -368,8 +384,10 @@ def main():
 
     fig.suptitle("BeamTable: attitude -> rotation -> fixed-frame search grid converted to antenna angles",
                  x=0.01, ha="left", fontsize=12, color=C_TEXT)
-    fig.savefig(args.out, dpi=130, facecolor=fig.get_facecolor())
-    print(f"saved: {args.out}")
+    out_path = Path(args.out) if args.out else (args.out_dir or default_out_dir()) / "beam_table.png"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=130, facecolor=fig.get_facecolor())
+    print(f"saved: {out_path}")
     return 1 if failed else 0
 
 
