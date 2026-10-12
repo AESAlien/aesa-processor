@@ -11,19 +11,18 @@
 namespace target
 {
 
-class TrackRepository;
+class TargetRepository;
 
 class TargetController
 {
 public:
     TargetController();
-    explicit TargetController(std::shared_ptr<TrackRepository> trackRepository);
 
     std::optional<beam::BeamRequest> handleDetection(DetectionEvent detection);
     std::vector<TrackEvent> nextTrackEvents() const;
 
 private:
-    std::shared_ptr<TrackRepository> _trackRepository;
+    std::shared_ptr<TargetRepository> _targetRepository;
 };
 
 } // namespace target

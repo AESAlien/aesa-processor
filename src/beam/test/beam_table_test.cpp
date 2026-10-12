@@ -52,7 +52,7 @@ TEST(BeamTableTest, BeamIdsAreSequentialFromOne)
 
     for (std::size_t beamIndex = 0; beamIndex < beam::BeamTable::size(); ++beamIndex)
     {
-        EXPECT_EQ(table.get(beamIndex).beamId, static_cast<std::uint32_t>(beamIndex + 1));
+        EXPECT_EQ(table.get(beamIndex).beamId, static_cast<uint32_t>(beamIndex + 1));
     }
 }
 

@@ -92,10 +92,10 @@ TEST(DistanceTest, ComparesMixedUnitsWithMeterTolerance)
     EXPECT_TRUE((1_km).equals(1000.25_m, 0.25_m));
     EXPECT_FALSE((1_km).equals(1000.25_m, 0.125_m));
     EXPECT_TRUE((1000_m).equals(1.125_km, 0.125_km));
-    EXPECT_TRUE((999_m < 1_km));
-    EXPECT_TRUE((1001_m > 1_km));
-    EXPECT_TRUE((1000_m <= 1_km));
-    EXPECT_TRUE((1000_m >= 1_km));
+    EXPECT_TRUE(999_m < 1_km);
+    EXPECT_TRUE(1001_m > 1_km);
+    EXPECT_TRUE(1000_m <= 1_km);
+    EXPECT_TRUE(1000_m >= 1_km);
 }
 
 // 음수·0·양수 거리의 대소 비교와 같은 값에 대한 엄격·비엄격 비교를 검증한다.
