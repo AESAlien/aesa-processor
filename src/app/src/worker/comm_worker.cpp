@@ -26,6 +26,8 @@ void CommWorker::runReceive(
 {
     while (!stopRequested.load())
     {
+        bool idle = false;
+
         const bool success = tryWorkerAction("CommReceive", [&]
         {
             auto incoming = _controller.receiveData();
@@ -35,24 +37,34 @@ void CommWorker::runReceive(
                 return;
             }
 
+            if (!incoming)
+            {
+                idle = true;
+                return;
+            }
+
+            auto& message = *incoming;
             bool accepted;
 
             if (auto* attitude =
-                    std::get_if<beam::SetAttitudeCommand>(&incoming))
+                    std::get_if<beam::SetAttitudeCommand>(&message))
             {
-                accepted = _beamChannel.write(std::move(*attitude));
+                accepted =
+                    _beamChannel.write(std::move(*attitude));
             }
             else if (auto* state =
-                         std::get_if<beam::SetOperationStateCommand>(&incoming))
+                         std::get_if<beam::SetOperationStateCommand>(&message))
             {
-                accepted = _beamChannel.write(std::move(*state));
+                accepted =
+                    _beamChannel.write(std::move(*state));
             }
             else
             {
                 auto& detection =
-                    std::get<target::DetectionEvent>(incoming);
+                    std::get<target::DetectionEvent>(message);
 
-                accepted = _targetChannel.write(std::move(detection));
+                accepted =
+                    _targetChannel.write(std::move(detection));
             }
 
             if (!accepted)
@@ -63,11 +75,17 @@ void CommWorker::runReceive(
             }
         });
 
-        // 수신 오류가 즉시 반복될 때 과도한 재호출을 방지한다.
         if (!success && !stopRequested.load())
         {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(100));
+        }
+        else if (idle && !stopRequested.load())
+        {
+            // receiveData가 즉시 nullopt를 반복 반환하는 경우
+            // 과도한 반복을 방지한다.
+            std::this_thread::sleep_for(
+                std::chrono::milliseconds(1));
         }
     }
 }

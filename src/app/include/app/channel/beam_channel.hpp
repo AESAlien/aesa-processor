@@ -1,10 +1,11 @@
 #pragma once
 
 #include <app/queue/message_queue.hpp>
-#include <beam/dto/set_operation_state_command.hpp>
-#include <beam/dto/set_attitude_command.hpp>
 #include <beam/dto/beam_request.hpp>
+#include <beam/dto/set_attitude_command.hpp>
+#include <beam/dto/set_operation_state_command.hpp>
 
+#include <chrono>
 #include <cstdint>
 #include <optional>
 #include <variant>
@@ -13,6 +14,7 @@ namespace app
 {
 struct NextBeamCommandEvent
 {
+    std::chrono::milliseconds currentTime{0};
 };
 
 using BeamEvent = std::variant<
@@ -31,7 +33,9 @@ class BeamChannel final
 {
 public:
     bool write(BeamEvent message);
+
     std::optional<ReceivedBeamEvent> read();
+
     void close();
 
 private:

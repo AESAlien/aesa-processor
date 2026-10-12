@@ -39,12 +39,14 @@ void BeamWorker::run()
             {
                 _controller.setAttitude(*attitude);
             }
-            else if (
-                std::holds_alternative<NextBeamCommandEvent>(message))
+            else if (auto* tick =
+                         std::get_if<NextBeamCommandEvent>(&message))
             {
-                auto command = _controller.nextBeamCommand();
+                auto command =
+                    _controller.nextBeamCommand(tick->currentTime);
 
-                if (!_commChannel.write(std::move(command)))
+                if (command &&
+                    !_commChannel.write(std::move(*command)))
                 {
                     reportWorkerError(
                         "BeamWorker",
