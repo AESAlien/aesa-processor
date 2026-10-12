@@ -7,6 +7,8 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
+#include <stdexcept>
 
 using namespace std::chrono_literals;
 using namespace math::literals;
@@ -169,12 +171,13 @@ TEST(SchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
     beam::Scheduler scheduler;
     makeReady(scheduler);
 
-    for (std::size_t index = 0; index < beam::BeamTable::size(); ++index)
+    beam::BeamTable table(beam::AntEnuTransform(makeZeroAttitude(), beam::AttitudeConfig{}), beam::SearchGridConfig{});
+    for (std::size_t index = 0; index < table.size(); ++index)
     {
         ASSERT_TRUE(scheduler.next(std::chrono::milliseconds(10 * index)).has_value());
     }
 
-    const auto wrapped = scheduler.next(std::chrono::milliseconds(10 * beam::BeamTable::size()));
+    const auto wrapped = scheduler.next(std::chrono::milliseconds(10 * table.size()));
 
     ASSERT_TRUE(wrapped.has_value());
     EXPECT_EQ(wrapped->beamId, 1u);
@@ -420,4 +423,58 @@ TEST(SchedulerTest, TurningOffWhileAlreadyOffDoesNothing)
     makeReady(scheduler);
 
     EXPECT_TRUE(scheduler.next(0ms).has_value());
+}
+
+// ---------- 요청 빔 설정 검증 ----------
+
+namespace
+{
+
+beam::BeamConfig makeConfigWithRequestBeamWidth(math::Angle confirmationWidth, math::Angle trackingWidth)
+{
+    beam::BeamConfig config;
+    config.requestBeam.confirmationBeamWidth = confirmationWidth;
+    config.requestBeam.trackingBeamWidth = trackingWidth;
+    return config;
+}
+
+} // namespace
+
+TEST(SchedulerTest, NonPositiveRequestBeamWidthThrows)
+{
+    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(0_deg, 3_deg)), std::invalid_argument);
+    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(-1_deg, 3_deg)), std::invalid_argument);
+    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(3_deg, 0_deg)), std::invalid_argument);
+    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(3_deg, -1_deg)), std::invalid_argument);
+}
+
+TEST(SchedulerTest, NonFiniteRequestBeamWidthThrows)
+{
+    const auto nan = math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN());
+    const auto inf = math::Angle::fromDegrees(std::numeric_limits<double>::infinity());
+
+    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(nan, 3_deg)), std::invalid_argument);
+    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(inf, 3_deg)), std::invalid_argument);
+    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(3_deg, nan)), std::invalid_argument);
+    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(3_deg, inf)), std::invalid_argument);
+}
+
+TEST(SchedulerTest, ConfiguredRequestBeamWidthIsUsedPerBeamType)
+{
+    beam::Scheduler scheduler(makeConfigWithRequestBeamWidth(2_deg, 4_deg));
+    makeReady(scheduler);
+
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, 0ms, 1.0, 5.0));
+    const auto confirmation = scheduler.next(0ms);
+    ASSERT_TRUE(confirmation.has_value());
+    EXPECT_EQ(confirmation->beamType, beam::BeamCommand::BeamType::CONFIRMATION);
+    EXPECT_DOUBLE_EQ(confirmation->azimuthBeamWidth.deg(), 2.0);
+    EXPECT_DOUBLE_EQ(confirmation->elevationBeamWidth.deg(), 2.0);
+
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 10ms, 1.0, 5.0));
+    const auto tracking = scheduler.next(10ms);
+    ASSERT_TRUE(tracking.has_value());
+    EXPECT_EQ(tracking->beamType, beam::BeamCommand::BeamType::TRACKING);
+    EXPECT_DOUBLE_EQ(tracking->azimuthBeamWidth.deg(), 4.0);
+    EXPECT_DOUBLE_EQ(tracking->elevationBeamWidth.deg(), 4.0);
 }

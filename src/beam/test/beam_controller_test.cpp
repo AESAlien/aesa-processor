@@ -73,7 +73,7 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheBeamTable)
     attitude.roll = roll;
     attitude.pitch = pitch;
     attitude.yaw = yaw;
-    const beam::BeamTable expectedTable(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}));
+    const beam::BeamTable expectedTable(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}), beam::SearchGridConfig{});
 
     for (std::size_t index = 0; index < 5; ++index)
     {

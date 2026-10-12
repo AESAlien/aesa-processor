@@ -1,4 +1,10 @@
 #include "beam_table.hpp"
+#include <beam/config/beam_config.hpp>
+
+#include <cmath>
+#include <cstdint>
+#include <stdexcept>
+#include <limits>
 
 namespace beam
 {
@@ -6,34 +12,73 @@ namespace
 {
 using namespace math::literals;
 
-constexpr std::size_t AZIMUTH_COUNT = 21;
-constexpr std::size_t ELEVATION_COUNT = 9;
-const math::Angle AZIMUTH_START = -42_deg, AZIMUTH_STEP = 4.2_deg;
-const math::Angle ELEVATION_START = 3_deg, ELEVATION_STEP = 4.4_deg;
-const math::Angle BEAM_WIDTH = 6_deg;
+bool isFinite(math::Angle angle)
+{
+    return std::isfinite(angle.deg());
+}
+
+// 축의 마지막 점(start + step * (count - 1))이 유한한지 확인한다.
+// start와 step이 각각 유한해도 곱셈이나 덧셈에서 오버플로할 수 있다.
+// 마지막 점이 유한하면 그 사이의 점도 모두 유한하다.
+// 계산식은 BeamTable 생성자의 각도 계산과 같아야 한다.
+bool isLastPointFinite(math::Angle start, math::Angle step, std::size_t count)
+{
+    return isFinite(start + step * static_cast<double>(count - 1));
+}
+
+void validate(const SearchGridConfig& config)
+{
+    if(config.azimuthCount == 0 || config.elevationCount == 0)
+    {
+        throw std::invalid_argument("SearchGridConfig: count must be greater than 0");
+    }
+
+    if(config.azimuthCount > std::numeric_limits<std::uint32_t>::max() / config.elevationCount)
+    {
+        throw std::invalid_argument("SearchGridConfig: beam count exceeds uint32 range");
+    }
+
+    if(!isFinite(config.azimuthStart) || !isFinite(config.azimuthStep) ||
+       !isFinite(config.elevationStart) || !isFinite(config.elevationStep) ||
+       !isFinite(config.beamWidth))
+    {
+        throw std::invalid_argument("SearchGridConfig: angle must be finite");
+    }
+
+    if(!isLastPointFinite(config.azimuthStart, config.azimuthStep, config.azimuthCount) ||
+       !isLastPointFinite(config.elevationStart, config.elevationStep, config.elevationCount))
+    {
+        throw std::invalid_argument("SearchGridConfig: last grid angle must be finite");
+    }
+
+    if(config.beamWidth <= 0_deg)
+    {
+        throw std::invalid_argument("SearchGridConfig: beamWidth must be greater than 0");
+    }
+}
 } // namespace
 
-BeamTable::BeamTable(const AntEnuTransform& transform)
+BeamTable::BeamTable(const AntEnuTransform& transform, const SearchGridConfig& config)
 {
-    static_assert(AZIMUTH_COUNT * ELEVATION_COUNT == 189, "grid size must match BeamTable::size()");
+    validate(config);
+    _beams.reserve(config.azimuthCount * config.elevationCount);
 
-    for (std::size_t e = 0; e < ELEVATION_COUNT; ++e)
+    for (std::size_t e = 0; e < config.elevationCount; ++e)
     {
-        for (std::size_t a = 0; a < AZIMUTH_COUNT; ++a)
+        for (std::size_t a = 0; a < config.azimuthCount; ++a)
         {
-            const std::size_t index = e * AZIMUTH_COUNT + a;
-
             const auto [azimuth_ant, elevation_ant] = transform.enuToAnt(
-                AZIMUTH_START + AZIMUTH_STEP * static_cast<double>(a),
-                ELEVATION_START + ELEVATION_STEP * static_cast<double>(e)
+                config.azimuthStart + config.azimuthStep * static_cast<double>(a),
+                config.elevationStart + config.elevationStep * static_cast<double>(e)
             );
 
-            BeamInfo& beam = _beams[index];
-            beam.beamId = static_cast<uint32_t>(index + 1);
+            BeamInfo beam;
+            beam.beamId = static_cast<uint32_t>(_beams.size() + 1);
             beam.azimuth_ant = azimuth_ant;
             beam.elevation_ant = elevation_ant;
-            beam.azimuthBeamWidth = BEAM_WIDTH;
-            beam.elevationBeamWidth = BEAM_WIDTH;
+            beam.azimuthBeamWidth = config.beamWidth;
+            beam.elevationBeamWidth = config.beamWidth;
+            _beams.push_back(beam);
         }
     }
 }
@@ -41,6 +86,11 @@ BeamTable::BeamTable(const AntEnuTransform& transform)
 const BeamInfo& BeamTable::get(std::size_t index) const
 {
     return _beams.at(index);
+}
+
+std::size_t BeamTable::size(void) const
+{
+    return _beams.size();
 }
 
 } // namespace beam

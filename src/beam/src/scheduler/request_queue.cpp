@@ -8,29 +8,31 @@ namespace
 {
 using namespace std::chrono_literals;
 
-constexpr std::chrono::milliseconds CONFIRMATION_MAX_DELAY = 20ms;
-constexpr std::chrono::milliseconds TRACKING_MAX_DELAY = 30ms;
-
-std::chrono::milliseconds maxDelay(BeamRequest::BeamType beamType)
+std::chrono::milliseconds maxDelay(const RequestQueueConfig& config, BeamRequest::BeamType beamType)
 {
     switch (beamType)
     {
     case BeamRequest::BeamType::CONFIRMATION:
-        return CONFIRMATION_MAX_DELAY;
+        return config.confirmationMaxDelay;
 
     case BeamRequest::BeamType::TRACKING:
-        return TRACKING_MAX_DELAY;
+        return config.trackingMaxDelay;
     }
 
     // 알 수 없는 종류는 허용 지연을 0으로 보아 곧바로 만료시킨다.
     return 0ms;
 }
 
-bool isExpired(const BeamRequest& request, std::chrono::milliseconds currentTime)
+bool isExpired(const RequestQueueConfig& config, const BeamRequest& request, std::chrono::milliseconds currentTime)
 {
-    return currentTime - request.transmitTime >= maxDelay(request.beamType);
+    return currentTime - request.transmitTime >= maxDelay(config, request.beamType);
 }
 } // namespace
+
+RequestQueue::RequestQueue(const RequestQueueConfig& config)
+{
+    _config = config;
+}
 
 void RequestQueue::add(const BeamRequest& request)
 {
@@ -44,7 +46,7 @@ std::optional<BeamRequest> RequestQueue::popNextDue(std::chrono::milliseconds cu
 
     for (auto it = _requests.begin(); it != dueEnd;)
     {
-        it = isExpired(it->second, currentTime) ? _requests.erase(it) : std::next(it);
+        it = isExpired(_config, it->second, currentTime) ? _requests.erase(it) : std::next(it);
     }
 
     if (_requests.begin() == dueEnd)
