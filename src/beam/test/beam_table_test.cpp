@@ -272,3 +272,49 @@ TEST(BeamTableTest, NonFiniteAngleThrows)
     EXPECT_THROW(beam::BeamTable(makeValidTransform(0_deg, 0_deg, 0_deg), infStep), std::invalid_argument);
     EXPECT_THROW(beam::BeamTable(makeValidTransform(0_deg, 0_deg, 0_deg), nanWidth), std::invalid_argument);
 }
+
+TEST(BeamTableTest, GridAngleOverflowThrows)
+{
+    const auto maxAngle = math::Angle::fromDegrees(std::numeric_limits<double>::max());
+
+    // step * (count - 1)에서 오버플로
+    beam::SearchGridConfig azimuthStepOverflow;
+    azimuthStepOverflow.azimuthCount = 3;
+    azimuthStepOverflow.azimuthStep = maxAngle;
+    beam::SearchGridConfig elevationStepOverflow;
+    elevationStepOverflow.elevationCount = 3;
+    elevationStepOverflow.elevationStep = maxAngle;
+
+    // start + step * (count - 1)에서 오버플로
+    beam::SearchGridConfig azimuthSumOverflow;
+    azimuthSumOverflow.azimuthCount = 2;
+    azimuthSumOverflow.azimuthStart = maxAngle;
+    azimuthSumOverflow.azimuthStep = maxAngle;
+    beam::SearchGridConfig elevationSumOverflow;
+    elevationSumOverflow.elevationCount = 2;
+    elevationSumOverflow.elevationStart = maxAngle;
+    elevationSumOverflow.elevationStep = maxAngle;
+
+    EXPECT_THROW(beam::BeamTable(makeValidTransform(0_deg, 0_deg, 0_deg), azimuthStepOverflow), std::invalid_argument);
+    EXPECT_THROW(beam::BeamTable(makeValidTransform(0_deg, 0_deg, 0_deg), elevationStepOverflow), std::invalid_argument);
+    EXPECT_THROW(beam::BeamTable(makeValidTransform(0_deg, 0_deg, 0_deg), azimuthSumOverflow), std::invalid_argument);
+    EXPECT_THROW(beam::BeamTable(makeValidTransform(0_deg, 0_deg, 0_deg), elevationSumOverflow), std::invalid_argument);
+}
+
+TEST(BeamTableTest, LargeStepWithSingleBeamPerAxisIsAccepted)
+{
+    const auto maxAngle = math::Angle::fromDegrees(std::numeric_limits<double>::max());
+
+    // count가 1이면 step은 쓰이지 않으므로 큰 step도 문제없다.
+    beam::SearchGridConfig config;
+    config.azimuthCount = 1;
+    config.azimuthStep = maxAngle;
+    config.elevationCount = 1;
+    config.elevationStep = maxAngle;
+
+    const beam::BeamTable table(makeValidTransform(0_deg, 0_deg, 0_deg), config);
+
+    ASSERT_EQ(table.size(), 1u);
+    EXPECT_TRUE(std::isfinite(table.get(0).azimuth_ant.deg()));
+    EXPECT_TRUE(std::isfinite(table.get(0).elevation_ant.deg()));
+}
