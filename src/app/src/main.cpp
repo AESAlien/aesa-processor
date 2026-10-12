@@ -42,7 +42,7 @@ int searchCount = 0;
 int confirmCount = 0;
 int trackingCount = 0;
 
-// 테스트용 공통 논리 시각
+// 시간 카운터이며 종료 플래그가 아니다.
 std::atomic<long long> tickTime{0};
 
 const auto start = Clock::now();
@@ -129,32 +129,26 @@ void finishInput()
     ready.notify_all();
 }
 
-void timer(
-    app::BeamChannel& channel,
-    const std::atomic_bool& stop)
+void timer(app::BeamChannel& channel)
 {
     auto next = Clock::now();
 
-    while (!stop.load())
+    // 테스트용 타이머는 정해진 횟수만 실행한다.
+    for (int tick = 0; tick < 150; ++tick)
     {
         next += std::chrono::milliseconds(10);
         std::this_thread::sleep_until(next);
 
-        if (stop.load())
-        {
-            break;
-        }
-
-        // 논리 시각을 틱마다 10ms 증가시킨다.
         const auto time = tickTime.fetch_add(10) + 10;
 
-        require(
-            channel.write(
+        if (!channel.write(
                 app::NextBeamCommandEvent{
-                    std::chrono::milliseconds(time)}),
-            "Timer destination closed");
+                    std::chrono::milliseconds(time)}))
+        {
+            // 오류 종료 경로에서 채널이 닫혔으면 타이머도 종료한다.
+            return;
+        }
 
-        // 실제 실행이 지연돼도 이벤트를 몰아서 생성하지 않는다.
         if (next < Clock::now())
         {
             next = Clock::now();
@@ -163,8 +157,7 @@ void timer(
 }
 } // namespace demo
 
-// 현재 main에는 CommController의 선언만 있으므로
-// 테스트 실행을 위한 정의를 제공한다.
+// 실제 TCP가 아닌 테스트용 CommController 정의
 namespace comm
 {
 class CommController::Impl
@@ -197,6 +190,8 @@ std::optional<IncomingDto> CommController::receiveData()
 {
     std::unique_lock<std::mutex> lock(demo::mutex);
 
+    // 데이터가 없으면 기다린다.
+    // finishInput()으로 입력이 닫혀도 깨어난다.
     demo::ready.wait(lock, []
     {
         return demo::closed || !demo::inbox.empty();
@@ -204,6 +199,7 @@ std::optional<IncomingDto> CommController::receiveData()
 
     if (demo::inbox.empty())
     {
+        // 닫혔고 남은 입력도 없으므로 수신 종료를 반환한다.
         return std::nullopt;
     }
 
@@ -296,7 +292,7 @@ void CommController::sendTrackEvents(
 }
 } // namespace comm
 
-// 실제 추적 알고리즘이 아닌 최신 DTO 전달 확인용 샘플
+// 실제 추적 알고리즘이 아닌 DTO 전달 확인용 샘플
 namespace target
 {
 std::optional<beam::BeamRequest>
@@ -305,7 +301,6 @@ TargetController::handleDetection(
 {
     std::lock_guard<std::mutex> lock(demo::mutex);
 
-    // 이 테스트 입력만 의도적으로 실패시킨다.
     if (detection.requestId == 999)
     {
         ++demo::targetErrors;
@@ -327,8 +322,6 @@ TargetController::handleDetection(
         ? TrackEvent::TrackState::INIT
         : TrackEvent::TrackState::TRACKING;
 
-    // plot마다 샘플 트랙 하나를 만든다.
-    // 이 대응과 상태값은 전달 검증용이며 추적 알고리즘이 아니다.
     for (std::size_t i = 0; i < detection.plots.size(); ++i)
     {
         const auto& plot = detection.plots[i];
@@ -371,7 +364,7 @@ int main()
     app::CommChannel commChannel;
     app::TargetChannel targetChannel;
 
-    // 실제 Beam 모듈 구현을 사용한다.
+    // 실제 Beam 모듈 구현 사용
     beam::BeamController beamController;
 
     comm::CommController commController(
@@ -398,8 +391,6 @@ int main()
         beamChannel,
         commChannel,
         targetController);
-
-    std::atomic_bool stop{false};
 
     std::mutex errorMutex;
     std::exception_ptr workerError;
@@ -430,7 +421,7 @@ int main()
                     }
                 }
 
-                stop.store(true);
+                // 테스트 입력과 채널의 대기를 해제한다.
                 demo::finishInput();
 
                 targetChannel.close();
@@ -460,27 +451,27 @@ int main()
     try
     {
         std::vector<comm::IncomingDto> scenario{
-            demo::operation(State::OFF),       //    0ms
-            demo::operation(State::ON),        //  100ms
-            demo::attitude(30),                //  200ms
-            demo::detection(Type::SEARCH, 1),   //  300ms
+            demo::operation(State::OFF),
+            demo::operation(State::ON),
+            demo::attitude(30),
+            demo::detection(Type::SEARCH, 1),
             demo::detection(Type::CONFIRMATION, 2),
             demo::detection(Type::TRACKING, 3),
-            demo::detection(Type::SEARCH, 999), //  600ms: 예외
+            demo::detection(Type::SEARCH, 999),
             demo::detection(Type::SEARCH, 4, 2),
-            demo::operation(State::OFF),       //  800ms
-            demo::operation(State::ON),        //  900ms
-            demo::attitude(-15),               // 1000ms
+            demo::operation(State::OFF),
+            demo::operation(State::ON),
+            demo::attitude(-15),
             demo::detection(Type::SEARCH, 5, 0),
             demo::detection(Type::SEARCH, 6),
-            demo::operation(State::OFF),       // 1300ms
+            demo::operation(State::OFF),
             demo::attitude(0)};
 
         commController.openServer();
 
         rx = startThread([&]
         {
-            commWorker.runReceive(stop);
+            commWorker.runReceive();
         });
 
         simulatorTx = startThread([&]
@@ -505,7 +496,7 @@ int main()
 
         timerTask = startThread([&]
         {
-            demo::timer(beamChannel, stop);
+            demo::timer(beamChannel);
         });
 
         const auto begin = demo::Clock::now();
@@ -520,7 +511,6 @@ int main()
             if (auto* event =
                     std::get_if<target::DetectionEvent>(&message))
             {
-                // 불변 DTO이므로 현재 테스트 시각으로 새 객체를 만든다.
                 demo::push(
                     target::DetectionEvent(
                         event->beamType,
@@ -536,7 +526,6 @@ int main()
 
             if (i == 4 || i == 5)
             {
-                // 실제 스케줄러가 미래 시각의 요청을 처리하도록 주입한다.
                 const beam::BeamRequest request(
                     i == 4
                         ? beam::BeamRequest::BeamType::CONFIRMATION
@@ -568,7 +557,7 @@ int main()
                 "Receive timed out");
         }
 
-        stop.store(true);
+        // 입력 큐를 닫아 receiveData()가 nullopt를 반환하게 한다.
         demo::finishInput();
 
         timerTask.join();
@@ -635,7 +624,6 @@ int main()
         std::cerr << "[FAIL] Unknown error\n";
     }
 
-    stop.store(true);
     demo::finishInput();
 
     targetChannel.close();

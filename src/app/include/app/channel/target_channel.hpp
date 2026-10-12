@@ -3,7 +3,6 @@
 #include <app/queue/message_queue.hpp>
 #include <target/dto/detection_event.hpp>
 
-#include <cstdint>
 #include <optional>
 #include <variant>
 
@@ -15,14 +14,15 @@ using TargetEvent = std::variant<
 struct ReceivedTargetEvent
 {
     TargetEvent message;
-    std::int64_t rxTimeNs;
 };
 
 class TargetChannel final
 {
 public:
     bool write(TargetEvent message);
+
     std::optional<ReceivedTargetEvent> read();
+
     void close();
 
 private:

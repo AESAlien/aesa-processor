@@ -6,8 +6,6 @@
 #include <comm/controller/comm_controller.hpp>
 #include <app/worker/worker_error.hpp>
 
-#include <atomic>
-
 namespace app
 {
 class CommWorker
@@ -19,8 +17,11 @@ public:
         TargetChannel& targetChannel,
         comm::CommController& controller);
 
-    void runReceive(const std::atomic_bool& stopRequested);
+    // 이 버전에서는 receiveData()의 nullopt를 수신 종료로 해석한다.
+    void runReceive();
+
     void runSendSimulator();
+
     void runSendConsole();
 
 private:

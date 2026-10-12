@@ -2,6 +2,7 @@
 #include <app/worker/worker_error.hpp>
 
 #include <chrono>
+#include <exception>
 #include <thread>
 #include <utility>
 #include <variant>
@@ -21,25 +22,16 @@ CommWorker::CommWorker(
 {
 }
 
-void CommWorker::runReceive(
-    const std::atomic_bool& stopRequested)
+void CommWorker::runReceive()
 {
-    while (!stopRequested.load())
+    while (true)
     {
-        bool idle = false;
-
-        const bool success = tryWorkerAction("CommReceive", [&]
+        try
         {
             auto incoming = _controller.receiveData();
 
-            if (stopRequested.load())
-            {
-                return;
-            }
-
             if (!incoming)
             {
-                idle = true;
                 return;
             }
 
@@ -73,20 +65,24 @@ void CommWorker::runReceive(
                     "CommReceive",
                     "Destination closed; message dropped");
             }
-        });
 
-        if (!success && !stopRequested.load())
-        {
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(100));
+            continue;
         }
-        else if (idle && !stopRequested.load())
+        catch (const std::exception& error)
         {
-            // receiveData가 즉시 nullopt를 반복 반환하는 경우
-            // 과도한 반복을 방지한다.
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(1));
+            reportWorkerError(
+                "CommReceive",
+                error.what());
         }
+        catch (...)
+        {
+            reportWorkerError(
+                "CommReceive",
+                "Unknown exception");
+        }
+
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(100));
     }
 }
 

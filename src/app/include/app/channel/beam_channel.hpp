@@ -6,7 +6,6 @@
 #include <beam/dto/set_operation_state_command.hpp>
 
 #include <chrono>
-#include <cstdint>
 #include <optional>
 #include <variant>
 
@@ -26,7 +25,6 @@ using BeamEvent = std::variant<
 struct ReceivedBeamEvent
 {
     BeamEvent message;
-    std::int64_t rxTimeNs;
 };
 
 class BeamChannel final
