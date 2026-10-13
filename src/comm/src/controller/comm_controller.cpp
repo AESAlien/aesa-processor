@@ -1,13 +1,12 @@
 #include <comm/controller/comm_controller.hpp>
 
+#include <controller/comm_error_handler.hpp>
 #include <network/message_decoder.hpp>
 #include <network/message_framer.hpp>
 #include <network/network_manager.hpp>
 
 #include <chrono>
 #include <deque>
-#include <iostream>
-#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -24,198 +23,6 @@ NetworkEndpoint toNetworkEndpoint(CommEndpoint endpoint)
         std::move(endpoint.address),
         endpoint.port
     };
-}
-
-const char* operationName(NetworkOperation operation)
-{
-    switch (operation)
-    {
-    case NetworkOperation::CONFIGURATION:
-        return "configuration";
-
-    case NetworkOperation::SOCKET_API_STARTUP:
-        return "socket-api-startup";
-
-    case NetworkOperation::CREATE_SOCKET:
-        return "create-socket";
-
-    case NetworkOperation::SET_SOCKET_OPTION:
-        return "set-socket-option";
-
-    case NetworkOperation::BIND:
-        return "bind";
-
-    case NetworkOperation::LISTEN:
-        return "listen";
-
-    case NetworkOperation::SELECT:
-        return "select";
-
-    case NetworkOperation::ACCEPT:
-        return "accept";
-
-    case NetworkOperation::ADDRESS_CONVERSION:
-        return "address-conversion";
-
-    case NetworkOperation::RECEIVE:
-        return "receive";
-
-    case NetworkOperation::SEND:
-        return "send";
-
-    case NetworkOperation::CLOSE:
-        return "close";
-
-    case NetworkOperation::SOCKET_API_CLEANUP:
-        return "socket-api-cleanup";
-
-    case NetworkOperation::NONE:
-        return "none";
-
-    default:
-        return "unknown";
-    }
-}
-
-const char* peerName(NetworkPeer peer)
-{
-    switch (peer)
-    {
-    case NetworkPeer::OPERATOR_CONSOLE:
-        return "operator-console";
-
-    case NetworkPeer::SCENARIO_SIMULATOR:
-        return "scenario-simulator";
-    }
-
-    return "unknown";
-}
-
-const char* framingErrorName(FramingError error)
-{
-    switch (error)
-    {
-    case FramingError::NONE:
-        return "none";
-
-    case FramingError::UNKNOWN_MESSAGE_ID:
-        return "unknown-message-id";
-
-    case FramingError::INVALID_FRAME_SIZE:
-        return "invalid-frame-size";
-    }
-
-    return "unknown";
-}
-
-const char* decodingErrorName(DecodingError error)
-{
-    switch (error)
-    {
-    case DecodingError::NONE:
-        return "none";
-
-    case DecodingError::UNSUPPORTED_MESSAGE_ID:
-        return "unsupported-message-id";
-
-    case DecodingError::UNSUPPORTED_VERSION:
-        return "unsupported-version";
-
-    case DecodingError::INVALID_MESSAGE_SIZE:
-        return "invalid-message-size";
-
-    case DecodingError::INVALID_ITEM_COUNT:
-        return "invalid-item-count";
-
-    case DecodingError::INVALID_FIELD_VALUE:
-        return "invalid-field-value";
-    }
-
-    return "unknown";
-}
-
-std::mutex& logMutex()
-{
-    static std::mutex mutex;
-    return mutex;
-}
-
-void reportNetworkFailure(
-    const char* action,
-    NetworkOperation operation,
-    int errorCode
-) noexcept
-{
-    try
-    {
-        std::lock_guard<std::mutex> lock(logMutex());
-
-        std::cerr
-            << "[CommController] Failed to "
-            << action
-            << ": operation="
-            << operationName(operation)
-            << ", systemError="
-            << errorCode
-            << '\n';
-    }
-    catch (...)
-    {
-        // 오류 기록 실패가 원래 통신 오류를 대체하지 않도록 한다.
-    }
-}
-
-void reportProtocolFailure(
-    const char* stage,
-    NetworkPeer peer,
-    const char* error
-) noexcept
-{
-    try
-    {
-        std::lock_guard<std::mutex> lock(logMutex());
-
-        std::cerr
-            << "[CommController] Failed to process received data: stage="
-            << stage
-            << ", peer="
-            << peerName(peer)
-            << ", error="
-            << error
-            << '\n';
-    }
-    catch (...)
-    {
-        // 오류 기록 실패가 원래 통신 오류를 대체하지 않도록 한다.
-    }
-}
-
-void reportRejectedConnection(
-    const ConnectionRejectedEvent& event
-) noexcept
-{
-    try
-    {
-        std::lock_guard<std::mutex> lock(logMutex());
-
-        std::cerr
-            << "[CommController] Rejected unknown connection: remoteAddress="
-            << event.remoteAddress
-            << ", remotePort="
-            << event.remotePort
-            << '\n';
-    }
-    catch (...)
-    {
-        // 오류 기록 실패가 원래 통신 흐름을 방해하지 않도록 한다.
-    }
-}
-
-bool isConnectionOperation(NetworkOperation operation)
-{
-    return operation == NetworkOperation::ACCEPT ||
-        operation == NetworkOperation::SET_SOCKET_OPTION ||
-        operation == NetworkOperation::ADDRESS_CONVERSION;
 }
 
 } // namespace
@@ -239,12 +46,7 @@ public:
             return;
         }
 
-        reportNetworkFailure(
-            "open server",
-            result.operation,
-            result.errorCode);
-        throw ServerOpenError(
-            "Communication server could not be opened");
+        controller_error::throwServerOpenFailure(result);
     }
 
     std::optional<IncomingDto> receiveData()
@@ -273,17 +75,14 @@ public:
                 break;
 
             case PollStatus::ERROR:
-                handlePollFailure(result);
+                controller_error::throwPollFailure(result);
                 break;
 
             case PollStatus::NOT_STARTED:
             case PollStatus::INVALID_ARGUMENT:
-                reportNetworkFailure(
-                    "receive data",
+                controller_error::throwReceiveFailure(
                     result.failedOperation,
                     result.errorCode);
-                throw ReceiveError(
-                    "Communication data could not be received");
             }
         }
     }
@@ -310,26 +109,6 @@ private:
         return _operatorConsoleFramer;
     }
 
-    void handlePollFailure(const PollResult& result)
-    {
-        if (isConnectionOperation(result.failedOperation))
-        {
-            reportNetworkFailure(
-                "accept connection",
-                result.failedOperation,
-                result.errorCode);
-            throw ConnectionError(
-                "Communication connection could not be established");
-        }
-
-        reportNetworkFailure(
-            "receive data",
-            result.failedOperation,
-            result.errorCode);
-        throw ReceiveError(
-            "Communication data could not be received");
-    }
-
     void processEvents(const std::vector<NetworkEvent>& events)
     {
         std::vector<IncomingDto> decodedMessages;
@@ -350,7 +129,7 @@ private:
                 continue;
             }
 
-            reportRejectedConnection(
+            controller_error::reportRejectedConnection(
                 std::get<ConnectionRejectedEvent>(event));
         }
 
@@ -371,12 +150,9 @@ private:
             return;
         }
 
-        reportNetworkFailure(
-            "receive data",
+        controller_error::throwReceiveFailure(
             NetworkOperation::RECEIVE,
             event.errorCode);
-        throw ReceiveError(
-            "Communication data could not be received");
     }
 
     void decodeData(
@@ -389,13 +165,10 @@ private:
 
         if (frameResult.error != FramingError::NONE)
         {
-            reportProtocolFailure(
-                "framing",
-                event.peer,
-                framingErrorName(frameResult.error));
             framer.reset();
-            throw ReceiveError(
-                "Communication data could not be received");
+            controller_error::throwFramingFailure(
+                event.peer,
+                frameResult.error);
         }
 
         for (const MessageFrame& frame : frameResult.frames)
@@ -404,13 +177,10 @@ private:
             if (decodeResult.error != DecodingError::NONE ||
                 !decodeResult.message.has_value())
             {
-                reportProtocolFailure(
-                    "decoding",
-                    event.peer,
-                    decodingErrorName(decodeResult.error));
                 framer.reset();
-                throw ReceiveError(
-                    "Communication data could not be received");
+                controller_error::throwDecodingFailure(
+                    event.peer,
+                    decodeResult.error);
             }
 
             decodedMessages.push_back(
