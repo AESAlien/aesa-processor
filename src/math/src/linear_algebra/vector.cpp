@@ -8,9 +8,6 @@
 namespace math
 {
 
-Vector::Vector(const Vector&) = default;
-Vector& Vector::operator=(const Vector&) = default;
-
 Vector::Vector()
     : Vector(0)
 {
@@ -39,6 +36,9 @@ Vector::Vector(Matrix matrix)
         throw std::invalid_argument("Vector requires exactly one column");
     }
 }
+
+Vector::Vector(const Vector&) = default;
+Vector& Vector::operator=(const Vector&) = default;
 
 Vector::Vector(Vector&& other)
     : Vector()
@@ -76,17 +76,22 @@ bool Vector::equals(const Vector& other, const Tolerance& tolerance) const noexc
     return _matrix.equals(other._matrix, tolerance);
 }
 
-bool Vector::operator!=(const Vector& other) const noexcept
-{
-    return !(*this == other);
-}
-
 bool Vector::operator==(const Vector& other) const noexcept
 {
     return equals(other);
 }
 
+bool Vector::operator!=(const Vector& other) const noexcept
+{
+    return !(*this == other);
+}
+
 double& Vector::at(std::size_t index)
+{
+    return _matrix.at(index, 0);
+}
+
+const double& Vector::at(std::size_t index) const
 {
     return _matrix.at(index, 0);
 }
@@ -96,17 +101,12 @@ double& Vector::operator()(std::size_t index)
     return at(index);
 }
 
-double& Vector::operator[](std::size_t index)
+const double& Vector::operator()(std::size_t index) const
 {
     return at(index);
 }
 
-const double& Vector::at(std::size_t index) const
-{
-    return _matrix.at(index, 0);
-}
-
-const double& Vector::operator()(std::size_t index) const
+double& Vector::operator[](std::size_t index)
 {
     return at(index);
 }

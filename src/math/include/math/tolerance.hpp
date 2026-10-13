@@ -13,7 +13,6 @@ public:
     );
 
     double absolute() const noexcept;
-
     double relative() const noexcept;
 
     // 지정한 절대오차 또는 상대오차 범위 안이면 true를 반환한다. 무한대·NaN 값은 false를 반환한다.
@@ -21,12 +20,7 @@ public:
 
 private:
     bool isWithinAbsoluteTolerance(double left, double right) const noexcept;
-
     bool isWithinRelativeTolerance(double left, double right) const noexcept;
-
-    void validate() const;
-
-    static bool isFiniteAndNonnegative(double value) noexcept;
 
     const double _absoluteTolerance;
     const double _relativeTolerance;

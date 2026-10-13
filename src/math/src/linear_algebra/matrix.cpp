@@ -86,14 +86,14 @@ bool Matrix::equals(const Matrix& other, const Tolerance& tolerance) const noexc
     return true;
 }
 
-bool Matrix::operator!=(const Matrix& other) const noexcept
-{
-    return !(*this == other);
-}
-
 bool Matrix::operator==(const Matrix& other) const noexcept
 {
     return equals(other);
+}
+
+bool Matrix::operator!=(const Matrix& other) const noexcept
+{
+    return !(*this == other);
 }
 
 double& Matrix::at(std::size_t row, std::size_t column)
@@ -106,11 +106,6 @@ double& Matrix::at(std::size_t row, std::size_t column)
     return _values[row * _columns + column];
 }
 
-double& Matrix::operator()(std::size_t row, std::size_t column)
-{
-    return at(row, column);
-}
-
 const double& Matrix::at(std::size_t row, std::size_t column) const
 {
     if (row >= _rows || column >= _columns)
@@ -118,6 +113,11 @@ const double& Matrix::at(std::size_t row, std::size_t column) const
         throw std::out_of_range("Matrix index out of range");
     }
     return _values[row * _columns + column];
+}
+
+double& Matrix::operator()(std::size_t row, std::size_t column)
+{
+    return at(row, column);
 }
 
 const double& Matrix::operator()(std::size_t row, std::size_t column) const
