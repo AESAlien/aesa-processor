@@ -124,10 +124,10 @@ TEST(BeamTableTest, TableMatchesAnglesConvertedToAntFrame)
 
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
-        const auto [azimuth_ant, elevation_ant] =
-            transform.enuToAnt(gridAzimuth(beamIndex), gridElevation(beamIndex));
-        EXPECT_NEAR(table.get(beamIndex).azimuth_ant.deg(), azimuth_ant.deg(), 1e-3) << "beamIndex=" << beamIndex;
-        EXPECT_NEAR(table.get(beamIndex).elevation_ant.deg(), elevation_ant.deg(), 1e-3) << "beamIndex=" << beamIndex;
+        const math::SphericalDirection direction_ant = transform.enuToAnt(
+            math::SphericalDirection(gridAzimuth(beamIndex).wrap180(), gridElevation(beamIndex)));
+        EXPECT_NEAR(table.get(beamIndex).azimuth_ant.deg(), direction_ant.azimuth().deg(), 1e-3) << "beamIndex=" << beamIndex;
+        EXPECT_NEAR(table.get(beamIndex).elevation_ant.deg(), direction_ant.elevation().deg(), 1e-3) << "beamIndex=" << beamIndex;
     }
 }
 
@@ -138,10 +138,10 @@ TEST(BeamTableTest, TableConvertedBackToFixedFrameRestoresGrid)
 
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
-        const auto [azimuth_enu, elevation_enu] =
-            transform.antToEnu(table.get(beamIndex).azimuth_ant, table.get(beamIndex).elevation_ant);
-        EXPECT_NEAR(azimuth_enu.deg(), gridAzimuth(beamIndex).deg(), 1e-3) << "beamIndex=" << beamIndex;
-        EXPECT_NEAR(elevation_enu.deg(), gridElevation(beamIndex).deg(), 1e-3) << "beamIndex=" << beamIndex;
+        const math::SphericalDirection direction_enu = transform.antToEnu(math::SphericalDirection(
+            table.get(beamIndex).azimuth_ant, table.get(beamIndex).elevation_ant));
+        EXPECT_NEAR(direction_enu.azimuth().deg(), gridAzimuth(beamIndex).wrap180().deg(), 1e-3) << "beamIndex=" << beamIndex;
+        EXPECT_NEAR(direction_enu.elevation().deg(), gridElevation(beamIndex).deg(), 1e-3) << "beamIndex=" << beamIndex;
     }
 }
 

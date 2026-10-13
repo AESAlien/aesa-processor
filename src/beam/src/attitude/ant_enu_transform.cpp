@@ -4,7 +4,9 @@
 #include <cmath>
 #include <stdexcept>
 #include <math/angle.hpp>
+#include <math/spherical_direction.hpp>
 #include <math/square_matrix.hpp>
+#include <math/trigonometry.hpp>
 #include <math/vector.hpp>
 
 namespace beam
@@ -36,27 +38,6 @@ bool allFinite(const RadarAttitude& attitude)
            attitude.pitch.isFinite() && attitude.yaw.isFinite();
 }
 
-double clamp1(double x)
-{
-    return std::fmax(-1.0, std::fmin(1.0, x));
-}
-
-math::Vector aedToVector(math::Angle azimuth, math::Angle elevation)
-{
-    return math::Vector{
-        std::cos(elevation.rad()) * std::sin(azimuth.rad()),
-        std::cos(elevation.rad()) * std::cos(azimuth.rad()),
-        std::sin(elevation.rad())
-    };
-}
-
-std::tuple<math::Angle, math::Angle> vectorToAed(const math::Vector& v)
-{
-    const auto azimuth = math::Angle::fromRadians(std::atan2(v(0), v(1))).wrap180();
-    const auto elevation = math::Angle::fromRadians(std::asin(clamp1(v(2))));
-
-    return {azimuth, elevation};
-}
 } // namespace
 
 AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeConfig& config) : _attitude(attitude)
@@ -90,11 +71,11 @@ AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeCo
         bodyToEnu(attitude.roll, attitude.pitch, attitude.yaw) * config.mountAntToBodyRotation;
 }
 
-std::tuple<math::Angle, math::Angle> AntEnuTransform::antToEnu(math::Angle azimuth_ant, math::Angle elevation_ant) const
+math::SphericalDirection AntEnuTransform::antToEnu(const math::SphericalDirection& direction_ant) const
 {
-    const math::Vector vector_ant = aedToVector(azimuth_ant, elevation_ant);
+    const math::Vector vector_ant = direction_ant.toEnuVector();
     const math::Vector vector_enu = _rotationMatrix * vector_ant;
-    return vectorToAed(vector_enu);
+    return math::SphericalDirection::fromEnuVector(vector_enu);
 }
 
 const math::SquareMatrix& AntEnuTransform::rotationMatrix() const
@@ -102,11 +83,11 @@ const math::SquareMatrix& AntEnuTransform::rotationMatrix() const
     return _rotationMatrix;
 }
 
-std::tuple<math::Angle, math::Angle> AntEnuTransform::enuToAnt(math::Angle azimuth_enu, math::Angle elevation_enu) const
+math::SphericalDirection AntEnuTransform::enuToAnt(const math::SphericalDirection& direction_enu) const
 {
-    const math::Vector vector_enu = aedToVector(azimuth_enu, elevation_enu);
+    const math::Vector vector_enu = direction_enu.toEnuVector();
     const math::Vector vector_ant = _rotationMatrix.transpose() * vector_enu;
-    return vectorToAed(vector_ant);
+    return math::SphericalDirection::fromEnuVector(vector_ant);
 }
 
 } // namespace beam

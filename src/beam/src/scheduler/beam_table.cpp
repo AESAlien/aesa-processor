@@ -61,15 +61,14 @@ BeamTable::BeamTable(const AntEnuTransform& transform, const SearchGridConfig& c
     {
         for (std::size_t a = 0; a < config.azimuthCount; ++a)
         {
-            const auto [azimuth_ant, elevation_ant] = transform.enuToAnt(
-                config.azimuthStart + config.azimuthStep * static_cast<double>(a),
-                config.elevationStart + config.elevationStep * static_cast<double>(e)
-            );
+            const math::SphericalDirection direction_ant = transform.enuToAnt(math::SphericalDirection(
+                (config.azimuthStart + config.azimuthStep * static_cast<double>(a)).wrap180(),
+                config.elevationStart + config.elevationStep * static_cast<double>(e)));
 
             BeamInfo beam;
             beam.beamId = static_cast<uint32_t>(_beams.size() + 1);
-            beam.azimuth_ant = azimuth_ant;
-            beam.elevation_ant = elevation_ant;
+            beam.azimuth_ant = direction_ant.azimuth();
+            beam.elevation_ant = direction_ant.elevation();
             beam.azimuthBeamWidth = config.beamWidth;
             beam.elevationBeamWidth = config.beamWidth;
             _beams.push_back(beam);

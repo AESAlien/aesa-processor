@@ -3,6 +3,7 @@ find_package(GTest REQUIRED)
 add_library(math STATIC
     src/angle.cpp
     src/distance.cpp
+    src/spherical_direction.cpp
     src/matrix.cpp
     src/square_matrix.cpp
     src/spherical_point.cpp

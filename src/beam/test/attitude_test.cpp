@@ -54,20 +54,20 @@ TEST(AttitudeTransformTest, ZeroAttitudeKeepsAngles)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 0_deg);
 
-    const auto [azimuth_enu, elevation_enu] = transform.antToEnu(-30.0_deg, 10.0_deg);
+    const auto direction_enu = transform.antToEnu(math::SphericalDirection(-30.0_deg, 10.0_deg));
 
-    EXPECT_NEAR(azimuth_enu.deg(), -30.0, TOLERANCE);
-    EXPECT_NEAR(elevation_enu.deg(), 10.0, TOLERANCE);
+    EXPECT_NEAR(direction_enu.azimuth().deg(), -30.0, TOLERANCE);
+    EXPECT_NEAR(direction_enu.elevation().deg(), 10.0, TOLERANCE);
 }
 
 TEST(AttitudeTransformTest, AcceptsAnglesCreatedFromRadians)
 {
     const auto transform = makeValidTransform(0_deg, 0_deg, math::Angle::fromRadians(math::PI / 2.0));
-    const auto [azimuth_enu, elevation_enu] = transform.antToEnu(
-        math::Angle::fromRadians(-math::PI / 6.0), math::Angle::fromRadians(math::PI / 18.0));
+    const auto direction_enu = transform.antToEnu(math::SphericalDirection(
+        math::Angle::fromRadians(-math::PI / 6.0), math::Angle::fromRadians(math::PI / 18.0)));
 
-    EXPECT_NEAR(azimuth_enu.deg(), 60.0, TOLERANCE);
-    EXPECT_NEAR(elevation_enu.deg(), 10.0, TOLERANCE);
+    EXPECT_NEAR(direction_enu.azimuth().deg(), 60.0, TOLERANCE);
+    EXPECT_NEAR(direction_enu.elevation().deg(), 10.0, TOLERANCE);
 }
 
 TEST(AttitudeTransformTest, ThrowsOnNonFiniteValues)
@@ -227,25 +227,25 @@ TEST(AttitudeTransformTest, AttitudeErrorIsInvalidArgument)
 TEST(AttitudeTransformTest, IdentityKeepsAngles)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 0_deg);
-    const auto [azimuth_enu, elevation_enu] = transform.antToEnu(-30_deg, 10_deg);
-    EXPECT_NEAR(azimuth_enu.deg(), -30, 1e-9); // 음수 방위각이 0~360으로 바뀌지 않아야 함
-    EXPECT_NEAR(elevation_enu.deg(), 10, 1e-9);
+    const auto direction_enu = transform.antToEnu(math::SphericalDirection(-30_deg, 10_deg));
+    EXPECT_NEAR(direction_enu.azimuth().deg(), -30, 1e-9); // 음수 방위각이 0~360으로 바뀌지 않아야 함
+    EXPECT_NEAR(direction_enu.elevation().deg(), 10, 1e-9);
 }
 
 TEST(AttitudeTransformTest, YawRotatesAzimuthClockwise)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 90_deg); // 정면이 동쪽
-    const auto [azimuth_enu, elevation_enu] = transform.antToEnu(0_deg, 0_deg);
-    EXPECT_NEAR(azimuth_enu.deg(), 90, 1e-9);
-    EXPECT_NEAR(elevation_enu.deg(), 0, 1e-9);
+    const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
+    EXPECT_NEAR(direction_enu.azimuth().deg(), 90, 1e-9);
+    EXPECT_NEAR(direction_enu.elevation().deg(), 0, 1e-9);
 }
 
 TEST(AttitudeTransformTest, PitchRaisesBoresight)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 10_deg, 0_deg);
-    const auto [azimuth_enu, elevation_enu] = transform.antToEnu(0_deg, 0_deg);
-    EXPECT_NEAR(azimuth_enu.deg(), 0, 1e-9);
-    EXPECT_NEAR(elevation_enu.deg(), 10, 1e-9);
+    const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
+    EXPECT_NEAR(direction_enu.azimuth().deg(), 0, 1e-9);
+    EXPECT_NEAR(direction_enu.elevation().deg(), 10, 1e-9);
 }
 
 TEST(AttitudeTransformTest, AntToEnuAndBackRestoresAngles)
@@ -256,24 +256,17 @@ TEST(AttitudeTransformTest, AntToEnuAndBackRestoresAngles)
     {
         for (math::Angle elevation_ant : {0.0_deg, 10.0_deg, 41.2_deg})
         {
-            const auto [azimuth_enu, elevation_enu] = transform.antToEnu(azimuth_ant, elevation_ant);
-            const auto [azimuthRestored_ant, elevationRestored_ant] =
-                transform.enuToAnt(azimuth_enu, elevation_enu);
-            EXPECT_NEAR(azimuthRestored_ant.deg(), azimuth_ant.deg(), 1e-9);
-            EXPECT_NEAR(elevationRestored_ant.deg(), elevation_ant.deg(), 1e-9);
+            const auto direction_enu = transform.antToEnu(math::SphericalDirection(azimuth_ant, elevation_ant));
+            const auto directionRestored_ant = transform.enuToAnt(direction_enu);
+            EXPECT_NEAR(directionRestored_ant.azimuth().deg(), azimuth_ant.deg(), 1e-9);
+            EXPECT_NEAR(directionRestored_ant.elevation().deg(), elevation_ant.deg(), 1e-9);
         }
     }
 }
 
-TEST(AttitudeTransformTest, AzimuthIsWrappedToSignedRange)
+TEST(AttitudeTransformTest, AzimuthKeepsSignedRangeEndpoints)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 0_deg);
-    const auto [azimuthAbove180_enu, elevationAbove180_enu] = transform.antToEnu(181_deg, 0_deg);
-    EXPECT_NEAR(azimuthAbove180_enu.deg(), -179, 1e-9);
-
-    const auto [azimuthBelow180_enu, elevationBelow180_enu] = transform.antToEnu(-181_deg, 0_deg);
-    EXPECT_NEAR(azimuthBelow180_enu.deg(), 179, 1e-9);
-
-    const auto [azimuthAt180_enu, elevationAt180_enu] = transform.antToEnu(180_deg, 0_deg);
-    EXPECT_NEAR(math::abs(azimuthAt180_enu).deg(), 180, 1e-9); // 후방은 ±180 (0이 되면 안 됨)
+    const auto directionAt180_enu = transform.antToEnu(math::SphericalDirection(180_deg, 0_deg));
+    EXPECT_NEAR(math::abs(directionAt180_enu.azimuth()).deg(), 180, 1e-9);
 }
