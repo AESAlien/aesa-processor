@@ -13,25 +13,25 @@ namespace
 beam::BeamRequest makeRequest(
     beam::BeamRequest::BeamType beamType,
     std::chrono::milliseconds transmitTime,
-    double azimuth_deg = 0.0
+    math::Angle azimuth = 0_deg
 ) {
     return beam::BeamRequest::Builder()
         .beamType(beamType)
         .transmitTime(transmitTime)
         .requestId(0)
-        .azimuth_ant(math::Angle::fromDegrees(azimuth_deg))
+        .azimuth_ant(azimuth)
         .elevation_ant(0_deg)
         .build();
 }
 
-beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, double azimuth_deg = 0.0)
+beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)
 {
-    return makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, transmitTime, azimuth_deg);
+    return makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, transmitTime, azimuth);
 }
 
-beam::BeamRequest makeTracking(std::chrono::milliseconds transmitTime, double azimuth_deg = 0.0)
+beam::BeamRequest makeTracking(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)
 {
-    return makeRequest(beam::BeamRequest::BeamType::TRACKING, transmitTime, azimuth_deg);
+    return makeRequest(beam::BeamRequest::BeamType::TRACKING, transmitTime, azimuth);
 }
 
 } // namespace
@@ -77,20 +77,20 @@ TEST(RequestQueueTest, PoppedRequestIsRemovedFromQueue)
 TEST(RequestQueueTest, EarliestDueRequestComesFirstRegardlessOfInsertionOrder)
 {
     beam::RequestQueue queue;
-    queue.add(makeTracking(1010ms, 3.0));
-    queue.add(makeTracking(1000ms, 1.0));
-    queue.add(makeTracking(1005ms, 2.0));
+    queue.add(makeTracking(1010ms, 3_deg));
+    queue.add(makeTracking(1000ms, 1_deg));
+    queue.add(makeTracking(1005ms, 2_deg));
 
-    EXPECT_DOUBLE_EQ(queue.popNextDue(1010ms)->azimuth_ant.deg(), 1.0);
-    EXPECT_DOUBLE_EQ(queue.popNextDue(1010ms)->azimuth_ant.deg(), 2.0);
-    EXPECT_DOUBLE_EQ(queue.popNextDue(1010ms)->azimuth_ant.deg(), 3.0);
+    EXPECT_TRUE(queue.popNextDue(1010ms)->azimuth_ant.equals(1_deg, 0.0));
+    EXPECT_TRUE(queue.popNextDue(1010ms)->azimuth_ant.equals(2_deg, 0.0));
+    EXPECT_TRUE(queue.popNextDue(1010ms)->azimuth_ant.equals(3_deg, 0.0));
 }
 
 TEST(RequestQueueTest, SameTransmitTimeConfirmationComesBeforeTracking)
 {
     beam::RequestQueue queue;
-    queue.add(makeTracking(1000ms, 1.0));
-    queue.add(makeConfirmation(1000ms, 2.0));
+    queue.add(makeTracking(1000ms, 1_deg));
+    queue.add(makeConfirmation(1000ms, 2_deg));
 
     const auto first = queue.popNextDue(1000ms);
     const auto second = queue.popNextDue(1010ms);
@@ -104,13 +104,13 @@ TEST(RequestQueueTest, SameTransmitTimeConfirmationComesBeforeTracking)
 TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
 {
     beam::RequestQueue queue;
-    queue.add(makeTracking(1000ms, 1.0));
-    queue.add(makeTracking(1000ms, 2.0));
-    queue.add(makeTracking(1000ms, 3.0));
+    queue.add(makeTracking(1000ms, 1_deg));
+    queue.add(makeTracking(1000ms, 2_deg));
+    queue.add(makeTracking(1000ms, 3_deg));
 
-    EXPECT_DOUBLE_EQ(queue.popNextDue(1000ms)->azimuth_ant.deg(), 1.0);
-    EXPECT_DOUBLE_EQ(queue.popNextDue(1000ms)->azimuth_ant.deg(), 2.0);
-    EXPECT_DOUBLE_EQ(queue.popNextDue(1000ms)->azimuth_ant.deg(), 3.0);
+    EXPECT_TRUE(queue.popNextDue(1000ms)->azimuth_ant.equals(1_deg, 0.0));
+    EXPECT_TRUE(queue.popNextDue(1000ms)->azimuth_ant.equals(2_deg, 0.0));
+    EXPECT_TRUE(queue.popNextDue(1000ms)->azimuth_ant.equals(3_deg, 0.0));
 }
 
 TEST(RequestQueueTest, EarlierTrackingStillComesBeforeLaterConfirmation)
@@ -152,13 +152,13 @@ TEST(RequestQueueTest, TrackingExpiresAtThirtyMilliseconds)
 TEST(RequestQueueTest, ExpiredRequestIsSkippedAndNextValidRequestIsReturned)
 {
     beam::RequestQueue queue;
-    queue.add(makeTracking(1000ms, 1.0));
-    queue.add(makeTracking(1025ms, 2.0));
+    queue.add(makeTracking(1000ms, 1_deg));
+    queue.add(makeTracking(1025ms, 2_deg));
 
     const auto request = queue.popNextDue(1030ms);
 
     ASSERT_TRUE(request.has_value());
-    EXPECT_DOUBLE_EQ(request->azimuth_ant.deg(), 2.0);
+    EXPECT_TRUE(request->azimuth_ant.equals(2_deg, 0.0));
     EXPECT_TRUE(queue.empty());
 }
 
@@ -166,8 +166,8 @@ TEST(RequestQueueTest, ExpiryCheckAppliesPerBeamType)
 {
     // 1000ms 시점 요청이 1025ms 틱에 평가될 때 확인(20ms)은 만료, 추적(30ms)은 유효하다.
     beam::RequestQueue queue;
-    queue.add(makeConfirmation(1000ms, 1.0));
-    queue.add(makeTracking(1000ms, 2.0));
+    queue.add(makeConfirmation(1000ms, 1_deg));
+    queue.add(makeTracking(1000ms, 2_deg));
 
     const auto request = queue.popNextDue(1025ms);
 

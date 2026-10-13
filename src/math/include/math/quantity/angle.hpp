@@ -64,6 +64,8 @@ namespace literals
 
 Angle operator""_deg(unsigned long long degrees) noexcept;
 Angle operator""_deg(long double degrees) noexcept;
+Angle operator""_rad(unsigned long long radians) noexcept;
+Angle operator""_rad(long double radians) noexcept;
 
 }
 

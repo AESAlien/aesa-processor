@@ -17,12 +17,12 @@ using namespace math::literals;
 
 math::SquareMatrix bodyToEnu(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    const double cr = std::cos(roll.rad());
-    const double sr = std::sin(roll.rad());
-    const double cp = std::cos(pitch.rad());
-    const double sp = std::sin(pitch.rad());
-    const double cy = std::cos(yaw.rad());
-    const double sy = std::sin(yaw.rad());
+    const double cr = math::cos(roll);
+    const double sr = math::sin(roll);
+    const double cp = math::cos(pitch);
+    const double sp = math::sin(pitch);
+    const double cy = math::cos(yaw);
+    const double sy = math::sin(yaw);
 
     const math::SquareMatrix Rz{{cy, sy, 0}, {-sy, cy, 0}, {0, 0, 1}};
     const math::SquareMatrix Rx{{1, 0, 0}, {0, cp, -sp}, {0, sp, cp}};

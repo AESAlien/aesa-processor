@@ -52,6 +52,17 @@ TEST(AngleTest, CreatesAnglesFromDegreeLiterals)
     EXPECT_DOUBLE_EQ((30.5_deg).deg(), 30.5);
 }
 
+// 정수와 실수 라디안 리터럴이 올바른 Angle 값과 타입을 생성한다.
+TEST(AngleTest, CreatesAnglesFromRadianLiterals)
+{
+    using namespace math::literals;
+
+    static_assert(std::is_same<decltype(1_rad), math::Angle>::value,
+        "Radian literals must produce an Angle");
+    EXPECT_DOUBLE_EQ((1_rad).rad(), 1.0);
+    EXPECT_DOUBLE_EQ((0.37_rad).rad(), 0.37);
+}
+
 // 범위 안의 값, ±180도 경계와 여러 회전 값을 [-180, 180) 범위로 정규화한다.
 TEST(AngleTest, WrapsToSignedDegreeRange)
 {

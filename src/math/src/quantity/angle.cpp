@@ -190,6 +190,16 @@ Angle operator""_deg(long double degrees) noexcept
     return Angle::fromDegrees(static_cast<double>(degrees));
 }
 
+Angle operator""_rad(unsigned long long radians) noexcept
+{
+    return Angle::fromRadians(static_cast<double>(radians));
+}
+
+Angle operator""_rad(long double radians) noexcept
+{
+    return Angle::fromRadians(static_cast<double>(radians));
+}
+
 }
 
 }
