@@ -22,6 +22,8 @@ public:
     std::size_t columns() const noexcept;
     // 행 또는 열의 수가 0이면 true를 반환한다.
     bool empty() const noexcept;
+    // 모든 원소가 유한한지 검사한다. 무한대나 NaN 원소가 있으면 false를 반환한다.
+    bool isFinite() const noexcept;
 
     // 원소별 큰 쪽 절댓값에 대한 차이의 비율로 비교한다. 예: 0.01은 1%이다.
     // 차원 불일치, 음수·무한대·NaN 허용오차와 무한대·NaN 원소는 false를 반환한다.

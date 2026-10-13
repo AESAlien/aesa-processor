@@ -57,6 +57,18 @@ bool Matrix::empty() const noexcept
     return _rows == 0 || _columns == 0;
 }
 
+bool Matrix::isFinite() const noexcept
+{
+    for (double value : _values)
+    {
+        if (!std::isfinite(value))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool Matrix::equals(const Matrix& other, double relativeTolerance) const noexcept
 {
     if (_rows != other._rows || _columns != other._columns ||

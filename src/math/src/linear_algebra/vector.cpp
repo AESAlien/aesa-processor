@@ -63,6 +63,11 @@ bool Vector::empty() const noexcept
     return _matrix.empty();
 }
 
+bool Vector::isFinite() const noexcept
+{
+    return _matrix.isFinite();
+}
+
 bool Vector::equals(const Vector& other, const Vector& absoluteTolerance) const noexcept
 {
     if (size() != other.size() || size() != absoluteTolerance.size())

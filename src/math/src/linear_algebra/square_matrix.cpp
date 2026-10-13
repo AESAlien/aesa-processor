@@ -61,6 +61,11 @@ bool SquareMatrix::empty() const noexcept
     return _matrix.empty();
 }
 
+bool SquareMatrix::isFinite() const noexcept
+{
+    return _matrix.isFinite();
+}
+
 bool SquareMatrix::equals(const SquareMatrix& other, const SquareMatrix& absoluteTolerance) const noexcept
 {
     if (size() != other.size() || size() != absoluteTolerance.size())
@@ -96,15 +101,9 @@ bool SquareMatrix::isOrthogonal(double tolerance) const
         throw std::invalid_argument("Orthogonality tolerance must be finite and non-negative");
     }
 
-    for (std::size_t row = 0; row < rows(); ++row)
+    if (!isFinite())
     {
-        for (std::size_t column = 0; column < columns(); ++column)
-        {
-            if (!std::isfinite(at(row, column)))
-            {
-                return false;
-            }
-        }
+        return false;
     }
 
     for (std::size_t i = 0; i < columns(); ++i)

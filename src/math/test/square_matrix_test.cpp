@@ -36,6 +36,21 @@ TEST(SquareMatrixTest, ConstructsWithSquareShape)
     EXPECT_THROW((math::SquareMatrix(std::numeric_limits<std::size_t>::max())), std::length_error);
 }
 
+// 모든 원소가 유한해야 하며 빈 정방행렬은 유한한 것으로 판단한다.
+TEST(SquareMatrixTest, ChecksWhetherAllElementsAreFinite)
+{
+    math::SquareMatrix matrix{{1.0, -2.0}, {3.0, 4.0}};
+    EXPECT_TRUE(matrix.isFinite());
+    EXPECT_TRUE(math::SquareMatrix().isFinite());
+
+    matrix(0, 1) = std::numeric_limits<double>::infinity();
+    EXPECT_FALSE(matrix.isFinite());
+    matrix(0, 1) = -std::numeric_limits<double>::infinity();
+    EXPECT_FALSE(matrix.isFinite());
+    matrix(0, 1) = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_FALSE(matrix.isFinite());
+}
+
 // 정방행렬이 아닌 입력은 0차원인 경우에도 거부한다.
 TEST(SquareMatrixTest, RejectsNonSquareInputs)
 {

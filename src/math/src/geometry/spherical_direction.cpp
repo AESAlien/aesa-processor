@@ -47,8 +47,7 @@ Vector SphericalDirection::toEnuVector() const
 
 SphericalDirection SphericalDirection::fromEnuVector(const Vector& vector)
 {
-    if (vector.size() != 3 || !std::isfinite(vector(0)) ||
-        !std::isfinite(vector(1)) || !std::isfinite(vector(2)))
+    if (vector.size() != 3 || !vector.isFinite())
     {
         throw std::invalid_argument("ENU direction requires a finite 3D vector");
     }

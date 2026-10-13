@@ -26,6 +26,8 @@ public:
     std::size_t rows() const noexcept;
     std::size_t columns() const noexcept;
     bool empty() const noexcept;
+    // 모든 원소가 유한한지 검사한다. 무한대나 NaN 원소가 있으면 false를 반환한다.
+    bool isFinite() const noexcept;
 
     // 세 행렬의 크기가 같고 각 원소의 절대 차이가 대응 허용오차 이하인지 비교한다.
     // 음수·무한대·NaN 허용오차와 무한대·NaN 원소는 false를 반환한다.
