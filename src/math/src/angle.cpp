@@ -47,6 +47,18 @@ Angle Angle::wrap180() const noexcept
     return Angle(degrees - 180.0);
 }
 
+Angle Angle::wrap90() const noexcept
+{
+    // 90도를 더해 180도로 나눈 나머지를 구한 뒤 음수 나머지를 보정한다.
+    double degrees = std::fmod(_degrees + 90.0, 180.0);
+    if (degrees < 0.0)
+    {
+        degrees += 180.0;
+    }
+
+    return Angle(degrees - 90.0);
+}
+
 bool Angle::equals(const Angle& other, const Angle& absoluteTolerance) const noexcept
 {
     return absoluteTolerance.isFinite()

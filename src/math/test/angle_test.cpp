@@ -75,6 +75,29 @@ TEST(AngleTest, WrapsToSignedDegreeRange)
     EXPECT_TRUE((angle).equals(450_deg, math::Angle::fromDegrees(0.0)));
 }
 
+// 범위 안의 값, ±90도 경계와 여러 회전 값을 [-90, 90) 범위로 정규화한다.
+TEST(AngleTest, WrapsToSignedNinetyDegreeRange)
+{
+    using namespace math::literals;
+
+    EXPECT_DOUBLE_EQ((0_deg).wrap90().deg(), 0.0);
+    EXPECT_DOUBLE_EQ((89.5_deg).wrap90().deg(), 89.5);
+    EXPECT_DOUBLE_EQ((-89.5_deg).wrap90().deg(), -89.5);
+    EXPECT_DOUBLE_EQ((90_deg).wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ((-90_deg).wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ((91_deg).wrap90().deg(), -89.0);
+    EXPECT_DOUBLE_EQ((-91_deg).wrap90().deg(), 89.0);
+    EXPECT_DOUBLE_EQ((180_deg).wrap90().deg(), 0.0);
+    EXPECT_DOUBLE_EQ((270_deg).wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ((-270_deg).wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ((450_deg).wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ((-450_deg).wrap90().deg(), -90.0);
+
+    const auto angle = 450_deg;
+    EXPECT_DOUBLE_EQ(angle.wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ(angle.deg(), 450.0);
+}
+
 // 0과 양수·음수 각도의 도→라디안 변환을 검증하고, 회전 범위를 넘는 도 값도 그대로 보존한다.
 TEST(AngleTest, ConvertsRepresentativeDegreesToRadians)
 {
