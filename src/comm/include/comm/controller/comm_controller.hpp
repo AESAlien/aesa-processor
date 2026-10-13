@@ -1,6 +1,7 @@
 #pragma once
 
 #include <beam/dto/beam_command.hpp>
+#include <comm/controller/comm_error.hpp>
 #include <comm/dto/incoming_dto.hpp>
 #include <target/dto/track_event.hpp>
 
@@ -37,6 +38,7 @@ public:
     CommController(CommController&&) = delete;
     CommController& operator=(CommController&&) = delete;
 
+    // 실패하면 상세 시스템 오류는 comm 내부에 기록하고 ServerOpenError를 던진다.
     void openServer();
 
     std::optional<IncomingDto> receiveData();
