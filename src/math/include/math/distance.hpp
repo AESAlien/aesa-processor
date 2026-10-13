@@ -11,6 +11,7 @@ public:
 
     double m() const noexcept;
     double km() const noexcept;
+    bool isFinite() const noexcept;
 
     // 미터 단위 절대 차이가 허용오차 이하인지 비교한다.
     // 음수·무한대·NaN 허용오차는 false를 반환한다.

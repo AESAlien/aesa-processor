@@ -43,6 +43,18 @@ TEST(VelocityTest, PreservesSignedMetersPerSecond)
     }
 }
 
+TEST(VelocityTest, ChecksWhetherStoredMetersPerSecondAreFinite)
+{
+    EXPECT_TRUE(math::Velocity::fromMetersPerSecond(0.0).isFinite());
+    EXPECT_TRUE(math::Velocity::fromMetersPerSecond(-1.0).isFinite());
+    EXPECT_FALSE(math::Velocity::fromMetersPerSecond(
+        std::numeric_limits<double>::infinity()).isFinite());
+    EXPECT_FALSE(math::Velocity::fromMetersPerSecond(
+        -std::numeric_limits<double>::infinity()).isFinite());
+    EXPECT_FALSE(math::Velocity::fromMetersPerSecond(
+        std::numeric_limits<double>::quiet_NaN()).isFinite());
+}
+
 // 정수와 실수 초당 미터 리터럴이 올바른 Velocity 값과 타입을 생성한다.
 TEST(VelocityTest, CreatesVelocitiesFromMetersPerSecondLiterals)
 {

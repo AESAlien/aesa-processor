@@ -26,10 +26,15 @@ double Distance::km() const noexcept
     return _meters / 1000.0;
 }
 
+bool Distance::isFinite() const noexcept
+{
+    return std::isfinite(_meters);
+}
+
 bool Distance::equals(const Distance& other, const Distance& absoluteTolerance) const noexcept
 {
-    return std::isfinite(absoluteTolerance._meters)
         && absoluteTolerance._meters >= 0.0
+    return absoluteTolerance.isFinite()
         && std::abs(_meters - other._meters) <= absoluteTolerance._meters;
 }
 

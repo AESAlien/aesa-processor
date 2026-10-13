@@ -1,7 +1,6 @@
 #include "beam_table.hpp"
 #include <beam/config/beam_config.hpp>
 
-#include <cmath>
 #include <cstdint>
 #include <stdexcept>
 #include <limits>
@@ -12,18 +11,13 @@ namespace
 {
 using namespace math::literals;
 
-bool isFinite(math::Angle angle)
-{
-    return std::isfinite(angle.deg());
-}
-
 // 축의 마지막 점(start + step * (count - 1))이 유한한지 확인한다.
 // start와 step이 각각 유한해도 곱셈이나 덧셈에서 오버플로할 수 있다.
 // 마지막 점이 유한하면 그 사이의 점도 모두 유한하다.
 // 계산식은 BeamTable 생성자의 각도 계산과 같아야 한다.
 bool isLastPointFinite(math::Angle start, math::Angle step, std::size_t count)
 {
-    return isFinite(start + step * static_cast<double>(count - 1));
+    return (start + step * static_cast<double>(count - 1)).isFinite();
 }
 
 void validate(const SearchGridConfig& config)
@@ -38,9 +32,9 @@ void validate(const SearchGridConfig& config)
         throw std::invalid_argument("SearchGridConfig: beam count exceeds uint32 range");
     }
 
-    if(!isFinite(config.azimuthStart) || !isFinite(config.azimuthStep) ||
-       !isFinite(config.elevationStart) || !isFinite(config.elevationStep) ||
-       !isFinite(config.beamWidth))
+    if(!config.azimuthStart.isFinite() || !config.azimuthStep.isFinite() ||
+       !config.elevationStart.isFinite() || !config.elevationStep.isFinite() ||
+       !config.beamWidth.isFinite())
     {
         throw std::invalid_argument("SearchGridConfig: angle must be finite");
     }

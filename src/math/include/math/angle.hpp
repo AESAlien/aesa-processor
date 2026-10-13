@@ -13,6 +13,7 @@ public:
 
     double deg() const noexcept;
     double rad() const noexcept;
+    bool isFinite() const noexcept;
 
     // 원본을 유지하며 [-180, 180)도 범위로 정규화한 새 각도를 반환한다.
     Angle wrap180() const noexcept;

@@ -31,9 +31,9 @@ math::SquareMatrix bodyToEnu(math::Angle roll, math::Angle pitch, math::Angle ya
 
 bool allFinite(const RadarAttitude& attitude)
 {
-    return std::isfinite(attitude.latitude.deg()) && std::isfinite(attitude.longitude.deg()) &&
-           std::isfinite(attitude.altitude.km()) && std::isfinite(attitude.roll.deg()) &&
-           std::isfinite(attitude.pitch.deg()) && std::isfinite(attitude.yaw.deg());
+    return attitude.latitude.isFinite() && attitude.longitude.isFinite() &&
+           attitude.altitude.isFinite() && attitude.roll.isFinite() &&
+           attitude.pitch.isFinite() && attitude.yaw.isFinite();
 }
 
 bool isOrthogonalMatrix(const math::SquareMatrix& matrix, double tolerance)

@@ -15,6 +15,7 @@ public:
     static Velocity fromMetersPerSecond(double metersPerSecond) noexcept;
 
     double mps() const noexcept;
+    bool isFinite() const noexcept;
 
     // 초당 미터 단위 절대 차이가 허용오차 이하인지 비교한다.
     // 음수·무한대·NaN 허용오차는 false를 반환한다.

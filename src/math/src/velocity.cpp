@@ -16,10 +16,16 @@ double Velocity::mps() const noexcept
     return _metersPerSecond;
 }
 
+bool Velocity::isFinite() const noexcept
+{
+    return std::isfinite(_metersPerSecond);
+}
+
 bool Velocity::equals(const Velocity& other, const Velocity& absoluteTolerance) const noexcept
 {
-    return std::isfinite(absoluteTolerance._metersPerSecond)
+    return isFinite() && other.isFinite()
         && absoluteTolerance._metersPerSecond >= 0.0
+        && absoluteTolerance.isFinite()
         && std::abs(_metersPerSecond - other._metersPerSecond) <= absoluteTolerance._metersPerSecond;
 }
 

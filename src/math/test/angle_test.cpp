@@ -211,3 +211,13 @@ TEST(AngleTest, EqualsHandlesRelativeComparisonAtNumericLimits)
     EXPECT_TRUE(math::Angle::fromDegrees(2.0 * smallest).equals(
         math::Angle::fromDegrees(smallest), 0.5));
 }
+
+// 유한한 각도는 true를 반환하고 무한대와 NaN은 false를 반환한다.
+TEST(AngleTest, ChecksWhetherStoredDegreesAreFinite)
+{
+    EXPECT_TRUE(math::Angle::fromDegrees(0.0).isFinite());
+    EXPECT_TRUE(math::Angle::fromDegrees(-180.0).isFinite());
+    EXPECT_FALSE(math::Angle::fromDegrees(std::numeric_limits<double>::infinity()).isFinite());
+    EXPECT_FALSE(math::Angle::fromDegrees(-std::numeric_limits<double>::infinity()).isFinite());
+    EXPECT_FALSE(math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN()).isFinite());
+}

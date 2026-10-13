@@ -29,6 +29,11 @@ double Angle::rad() const noexcept
     return _degrees * (PI / 180.0);
 }
 
+bool Angle::isFinite() const noexcept
+{
+    return std::isfinite(_degrees);
+}
+
 Angle Angle::wrap180() const noexcept
 {
     // 180도를 더해 나머지를 구한 뒤 음수 나머지를 보정한다.
@@ -43,8 +48,8 @@ Angle Angle::wrap180() const noexcept
 
 bool Angle::equals(const Angle& other, const Angle& absoluteTolerance) const noexcept
 {
-    return std::isfinite(absoluteTolerance._degrees)
         && absoluteTolerance._degrees >= 0.0
+    return absoluteTolerance.isFinite()
         && std::abs(_degrees - other._degrees) <= absoluteTolerance._degrees;
 }
 
