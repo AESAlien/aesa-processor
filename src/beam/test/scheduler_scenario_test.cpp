@@ -119,7 +119,7 @@ void expectCommonRules(const Result& result)
         }
     }
 
-    // 송신된 요청은 원한 시각 이후 종류별 허용 지연(확인 20ms, 추적 30ms) 안에서만 나간다.
+    // 송신된 요청은 원한 시각보다 일찍 나가지 않는다. 늦게 나가는 것은 허용되며 폐기되지 않는다.
     for (const schedule_scenario::RequestSpec& spec : result.requests)
     {
         if (spec.sentTick_ms < 0)
@@ -127,16 +127,13 @@ void expectCommonRules(const Result& result)
             continue;
         }
 
-        const long long delay = spec.sentTick_ms - spec.request.transmitTime.count();
-        const long long limit = spec.request.beamType == beam::BeamRequest::BeamType::CONFIRMATION ? 20 : 30;
-        EXPECT_GE(delay, 0) << spec.name;
-        EXPECT_LT(delay, limit) << spec.name;
+        EXPECT_GE(spec.sentTick_ms - spec.request.transmitTime.count(), 0) << spec.name;
     }
 }
 
 } // namespace
 
-// ---------- mixed: 요청이 끼어드는 순서와 폐기 ----------
+// ---------- mixed: 요청이 끼어드는 순서와 지연 ----------
 
 TEST(SchedulerScenarioTest, MixedSendsNothingUntilReady)
 {
@@ -174,11 +171,11 @@ TEST(SchedulerScenarioTest, MixedSendsRequestBeamsAtTheDesignedTicks)
         {210, Type::TRACKING},     // A
         {220, Type::CONFIRMATION}, // B (같은 시각 요청 중 확인 우선)
         {230, Type::TRACKING},     // C
-        {240, Type::SEARCH},       // D는 폐기되어 탐색
+        {240, Type::TRACKING},     // D
         {300, Type::TRACKING},     // E
         {310, Type::TRACKING},     // F
         {320, Type::TRACKING},     // G
-        {330, Type::SEARCH},       // H는 폐기되어 탐색
+        {330, Type::TRACKING},     // H
     };
     for (const Expected& item : expected)
     {
@@ -197,34 +194,33 @@ TEST(SchedulerScenarioTest, MixedMatchesEachRequestToItsSentTick)
     EXPECT_EQ(requestNamed(result, "A").sentTick_ms, 210);
     EXPECT_EQ(requestNamed(result, "B").sentTick_ms, 220);
     EXPECT_EQ(requestNamed(result, "C").sentTick_ms, 230);
+    EXPECT_EQ(requestNamed(result, "D").sentTick_ms, 240);
+    EXPECT_EQ(requestNamed(result, "H").sentTick_ms, 330);
     EXPECT_EQ(requestNamed(result, "E").sentTick_ms, 300);
     EXPECT_EQ(requestNamed(result, "F").sentTick_ms, 310);
     EXPECT_EQ(requestNamed(result, "G").sentTick_ms, 320);
 }
 
-TEST(SchedulerScenarioTest, MixedDropsOnlyRequestsThatWaitedTooLong)
+TEST(SchedulerScenarioTest, MixedSendsEveryRequestEvenWhenItWaitsLong)
 {
     const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitude());
 
-    std::vector<std::string> dropped;
+    // 폐기는 없다. 같은 시각에 몰려 오래 기다린 D, H도 결국 송신된다.
     for (const schedule_scenario::RequestSpec& spec : result.requests)
     {
-        if (spec.sentTick_ms < 0)
-        {
-            dropped.push_back(spec.name);
-        }
+        EXPECT_GE(spec.sentTick_ms, 0) << spec.name;
     }
-
-    EXPECT_EQ(dropped, (std::vector<std::string>{"D", "H"}));
+    EXPECT_EQ(requestNamed(result, "D").sentTick_ms - requestNamed(result, "D").request.transmitTime.count(), 30);
+    EXPECT_EQ(requestNamed(result, "H").sentTick_ms - requestNamed(result, "H").request.transmitTime.count(), 30);
 }
 
 TEST(SchedulerScenarioTest, MixedSearchSweepContinuesWithoutSkippingAfterInterruptions)
 {
     const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitude());
 
-    // 37개 빔 중 요청 빔이 8개이므로 탐색 빔은 29개이고, 번호는 1부터 건너뛰지 않고 이어진다.
+    // 37개 빔 중 요청 빔이 10개이므로 탐색 빔은 27개이고, 번호는 1부터 건너뛰지 않고 이어진다.
     const std::vector<std::uint32_t> ids = searchBeamIds(result);
-    ASSERT_EQ(ids.size(), 29u);
+    ASSERT_EQ(ids.size(), 27u);
     for (std::size_t index = 0; index < ids.size(); ++index)
     {
         EXPECT_EQ(ids[index], index + 1);
@@ -242,7 +238,7 @@ TEST(SchedulerScenarioTest, TracksSendsEveryRequestWithoutDelay)
 {
     const Result result = schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroAttitude());
 
-    // 요청이 50ms 간격이라 같은 틱을 두고 다투지 않으므로 모두 원한 시각 그대로 나가고 폐기는 없다.
+    // 요청이 50ms 간격이라 같은 틱을 두고 다투지 않으므로 모두 원한 시각 그대로 나간다.
     ASSERT_EQ(result.requests.size(), 59u);
     for (const schedule_scenario::RequestSpec& spec : result.requests)
     {

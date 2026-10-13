@@ -25,6 +25,15 @@ void validate(const RequestBeamConfig& config)
     }
 }
 
+void validate(const BeamRequest& request)
+{
+    if (request.beamType != BeamRequest::BeamType::CONFIRMATION &&
+        request.beamType != BeamRequest::BeamType::TRACKING)
+    {
+        throw std::invalid_argument("Unknown beam request type");
+    }
+}
+
 BeamCommand::BeamType toCommandBeamType(BeamRequest::BeamType beamType)
 {
     switch (beamType)
@@ -89,8 +98,7 @@ BeamCommand makeRequestCommand(
 }
 } // namespace
 
-Scheduler::Scheduler(const BeamConfig& config)
-    : _config(config), _requestQueue(config.requestQueue)
+Scheduler::Scheduler(const BeamConfig& config) : _config(config)
 {
     validate(_config.requestBeam);
 }
@@ -128,6 +136,7 @@ void Scheduler::addRequest(const BeamRequest& request)
         return;
     }
 
+    validate(request);
     _requestQueue.add(request);
 }
 
