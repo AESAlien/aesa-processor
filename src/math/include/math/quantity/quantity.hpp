@@ -8,9 +8,10 @@ class Quantity
 public:
     double value() const noexcept;
 
+    // 저장된 값이 유한하면 true를 반환한다. 무한대·NaN 값은 false를 반환한다.
     bool isFinite() const noexcept;
 
-    // 저장된 값이 0 이상인지 검사한다. NaN은 false이다.
+    // 저장된 값이 0 이상이면 true를 반환한다. NaN 값은 false를 반환한다.
     bool isNonnegative() const noexcept;
 
 protected:

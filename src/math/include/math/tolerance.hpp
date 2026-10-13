@@ -3,7 +3,6 @@
 namespace math
 {
 
-// double 값의 절대·상대오차를 검증하고 비교하는 정책 값 객체이다.
 class Tolerance
 {
 public:
@@ -17,6 +16,7 @@ public:
 
     double relative() const noexcept;
 
+    // 지정한 절대오차 또는 상대오차 범위 안이면 true를 반환한다. 무한대·NaN 값은 false를 반환한다.
     bool isWithin(double left, double right) const noexcept;
 
 private:
@@ -32,7 +32,6 @@ private:
     const double _relativeTolerance;
 };
 
-// 절대오차는 각 타입의 저장 단위에 적용한다.
 inline constexpr double DEFAULT_ABSOLUTE_TOLERANCE = 1e-12;
 inline constexpr double DEFAULT_RELATIVE_TOLERANCE = 1e-9;
 extern const Tolerance DEFAULT_TOLERANCE;

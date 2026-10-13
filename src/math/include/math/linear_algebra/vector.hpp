@@ -24,19 +24,20 @@ public:
 
     std::size_t size() const noexcept;
     bool empty() const noexcept;
-    // 모든 원소가 유한한지 검사한다. 무한대나 NaN 원소가 있으면 false를 반환한다.
+    // 모든 원소가 유한하면 true를 반환한다. 무한대·NaN 원소가 있으면 false를 반환한다.
     bool isFinite() const noexcept;
 
-    // 모든 원소에 동일한 절대·상대오차 정책을 적용한다. 비유한 원소는 false이다.
+    // 차원이 같고 모든 원소가 지정한 절대오차 또는 상대오차 범위 안이면 true를 반환한다. 무한대·NaN 원소가 있으면 false를 반환한다.
     bool equals(const Vector& other, const Tolerance& tolerance) const noexcept;
 
-    // 차원이 같고 모든 원소가 DEFAULT 절대·상대오차 안이면 true이다. 비유한 원소는 false이다.
+    // 차원이 같고 모든 원소가 DEFAULT 절대오차 또는 상대오차 범위 안이면 true를 반환한다. 무한대·NaN 원소가 있으면 false를 반환한다.
     bool operator==(const Vector& other) const noexcept;
-    // ==의 부정이다. 비유한 원소가 있으면 자기 자신과도 다르다.
+    // ==의 결과를 반전한다. 무한대·NaN 원소가 있으면 자기 자신과도 다르다.
     bool operator!=(const Vector& other) const noexcept;
 
-    // 모든 원소 접근은 범위를 검사한다.
+    // 원소 접근 시 범위를 검사한다. 범위 밖이면 std::out_of_range를 던진다.
     double& at(std::size_t index);
+    // 원소 접근 시 범위를 검사한다. 범위 밖이면 std::out_of_range를 던진다.
     const double& at(std::size_t index) const;
     double& operator()(std::size_t index);
     const double& operator()(std::size_t index) const;
@@ -45,11 +46,13 @@ public:
 
     // 전치 결과는 1×N 일반 행렬이다.
     Matrix transpose() const;
-    // 길이가 다르면 std::invalid_argument를 던진다. 빈 벡터의 내적은 0이다.
+    // 두 벡터의 길이가 다르면 std::invalid_argument를 던진다. 빈 벡터의 내적은 0이다.
     double dot(const Vector& other) const;
     double norm() const;
 
+    // 두 벡터의 길이가 다르면 std::invalid_argument를 던진다.
     Vector operator+(const Vector& other) const;
+    // 두 벡터의 길이가 다르면 std::invalid_argument를 던진다.
     Vector operator-(const Vector& other) const;
     Vector operator*(double scalar) const;
     // 0으로 나누면 std::domain_error를 던진다.
