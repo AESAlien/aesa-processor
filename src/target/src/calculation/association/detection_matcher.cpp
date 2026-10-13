@@ -24,9 +24,9 @@ bool positionsEqual(
     const math::Angle& elevation)
 {
     // Preserve the current exact antenna-position policy until NDS is specified.
-    return observation.slantRange().equals(range, 0.0_m)
-        && observation.azimuth().equals(azimuth, 0.0_deg)
-        && observation.elevation().equals(elevation, 0.0_deg);
+    return observation.slantRange().equals(range, math::Tolerance{0.0_m, 0.0})
+        && observation.azimuth().equals(azimuth, math::Tolerance{0.0_deg, 0.0})
+        && observation.elevation().equals(elevation, math::Tolerance{0.0_deg, 0.0});
 }
 
 } // namespace
@@ -63,7 +63,7 @@ bool DetectionMatcher::matchesConfirmation(
     const auto speed = math::Velocity::fromMetersPerSecond((displacement / seconds).norm());
     return std::isfinite(speed.mps()) && speed <= MAX_INITIAL_SPEED
         && observation.dopplerVelocity().equals(
-            tentative.dopplerVelocity(), MAX_INITIAL_DOPPLER_DIFFERENCE);
+            tentative.dopplerVelocity(), math::Tolerance{MAX_INITIAL_DOPPLER_DIFFERENCE, 0.0});
 }
 
 bool DetectionMatcher::matchesTracking(

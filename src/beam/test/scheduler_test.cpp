@@ -143,7 +143,7 @@ TEST(SchedulerTest, SecondAttitudeIsIgnored)
     const auto command = scheduler.next(0ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_TRUE(command->azimuth_ant.equals(gridAzimuth(0), 1e-4));
+    EXPECT_TRUE(command->azimuth_ant.equals(gridAzimuth(0), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
 }
 
 // ---------- 탐색 빔 ----------
@@ -160,10 +160,10 @@ TEST(SchedulerTest, ReturnsSearchBeamsInGridOrderWhenNoRequests)
         ASSERT_TRUE(command.has_value()) << "index=" << index;
         EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::SEARCH) << "index=" << index;
         EXPECT_EQ(command->beamId, static_cast<std::uint32_t>(index + 1)) << "index=" << index;
-        EXPECT_TRUE(command->azimuth_ant.equals(gridAzimuth(index), 1e-4)) << "index=" << index;
-        EXPECT_TRUE(command->elevation_ant.equals(gridElevation(index), 1e-4)) << "index=" << index;
-        EXPECT_TRUE(command->azimuthBeamWidth.equals(6_deg, 0.0));
-        EXPECT_TRUE(command->elevationBeamWidth.equals(6_deg, 0.0));
+        EXPECT_TRUE(command->azimuth_ant.equals(gridAzimuth(index), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4})) << "index=" << index;
+        EXPECT_TRUE(command->elevation_ant.equals(gridElevation(index), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4})) << "index=" << index;
+        EXPECT_TRUE(command->azimuthBeamWidth.equals(6_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+        EXPECT_TRUE(command->elevationBeamWidth.equals(6_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
     }
 }
 
@@ -202,8 +202,8 @@ TEST(SchedulerTest, SearchBeamsFollowAttitude)
     const auto command = scheduler.next(0ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_TRUE(command->azimuth_ant.equals(gridAzimuth(0) - 10_deg, 1e-4));
-    EXPECT_TRUE(command->elevation_ant.equals(gridElevation(0), 1e-4));
+    EXPECT_TRUE(command->azimuth_ant.equals(gridAzimuth(0) - 10_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
+    EXPECT_TRUE(command->elevation_ant.equals(gridElevation(0), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
 }
 
 // ---------- 요청 빔 ----------
@@ -220,10 +220,10 @@ TEST(SchedulerTest, ConfirmationRequestProducesConfirmationBeam)
     EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::CONFIRMATION);
     EXPECT_EQ(command->beamId, 20u);
     EXPECT_EQ(command->transmitTime, 100ms);
-    EXPECT_TRUE(command->azimuth_ant.equals(12.5_deg, 0.0));
-    EXPECT_TRUE(command->elevation_ant.equals(20.5_deg, 0.0));
-    EXPECT_TRUE(command->azimuthBeamWidth.equals(3_deg, 0.0));
-    EXPECT_TRUE(command->elevationBeamWidth.equals(3_deg, 0.0));
+    EXPECT_TRUE(command->azimuth_ant.equals(12.5_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(command->elevation_ant.equals(20.5_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(command->azimuthBeamWidth.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(command->elevationBeamWidth.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
 }
 
 TEST(SchedulerTest, TrackingRequestProducesTrackingBeam)
@@ -237,10 +237,10 @@ TEST(SchedulerTest, TrackingRequestProducesTrackingBeam)
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::TRACKING);
     EXPECT_EQ(command->beamId, 100u);
-    EXPECT_TRUE(command->azimuth_ant.equals(-30_deg, 0.0));
-    EXPECT_TRUE(command->elevation_ant.equals(5_deg, 0.0));
-    EXPECT_TRUE(command->azimuthBeamWidth.equals(3_deg, 0.0));
-    EXPECT_TRUE(command->elevationBeamWidth.equals(3_deg, 0.0));
+    EXPECT_TRUE(command->azimuth_ant.equals(-30_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(command->elevation_ant.equals(5_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(command->azimuthBeamWidth.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(command->elevationBeamWidth.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
 }
 
 TEST(SchedulerTest, FutureRequestKeepsSearchingUntilItsTime)
@@ -318,15 +318,15 @@ TEST(SchedulerTest, CrowdedTicksFollowDesignedScenario)
 
     const auto at1010 = scheduler.next(1010ms);
     EXPECT_EQ(at1010->beamType, beam::BeamCommand::BeamType::TRACKING);
-    EXPECT_TRUE(at1010->azimuth_ant.equals(1_deg, 0.0));
+    EXPECT_TRUE(at1010->azimuth_ant.equals(1_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
 
     const auto at1020 = scheduler.next(1020ms);
     EXPECT_EQ(at1020->beamType, beam::BeamCommand::BeamType::CONFIRMATION);
-    EXPECT_TRUE(at1020->azimuth_ant.equals(2_deg, 0.0));
+    EXPECT_TRUE(at1020->azimuth_ant.equals(2_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
 
     const auto at1030 = scheduler.next(1030ms);
     EXPECT_EQ(at1030->beamType, beam::BeamCommand::BeamType::TRACKING);
-    EXPECT_TRUE(at1030->azimuth_ant.equals(3_deg, 0.0));
+    EXPECT_TRUE(at1030->azimuth_ant.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
 
     // D는 1010ms 요청이 30ms 지연되어 1040ms에 송신된다. 폐기되지 않는다.
     const auto at1040 = scheduler.next(1040ms);
@@ -446,7 +446,7 @@ TEST(SchedulerTest, TurningOnAgainAfterOffResetsEverything)
     EXPECT_EQ(first->beamType, beam::BeamCommand::BeamType::SEARCH);
     EXPECT_EQ(first->beamId, 1u);
     EXPECT_EQ(first->commandCount, 1u);
-    EXPECT_TRUE(first->azimuth_ant.equals(gridAzimuth(0), 1e-4));
+    EXPECT_TRUE(first->azimuth_ant.equals(gridAzimuth(0), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
 }
 
 TEST(SchedulerTest, TurningOnWhileAlreadyOnKeepsState)
@@ -515,13 +515,13 @@ TEST(SchedulerTest, ConfiguredRequestBeamWidthIsUsedPerBeamType)
     const auto confirmation = scheduler.next(0ms);
     ASSERT_TRUE(confirmation.has_value());
     EXPECT_EQ(confirmation->beamType, beam::BeamCommand::BeamType::CONFIRMATION);
-    EXPECT_TRUE(confirmation->azimuthBeamWidth.equals(2_deg, 0.0));
-    EXPECT_TRUE(confirmation->elevationBeamWidth.equals(2_deg, 0.0));
+    EXPECT_TRUE(confirmation->azimuthBeamWidth.equals(2_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(confirmation->elevationBeamWidth.equals(2_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
 
     scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 10ms, 2, 1_deg, 5_deg));
     const auto tracking = scheduler.next(10ms);
     ASSERT_TRUE(tracking.has_value());
     EXPECT_EQ(tracking->beamType, beam::BeamCommand::BeamType::TRACKING);
-    EXPECT_TRUE(tracking->azimuthBeamWidth.equals(4_deg, 0.0));
-    EXPECT_TRUE(tracking->elevationBeamWidth.equals(4_deg, 0.0));
+    EXPECT_TRUE(tracking->azimuthBeamWidth.equals(4_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(tracking->elevationBeamWidth.equals(4_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
 }

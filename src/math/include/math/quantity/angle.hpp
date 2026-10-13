@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "math/tolerance.hpp"
+
 namespace math
 {
 
@@ -14,6 +16,8 @@ public:
     double deg() const noexcept;
     double rad() const noexcept;
     bool isFinite() const noexcept;
+    // 저장된 값이 0 이상인지 검사한다. NaN은 false이다.
+    bool isNonnegative() const noexcept;
 
     // 원본을 유지하며 [-180, 180)도 범위로 정규화한 새 각도를 반환한다.
     Angle wrap180() const noexcept;
@@ -21,17 +25,21 @@ public:
     // 원본을 유지하며 [-90, 90)도 범위로 정규화한 새 각도를 반환한다.
     Angle wrap90() const noexcept;
 
-    // 도 단위 절대 차이가 허용오차 이하인지 비교한다.
-    // 음수·무한대·NaN 허용오차는 false를 반환한다.
-    bool equals(const Angle& other, const Angle& absoluteTolerance) const noexcept;
+    // 단위를 보존한 절대·상대오차 정책을 적용한다. 비유한 값은 false이다.
+    bool equals(const Angle& other, const Tolerance<Angle>& tolerance) const noexcept;
 
-    // 큰 쪽 값의 절댓값에 대한 차이의 비율로 비교한다. 예: 0.01은 1%이다.
-    // 음수·무한대·NaN 허용오차와 무한대·NaN 값은 false를 반환한다.
-    bool equals(const Angle& other, double relativeTolerance) const noexcept;
+    // 공통 DEFAULT 절대·상대오차를 함께 적용한다. 무한대·NaN 값은 false이다.
+    bool operator==(const Angle& other) const noexcept;
+    // ==의 부정이다. 무한대·NaN 값은 자기 자신과도 다르다.
+    bool operator!=(const Angle& other) const noexcept;
 
+    // DEFAULT 오차 범위 밖에서 더 작으면 true이다.
     bool operator<(const Angle& other) const noexcept;
+    // 더 작거나 DEFAULT 오차 범위 안이면 true이다.
     bool operator<=(const Angle& other) const noexcept;
+    // DEFAULT 오차 범위 밖에서 더 크면 true이다.
     bool operator>(const Angle& other) const noexcept;
+    // 더 크거나 DEFAULT 오차 범위 안이면 true이다.
     bool operator>=(const Angle& other) const noexcept;
 
     Angle operator+() const noexcept;

@@ -27,12 +27,13 @@ public:
     // 모든 원소가 유한한지 검사한다. 무한대나 NaN 원소가 있으면 false를 반환한다.
     bool isFinite() const noexcept;
 
-    // 세 벡터의 길이가 같고 각 원소의 절대 차이가 대응 허용오차 이하인지 비교한다.
-    // 음수·무한대·NaN 허용오차와 무한대·NaN 원소는 false를 반환한다.
-    bool equals(const Vector& other, const Vector& absoluteTolerance) const noexcept;
-    // 원소별 큰 쪽 절댓값에 대한 차이의 비율로 비교한다. 예: 0.01은 1%이다.
-    // 길이 불일치, 음수·무한대·NaN 허용오차와 무한대·NaN 원소는 false를 반환한다.
-    bool equals(const Vector& other, double relativeTolerance = DEFAULT_RELATIVE_TOLERANCE) const noexcept;
+    // 모든 원소에 동일한 절대·상대오차 정책을 적용한다. 비유한 원소는 false이다.
+    bool equals(const Vector& other, const Tolerance<double>& tolerance) const noexcept;
+
+    // 차원이 같고 모든 원소가 DEFAULT 절대·상대오차 안이면 true이다. 비유한 원소는 false이다.
+    bool operator==(const Vector& other) const noexcept;
+    // ==의 부정이다. 비유한 원소가 있으면 자기 자신과도 다르다.
+    bool operator!=(const Vector& other) const noexcept;
 
     // 모든 원소 접근은 범위를 검사한다.
     double& at(std::size_t index);

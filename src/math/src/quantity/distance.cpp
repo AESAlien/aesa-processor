@@ -1,6 +1,5 @@
 ﻿#include "math/quantity/distance.hpp"
 
-#include "../relative_comparison.hpp"
 #include <cmath>
 
 namespace math
@@ -32,36 +31,50 @@ bool Distance::isFinite() const noexcept
     return std::isfinite(_meters);
 }
 
-bool Distance::equals(const Distance& other, const Distance& absoluteTolerance) const noexcept
+bool Distance::isNonnegative() const noexcept
 {
-    return absoluteTolerance.isFinite()
-        && absoluteTolerance >= 0.0_m
-        && std::abs(_meters - other._meters) <= absoluteTolerance._meters;
+    return _meters >= 0.0;
 }
 
-bool Distance::equals(const Distance& other, double relativeTolerance) const noexcept
+bool Distance::equals(const Distance& other, const Tolerance<Distance>& tolerance) const noexcept
 {
-    return detail::relativeEquals(_meters, other._meters, relativeTolerance);
+    const Tolerance<double> numericTolerance{tolerance.absolute()._meters, tolerance.relative()};
+    return numericTolerance.isWithin(_meters, other._meters);
+}
+
+bool Distance::operator!=(const Distance& other) const noexcept
+{
+    return !(*this == other);
+}
+
+bool Distance::operator==(const Distance& other) const noexcept
+{
+    // 타입별로 한 번만 초기화해 모든 기본 비교에서 공유한다.
+    static const Tolerance<Distance> DEFAULT_DISTANCE_TOLERANCE{
+        fromMeters(DEFAULT_TOLERANCE.absolute()),
+        DEFAULT_TOLERANCE.relative()
+    };
+    return equals(other, DEFAULT_DISTANCE_TOLERANCE);
 }
 
 bool Distance::operator<(const Distance& other) const noexcept
 {
-    return _meters < other._meters;
+    return _meters < other._meters && *this != other;
 }
 
 bool Distance::operator<=(const Distance& other) const noexcept
 {
-    return _meters <= other._meters;
+    return _meters <= other._meters || *this == other;
 }
 
 bool Distance::operator>(const Distance& other) const noexcept
 {
-    return _meters > other._meters;
+    return _meters > other._meters && *this != other;
 }
 
 bool Distance::operator>=(const Distance& other) const noexcept
 {
-    return _meters >= other._meters;
+    return _meters >= other._meters || *this == other;
 }
 
 Distance Distance::operator-() const noexcept

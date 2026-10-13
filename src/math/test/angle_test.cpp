@@ -18,17 +18,17 @@ TEST(AngleTest, EqualsUsesInclusiveAbsoluteTolerance)
     const auto value = math::Angle::fromDegrees(-1.0);
     const auto nearby = math::Angle::fromDegrees(-0.75);
 
-    EXPECT_TRUE(value.equals(value, math::Angle::fromDegrees(0.0)));
-    EXPECT_FALSE(value.equals(nearby, math::Angle::fromDegrees(0.0)));
-    EXPECT_FALSE(value.equals(nearby, math::Angle::fromDegrees(0.125)));
-    EXPECT_TRUE(value.equals(nearby, math::Angle::fromDegrees(0.25)));
-    EXPECT_TRUE(nearby.equals(value, math::Angle::fromDegrees(0.25)));
-    EXPECT_TRUE(value.equals(nearby, math::Angle::fromDegrees(0.5)));
-    EXPECT_FALSE(value.equals(value, math::Angle::fromDegrees(-0.25)));
-    EXPECT_FALSE(value.equals(value, math::Angle::fromDegrees(std::numeric_limits<double>::infinity())));
-    EXPECT_FALSE(value.equals(value, math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN())));
+    EXPECT_TRUE(value.equals(value, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_FALSE(value.equals(nearby, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_FALSE(value.equals(nearby, math::Tolerance{math::Angle::fromDegrees(0.125), 0.0}));
+    EXPECT_TRUE(value.equals(nearby, math::Tolerance{math::Angle::fromDegrees(0.25), 0.0}));
+    EXPECT_TRUE(nearby.equals(value, math::Tolerance{math::Angle::fromDegrees(0.25), 0.0}));
+    EXPECT_TRUE(value.equals(nearby, math::Tolerance{math::Angle::fromDegrees(0.5), 0.0}));
+    EXPECT_THROW(value.equals(value, math::Tolerance{math::Angle::fromDegrees(-0.25), 0.0}), std::invalid_argument);
+    EXPECT_THROW(value.equals(value, math::Tolerance{math::Angle::fromDegrees(std::numeric_limits<double>::infinity()), 0.0}), std::invalid_argument);
+    EXPECT_THROW(value.equals(value, math::Tolerance{math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN()), 0.0}), std::invalid_argument);
     EXPECT_FALSE(value.equals(math::Angle::fromDegrees(
-        std::numeric_limits<double>::quiet_NaN()), math::Angle::fromDegrees(0.25)));
+        std::numeric_limits<double>::quiet_NaN()), math::Tolerance{math::Angle::fromDegrees(0.25), 0.0}));
 }
 
 // 라디안으로 만든 허용오차도 도 단위 각도 비교에 올바르게 적용한다.
@@ -37,8 +37,8 @@ TEST(AngleTest, EqualsAcceptsToleranceCreatedFromRadians)
     using namespace math::literals;
 
     const auto tolerance = math::Angle::fromRadians(math::PI / 180.0);
-    EXPECT_TRUE((0_deg).equals(0.5_deg, tolerance));
-    EXPECT_FALSE((0_deg).equals(2_deg, tolerance));
+    EXPECT_TRUE((0_deg).equals(0.5_deg, math::Tolerance{tolerance, 0.0}));
+    EXPECT_FALSE((0_deg).equals(2_deg, math::Tolerance{tolerance, 0.0}));
 }
 
 // 정수와 실수 도 리터럴이 올바른 Angle 값과 타입을 생성한다.
@@ -68,23 +68,23 @@ TEST(AngleTest, WrapsToSignedDegreeRange)
 {
     using namespace math::literals;
 
-    EXPECT_TRUE(((0_deg).wrap180()).equals(0_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE(((179.5_deg).wrap180()).equals(179.5_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE(((-179.5_deg).wrap180()).equals(-179.5_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE(((180_deg).wrap180()).equals(-180_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE(((-180_deg).wrap180()).equals(-180_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE(((181_deg).wrap180()).equals(-179_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE(((-181_deg).wrap180()).equals(179_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE(((540_deg).wrap180()).equals(-180_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE(((-540_deg).wrap180()).equals(-180_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE(((1080_deg).wrap180()).equals(0_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE(((-1080_deg).wrap180()).equals(0_deg, math::Angle::fromDegrees(0.0)));
+    EXPECT_TRUE(((0_deg).wrap180()).equals(0_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(((179.5_deg).wrap180()).equals(179.5_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(((-179.5_deg).wrap180()).equals(-179.5_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(((180_deg).wrap180()).equals(-180_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(((-180_deg).wrap180()).equals(-180_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(((181_deg).wrap180()).equals(-179_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(((-181_deg).wrap180()).equals(179_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(((540_deg).wrap180()).equals(-180_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(((-540_deg).wrap180()).equals(-180_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(((1080_deg).wrap180()).equals(0_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(((-1080_deg).wrap180()).equals(0_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
     EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(1e18).wrap180().deg(), -80.0);
 
     // 정규화는 새 각도를 반환하며 원본 값은 유지한다.
     const auto angle = 450_deg;
-    EXPECT_TRUE((angle.wrap180()).equals(90_deg, math::Angle::fromDegrees(0.0)));
-    EXPECT_TRUE((angle).equals(450_deg, math::Angle::fromDegrees(0.0)));
+    EXPECT_TRUE((angle.wrap180()).equals(90_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE((angle).equals(450_deg, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
 }
 
 // 범위 안의 값, ±90도 경계와 여러 회전 값을 [-90, 90) 범위로 정규화한다.
@@ -179,7 +179,7 @@ TEST(AngleTest, ComparesStoredDegreesWithoutWrapping)
     const auto negative = math::Angle::fromDegrees(-10.0);
     const auto fullTurn = math::Angle::fromDegrees(360.0);
 
-    EXPECT_FALSE(zero.equals(fullTurn, math::Angle::fromDegrees(0.0)));
+    EXPECT_FALSE(zero.equals(fullTurn, math::Tolerance{math::Angle::fromDegrees(0.0), 0.0}));
     EXPECT_TRUE(negative < zero);
     EXPECT_TRUE(negative <= zero);
     EXPECT_TRUE(fullTurn > zero);
@@ -198,18 +198,17 @@ TEST(AngleTest, EqualsUsesInclusiveRelativeTolerance)
     const auto value = math::Angle::fromDegrees(1024.0);
     const auto nearby = math::Angle::fromDegrees(896.0);
 
-    EXPECT_FALSE(value.equals(nearby, 0.0));
-    EXPECT_TRUE(value.equals(nearby, 0.125));
-    EXPECT_TRUE(nearby.equals(value, 0.125));
-    EXPECT_FALSE(value.equals(nearby, 0.124));
-    EXPECT_TRUE((-value).equals(-nearby, 0.125));
-    EXPECT_TRUE(math::Angle::fromDegrees(1.0).equals(
-        math::Angle::fromDegrees(0.875), 0.125));
+    EXPECT_FALSE(value.equals(nearby, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(value.equals(nearby, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.125}));
+    EXPECT_TRUE(nearby.equals(value, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.125}));
+    EXPECT_FALSE(value.equals(nearby, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.124}));
+    EXPECT_TRUE((-value).equals(-nearby, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.125}));
+    EXPECT_TRUE(math::Angle::fromDegrees(1.0).equals(math::Angle::fromDegrees(0.875), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.125}));
 
     const auto zero = math::Angle::fromDegrees(0.0);
     const auto tiny = math::Angle::fromDegrees(1e-10);
-    EXPECT_TRUE(zero.equals(zero, 0.01));
-    EXPECT_FALSE(zero.equals(tiny, 0.01));
+    EXPECT_TRUE(zero.equals(zero, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.01}));
+    EXPECT_FALSE(zero.equals(tiny, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.01}));
 }
 
 // 같은 값끼리 비교해도 잘못된 상대 허용오차는 거부하며, 유한하지 않은 값도 거부한다.
@@ -221,14 +220,15 @@ TEST(AngleTest, EqualsRejectsInvalidRelativeToleranceAndNonfiniteValues)
 
     for (const double relativeTolerance : {-0.01, infinity, nan})
     {
-        EXPECT_FALSE(value.equals(value, relativeTolerance));
+        EXPECT_THROW((math::Tolerance<math::Angle>{
+            math::Angle::fromDegrees(0.0), relativeTolerance}), std::invalid_argument);
     }
     for (const double nonfinite : {infinity, -infinity, nan})
     {
         const auto invalid = math::Angle::fromDegrees(nonfinite);
-        EXPECT_FALSE(value.equals(invalid, 0.01));
-        EXPECT_FALSE(invalid.equals(value, 0.01));
-        EXPECT_FALSE(invalid.equals(invalid, 0.01));
+        EXPECT_FALSE(value.equals(invalid, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.01}));
+        EXPECT_FALSE(invalid.equals(value, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.01}));
+        EXPECT_FALSE(invalid.equals(invalid, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.01}));
     }
 }
 
@@ -239,13 +239,12 @@ TEST(AngleTest, EqualsHandlesRelativeComparisonAtNumericLimits)
     const auto positive = math::Angle::fromDegrees(largest);
     const auto negative = math::Angle::fromDegrees(-largest);
 
-    EXPECT_FALSE(positive.equals(negative, 1.5));
-    EXPECT_TRUE(positive.equals(negative, 2.0));
-    EXPECT_TRUE(positive.equals(math::Angle::fromDegrees(largest / 2.0), 0.5));
+    EXPECT_FALSE(positive.equals(negative, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1.5}));
+    EXPECT_TRUE(positive.equals(negative, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 2.0}));
+    EXPECT_TRUE(positive.equals(math::Angle::fromDegrees(largest / 2.0), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.5}));
 
     const double smallest = std::numeric_limits<double>::denorm_min();
-    EXPECT_TRUE(math::Angle::fromDegrees(2.0 * smallest).equals(
-        math::Angle::fromDegrees(smallest), 0.5));
+    EXPECT_TRUE(math::Angle::fromDegrees(2.0 * smallest).equals(math::Angle::fromDegrees(smallest), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.5}));
 }
 
 // 유한한 각도는 true를 반환하고 무한대와 NaN은 false를 반환한다.

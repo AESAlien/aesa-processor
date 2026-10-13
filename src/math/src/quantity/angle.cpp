@@ -1,6 +1,5 @@
 ﻿#include "math/quantity/angle.hpp"
 
-#include "../relative_comparison.hpp"
 #include <cmath>
 #include <stdexcept>
 
@@ -33,6 +32,11 @@ double Angle::rad() const noexcept
 bool Angle::isFinite() const noexcept
 {
     return std::isfinite(_degrees);
+}
+
+bool Angle::isNonnegative() const noexcept
+{
+    return _degrees >= 0.0;
 }
 
 Angle Angle::wrap180() const noexcept
@@ -69,36 +73,45 @@ Angle Angle::wrap90() const noexcept
     return Angle(degrees);
 }
 
-bool Angle::equals(const Angle& other, const Angle& absoluteTolerance) const noexcept
+bool Angle::equals(const Angle& other, const Tolerance<Angle>& tolerance) const noexcept
 {
-    return absoluteTolerance.isFinite()
-        && absoluteTolerance >= 0.0_deg
-        && abs(*this - other) <= absoluteTolerance;
+    const Tolerance<double> numericTolerance{tolerance.absolute()._degrees, tolerance.relative()};
+    return numericTolerance.isWithin(_degrees, other._degrees);
 }
 
-bool Angle::equals(const Angle& other, double relativeTolerance) const noexcept
+bool Angle::operator!=(const Angle& other) const noexcept
 {
-    return detail::relativeEquals(_degrees, other._degrees, relativeTolerance);
+    return !(*this == other);
+}
+
+bool Angle::operator==(const Angle& other) const noexcept
+{
+    // 타입별로 한 번만 초기화해 모든 기본 비교에서 공유한다.
+    static const Tolerance<Angle> DEFAULT_ANGLE_TOLERANCE{
+        fromDegrees(DEFAULT_TOLERANCE.absolute()),
+        DEFAULT_TOLERANCE.relative()
+    };
+    return equals(other, DEFAULT_ANGLE_TOLERANCE);
 }
 
 bool Angle::operator<(const Angle& other) const noexcept
 {
-    return _degrees < other._degrees;
+    return _degrees < other._degrees && *this != other;
 }
 
 bool Angle::operator<=(const Angle& other) const noexcept
 {
-    return _degrees <= other._degrees;
+    return _degrees <= other._degrees || *this == other;
 }
 
 bool Angle::operator>(const Angle& other) const noexcept
 {
-    return _degrees > other._degrees;
+    return _degrees > other._degrees && *this != other;
 }
 
 bool Angle::operator>=(const Angle& other) const noexcept
 {
-    return _degrees >= other._degrees;
+    return _degrees >= other._degrees || *this == other;
 }
 
 Angle Angle::operator+() const noexcept

@@ -1,13 +1,13 @@
 ﻿#pragma once
 
+#include "math/tolerance.hpp"
+
 #include <cstddef>
 #include <initializer_list>
 #include <vector>
 
 namespace math
 {
-
-inline constexpr double DEFAULT_RELATIVE_TOLERANCE = 1e-9;
 
 class Matrix
 {
@@ -25,9 +25,13 @@ public:
     // 모든 원소가 유한한지 검사한다. 무한대나 NaN 원소가 있으면 false를 반환한다.
     bool isFinite() const noexcept;
 
-    // 원소별 큰 쪽 절댓값에 대한 차이의 비율로 비교한다. 예: 0.01은 1%이다.
-    // 차원 불일치, 음수·무한대·NaN 허용오차와 무한대·NaN 원소는 false를 반환한다.
-    bool equals(const Matrix& other, double relativeTolerance = DEFAULT_RELATIVE_TOLERANCE) const noexcept;
+    // 모든 원소에 동일한 절대·상대오차 정책을 적용한다. 비유한 원소는 false이다.
+    bool equals(const Matrix& other, const Tolerance<double>& tolerance) const noexcept;
+
+    // 차원이 같고 모든 원소가 DEFAULT 절대·상대오차 안이면 true이다. 비유한 원소는 false이다.
+    bool operator==(const Matrix& other) const noexcept;
+    // ==의 부정이다. 비유한 원소가 있으면 자기 자신과도 다르다.
+    bool operator!=(const Matrix& other) const noexcept;
 
     // at과 괄호 연산자는 모두 범위를 검사하며 범위 밖이면 std::out_of_range를 던진다.
     double& at(std::size_t row, std::size_t column);

@@ -108,14 +108,14 @@ void expectCommonRules(const Result& result)
         EXPECT_EQ(command.transmitTime, std::chrono::milliseconds(tick.tick_ms));
         if (command.beamType == beam::BeamCommand::BeamType::SEARCH)
         {
-            EXPECT_TRUE(command.azimuthBeamWidth.equals(6_deg, 0.0)) << "tick " << tick.tick_ms << "ms";
-            EXPECT_TRUE(command.elevationBeamWidth.equals(6_deg, 0.0)) << "tick " << tick.tick_ms << "ms";
+            EXPECT_TRUE(command.azimuthBeamWidth.equals(6_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
+            EXPECT_TRUE(command.elevationBeamWidth.equals(6_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
         }
         else
         {
             EXPECT_EQ(command.beamId, 0u) << "tick " << tick.tick_ms << "ms";
-            EXPECT_TRUE(command.azimuthBeamWidth.equals(3_deg, 0.0)) << "tick " << tick.tick_ms << "ms";
-            EXPECT_TRUE(command.elevationBeamWidth.equals(3_deg, 0.0)) << "tick " << tick.tick_ms << "ms";
+            EXPECT_TRUE(command.azimuthBeamWidth.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
+            EXPECT_TRUE(command.elevationBeamWidth.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
         }
     }
 
@@ -324,13 +324,13 @@ TEST(SchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
 
         if (left.command->beamType == beam::BeamCommand::BeamType::SEARCH)
         {
-            anySearchAngleDiffers |= !left.command->azimuth_ant.equals(right.command->azimuth_ant, 0.001_deg);
+            anySearchAngleDiffers |= !left.command->azimuth_ant.equals(right.command->azimuth_ant, math::Tolerance{0.001_deg, 0.0});
         }
         else
         {
             // 요청 빔의 각도는 요청 그대로 나가므로 자세와 무관하다.
-            EXPECT_TRUE(left.command->azimuth_ant.equals(right.command->azimuth_ant, 0.0));
-            EXPECT_TRUE(left.command->elevation_ant.equals(right.command->elevation_ant, 0.0));
+            EXPECT_TRUE(left.command->azimuth_ant.equals(right.command->azimuth_ant, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+            EXPECT_TRUE(left.command->elevation_ant.equals(right.command->elevation_ant, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
         }
     }
 
