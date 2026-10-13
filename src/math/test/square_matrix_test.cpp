@@ -183,16 +183,16 @@ TEST(SquareMatrixTest, ComputesDeterminantsOfSquareMatrices)
 // 허용오차 내에서 열벡터가 단위 직교인지 확인하고 잘못된 허용오차를 거부한다.
 TEST(SquareMatrixTest, ChecksOrthogonality)
 {
-    EXPECT_TRUE(math::SquareMatrix::identity(3).isOrthogonal(math::Tolerance<double>{0.0, 0.0}));
-    EXPECT_TRUE((math::SquareMatrix{{1.0, 1e-4}, {0.0, 1.0}}).isOrthogonal(math::Tolerance<double>{1e-3, 0.0}));
-    EXPECT_FALSE((math::SquareMatrix{{1.0, 1.0}, {0.0, 1.0}}).isOrthogonal(math::Tolerance<double>{1e-6, 0.0}));
+    EXPECT_TRUE(math::SquareMatrix::identity(3).isOrthogonal(math::Tolerance{0.0, 0.0}));
+    EXPECT_TRUE((math::SquareMatrix{{1.0, 1e-4}, {0.0, 1.0}}).isOrthogonal(math::Tolerance{1e-3, 0.0}));
+    EXPECT_FALSE((math::SquareMatrix{{1.0, 1.0}, {0.0, 1.0}}).isOrthogonal(math::Tolerance{1e-6, 0.0}));
     EXPECT_FALSE((math::SquareMatrix{{1.0, 0.0},
                                     {0.0, std::numeric_limits<double>::infinity()}})
-        .isOrthogonal(math::Tolerance<double>{1e-6, 0.0}));
+        .isOrthogonal(math::Tolerance{1e-6, 0.0}));
 
-    EXPECT_THROW(math::SquareMatrix::identity(2).isOrthogonal(math::Tolerance<double>{-1.0, 0.0}), std::invalid_argument);
-    EXPECT_THROW(math::SquareMatrix::identity(2).isOrthogonal(math::Tolerance<double>{std::numeric_limits<double>::infinity(), 0.0}), std::invalid_argument);
-    EXPECT_THROW(math::SquareMatrix::identity(2).isOrthogonal(math::Tolerance<double>{std::numeric_limits<double>::quiet_NaN(), 0.0}), std::invalid_argument);
+    EXPECT_THROW(math::SquareMatrix::identity(2).isOrthogonal(math::Tolerance{-1.0, 0.0}), std::invalid_argument);
+    EXPECT_THROW(math::SquareMatrix::identity(2).isOrthogonal(math::Tolerance{std::numeric_limits<double>::infinity(), 0.0}), std::invalid_argument);
+    EXPECT_THROW(math::SquareMatrix::identity(2).isOrthogonal(math::Tolerance{std::numeric_limits<double>::quiet_NaN(), 0.0}), std::invalid_argument);
 }
 
 // 임의 크기의 직교행렬 중 행렬식이 +1인 회전만 허용하고, 반사와 스케일은 거부한다.
@@ -201,30 +201,30 @@ TEST(SquareMatrixTest, ChecksRotationMatrices)
     const math::SquareMatrix rotation{{0.0, -1.0, 0.0},
                                       {1.0, 0.0, 0.0},
                                       {0.0, 0.0, 1.0}};
-    EXPECT_TRUE(rotation.isRotation(math::Tolerance<double>{1e-12, 0.0}));
+    EXPECT_TRUE(rotation.isRotation(math::Tolerance{1e-12, 0.0}));
     EXPECT_FALSE((math::SquareMatrix{{1.0, 0.0, 0.0},
                                      {0.0, 1.0, 0.0},
                                      {0.0, 0.0, -1.0}})
-        .isRotation(math::Tolerance<double>{1e-12, 0.0}));
+        .isRotation(math::Tolerance{1e-12, 0.0}));
     EXPECT_FALSE((math::SquareMatrix{{2.0, 0.0, 0.0},
                                      {0.0, 1.0, 0.0},
                                      {0.0, 0.0, 1.0}})
-        .isRotation(math::Tolerance<double>{1e-12, 0.0}));
-    EXPECT_TRUE((math::SquareMatrix{{0.0, -1.0}, {1.0, 0.0}}).isRotation(math::Tolerance<double>{1e-12, 0.0}));
-    EXPECT_TRUE(math::SquareMatrix::identity(4).isRotation(math::Tolerance<double>{1e-12, 0.0}));
-    EXPECT_THROW(math::SquareMatrix::identity(3).isRotation(math::Tolerance<double>{-1.0, 0.0}), std::invalid_argument);
+        .isRotation(math::Tolerance{1e-12, 0.0}));
+    EXPECT_TRUE((math::SquareMatrix{{0.0, -1.0}, {1.0, 0.0}}).isRotation(math::Tolerance{1e-12, 0.0}));
+    EXPECT_TRUE(math::SquareMatrix::identity(4).isRotation(math::Tolerance{1e-12, 0.0}));
+    EXPECT_THROW(math::SquareMatrix::identity(3).isRotation(math::Tolerance{-1.0, 0.0}), std::invalid_argument);
     const math::SquareMatrix nonfinite{{1.0, 0.0, 0.0},
                                        {0.0, 1.0, 0.0},
                                        {0.0, 0.0, std::numeric_limits<double>::infinity()}};
-    EXPECT_FALSE(nonfinite.isRotation(math::Tolerance<double>{1e-12, 0.0}));
+    EXPECT_FALSE(nonfinite.isRotation(math::Tolerance{1e-12, 0.0}));
 }
 
 TEST(SquareMatrixTest, AppliesCombinedPolicyToOrthogonalityAndRotation)
 {
-    const math::Tolerance<double> relativeOnly{0.0, 1e-3};
-    const math::Tolerance<double> combined{1e-3, 1e-3};
+    const math::Tolerance relativeOnly{0.0, 1e-3};
+    const math::Tolerance combined{1e-3, 1e-3};
     const math::SquareMatrix scaled{{1.0001, 0.0}, {0.0, 1.0}};
-    EXPECT_FALSE(scaled.isOrthogonal(math::Tolerance<double>{0.0, 0.0}));
+    EXPECT_FALSE(scaled.isOrthogonal(math::Tolerance{0.0, 0.0}));
     EXPECT_TRUE(scaled.isOrthogonal(relativeOnly));
     EXPECT_TRUE(scaled.isRotation(relativeOnly));
     const math::SquareMatrix nearRotation{{1.0001, 5e-4}, {0.0, 1.0}};
@@ -242,8 +242,8 @@ TEST(SquareMatrixTest, RejectsInvalidPolicyBeforeInspectingValues)
     for (double invalid : {-1.0, std::numeric_limits<double>::infinity(),
                            std::numeric_limits<double>::quiet_NaN()})
     {
-        EXPECT_THROW((math::Tolerance<double>{invalid, 1e-3}), std::invalid_argument);
-        EXPECT_THROW((math::Tolerance<double>{1.0, invalid}), std::invalid_argument);
+        EXPECT_THROW((math::Tolerance{invalid, 1e-3}), std::invalid_argument);
+        EXPECT_THROW((math::Tolerance{1.0, invalid}), std::invalid_argument);
     }
 }
 

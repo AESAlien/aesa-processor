@@ -17,17 +17,17 @@ TEST(VelocityTest, EqualsUsesInclusiveAbsoluteTolerance)
     const auto value = math::Velocity::fromMetersPerSecond(-1.0);
     const auto nearby = math::Velocity::fromMetersPerSecond(-0.75);
 
-    EXPECT_TRUE(value.equals(value, math::Tolerance{math::Velocity::fromMetersPerSecond(0.0), 0.0}));
-    EXPECT_FALSE(value.equals(nearby, math::Tolerance{math::Velocity::fromMetersPerSecond(0.0), 0.0}));
-    EXPECT_FALSE(value.equals(nearby, math::Tolerance{math::Velocity::fromMetersPerSecond(0.125), 0.0}));
-    EXPECT_TRUE(value.equals(nearby, math::Tolerance{math::Velocity::fromMetersPerSecond(0.25), 0.0}));
-    EXPECT_TRUE(nearby.equals(value, math::Tolerance{math::Velocity::fromMetersPerSecond(0.25), 0.0}));
-    EXPECT_TRUE(value.equals(nearby, math::Tolerance{math::Velocity::fromMetersPerSecond(0.5), 0.0}));
-    EXPECT_THROW(value.equals(value, math::Tolerance{math::Velocity::fromMetersPerSecond(-0.25), 0.0}), std::invalid_argument);
-    EXPECT_THROW(value.equals(value, math::Tolerance{math::Velocity::fromMetersPerSecond(std::numeric_limits<double>::infinity()), 0.0}), std::invalid_argument);
-    EXPECT_THROW(value.equals(value, math::Tolerance{math::Velocity::fromMetersPerSecond(std::numeric_limits<double>::quiet_NaN()), 0.0}), std::invalid_argument);
+    EXPECT_TRUE(value.equals(value, math::QuantityTolerance{math::Velocity::fromMetersPerSecond(0.0), 0.0}));
+    EXPECT_FALSE(value.equals(nearby, math::QuantityTolerance{math::Velocity::fromMetersPerSecond(0.0), 0.0}));
+    EXPECT_FALSE(value.equals(nearby, math::QuantityTolerance{math::Velocity::fromMetersPerSecond(0.125), 0.0}));
+    EXPECT_TRUE(value.equals(nearby, math::QuantityTolerance{math::Velocity::fromMetersPerSecond(0.25), 0.0}));
+    EXPECT_TRUE(nearby.equals(value, math::QuantityTolerance{math::Velocity::fromMetersPerSecond(0.25), 0.0}));
+    EXPECT_TRUE(value.equals(nearby, math::QuantityTolerance{math::Velocity::fromMetersPerSecond(0.5), 0.0}));
+    EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::Velocity::fromMetersPerSecond(-0.25), 0.0}), std::invalid_argument);
+    EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::Velocity::fromMetersPerSecond(std::numeric_limits<double>::infinity()), 0.0}), std::invalid_argument);
+    EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::Velocity::fromMetersPerSecond(std::numeric_limits<double>::quiet_NaN()), 0.0}), std::invalid_argument);
     EXPECT_FALSE(value.equals(math::Velocity::fromMetersPerSecond(
-        std::numeric_limits<double>::quiet_NaN()), math::Tolerance{math::Velocity::fromMetersPerSecond(0.25), 0.0}));
+        std::numeric_limits<double>::quiet_NaN()), math::QuantityTolerance{math::Velocity::fromMetersPerSecond(0.25), 0.0}));
 }
 
 // 초당 미터로 생성한 속도의 부호와 값을 보존하고 부호 반전을 검증한다.
@@ -147,17 +147,17 @@ TEST(VelocityTest, EqualsUsesInclusiveRelativeTolerance)
     const auto value = math::Velocity::fromMetersPerSecond(1024.0);
     const auto nearby = math::Velocity::fromMetersPerSecond(896.0);
 
-    EXPECT_FALSE(value.equals(nearby, math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.0}));
-    EXPECT_TRUE(value.equals(nearby, math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.125}));
-    EXPECT_TRUE(nearby.equals(value, math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.125}));
-    EXPECT_FALSE(value.equals(nearby, math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.124}));
-    EXPECT_TRUE((-value).equals(-nearby, math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.125}));
-    EXPECT_TRUE(math::Velocity::fromMetersPerSecond(1.0).equals(math::Velocity::fromMetersPerSecond(0.875), math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.125}));
+    EXPECT_FALSE(value.equals(nearby, math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.0}));
+    EXPECT_TRUE(value.equals(nearby, math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.125}));
+    EXPECT_TRUE(nearby.equals(value, math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.125}));
+    EXPECT_FALSE(value.equals(nearby, math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.124}));
+    EXPECT_TRUE((-value).equals(-nearby, math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.125}));
+    EXPECT_TRUE(math::Velocity::fromMetersPerSecond(1.0).equals(math::Velocity::fromMetersPerSecond(0.875), math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.125}));
 
     const auto zero = math::Velocity::fromMetersPerSecond(0.0);
     const auto tiny = math::Velocity::fromMetersPerSecond(1e-10);
-    EXPECT_TRUE(zero.equals(zero, math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.01}));
-    EXPECT_FALSE(zero.equals(tiny, math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.01}));
+    EXPECT_TRUE(zero.equals(zero, math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.01}));
+    EXPECT_FALSE(zero.equals(tiny, math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.01}));
 }
 
 // 같은 값끼리 비교해도 잘못된 상대 허용오차는 거부하며, 유한하지 않은 값도 거부한다.
@@ -169,15 +169,15 @@ TEST(VelocityTest, EqualsRejectsInvalidRelativeToleranceAndNonfiniteValues)
 
     for (const double relativeTolerance : {-0.01, infinity, nan})
     {
-        EXPECT_THROW((math::Tolerance<math::Velocity>{
+        EXPECT_THROW((math::QuantityTolerance<math::Velocity>{
             math::Velocity::fromMetersPerSecond(0.0), relativeTolerance}), std::invalid_argument);
     }
     for (const double nonfinite : {infinity, -infinity, nan})
     {
         const auto invalid = math::Velocity::fromMetersPerSecond(nonfinite);
-        EXPECT_FALSE(value.equals(invalid, math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.01}));
-        EXPECT_FALSE(invalid.equals(value, math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.01}));
-        EXPECT_FALSE(invalid.equals(invalid, math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.01}));
+        EXPECT_FALSE(value.equals(invalid, math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.01}));
+        EXPECT_FALSE(invalid.equals(value, math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.01}));
+        EXPECT_FALSE(invalid.equals(invalid, math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.01}));
     }
 }
 
@@ -188,10 +188,10 @@ TEST(VelocityTest, EqualsHandlesRelativeComparisonAtNumericLimits)
     const auto positive = math::Velocity::fromMetersPerSecond(largest);
     const auto negative = math::Velocity::fromMetersPerSecond(-largest);
 
-    EXPECT_FALSE(positive.equals(negative, math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 1.5}));
-    EXPECT_TRUE(positive.equals(negative, math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 2.0}));
-    EXPECT_TRUE(positive.equals(math::Velocity::fromMetersPerSecond(largest / 2.0), math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.5}));
+    EXPECT_FALSE(positive.equals(negative, math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 1.5}));
+    EXPECT_TRUE(positive.equals(negative, math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 2.0}));
+    EXPECT_TRUE(positive.equals(math::Velocity::fromMetersPerSecond(largest / 2.0), math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.5}));
 
     const double smallest = std::numeric_limits<double>::denorm_min();
-    EXPECT_TRUE(math::Velocity::fromMetersPerSecond(2.0 * smallest).equals(math::Velocity::fromMetersPerSecond(smallest), math::Tolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.5}));
+    EXPECT_TRUE(math::Velocity::fromMetersPerSecond(2.0 * smallest).equals(math::Velocity::fromMetersPerSecond(smallest), math::QuantityTolerance<math::Velocity>{math::Velocity::fromMetersPerSecond(0.0), 0.5}));
 }

@@ -16,8 +16,8 @@ public:
     // 열 수가 1이 아니면 std::invalid_argument를 던진다.
     explicit Vector(Matrix matrix);
 
-    Vector(const Vector&) = default;
-    Vector& operator=(const Vector&) = default;
+    Vector(const Vector&);
+    Vector& operator=(const Vector&);
     // 이동한 원본은 빈 0×1 열벡터가 된다.
     Vector(Vector&& other);
     Vector& operator=(Vector&& other);
@@ -28,7 +28,7 @@ public:
     bool isFinite() const noexcept;
 
     // 모든 원소에 동일한 절대·상대오차 정책을 적용한다. 비유한 원소는 false이다.
-    bool equals(const Vector& other, const Tolerance<double>& tolerance) const noexcept;
+    bool equals(const Vector& other, const Tolerance& tolerance) const noexcept;
 
     // 차원이 같고 모든 원소가 DEFAULT 절대·상대오차 안이면 true이다. 비유한 원소는 false이다.
     bool operator==(const Vector& other) const noexcept;

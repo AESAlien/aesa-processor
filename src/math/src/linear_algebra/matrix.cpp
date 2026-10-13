@@ -8,6 +8,8 @@
 namespace math
 {
 
+Matrix::Matrix() noexcept = default;
+
 Matrix::Matrix(std::size_t rows, std::size_t columns, double value)
     : _rows(rows),
       _columns(columns)
@@ -68,7 +70,7 @@ bool Matrix::isFinite() const noexcept
     return true;
 }
 
-bool Matrix::equals(const Matrix& other, const Tolerance<double>& tolerance) const noexcept
+bool Matrix::equals(const Matrix& other, const Tolerance& tolerance) const noexcept
 {
     if (_rows != other._rows || _columns != other._columns)
     {

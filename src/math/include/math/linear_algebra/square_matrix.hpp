@@ -8,14 +8,14 @@ namespace math
 class SquareMatrix
 {
 public:
-    SquareMatrix() = default;
+    SquareMatrix() noexcept;
     explicit SquareMatrix(std::size_t size, double value = 0.0);
     SquareMatrix(std::initializer_list<std::initializer_list<double>> values);
     // 비정방행렬은 std::invalid_argument를 던진다.
     explicit SquareMatrix(Matrix matrix);
 
-    SquareMatrix(const SquareMatrix&) = default;
-    SquareMatrix& operator=(const SquareMatrix&) = default;
+    SquareMatrix(const SquareMatrix&);
+    SquareMatrix& operator=(const SquareMatrix&);
     // 이동한 원본은 빈 0×0 정방행렬이 된다.
     SquareMatrix(SquareMatrix&& other) noexcept;
     SquareMatrix& operator=(SquareMatrix&& other) noexcept;
@@ -30,7 +30,7 @@ public:
     bool isFinite() const noexcept;
 
     // 모든 원소에 동일한 절대·상대오차 정책을 적용한다. 비유한 원소는 false이다.
-    bool equals(const SquareMatrix& other, const Tolerance<double>& tolerance) const noexcept;
+    bool equals(const SquareMatrix& other, const Tolerance& tolerance) const noexcept;
 
     // 차원이 같고 모든 원소가 DEFAULT 절대·상대오차 안이면 true이다. 비유한 원소는 false이다.
     bool operator==(const SquareMatrix& other) const noexcept;
@@ -38,9 +38,9 @@ public:
     bool operator!=(const SquareMatrix& other) const noexcept;
 
     // 내적에 절대·상대오차 정책을 적용한다.
-    bool isOrthogonal(const Tolerance<double>& tolerance) const;
+    bool isOrthogonal(const Tolerance& tolerance) const;
     // 직교성과 행렬식 1을 같은 정책으로 검사한다.
-    bool isRotation(const Tolerance<double>& tolerance) const;
+    bool isRotation(const Tolerance& tolerance) const;
 
     // 모든 원소 접근은 범위를 검사한다.
     double& at(std::size_t row, std::size_t column);

@@ -12,7 +12,7 @@ namespace math
 class Matrix
 {
 public:
-    Matrix() = default;
+    Matrix() noexcept;
     // 행·열 크기의 곱이 오버플로하면 std::length_error를 던진다.
     Matrix(std::size_t rows, std::size_t columns, double value = 0.0);
     // 행 길이가 서로 다르면 std::invalid_argument를 던진다.
@@ -26,7 +26,7 @@ public:
     bool isFinite() const noexcept;
 
     // 모든 원소에 동일한 절대·상대오차 정책을 적용한다. 비유한 원소는 false이다.
-    bool equals(const Matrix& other, const Tolerance<double>& tolerance) const noexcept;
+    bool equals(const Matrix& other, const Tolerance& tolerance) const noexcept;
 
     // 차원이 같고 모든 원소가 DEFAULT 절대·상대오차 안이면 true이다. 비유한 원소는 false이다.
     bool operator==(const Matrix& other) const noexcept;

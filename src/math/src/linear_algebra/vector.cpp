@@ -8,6 +8,9 @@
 namespace math
 {
 
+Vector::Vector(const Vector&) = default;
+Vector& Vector::operator=(const Vector&) = default;
+
 Vector::Vector()
     : Vector(0)
 {
@@ -68,7 +71,7 @@ bool Vector::isFinite() const noexcept
     return _matrix.isFinite();
 }
 
-bool Vector::equals(const Vector& other, const Tolerance<double>& tolerance) const noexcept
+bool Vector::equals(const Vector& other, const Tolerance& tolerance) const noexcept
 {
     return _matrix.equals(other._matrix, tolerance);
 }

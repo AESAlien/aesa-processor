@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "math/tolerance.hpp"
+#include "math/quantity/quantity_tolerance.hpp"
 #include "math/quantity/distance.hpp"
 
 #include <chrono>
@@ -10,18 +10,15 @@ namespace math
 {
 
 // 속도를 초당 미터 단위로 저장하며 음수로 반대 방향을 표현한다.
-class Velocity
+class Velocity : public Quantity
 {
 public:
     static Velocity fromMetersPerSecond(double metersPerSecond) noexcept;
 
     double mps() const noexcept;
-    bool isFinite() const noexcept;
-    // 저장된 값이 0 이상인지 검사한다. NaN은 false이다.
-    bool isNonnegative() const noexcept;
 
     // 단위를 보존한 절대·상대오차 정책을 적용한다. 비유한 값은 false이다.
-    bool equals(const Velocity& other, const Tolerance<Velocity>& tolerance) const noexcept;
+    bool equals(const Velocity& other, const QuantityTolerance<Velocity>& tolerance) const noexcept;
 
     // 공통 DEFAULT 절대·상대오차를 함께 적용한다. 무한대·NaN 값은 false이다.
     bool operator==(const Velocity& other) const noexcept;
@@ -41,8 +38,6 @@ public:
 
 private:
     explicit Velocity(double metersPerSecond) noexcept;
-
-    double _metersPerSecond = 0.0;
 };
 
 Velocity abs(Velocity velocity) noexcept;

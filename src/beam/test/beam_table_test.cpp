@@ -1,4 +1,4 @@
-#include "beam_table.hpp"
+﻿#include "beam_table.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
 #include "attitude/attitude_error.hpp"
@@ -68,8 +68,8 @@ TEST(BeamTableTest, BeamWidthIsSixDegrees)
 
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
-        EXPECT_TRUE(table.get(beamIndex).azimuthBeamWidth.equals(6_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
-        EXPECT_TRUE(table.get(beamIndex).elevationBeamWidth.equals(6_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+        EXPECT_TRUE(table.get(beamIndex).azimuthBeamWidth.equals(6_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+        EXPECT_TRUE(table.get(beamIndex).elevationBeamWidth.equals(6_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
     }
 }
 
@@ -79,8 +79,8 @@ TEST(BeamTableTest, ZeroAttitudeKeepsFixedGrid)
 
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
-        EXPECT_TRUE(table.get(beamIndex).azimuth_ant.equals(gridAzimuth(beamIndex), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4})) << "beamIndex=" << beamIndex;
-        EXPECT_TRUE(table.get(beamIndex).elevation_ant.equals(gridElevation(beamIndex), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}))
+        EXPECT_TRUE(table.get(beamIndex).azimuth_ant.equals(gridAzimuth(beamIndex), math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4})) << "beamIndex=" << beamIndex;
+        EXPECT_TRUE(table.get(beamIndex).elevation_ant.equals(gridElevation(beamIndex), math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}))
             << "beamIndex=" << beamIndex;
     }
 }
@@ -90,17 +90,17 @@ TEST(BeamTableTest, GridOrderStartsLowElevationLeftAzimuth)
     const beam::BeamTable table(makeValidTransform(0_deg, 0_deg, 0_deg), DEFAULT_GRID_CONFIG);
 
     // 첫 빔: 가장 낮은 고각, 가장 왼쪽 방위각
-    EXPECT_TRUE(table.get(0).azimuth_ant.equals(-42_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
-    EXPECT_TRUE(table.get(0).elevation_ant.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
+    EXPECT_TRUE(table.get(0).azimuth_ant.equals(-42_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
+    EXPECT_TRUE(table.get(0).elevation_ant.equals(3_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
     // 같은 고각의 마지막 빔: 가장 오른쪽 방위각
-    EXPECT_TRUE(table.get(20).azimuth_ant.equals(42_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
-    EXPECT_TRUE(table.get(20).elevation_ant.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
+    EXPECT_TRUE(table.get(20).azimuth_ant.equals(42_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
+    EXPECT_TRUE(table.get(20).elevation_ant.equals(3_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
     // 다음 고각 줄의 첫 빔
-    EXPECT_TRUE(table.get(21).azimuth_ant.equals(-42_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
-    EXPECT_TRUE(table.get(21).elevation_ant.equals(7.4_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
+    EXPECT_TRUE(table.get(21).azimuth_ant.equals(-42_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
+    EXPECT_TRUE(table.get(21).elevation_ant.equals(7.4_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
     // 마지막 빔: 가장 높은 고각, 가장 오른쪽 방위각
-    EXPECT_TRUE(table.get(188).azimuth_ant.equals(42_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
-    EXPECT_TRUE(table.get(188).elevation_ant.equals(38.2_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
+    EXPECT_TRUE(table.get(188).azimuth_ant.equals(42_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
+    EXPECT_TRUE(table.get(188).elevation_ant.equals(38.2_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}));
 }
 
 TEST(BeamTableTest, YawShiftsAzimuthsByOppositeAngle)
@@ -110,9 +110,9 @@ TEST(BeamTableTest, YawShiftsAzimuthsByOppositeAngle)
 
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
-        EXPECT_TRUE(table.get(beamIndex).azimuth_ant.equals(gridAzimuth(beamIndex) - 10_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}))
+        EXPECT_TRUE(table.get(beamIndex).azimuth_ant.equals(gridAzimuth(beamIndex) - 10_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}))
             << "beamIndex=" << beamIndex;
-        EXPECT_TRUE(table.get(beamIndex).elevation_ant.equals(gridElevation(beamIndex), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}))
+        EXPECT_TRUE(table.get(beamIndex).elevation_ant.equals(gridElevation(beamIndex), math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}))
             << "beamIndex=" << beamIndex;
     }
 }
@@ -126,8 +126,8 @@ TEST(BeamTableTest, TableMatchesAnglesConvertedToAntFrame)
     {
         const math::SphericalDirection direction_ant = transform.enuToAnt(
             math::SphericalDirection(gridAzimuth(beamIndex).wrap180(), gridElevation(beamIndex)));
-        EXPECT_TRUE(table.get(beamIndex).azimuth_ant.equals(direction_ant.azimuth(), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-3})) << "beamIndex=" << beamIndex;
-        EXPECT_TRUE(table.get(beamIndex).elevation_ant.equals(direction_ant.elevation(), math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-3})) << "beamIndex=" << beamIndex;
+        EXPECT_TRUE(table.get(beamIndex).azimuth_ant.equals(direction_ant.azimuth(), math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-3})) << "beamIndex=" << beamIndex;
+        EXPECT_TRUE(table.get(beamIndex).elevation_ant.equals(direction_ant.elevation(), math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-3})) << "beamIndex=" << beamIndex;
     }
 }
 
@@ -140,8 +140,8 @@ TEST(BeamTableTest, TableConvertedBackToFixedFrameRestoresGrid)
     {
         const math::SphericalDirection direction_enu = transform.antToEnu(math::SphericalDirection(
             table.get(beamIndex).azimuth_ant, table.get(beamIndex).elevation_ant));
-        EXPECT_TRUE(direction_enu.azimuth().equals(gridAzimuth(beamIndex).wrap180(), math::Tolerance{1e-3_deg, 0.0})) << "beamIndex=" << beamIndex;
-        EXPECT_TRUE(direction_enu.elevation().equals(gridElevation(beamIndex), math::Tolerance{1e-3_deg, 0.0})) << "beamIndex=" << beamIndex;
+        EXPECT_TRUE(direction_enu.azimuth().equals(gridAzimuth(beamIndex).wrap180(), math::QuantityTolerance{1e-3_deg, 0.0})) << "beamIndex=" << beamIndex;
+        EXPECT_TRUE(direction_enu.elevation().equals(gridElevation(beamIndex), math::QuantityTolerance{1e-3_deg, 0.0})) << "beamIndex=" << beamIndex;
     }
 }
 
@@ -153,7 +153,7 @@ TEST(BeamTableTest, DifferentAttitudeProducesDifferentTable)
     bool anyDifferent = false;
     for (std::size_t beamIndex = 0; beamIndex < zeroAttitudeTable.size(); ++beamIndex)
     {
-        if (!zeroAttitudeTable.get(beamIndex).azimuth_ant.equals(yawRotatedTable.get(beamIndex).azimuth_ant, math::Tolerance{0.001_deg, 0.0}))
+        if (!zeroAttitudeTable.get(beamIndex).azimuth_ant.equals(yawRotatedTable.get(beamIndex).azimuth_ant, math::QuantityTolerance{0.001_deg, 0.0}))
         {
             anyDifferent = true;
             break;
@@ -208,12 +208,12 @@ TEST(BeamTableTest, CustomGridUsesConfiguredStartStepAndWidth)
     ASSERT_EQ(table.size(), 6u);
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
-        EXPECT_TRUE(table.get(beamIndex).azimuth_ant.equals(expectedAzimuth[beamIndex], math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}))
+        EXPECT_TRUE(table.get(beamIndex).azimuth_ant.equals(expectedAzimuth[beamIndex], math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}))
             << "beamIndex=" << beamIndex;
-        EXPECT_TRUE(table.get(beamIndex).elevation_ant.equals(expectedElevation[beamIndex], math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}))
+        EXPECT_TRUE(table.get(beamIndex).elevation_ant.equals(expectedElevation[beamIndex], math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-4}))
             << "beamIndex=" << beamIndex;
-        EXPECT_TRUE(table.get(beamIndex).azimuthBeamWidth.equals(4_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
-        EXPECT_TRUE(table.get(beamIndex).elevationBeamWidth.equals(4_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+        EXPECT_TRUE(table.get(beamIndex).azimuthBeamWidth.equals(4_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+        EXPECT_TRUE(table.get(beamIndex).elevationBeamWidth.equals(4_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
     }
 }
 

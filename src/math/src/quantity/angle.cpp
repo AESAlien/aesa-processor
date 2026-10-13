@@ -21,28 +21,18 @@ Angle Angle::fromRadians(double radians) noexcept
 
 double Angle::deg() const noexcept
 {
-    return _degrees;
+    return _value;
 }
 
 double Angle::rad() const noexcept
 {
-    return _degrees * (PI / 180.0);
-}
-
-bool Angle::isFinite() const noexcept
-{
-    return std::isfinite(_degrees);
-}
-
-bool Angle::isNonnegative() const noexcept
-{
-    return _degrees >= 0.0;
+    return _value * (PI / 180.0);
 }
 
 Angle Angle::wrap180() const noexcept
 {
     // 먼저 360도 주기의 나머지를 구해 큰 각도에서 오프셋 정밀도 손실을 피한다.
-    double degrees = std::fmod(_degrees, 360.0);
+    double degrees = std::fmod(_value, 360.0);
     if (degrees < 0.0)
     {
         degrees += 360.0;
@@ -59,7 +49,7 @@ Angle Angle::wrap180() const noexcept
 Angle Angle::wrap90() const noexcept
 {
     // 먼저 180도 주기의 나머지를 구해 큰 각도에서 오프셋 정밀도 손실을 피한다.
-    double degrees = std::fmod(_degrees, 180.0);
+    double degrees = std::fmod(_value, 180.0);
     if (degrees < 0.0)
     {
         degrees += 180.0;
@@ -73,10 +63,19 @@ Angle Angle::wrap90() const noexcept
     return Angle(degrees);
 }
 
-bool Angle::equals(const Angle& other, const Tolerance<Angle>& tolerance) const noexcept
+bool Angle::equals(const Angle& other, const QuantityTolerance<Angle>& tolerance) const noexcept
 {
-    const Tolerance<double> numericTolerance{tolerance.absolute()._degrees, tolerance.relative()};
-    return numericTolerance.isWithin(_degrees, other._degrees);
+    return tolerance.isWithin(*this, other);
+}
+
+bool Angle::operator==(const Angle& other) const noexcept
+{
+    static const QuantityTolerance<Angle> DEFAULT_ANGLE_TOLERANCE{
+        fromDegrees(DEFAULT_TOLERANCE.absolute()),
+        DEFAULT_TOLERANCE.relative()
+    };
+
+    return equals(other, DEFAULT_ANGLE_TOLERANCE);
 }
 
 bool Angle::operator!=(const Angle& other) const noexcept
@@ -84,34 +83,24 @@ bool Angle::operator!=(const Angle& other) const noexcept
     return !(*this == other);
 }
 
-bool Angle::operator==(const Angle& other) const noexcept
-{
-    // 타입별로 한 번만 초기화해 모든 기본 비교에서 공유한다.
-    static const Tolerance<Angle> DEFAULT_ANGLE_TOLERANCE{
-        fromDegrees(DEFAULT_TOLERANCE.absolute()),
-        DEFAULT_TOLERANCE.relative()
-    };
-    return equals(other, DEFAULT_ANGLE_TOLERANCE);
-}
-
 bool Angle::operator<(const Angle& other) const noexcept
 {
-    return _degrees < other._degrees && *this != other;
+    return _value < other._value && *this != other;
 }
 
 bool Angle::operator<=(const Angle& other) const noexcept
 {
-    return _degrees <= other._degrees || *this == other;
+    return _value <= other._value || *this == other;
 }
 
 bool Angle::operator>(const Angle& other) const noexcept
 {
-    return _degrees > other._degrees && *this != other;
+    return _value > other._value && *this != other;
 }
 
 bool Angle::operator>=(const Angle& other) const noexcept
 {
-    return _degrees >= other._degrees || *this == other;
+    return _value >= other._value || *this == other;
 }
 
 Angle Angle::operator+() const noexcept
@@ -121,7 +110,7 @@ Angle Angle::operator+() const noexcept
 
 Angle Angle::operator-() const noexcept
 {
-    return Angle(-_degrees);
+    return Angle(-_value);
 }
 
 Angle Angle::operator+(const Angle& other) const noexcept
@@ -154,21 +143,21 @@ Angle Angle::operator/(double scalar) const
 
 Angle& Angle::operator+=(const Angle& other) noexcept
 {
-    _degrees += other._degrees;
+    _value += other._value;
 
     return *this;
 }
 
 Angle& Angle::operator-=(const Angle& other) noexcept
 {
-    _degrees -= other._degrees;
+    _value -= other._value;
 
     return *this;
 }
 
 Angle& Angle::operator*=(double scalar) noexcept
 {
-    _degrees *= scalar;
+    _value *= scalar;
 
     return *this;
 }
@@ -180,13 +169,13 @@ Angle& Angle::operator/=(double scalar)
         throw std::domain_error("Cannot divide an angle by zero");
     }
 
-    _degrees /= scalar;
+    _value /= scalar;
 
     return *this;
 }
 
 Angle::Angle(double degrees) noexcept
-    : _degrees(degrees)
+    : Quantity(degrees)
 {
 }
 

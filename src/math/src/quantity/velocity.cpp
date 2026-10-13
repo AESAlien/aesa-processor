@@ -13,23 +13,22 @@ Velocity Velocity::fromMetersPerSecond(double metersPerSecond) noexcept
 
 double Velocity::mps() const noexcept
 {
-    return _metersPerSecond;
+    return _value;
 }
 
-bool Velocity::isFinite() const noexcept
+bool Velocity::equals(const Velocity& other, const QuantityTolerance<Velocity>& tolerance) const noexcept
 {
-    return std::isfinite(_metersPerSecond);
+    return tolerance.isWithin(*this, other);
 }
 
-bool Velocity::isNonnegative() const noexcept
+bool Velocity::operator==(const Velocity& other) const noexcept
 {
-    return _metersPerSecond >= 0.0;
-}
+    static const QuantityTolerance<Velocity> DEFAULT_VELOCITY_TOLERANCE{
+        fromMetersPerSecond(DEFAULT_TOLERANCE.absolute()),
+        DEFAULT_TOLERANCE.relative()
+    };
 
-bool Velocity::equals(const Velocity& other, const Tolerance<Velocity>& tolerance) const noexcept
-{
-    const Tolerance<double> numericTolerance{tolerance.absolute()._metersPerSecond, tolerance.relative()};
-    return numericTolerance.isWithin(_metersPerSecond, other._metersPerSecond);
+    return equals(other, DEFAULT_VELOCITY_TOLERANCE);
 }
 
 bool Velocity::operator!=(const Velocity& other) const noexcept
@@ -37,43 +36,33 @@ bool Velocity::operator!=(const Velocity& other) const noexcept
     return !(*this == other);
 }
 
-bool Velocity::operator==(const Velocity& other) const noexcept
-{
-    // 타입별로 한 번만 초기화해 모든 기본 비교에서 공유한다.
-    static const Tolerance<Velocity> DEFAULT_VELOCITY_TOLERANCE{
-        fromMetersPerSecond(DEFAULT_TOLERANCE.absolute()),
-        DEFAULT_TOLERANCE.relative()
-    };
-    return equals(other, DEFAULT_VELOCITY_TOLERANCE);
-}
-
 bool Velocity::operator<(const Velocity& other) const noexcept
 {
-    return _metersPerSecond < other._metersPerSecond && *this != other;
+    return _value < other._value && *this != other;
 }
 
 bool Velocity::operator<=(const Velocity& other) const noexcept
 {
-    return _metersPerSecond <= other._metersPerSecond || *this == other;
+    return _value <= other._value || *this == other;
 }
 
 bool Velocity::operator>(const Velocity& other) const noexcept
 {
-    return _metersPerSecond > other._metersPerSecond && *this != other;
+    return _value > other._value && *this != other;
 }
 
 bool Velocity::operator>=(const Velocity& other) const noexcept
 {
-    return _metersPerSecond >= other._metersPerSecond || *this == other;
+    return _value >= other._value || *this == other;
 }
 
 Velocity Velocity::operator-() const noexcept
 {
-    return Velocity(-_metersPerSecond);
+    return Velocity(-_value);
 }
 
 Velocity::Velocity(double metersPerSecond) noexcept
-    : _metersPerSecond(metersPerSecond)
+    : Quantity(metersPerSecond)
 {
 }
 

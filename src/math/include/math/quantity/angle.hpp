@@ -1,13 +1,13 @@
 ﻿#pragma once
 
-#include "math/tolerance.hpp"
+#include "math/quantity/quantity_tolerance.hpp"
 
 namespace math
 {
 
 extern const double PI;
 
-class Angle
+class Angle : public Quantity
 {
 public:
     static Angle fromDegrees(double degrees) noexcept;
@@ -15,9 +15,6 @@ public:
 
     double deg() const noexcept;
     double rad() const noexcept;
-    bool isFinite() const noexcept;
-    // 저장된 값이 0 이상인지 검사한다. NaN은 false이다.
-    bool isNonnegative() const noexcept;
 
     // 원본을 유지하며 [-180, 180)도 범위로 정규화한 새 각도를 반환한다.
     Angle wrap180() const noexcept;
@@ -26,7 +23,7 @@ public:
     Angle wrap90() const noexcept;
 
     // 단위를 보존한 절대·상대오차 정책을 적용한다. 비유한 값은 false이다.
-    bool equals(const Angle& other, const Tolerance<Angle>& tolerance) const noexcept;
+    bool equals(const Angle& other, const QuantityTolerance<Angle>& tolerance) const noexcept;
 
     // 공통 DEFAULT 절대·상대오차를 함께 적용한다. 무한대·NaN 값은 false이다.
     bool operator==(const Angle& other) const noexcept;
@@ -60,8 +57,6 @@ public:
 
 private:
     explicit Angle(double degrees) noexcept;
-
-    double _degrees = 0.0;
 };
 
 Angle abs(Angle angle) noexcept;

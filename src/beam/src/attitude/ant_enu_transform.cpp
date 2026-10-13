@@ -1,4 +1,4 @@
-#include "attitude/ant_enu_transform.hpp"
+﻿#include "attitude/ant_enu_transform.hpp"
 #include "attitude/attitude_error.hpp"
 
 #include <cmath>
@@ -66,7 +66,7 @@ AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeCo
     {
         validMount = config.mountAntToBodyRotation.size() == 3
             && config.mountAntToBodyRotation.isRotation(
-                math::Tolerance<double>{config.mountOrthogonalTolerance, 0.0});
+                math::Tolerance{config.mountOrthogonalTolerance, 0.0});
     }
     catch (const std::invalid_argument&)
     {

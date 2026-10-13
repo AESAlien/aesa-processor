@@ -17,17 +17,17 @@ TEST(DistanceTest, EqualsUsesInclusiveAbsoluteTolerance)
     const auto value = math::Distance::fromKilometers(-1.0);
     const auto nearby = math::Distance::fromKilometers(-0.75);
 
-    EXPECT_TRUE(value.equals(value, math::Tolerance{math::Distance::fromKilometers(0.0), 0.0}));
-    EXPECT_FALSE(value.equals(nearby, math::Tolerance{math::Distance::fromKilometers(0.0), 0.0}));
-    EXPECT_FALSE(value.equals(nearby, math::Tolerance{math::Distance::fromKilometers(0.125), 0.0}));
-    EXPECT_TRUE(value.equals(nearby, math::Tolerance{math::Distance::fromKilometers(0.25), 0.0}));
-    EXPECT_TRUE(nearby.equals(value, math::Tolerance{math::Distance::fromKilometers(0.25), 0.0}));
-    EXPECT_TRUE(value.equals(nearby, math::Tolerance{math::Distance::fromKilometers(0.5), 0.0}));
-    EXPECT_THROW(value.equals(value, math::Tolerance{math::Distance::fromKilometers(-0.25), 0.0}), std::invalid_argument);
-    EXPECT_THROW(value.equals(value, math::Tolerance{math::Distance::fromKilometers(std::numeric_limits<double>::infinity()), 0.0}), std::invalid_argument);
-    EXPECT_THROW(value.equals(value, math::Tolerance{math::Distance::fromKilometers(std::numeric_limits<double>::quiet_NaN()), 0.0}), std::invalid_argument);
+    EXPECT_TRUE(value.equals(value, math::QuantityTolerance{math::Distance::fromKilometers(0.0), 0.0}));
+    EXPECT_FALSE(value.equals(nearby, math::QuantityTolerance{math::Distance::fromKilometers(0.0), 0.0}));
+    EXPECT_FALSE(value.equals(nearby, math::QuantityTolerance{math::Distance::fromKilometers(0.125), 0.0}));
+    EXPECT_TRUE(value.equals(nearby, math::QuantityTolerance{math::Distance::fromKilometers(0.25), 0.0}));
+    EXPECT_TRUE(nearby.equals(value, math::QuantityTolerance{math::Distance::fromKilometers(0.25), 0.0}));
+    EXPECT_TRUE(value.equals(nearby, math::QuantityTolerance{math::Distance::fromKilometers(0.5), 0.0}));
+    EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::Distance::fromKilometers(-0.25), 0.0}), std::invalid_argument);
+    EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::Distance::fromKilometers(std::numeric_limits<double>::infinity()), 0.0}), std::invalid_argument);
+    EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::Distance::fromKilometers(std::numeric_limits<double>::quiet_NaN()), 0.0}), std::invalid_argument);
     EXPECT_FALSE(value.equals(math::Distance::fromKilometers(
-        std::numeric_limits<double>::quiet_NaN()), math::Tolerance{math::Distance::fromKilometers(0.25), 0.0}));
+        std::numeric_limits<double>::quiet_NaN()), math::QuantityTolerance{math::Distance::fromKilometers(0.25), 0.0}));
 }
 
 // 미터로 생성한 거리의 부호와 값을 보존하고, 킬로미터 조회 및 부호 반전을 검증한다.
@@ -88,10 +88,10 @@ TEST(DistanceTest, ComparesMixedUnitsWithMeterTolerance)
 {
     using namespace math::literals;
 
-    EXPECT_TRUE((1_km).equals(1000_m, math::Tolerance{0_m, 0.0}));
-    EXPECT_TRUE((1_km).equals(1000.25_m, math::Tolerance{0.25_m, 0.0}));
-    EXPECT_FALSE((1_km).equals(1000.25_m, math::Tolerance{0.125_m, 0.0}));
-    EXPECT_TRUE((1000_m).equals(1.125_km, math::Tolerance{0.125_km, 0.0}));
+    EXPECT_TRUE((1_km).equals(1000_m, math::QuantityTolerance{0_m, 0.0}));
+    EXPECT_TRUE((1_km).equals(1000.25_m, math::QuantityTolerance{0.25_m, 0.0}));
+    EXPECT_FALSE((1_km).equals(1000.25_m, math::QuantityTolerance{0.125_m, 0.0}));
+    EXPECT_TRUE((1000_m).equals(1.125_km, math::QuantityTolerance{0.125_km, 0.0}));
     EXPECT_TRUE(999_m < 1_km);
     EXPECT_TRUE(1001_m > 1_km);
     EXPECT_TRUE(1000_m <= 1_km);
@@ -125,17 +125,17 @@ TEST(DistanceTest, EqualsUsesInclusiveRelativeTolerance)
     const auto value = math::Distance::fromMeters(1024.0);
     const auto nearby = math::Distance::fromMeters(896.0);
 
-    EXPECT_FALSE(value.equals(nearby, math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.0}));
-    EXPECT_TRUE(value.equals(nearby, math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.125}));
-    EXPECT_TRUE(nearby.equals(value, math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.125}));
-    EXPECT_FALSE(value.equals(nearby, math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.124}));
-    EXPECT_TRUE((-value).equals(-nearby, math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.125}));
-    EXPECT_TRUE(math::Distance::fromMeters(1.0).equals(math::Distance::fromMeters(0.875), math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.125}));
+    EXPECT_FALSE(value.equals(nearby, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.0}));
+    EXPECT_TRUE(value.equals(nearby, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.125}));
+    EXPECT_TRUE(nearby.equals(value, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.125}));
+    EXPECT_FALSE(value.equals(nearby, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.124}));
+    EXPECT_TRUE((-value).equals(-nearby, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.125}));
+    EXPECT_TRUE(math::Distance::fromMeters(1.0).equals(math::Distance::fromMeters(0.875), math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.125}));
 
     const auto zero = math::Distance::fromMeters(0.0);
     const auto tiny = math::Distance::fromMeters(1e-10);
-    EXPECT_TRUE(zero.equals(zero, math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
-    EXPECT_FALSE(zero.equals(tiny, math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
+    EXPECT_TRUE(zero.equals(zero, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
+    EXPECT_FALSE(zero.equals(tiny, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
 }
 
 // 같은 값끼리 비교해도 잘못된 상대 허용오차는 거부하며, 유한하지 않은 값도 거부한다.
@@ -147,15 +147,15 @@ TEST(DistanceTest, EqualsRejectsInvalidRelativeToleranceAndNonfiniteValues)
 
     for (const double relativeTolerance : {-0.01, infinity, nan})
     {
-        EXPECT_THROW((math::Tolerance<math::Distance>{
+        EXPECT_THROW((math::QuantityTolerance<math::Distance>{
             math::Distance::fromMeters(0.0), relativeTolerance}), std::invalid_argument);
     }
     for (const double nonfinite : {infinity, -infinity, nan})
     {
         const auto invalid = math::Distance::fromMeters(nonfinite);
-        EXPECT_FALSE(value.equals(invalid, math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
-        EXPECT_FALSE(invalid.equals(value, math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
-        EXPECT_FALSE(invalid.equals(invalid, math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
+        EXPECT_FALSE(value.equals(invalid, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
+        EXPECT_FALSE(invalid.equals(value, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
+        EXPECT_FALSE(invalid.equals(invalid, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
     }
 }
 
@@ -166,12 +166,12 @@ TEST(DistanceTest, EqualsHandlesRelativeComparisonAtNumericLimits)
     const auto positive = math::Distance::fromMeters(largest);
     const auto negative = math::Distance::fromMeters(-largest);
 
-    EXPECT_FALSE(positive.equals(negative, math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 1.5}));
-    EXPECT_TRUE(positive.equals(negative, math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 2.0}));
-    EXPECT_TRUE(positive.equals(math::Distance::fromMeters(largest / 2.0), math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.5}));
+    EXPECT_FALSE(positive.equals(negative, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 1.5}));
+    EXPECT_TRUE(positive.equals(negative, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 2.0}));
+    EXPECT_TRUE(positive.equals(math::Distance::fromMeters(largest / 2.0), math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.5}));
 
     const double smallest = std::numeric_limits<double>::denorm_min();
-    EXPECT_TRUE(math::Distance::fromMeters(2.0 * smallest).equals(math::Distance::fromMeters(smallest), math::Tolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.5}));
+    EXPECT_TRUE(math::Distance::fromMeters(2.0 * smallest).equals(math::Distance::fromMeters(smallest), math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.5}));
 }
 
 // 유한한 거리는 true를 반환하고 무한대와 NaN은 false를 반환한다.

@@ -8,6 +8,10 @@
 namespace math
 {
 
+SquareMatrix::SquareMatrix() noexcept = default;
+SquareMatrix::SquareMatrix(const SquareMatrix&) = default;
+SquareMatrix& SquareMatrix::operator=(const SquareMatrix&) = default;
+
 SquareMatrix::SquareMatrix(std::size_t size, double value)
     : _matrix(size, size, value)
 {
@@ -67,7 +71,7 @@ bool SquareMatrix::isFinite() const noexcept
     return _matrix.isFinite();
 }
 
-bool SquareMatrix::equals(const SquareMatrix& other, const Tolerance<double>& tolerance) const noexcept
+bool SquareMatrix::equals(const SquareMatrix& other, const Tolerance& tolerance) const noexcept
 {
     return _matrix.equals(other._matrix, tolerance);
 }
@@ -82,7 +86,7 @@ bool SquareMatrix::operator==(const SquareMatrix& other) const noexcept
     return equals(other, DEFAULT_TOLERANCE);
 }
 
-bool SquareMatrix::isOrthogonal(const Tolerance<double>& tolerance) const
+bool SquareMatrix::isOrthogonal(const Tolerance& tolerance) const
 {
     if (!isFinite())
     {
@@ -108,7 +112,7 @@ bool SquareMatrix::isOrthogonal(const Tolerance<double>& tolerance) const
     return true;
 }
 
-bool SquareMatrix::isRotation(const Tolerance<double>& tolerance) const
+bool SquareMatrix::isRotation(const Tolerance& tolerance) const
 {
     return isOrthogonal(tolerance) && tolerance.isWithin(det(), 1.0);
 }

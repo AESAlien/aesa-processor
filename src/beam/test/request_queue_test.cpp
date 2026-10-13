@@ -1,4 +1,4 @@
-#include "scheduler/request_queue.hpp"
+﻿#include "scheduler/request_queue.hpp"
 
 #include <gtest/gtest.h>
 
@@ -81,9 +81,9 @@ TEST(RequestQueueTest, EarliestDueRequestComesFirstRegardlessOfInsertionOrder)
     queue.add(makeTracking(1000ms, 1_deg));
     queue.add(makeTracking(1005ms, 2_deg));
 
-    EXPECT_TRUE(queue.popNextDue(1010ms)->azimuth_ant.equals(1_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(queue.popNextDue(1010ms)->azimuth_ant.equals(2_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(queue.popNextDue(1010ms)->azimuth_ant.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(queue.popNextDue(1010ms)->azimuth_ant.equals(1_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(queue.popNextDue(1010ms)->azimuth_ant.equals(2_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(queue.popNextDue(1010ms)->azimuth_ant.equals(3_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
 }
 
 TEST(RequestQueueTest, SameTransmitTimeConfirmationComesBeforeTracking)
@@ -108,9 +108,9 @@ TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
     queue.add(makeTracking(1000ms, 2_deg));
     queue.add(makeTracking(1000ms, 3_deg));
 
-    EXPECT_TRUE(queue.popNextDue(1000ms)->azimuth_ant.equals(1_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(queue.popNextDue(1000ms)->azimuth_ant.equals(2_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(queue.popNextDue(1000ms)->azimuth_ant.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(queue.popNextDue(1000ms)->azimuth_ant.equals(1_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(queue.popNextDue(1000ms)->azimuth_ant.equals(2_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(queue.popNextDue(1000ms)->azimuth_ant.equals(3_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
 }
 
 TEST(RequestQueueTest, EarlierTrackingStillComesBeforeLaterConfirmation)

@@ -1,4 +1,4 @@
-// 시각화 도구(beam_schedule_dump, visualize_schedule.py)가 보여 주는 두 시나리오를 GTest로 고정한다.
+﻿// 시각화 도구(beam_schedule_dump, visualize_schedule.py)가 보여 주는 두 시나리오를 GTest로 고정한다.
 // 시나리오 정의와 실행은 schedule_scenario.hpp 를 시각화 도구와 함께 쓴다.
 
 #include "schedule_scenario.hpp"
@@ -108,14 +108,14 @@ void expectCommonRules(const Result& result)
         EXPECT_EQ(command.transmitTime, std::chrono::milliseconds(tick.tick_ms));
         if (command.beamType == beam::BeamCommand::BeamType::SEARCH)
         {
-            EXPECT_TRUE(command.azimuthBeamWidth.equals(6_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
-            EXPECT_TRUE(command.elevationBeamWidth.equals(6_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
+            EXPECT_TRUE(command.azimuthBeamWidth.equals(6_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
+            EXPECT_TRUE(command.elevationBeamWidth.equals(6_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
         }
         else
         {
             EXPECT_EQ(command.beamId, 0u) << "tick " << tick.tick_ms << "ms";
-            EXPECT_TRUE(command.azimuthBeamWidth.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
-            EXPECT_TRUE(command.elevationBeamWidth.equals(3_deg, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
+            EXPECT_TRUE(command.azimuthBeamWidth.equals(3_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
+            EXPECT_TRUE(command.elevationBeamWidth.equals(3_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
         }
     }
 
@@ -324,13 +324,13 @@ TEST(SchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
 
         if (left.command->beamType == beam::BeamCommand::BeamType::SEARCH)
         {
-            anySearchAngleDiffers |= !left.command->azimuth_ant.equals(right.command->azimuth_ant, math::Tolerance{0.001_deg, 0.0});
+            anySearchAngleDiffers |= !left.command->azimuth_ant.equals(right.command->azimuth_ant, math::QuantityTolerance{0.001_deg, 0.0});
         }
         else
         {
             // 요청 빔의 각도는 요청 그대로 나가므로 자세와 무관하다.
-            EXPECT_TRUE(left.command->azimuth_ant.equals(right.command->azimuth_ant, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
-            EXPECT_TRUE(left.command->elevation_ant.equals(right.command->elevation_ant, math::Tolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+            EXPECT_TRUE(left.command->azimuth_ant.equals(right.command->azimuth_ant, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+            EXPECT_TRUE(left.command->elevation_ant.equals(right.command->elevation_ant, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
         }
     }
 

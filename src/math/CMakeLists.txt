@@ -3,11 +3,13 @@ find_package(GTest REQUIRED)
 add_library(math STATIC
     src/quantity/angle.cpp
     src/quantity/distance.cpp
+    src/quantity/quantity.cpp
     src/geometry/spherical_direction.cpp
     src/linear_algebra/matrix.cpp
     src/linear_algebra/square_matrix.cpp
     src/geometry/spherical_point.cpp
     src/trigonometry.cpp
+    src/tolerance.cpp
     src/linear_algebra/vector.cpp
     src/quantity/velocity.cpp
 )

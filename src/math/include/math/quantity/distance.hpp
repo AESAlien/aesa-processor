@@ -1,11 +1,11 @@
 ﻿#pragma once
 
-#include "math/tolerance.hpp"
+#include "math/quantity/quantity_tolerance.hpp"
 
 namespace math
 {
 
-class Distance
+class Distance : public Quantity
 {
 public:
     static Distance fromMeters(double meters) noexcept;
@@ -13,12 +13,9 @@ public:
 
     double m() const noexcept;
     double km() const noexcept;
-    bool isFinite() const noexcept;
-    // 저장된 값이 0 이상인지 검사한다. NaN은 false이다.
-    bool isNonnegative() const noexcept;
 
     // 단위를 보존한 절대·상대오차 정책을 적용한다. 비유한 값은 false이다.
-    bool equals(const Distance& other, const Tolerance<Distance>& tolerance) const noexcept;
+    bool equals(const Distance& other, const QuantityTolerance<Distance>& tolerance) const noexcept;
 
     // 공통 DEFAULT 절대·상대오차를 함께 적용한다. 무한대·NaN 값은 false이다.
     bool operator==(const Distance& other) const noexcept;
@@ -38,8 +35,6 @@ public:
 
 private:
     explicit Distance(double meters) noexcept;
-
-    double _meters = 0.0;
 };
 
 Distance abs(Distance distance) noexcept;

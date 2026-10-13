@@ -18,28 +18,27 @@ Distance Distance::fromKilometers(double kilometers) noexcept
 
 double Distance::m() const noexcept
 {
-    return _meters;
+    return _value;
 }
 
 double Distance::km() const noexcept
 {
-    return _meters / 1000.0;
+    return _value / 1000.0;
 }
 
-bool Distance::isFinite() const noexcept
+bool Distance::equals(const Distance& other, const QuantityTolerance<Distance>& tolerance) const noexcept
 {
-    return std::isfinite(_meters);
+    return tolerance.isWithin(*this, other);
 }
 
-bool Distance::isNonnegative() const noexcept
+bool Distance::operator==(const Distance& other) const noexcept
 {
-    return _meters >= 0.0;
-}
+    static const QuantityTolerance<Distance> DEFAULT_DISTANCE_TOLERANCE{
+        fromMeters(DEFAULT_TOLERANCE.absolute()),
+        DEFAULT_TOLERANCE.relative()
+    };
 
-bool Distance::equals(const Distance& other, const Tolerance<Distance>& tolerance) const noexcept
-{
-    const Tolerance<double> numericTolerance{tolerance.absolute()._meters, tolerance.relative()};
-    return numericTolerance.isWithin(_meters, other._meters);
+    return equals(other, DEFAULT_DISTANCE_TOLERANCE);
 }
 
 bool Distance::operator!=(const Distance& other) const noexcept
@@ -47,43 +46,33 @@ bool Distance::operator!=(const Distance& other) const noexcept
     return !(*this == other);
 }
 
-bool Distance::operator==(const Distance& other) const noexcept
-{
-    // 타입별로 한 번만 초기화해 모든 기본 비교에서 공유한다.
-    static const Tolerance<Distance> DEFAULT_DISTANCE_TOLERANCE{
-        fromMeters(DEFAULT_TOLERANCE.absolute()),
-        DEFAULT_TOLERANCE.relative()
-    };
-    return equals(other, DEFAULT_DISTANCE_TOLERANCE);
-}
-
 bool Distance::operator<(const Distance& other) const noexcept
 {
-    return _meters < other._meters && *this != other;
+    return _value < other._value && *this != other;
 }
 
 bool Distance::operator<=(const Distance& other) const noexcept
 {
-    return _meters <= other._meters || *this == other;
+    return _value <= other._value || *this == other;
 }
 
 bool Distance::operator>(const Distance& other) const noexcept
 {
-    return _meters > other._meters && *this != other;
+    return _value > other._value && *this != other;
 }
 
 bool Distance::operator>=(const Distance& other) const noexcept
 {
-    return _meters >= other._meters || *this == other;
+    return _value >= other._value || *this == other;
 }
 
 Distance Distance::operator-() const noexcept
 {
-    return Distance(-_meters);
+    return Distance(-_value);
 }
 
 Distance::Distance(double meters) noexcept
-    : _meters(meters)
+    : Quantity(meters)
 {
 }
 
