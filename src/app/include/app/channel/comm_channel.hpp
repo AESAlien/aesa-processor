@@ -14,26 +14,21 @@ using CommEvent = std::variant<
     beam::BeamCommand,
     std::vector<target::TrackEvent>>;
 
-struct ReceivedCommEvent
-{
-    CommEvent message;
-};
-
 class CommChannel final
 {
 public:
-    bool write(CommEvent message);
+    void write(CommEvent message);
 
-    bool write(const target::TrackEvent& message);
+    void write(const target::TrackEvent& message);
 
-    std::optional<ReceivedCommEvent> readSimulator();
+    std::optional<CommEvent> readSimulator();
 
-    std::optional<ReceivedCommEvent> readConsole();
+    std::optional<CommEvent> readConsole();
 
     void close();
 
 private:
-    MessageQueue<ReceivedCommEvent> _simulatorQueue;
-    MessageQueue<ReceivedCommEvent> _consoleQueue;
+    MessageQueue<CommEvent> _simulatorQueue;
+    MessageQueue<CommEvent> _consoleQueue;
 };
 } // namespace app

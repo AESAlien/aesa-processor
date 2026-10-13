@@ -4,13 +4,12 @@
 
 namespace app
 {
-bool BeamChannel::write(BeamEvent message)
+void BeamChannel::write(BeamEvent message)
 {
-    return _queue.push(
-        ReceivedBeamEvent{std::move(message)});
+    _queue.push(std::move(message));
 }
 
-std::optional<ReceivedBeamEvent> BeamChannel::read()
+std::optional<BeamEvent> BeamChannel::read()
 {
     return _queue.pop();
 }

@@ -4,13 +4,12 @@
 
 namespace app
 {
-bool TargetChannel::write(TargetEvent message)
+void TargetChannel::write(TargetEvent message)
 {
-    return _queue.push(
-        ReceivedTargetEvent{std::move(message)});
+    _queue.push(std::move(message));
 }
 
-std::optional<ReceivedTargetEvent> TargetChannel::read()
+std::optional<TargetEvent> TargetChannel::read()
 {
     return _queue.pop();
 }

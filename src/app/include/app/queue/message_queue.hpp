@@ -4,41 +4,57 @@
 #include <mutex>
 #include <optional>
 #include <queue>
+#include <stdexcept>
 #include <utility>
 
 namespace app
 {
+class ChannelClosedError : public std::runtime_error
+{
+public:
+    ChannelClosedError()
+        : std::runtime_error("Cannot write to a closed channel")
+    {
+    }
+};
+
 template <typename T>
 class MessageQueue
 {
 public:
-    bool push(T message)
+    void push(T message)
     {
         {
             std::lock_guard<std::mutex> lock(_mutex);
+
             if (_closed)
             {
-                return false;
+                throw ChannelClosedError();
             }
+
             _queue.push(std::move(message));
         }
+
         _condition.notify_one();
-        return true;
     }
 
     std::optional<T> pop()
     {
         std::unique_lock<std::mutex> lock(_mutex);
+
         _condition.wait(lock, [this]
         {
             return _closed || !_queue.empty();
         });
+
         if (_queue.empty())
         {
             return std::nullopt;
         }
+
         T message = std::move(_queue.front());
         _queue.pop();
+
         return message;
     }
 
@@ -48,6 +64,7 @@ public:
             std::lock_guard<std::mutex> lock(_mutex);
             _closed = true;
         }
+
         _condition.notify_all();
     }
 

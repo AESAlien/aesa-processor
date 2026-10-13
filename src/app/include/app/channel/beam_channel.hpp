@@ -22,21 +22,16 @@ using BeamEvent = std::variant<
     beam::BeamRequest,
     NextBeamCommandEvent>;
 
-struct ReceivedBeamEvent
-{
-    BeamEvent message;
-};
-
 class BeamChannel final
 {
 public:
-    bool write(BeamEvent message);
+    void write(BeamEvent message);
 
-    std::optional<ReceivedBeamEvent> read();
+    std::optional<BeamEvent> read();
 
     void close();
 
 private:
-    MessageQueue<ReceivedBeamEvent> _queue;
+    MessageQueue<BeamEvent> _queue;
 };
 } // namespace app

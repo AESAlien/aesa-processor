@@ -42,7 +42,7 @@ int searchCount = 0;
 int confirmCount = 0;
 int trackingCount = 0;
 
-// 시간 카운터이며 종료 플래그가 아니다.
+// 테스트용 논리 시각이며 종료 플래그가 아니다.
 std::atomic<long long> tickTime{0};
 
 const auto start = Clock::now();
@@ -133,7 +133,7 @@ void timer(app::BeamChannel& channel)
 {
     auto next = Clock::now();
 
-    // 테스트용 타이머는 정해진 횟수만 실행한다.
+    // 테스트 타이머는 정해진 횟수만 실행한다.
     for (int tick = 0; tick < 150; ++tick)
     {
         next += std::chrono::milliseconds(10);
@@ -141,9 +141,13 @@ void timer(app::BeamChannel& channel)
 
         const auto time = tickTime.fetch_add(10) + 10;
 
-        if (!channel.write(
+        try
+        {
+            channel.write(
                 app::NextBeamCommandEvent{
-                    std::chrono::milliseconds(time)}))
+                    std::chrono::milliseconds(time)});
+        }
+        catch (const app::ChannelClosedError&)
         {
             // 오류 종료 경로에서 채널이 닫혔으면 타이머도 종료한다.
             return;
@@ -190,8 +194,7 @@ std::optional<IncomingDto> CommController::receiveData()
 {
     std::unique_lock<std::mutex> lock(demo::mutex);
 
-    // 데이터가 없으면 기다린다.
-    // finishInput()으로 입력이 닫혀도 깨어난다.
+    // 입력이 없으면 기다리고, 입력 큐가 닫혀도 깨어난다.
     demo::ready.wait(lock, []
     {
         return demo::closed || !demo::inbox.empty();
@@ -199,7 +202,7 @@ std::optional<IncomingDto> CommController::receiveData()
 
     if (demo::inbox.empty())
     {
-        // 닫혔고 남은 입력도 없으므로 수신 종료를 반환한다.
+        // 이 테스트에서는 nullopt를 수신 종료로 사용한다.
         return std::nullopt;
     }
 
@@ -301,6 +304,7 @@ TargetController::handleDetection(
 {
     std::lock_guard<std::mutex> lock(demo::mutex);
 
+    // 예외 발생 후 다음 이벤트가 처리되는지 확인한다.
     if (detection.requestId == 999)
     {
         ++demo::targetErrors;
@@ -322,6 +326,7 @@ TargetController::handleDetection(
         ? TrackEvent::TrackState::INIT
         : TrackEvent::TrackState::TRACKING;
 
+    // 전달 확인을 위한 샘플이며 실제 표적 연관 로직은 아니다.
     for (std::size_t i = 0; i < detection.plots.size(); ++i)
     {
         const auto& plot = detection.plots[i];
@@ -364,7 +369,7 @@ int main()
     app::CommChannel commChannel;
     app::TargetChannel targetChannel;
 
-    // 실제 Beam 모듈 구현 사용
+    // 실제 Beam 모듈 구현을 사용한다.
     beam::BeamController beamController;
 
     comm::CommController commController(
@@ -421,7 +426,7 @@ int main()
                     }
                 }
 
-                // 테스트 입력과 채널의 대기를 해제한다.
+                // 워커 밖으로 나온 예외에 대한 테스트 종료 처리
                 demo::finishInput();
 
                 targetChannel.close();
@@ -451,20 +456,20 @@ int main()
     try
     {
         std::vector<comm::IncomingDto> scenario{
-            demo::operation(State::OFF),
-            demo::operation(State::ON),
-            demo::attitude(30),
-            demo::detection(Type::SEARCH, 1),
+            demo::operation(State::OFF),       //    0ms
+            demo::operation(State::ON),        //  100ms
+            demo::attitude(30),                //  200ms
+            demo::detection(Type::SEARCH, 1),   //  300ms
             demo::detection(Type::CONFIRMATION, 2),
             demo::detection(Type::TRACKING, 3),
-            demo::detection(Type::SEARCH, 999),
+            demo::detection(Type::SEARCH, 999), //  600ms: 예외
             demo::detection(Type::SEARCH, 4, 2),
-            demo::operation(State::OFF),
-            demo::operation(State::ON),
-            demo::attitude(-15),
+            demo::operation(State::OFF),       //  800ms
+            demo::operation(State::ON),        //  900ms
+            demo::attitude(-15),               // 1000ms
             demo::detection(Type::SEARCH, 5, 0),
             demo::detection(Type::SEARCH, 6),
-            demo::operation(State::OFF),
+            demo::operation(State::OFF),       // 1300ms
             demo::attitude(0)};
 
         commController.openServer();
@@ -524,6 +529,7 @@ int main()
                 demo::push(std::move(message));
             }
 
+            // 확인·추적빔 요청 전달은 직접 주입하여 검증한다.
             if (i == 4 || i == 5)
             {
                 const beam::BeamRequest request(
@@ -536,9 +542,8 @@ int main()
                     math::Angle::fromDegrees(10),
                     math::Angle::fromDegrees(5));
 
-                demo::require(
-                    beamChannel.write(request),
-                    "Request destination closed");
+                // write는 void이며 실패하면 예외를 던진다.
+                beamChannel.write(request);
             }
         }
 
@@ -557,7 +562,7 @@ int main()
                 "Receive timed out");
         }
 
-        // 입력 큐를 닫아 receiveData()가 nullopt를 반환하게 한다.
+        // 남은 입력 처리 후 receiveData가 nullopt를 반환한다.
         demo::finishInput();
 
         timerTask.join();

@@ -36,34 +36,23 @@ void CommWorker::runReceive()
             }
 
             auto& message = *incoming;
-            bool accepted;
 
             if (auto* attitude =
                     std::get_if<beam::SetAttitudeCommand>(&message))
             {
-                accepted =
-                    _beamChannel.write(std::move(*attitude));
+                _beamChannel.write(std::move(*attitude));
             }
             else if (auto* state =
                          std::get_if<beam::SetOperationStateCommand>(&message))
             {
-                accepted =
-                    _beamChannel.write(std::move(*state));
+                _beamChannel.write(std::move(*state));
             }
             else
             {
                 auto& detection =
                     std::get<target::DetectionEvent>(message);
 
-                accepted =
-                    _targetChannel.write(std::move(detection));
-            }
-
-            if (!accepted)
-            {
-                reportWorkerError(
-                    "CommReceive",
-                    "Destination closed; message dropped");
+                _targetChannel.write(std::move(detection));
             }
 
             continue;
@@ -93,7 +82,7 @@ void CommWorker::runSendSimulator()
         tryWorkerAction("CommSendSimulator", [&]
         {
             const auto& command =
-                std::get<beam::BeamCommand>(event->message);
+                std::get<beam::BeamCommand>(*event);
 
             _controller.sendBeamCommand(command);
         });
@@ -107,8 +96,7 @@ void CommWorker::runSendConsole()
         tryWorkerAction("CommSendConsole", [&]
         {
             const auto& tracks =
-                std::get<std::vector<target::TrackEvent>>(
-                    event->message);
+                std::get<std::vector<target::TrackEvent>>(*event);
 
             _controller.sendTrackEvents(tracks);
         });

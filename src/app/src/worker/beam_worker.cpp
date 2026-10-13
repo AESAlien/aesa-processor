@@ -22,7 +22,7 @@ void BeamWorker::run()
     {
         tryWorkerAction("BeamWorker", [&]
         {
-            auto& message = event->message;
+            auto& message = *event;
 
             if (auto* request =
                     std::get_if<beam::BeamRequest>(&message))
@@ -45,12 +45,9 @@ void BeamWorker::run()
                 auto command =
                     _controller.nextBeamCommand(tick->currentTime);
 
-                if (command &&
-                    !_commChannel.write(std::move(*command)))
+                if (command)
                 {
-                    reportWorkerError(
-                        "BeamWorker",
-                        "CommChannel closed; beam dropped");
+                    _commChannel.write(std::move(*command));
                 }
             }
         });

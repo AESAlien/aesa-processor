@@ -5,35 +5,30 @@
 
 namespace app
 {
-bool CommChannel::write(CommEvent message)
+void CommChannel::write(CommEvent message)
 {
-    const bool toSimulator =
-        std::holds_alternative<beam::BeamCommand>(message);
-
-    ReceivedCommEvent event{
-        std::move(message)
-    };
-
-    if (toSimulator)
+    if (std::holds_alternative<beam::BeamCommand>(message))
     {
-        return _simulatorQueue.push(std::move(event));
+        _simulatorQueue.push(std::move(message));
     }
-
-    return _consoleQueue.push(std::move(event));
+    else
+    {
+        _consoleQueue.push(std::move(message));
+    }
 }
 
-bool CommChannel::write(const target::TrackEvent& message)
+void CommChannel::write(const target::TrackEvent& message)
 {
-    return write(
+    write(
         CommEvent{std::vector<target::TrackEvent>{message}});
 }
 
-std::optional<ReceivedCommEvent> CommChannel::readSimulator()
+std::optional<CommEvent> CommChannel::readSimulator()
 {
     return _simulatorQueue.pop();
 }
 
-std::optional<ReceivedCommEvent> CommChannel::readConsole()
+std::optional<CommEvent> CommChannel::readConsole()
 {
     return _consoleQueue.pop();
 }

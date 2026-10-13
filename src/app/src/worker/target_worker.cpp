@@ -1,7 +1,7 @@
 #include <app/worker/target_worker.hpp>
 #include <app/worker/worker_error.hpp>
+
 #include <utility>
-#include <variant>
 
 namespace app
 {
@@ -19,30 +19,23 @@ TargetWorker::TargetWorker(
 
 void TargetWorker::run()
 {
-    while (auto event = _targetChannel.read())
+    while (auto detection = _targetChannel.read())
     {
         tryWorkerAction("TargetWorker", [&]
         {
-            const auto& detection =
-                std::get<target::DetectionEvent>(event->message);
+            auto request =
+                _controller.handleDetection(*detection);
 
-            auto request = _controller.handleDetection(detection);
-
-            if (request && !_beamChannel.write(std::move(*request)))
+            if (request)
             {
-                reportWorkerError(
-                    "TargetWorker",
-                    "BeamChannel closed; request dropped");
+                _beamChannel.write(std::move(*request));
             }
 
             auto tracks = _controller.nextTrackEvents();
 
-            if (!tracks.empty() &&
-                !_commChannel.write(std::move(tracks)))
+            if (!tracks.empty())
             {
-                reportWorkerError(
-                    "TargetWorker",
-                    "CommChannel closed; tracks dropped");
+                _commChannel.write(std::move(tracks));
             }
         });
     }

@@ -4,28 +4,21 @@
 #include <target/dto/detection_event.hpp>
 
 #include <optional>
-#include <variant>
 
 namespace app
 {
-using TargetEvent = std::variant<
-    target::DetectionEvent>;
-
-struct ReceivedTargetEvent
-{
-    TargetEvent message;
-};
+using TargetEvent = target::DetectionEvent;
 
 class TargetChannel final
 {
 public:
-    bool write(TargetEvent message);
+    void write(TargetEvent message);
 
-    std::optional<ReceivedTargetEvent> read();
+    std::optional<TargetEvent> read();
 
     void close();
 
 private:
-    MessageQueue<ReceivedTargetEvent> _queue;
+    MessageQueue<TargetEvent> _queue;
 };
 } // namespace app
