@@ -79,6 +79,7 @@ TEST(AngleTest, WrapsToSignedDegreeRange)
     EXPECT_TRUE(((-540_deg).wrap180()).equals(-180_deg, math::Angle::fromDegrees(0.0)));
     EXPECT_TRUE(((1080_deg).wrap180()).equals(0_deg, math::Angle::fromDegrees(0.0)));
     EXPECT_TRUE(((-1080_deg).wrap180()).equals(0_deg, math::Angle::fromDegrees(0.0)));
+    EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(1e18).wrap180().deg(), -80.0);
 
     // 정규화는 새 각도를 반환하며 원본 값은 유지한다.
     const auto angle = 450_deg;
@@ -103,6 +104,7 @@ TEST(AngleTest, WrapsToSignedNinetyDegreeRange)
     EXPECT_DOUBLE_EQ((-270_deg).wrap90().deg(), -90.0);
     EXPECT_DOUBLE_EQ((450_deg).wrap90().deg(), -90.0);
     EXPECT_DOUBLE_EQ((-450_deg).wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(1e18).wrap90().deg(), -80.0);
 
     const auto angle = 450_deg;
     EXPECT_DOUBLE_EQ(angle.wrap90().deg(), -90.0);

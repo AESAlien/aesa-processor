@@ -318,3 +318,16 @@ TEST(BeamTableTest, LargeStepWithSingleBeamPerAxisIsAccepted)
     EXPECT_TRUE(table.get(0).azimuth_ant.isFinite());
     EXPECT_TRUE(table.get(0).elevation_ant.isFinite());
 }
+
+TEST(BeamTableTest, LargeAzimuthStartWithSingleBeamPreservesWrappedDirection)
+{
+    beam::SearchGridConfig config;
+    config.azimuthCount = 1;
+    config.elevationCount = 1;
+    config.azimuthStart = math::Angle::fromDegrees(1e18);
+
+    const beam::BeamTable table(makeValidTransform(0_deg, 0_deg, 0_deg), config);
+
+    ASSERT_EQ(table.size(), 1u);
+    EXPECT_NEAR(table.get(0).azimuth_ant.deg(), -80.0, 1e-10);
+}

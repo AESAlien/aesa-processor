@@ -27,19 +27,19 @@ void requireUnitInterval(double value)
 double sin(Angle angle)
 {
     requireFinite(angle);
-    return std::sin(angle.rad());
+    return std::sin(angle.wrap180().rad());
 }
 
 double cos(Angle angle)
 {
     requireFinite(angle);
-    return std::cos(angle.rad());
+    return std::cos(angle.wrap180().rad());
 }
 
 double tan(Angle angle)
 {
     requireFinite(angle);
-    return std::tan(angle.rad());
+    return std::tan(angle.wrap180().rad());
 }
 
 Angle asin(double value)

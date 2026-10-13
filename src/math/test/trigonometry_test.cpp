@@ -18,6 +18,16 @@ TEST(TrigonometryTest, ComputesSineCosineAndTangentFromAngles)
     EXPECT_NEAR(math::tan(-45_deg), -1.0, 1e-15);
 }
 
+TEST(TrigonometryTest, ReducesLargeAnglesBeforeConvertingToRadians)
+{
+    const auto largeAngle = math::Angle::fromDegrees(1e18);
+    const auto equivalentAngle = -80_deg;
+
+    EXPECT_NEAR(math::sin(largeAngle), math::sin(equivalentAngle), 1e-15);
+    EXPECT_NEAR(math::cos(largeAngle), math::cos(equivalentAngle), 1e-15);
+    EXPECT_NEAR(math::tan(largeAngle), math::tan(equivalentAngle), 1e-15);
+}
+
 TEST(TrigonometryTest, RejectsNonfiniteAngles)
 {
     const auto infinity = math::Angle::fromDegrees(std::numeric_limits<double>::infinity());

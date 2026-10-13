@@ -37,26 +37,36 @@ bool Angle::isFinite() const noexcept
 
 Angle Angle::wrap180() const noexcept
 {
-    // 180도를 더해 나머지를 구한 뒤 음수 나머지를 보정한다.
-    double degrees = std::fmod(_degrees + 180.0, 360.0);
+    // 먼저 360도 주기의 나머지를 구해 큰 각도에서 오프셋 정밀도 손실을 피한다.
+    double degrees = std::fmod(_degrees, 360.0);
     if (degrees < 0.0)
     {
         degrees += 360.0;
     }
 
-    return Angle(degrees - 180.0);
+    if (degrees >= 180.0)
+    {
+        degrees -= 360.0;
+    }
+
+    return Angle(degrees);
 }
 
 Angle Angle::wrap90() const noexcept
 {
-    // 90도를 더해 180도로 나눈 나머지를 구한 뒤 음수 나머지를 보정한다.
-    double degrees = std::fmod(_degrees + 90.0, 180.0);
+    // 먼저 180도 주기의 나머지를 구해 큰 각도에서 오프셋 정밀도 손실을 피한다.
+    double degrees = std::fmod(_degrees, 180.0);
     if (degrees < 0.0)
     {
         degrees += 180.0;
     }
 
-    return Angle(degrees - 90.0);
+    if (degrees >= 90.0)
+    {
+        degrees -= 180.0;
+    }
+
+    return Angle(degrees);
 }
 
 bool Angle::equals(const Angle& other, const Angle& absoluteTolerance) const noexcept
