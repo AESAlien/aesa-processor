@@ -2,9 +2,9 @@
 
 #include "domain/target.hpp"
 
-#include <math/distance.hpp>
-#include <math/vector.hpp>
-#include <math/velocity.hpp>
+#include <math/linear_algebra/vector.hpp>
+#include <math/quantity/distance.hpp>
+#include <math/quantity/velocity.hpp>
 
 #include <array>
 #include <cmath>
