@@ -50,13 +50,14 @@ void makeReady(beam::Scheduler& scheduler)
 beam::BeamRequest makeRequest(
     beam::BeamRequest::BeamType beamType,
     std::chrono::milliseconds transmitTime,
+    uint32_t requestId,
     double azimuth_deg,
     double elevation_deg
 ) {
     return beam::BeamRequest::Builder()
         .beamType(beamType)
         .transmitTime(transmitTime)
-        .requestId(0)
+        .requestId(requestId)
         .azimuth_ant(math::Angle::fromDegrees(azimuth_deg))
         .elevation_ant(math::Angle::fromDegrees(elevation_deg))
         .build();
@@ -211,13 +212,13 @@ TEST(SchedulerTest, ConfirmationRequestProducesConfirmationBeam)
 {
     beam::Scheduler scheduler;
     makeReady(scheduler);
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, 100ms, 12.5, 20.5));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, 100ms, 20, 12.5, 20.5));
 
     const auto command = scheduler.next(100ms);
 
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::CONFIRMATION);
-    EXPECT_EQ(command->beamId, 0u);
+    EXPECT_EQ(command->beamId, 20u);
     EXPECT_EQ(command->transmitTime, 100ms);
     EXPECT_DOUBLE_EQ(command->azimuth_ant.deg(), 12.5);
     EXPECT_DOUBLE_EQ(command->elevation_ant.deg(), 20.5);
@@ -229,13 +230,13 @@ TEST(SchedulerTest, TrackingRequestProducesTrackingBeam)
 {
     beam::Scheduler scheduler;
     makeReady(scheduler);
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 100ms, -30.0, 5.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 100ms, 100, -30.0, 5.0));
 
     const auto command = scheduler.next(100ms);
 
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::TRACKING);
-    EXPECT_EQ(command->beamId, 0u);
+    EXPECT_EQ(command->beamId, 100u);
     EXPECT_DOUBLE_EQ(command->azimuth_ant.deg(), -30.0);
     EXPECT_DOUBLE_EQ(command->elevation_ant.deg(), 5.0);
     EXPECT_DOUBLE_EQ(command->azimuthBeamWidth.deg(), 3.0);
@@ -246,7 +247,7 @@ TEST(SchedulerTest, FutureRequestKeepsSearchingUntilItsTime)
 {
     beam::Scheduler scheduler;
     makeReady(scheduler);
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 30ms, 1.0, 2.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 30ms, 20, 1.0, 2.0));
 
     EXPECT_EQ(scheduler.next(0ms)->beamType, beam::BeamCommand::BeamType::SEARCH);
     EXPECT_EQ(scheduler.next(10ms)->beamType, beam::BeamCommand::BeamType::SEARCH);
@@ -262,7 +263,7 @@ TEST(SchedulerTest, RequestBeamDoesNotAdvanceSearchCursor)
     EXPECT_EQ(scheduler.next(0ms)->beamId, 1u);
     EXPECT_EQ(scheduler.next(10ms)->beamId, 2u);
 
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, 20ms, 1.0, 2.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, 20ms, 10, 1.0, 2.0));
 
     EXPECT_EQ(scheduler.next(20ms)->beamType, beam::BeamCommand::BeamType::CONFIRMATION);
     EXPECT_EQ(scheduler.next(30ms)->beamId, 3u);
@@ -272,7 +273,7 @@ TEST(SchedulerTest, DelayedRequestUsesCurrentTimeAsTransmitTime)
 {
     beam::Scheduler scheduler;
     makeReady(scheduler);
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 1005ms, 1.0, 2.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 1005ms, 10, 1.0, 2.0));
 
     const auto command = scheduler.next(1010ms);
 
@@ -281,28 +282,35 @@ TEST(SchedulerTest, DelayedRequestUsesCurrentTimeAsTransmitTime)
     EXPECT_EQ(command->transmitTime, 1010ms);
 }
 
-TEST(SchedulerTest, ExpiredRequestIsDroppedAndSearchBeamIsReturned)
+TEST(SchedulerTest, VeryOldRequestIsStillSentAsRequestBeam)
 {
+    // 요청은 만료로 폐기되지 않는다. 오래 기다렸어도 현재 시각의 요청 빔으로 나가고 탐색 순서는 밀리지 않는다.
     beam::Scheduler scheduler;
     makeReady(scheduler);
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 1000ms, 1.0, 2.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 1000ms, 7, 1.0, 2.0));
 
-    const auto command = scheduler.next(1030ms);
+    const auto command = scheduler.next(10000ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::SEARCH);
-    EXPECT_EQ(scheduler.next(1040ms)->beamType, beam::BeamCommand::BeamType::SEARCH);
+    EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::TRACKING);
+    EXPECT_EQ(command->beamId, 7u);
+    EXPECT_EQ(command->transmitTime, 10000ms);
+
+    const auto next = scheduler.next(10010ms);
+    ASSERT_TRUE(next.has_value());
+    EXPECT_EQ(next->beamType, beam::BeamCommand::BeamType::SEARCH);
+    EXPECT_EQ(next->beamId, 1u);
 }
 
 TEST(SchedulerTest, CrowdedTicksFollowDesignedScenario)
 {
-    // 설계 문서의 예시: 1005 추적 A, 1010 확인 B, 1010 추적 C, 1010 추적 D
+    // 1005 추적 A, 1010 확인 B, 1010 추적 C, 1010 추적 D
     beam::Scheduler scheduler;
     makeReady(scheduler);
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 1005ms, 1.0, 0.0));
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, 1010ms, 2.0, 0.0));
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 1010ms, 3.0, 0.0));
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 1010ms, 4.0, 0.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 1005ms, 1, 1.0, 0.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, 1010ms, 2, 2.0, 0.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 1010ms, 3, 3.0, 0.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 1010ms, 4, 4.0, 0.0));
 
     const auto at1000 = scheduler.next(1000ms);
     EXPECT_EQ(at1000->beamType, beam::BeamCommand::BeamType::SEARCH);
@@ -320,10 +328,14 @@ TEST(SchedulerTest, CrowdedTicksFollowDesignedScenario)
     EXPECT_EQ(at1030->beamType, beam::BeamCommand::BeamType::TRACKING);
     EXPECT_DOUBLE_EQ(at1030->azimuth_ant.deg(), 3.0);
 
-    // D는 1010ms 요청이 30ms 지연되어 만료되므로 탐색 빔이 나간다.
+    // D는 1010ms 요청이 30ms 지연되어 1040ms에 송신된다. 폐기되지 않는다.
     const auto at1040 = scheduler.next(1040ms);
-    EXPECT_EQ(at1040->beamType, beam::BeamCommand::BeamType::SEARCH);
-    EXPECT_EQ(at1040->beamId, 2u);
+    EXPECT_EQ(at1040->beamType, beam::BeamCommand::BeamType::TRACKING);
+    EXPECT_DOUBLE_EQ(at1040->azimuth_ant.deg(), 4.0);
+
+    const auto at1050 = scheduler.next(1050ms);
+    EXPECT_EQ(at1050->beamType, beam::BeamCommand::BeamType::SEARCH);
+    EXPECT_EQ(at1050->beamId, 2u);
 }
 
 // ---------- 명령 카운트 ----------
@@ -336,7 +348,7 @@ TEST(SchedulerTest, CommandCountStartsAtOneAndIncreasesPerCommand)
     EXPECT_EQ(scheduler.next(0ms)->commandCount, 1u);
     EXPECT_EQ(scheduler.next(10ms)->commandCount, 2u);
 
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 20ms, 1.0, 2.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 20ms, 100, 1.0, 2.0));
 
     EXPECT_EQ(scheduler.next(20ms)->commandCount, 3u);
     EXPECT_EQ(scheduler.next(30ms)->commandCount, 4u);
@@ -359,7 +371,7 @@ TEST(SchedulerTest, CommandCountDoesNotIncreaseWhenNothingIsSent)
 TEST(SchedulerTest, RequestWhileOffIsIgnored)
 {
     beam::Scheduler scheduler;
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 0ms, 1.0, 2.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 0ms, 3, 1.0, 2.0));
     makeReady(scheduler);
 
     EXPECT_EQ(scheduler.next(0ms)->beamType, beam::BeamCommand::BeamType::SEARCH);
@@ -369,10 +381,45 @@ TEST(SchedulerTest, RequestBeforeAttitudeIsIgnored)
 {
     beam::Scheduler scheduler;
     scheduler.setOperationState(beam::OperationState::ON);
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 0ms, 1.0, 2.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 0ms, 4, 1.0, 2.0));
     scheduler.setAttitude(makeZeroAttitude());
 
     EXPECT_EQ(scheduler.next(0ms)->beamType, beam::BeamCommand::BeamType::SEARCH);
+}
+
+// ---------- 알 수 없는 요청 종류 ----------
+
+namespace
+{
+
+beam::BeamRequest makeUnknownTypeRequest()
+{
+    return makeRequest(static_cast<beam::BeamRequest::BeamType>(0), 0ms, 9, 1.0, 2.0);
+}
+
+} // namespace
+
+TEST(SchedulerTest, UnknownRequestTypeThrowsAndIsNotQueued)
+{
+    beam::Scheduler scheduler;
+    makeReady(scheduler);
+
+    EXPECT_THROW(scheduler.addRequest(makeUnknownTypeRequest()), std::invalid_argument);
+
+    // 거부된 요청은 큐에 남지 않으므로 다음 틱은 정상적으로 탐색 빔이 나간다.
+    const auto command = scheduler.next(0ms);
+    ASSERT_TRUE(command.has_value());
+    EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::SEARCH);
+    EXPECT_EQ(command->beamId, 1u);
+}
+
+TEST(SchedulerTest, UnknownRequestTypeIsIgnoredWhileOffOrBeforeAttitude)
+{
+    beam::Scheduler scheduler;
+    EXPECT_NO_THROW(scheduler.addRequest(makeUnknownTypeRequest()));
+
+    scheduler.setOperationState(beam::OperationState::ON);
+    EXPECT_NO_THROW(scheduler.addRequest(makeUnknownTypeRequest()));
 }
 
 // ---------- 초기화 ----------
@@ -383,7 +430,7 @@ TEST(SchedulerTest, TurningOnAgainAfterOffResetsEverything)
     makeReady(scheduler, makeAttitude(0_deg, 0_deg, 10_deg));
     scheduler.next(0ms);
     scheduler.next(10ms);
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 1000ms, 1.0, 2.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 1000ms, 6, 1.0, 2.0));
 
     scheduler.setOperationState(beam::OperationState::OFF);
     scheduler.setOperationState(beam::OperationState::ON);
@@ -464,14 +511,14 @@ TEST(SchedulerTest, ConfiguredRequestBeamWidthIsUsedPerBeamType)
     beam::Scheduler scheduler(makeConfigWithRequestBeamWidth(2_deg, 4_deg));
     makeReady(scheduler);
 
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, 0ms, 1.0, 5.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, 0ms, 1, 1.0, 5.0));
     const auto confirmation = scheduler.next(0ms);
     ASSERT_TRUE(confirmation.has_value());
     EXPECT_EQ(confirmation->beamType, beam::BeamCommand::BeamType::CONFIRMATION);
     EXPECT_DOUBLE_EQ(confirmation->azimuthBeamWidth.deg(), 2.0);
     EXPECT_DOUBLE_EQ(confirmation->elevationBeamWidth.deg(), 2.0);
 
-    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 10ms, 1.0, 5.0));
+    scheduler.addRequest(makeRequest(beam::BeamRequest::BeamType::TRACKING, 10ms, 2, 1.0, 5.0));
     const auto tracking = scheduler.next(10ms);
     ASSERT_TRUE(tracking.has_value());
     EXPECT_EQ(tracking->beamType, beam::BeamCommand::BeamType::TRACKING);

@@ -9,15 +9,16 @@ beam_schedule_dump 가 Scheduler 를 시나리오로 실행해 틱(10ms)마다 �
       - 위: 읽는 방법(규칙 4줄)
       - 가운데: 시간 순서대로 나간 빔. 한 칸이 10ms. 같은 종류의 탐색 빔은 한 덩어리로 묶어 번호 범위만 쓴다.
                확인/추적 빔은 칸마다 요청 이름(A, B ...)을 쓴다. 위 줄의 빈 도형은 그 요청이 들어온 시각.
-      - 아래: 요청별 "언제 들어와서 언제 나갔는지, 왜 기다렸는지/폐기됐는지"를 글로 설명한 표
+      - 아래: 요청별 "언제 들어와서 언제 나갔는지, 왜 기다렸는지"를 글로 설명한 표
+      (요청은 폐기되지 않는다. 밀린 요청은 "기다린 구간" 줄에 들어온 시각부터 나간 시각까지 선으로 보인다.)
   <접두어>_tracks.png  추적 빔이 많으면 탐색이 느려지는 정도
       - 위: 핵심 숫자 4개
       - 아래: 탐색 빔 번호가 시간에 따라 올라가는 그래프 (점선 = 요청이 없을 때, 실선 = 실제)
-  <접두어>_mixed_map.png, <접두어>_tracks_map.png   (--map 을 줄 때만)
-      - 빔이 가리키는 방향(안테나 각도)을 평면에 그린 그림. 스케줄 순서를 이해하는 데는 필요하지 않다.
+  <접두어>_mixed_map.png   (--map 을 줄 때만, mixed 시나리오에만 있다)
+      - 빔이 가리키는 방향(안테나 좌표계)과 나간 시각. 나간 순서대로 이어서 요청 빔이 끼어드는 곳을 보인다.
 
 --verify 를 주면 출력이 설계 규칙과 맞는지 검사하고, 어긋나면 종료 코드 1로 끝난다
-  (명령 카운트 연속, 탐색 번호 순환, 요청은 원한 시각 이후 허용 지연 이내에만 송신, 준비 전에는 송신 없음 등).
+  (명령 카운트 연속, 탐색 번호 순환, 요청은 원한 시각보다 일찍 나가지 않고 폐기 없이 모두 송신, 준비 전에는 송신 없음 등).
 
 저장 위치
   기본값: <aesa-processor 의 상위 폴더>/document/testImage/<오늘 날짜>/   (예: .../LIGproject/document/testImage/2026-10-12/)
@@ -57,8 +58,8 @@ from matplotlib.patches import Patch, Rectangle
 # ----- 설계 값 ----------------------------------------------------------------
 BEAM_COUNT = 189
 TICK_MS = 10
-# RequestQueue 의 종류별 허용 지연(request_queue.cpp)과 같아야 한다.
-MAX_DELAY_MS = {"CONFIRMATION": 20, "TRACKING": 30}
+# 표에서 "오래 기다렸다"고 강조하는 기준(ms). 보여 주기 위한 값일 뿐이며 스케줄러 규칙이 아니다(요청은 폐기되지 않는다).
+LONG_WAIT_MS = 30
 
 # ----- 색: 범주 슬롯 1~3 (검증된 팔레트, 모양/글자를 함께 써서 색에만 의존하지 않는다) ---------
 C_SEARCH = "#2a78d6"
@@ -69,7 +70,7 @@ C_MUTED = "#52514e"
 C_GRID = "#e4e3df"
 C_DOT = "#c9c8c2"
 C_SURFACE = "#fcfcfb"
-C_WARN = "#f7dfd6"  # 폐기된 요청 행의 배경
+C_WARN = "#f7dfd6"  # 오래 기다린(또는 끝까지 못 나간) 요청 행의 배경
 
 TYPE_STYLE = {
     "SEARCH": (C_SEARCH, "o", "탐색"),
@@ -141,12 +142,6 @@ def run_dump(binary, scenario, att):
     return dict(ticks=ticks, requests=requests, grid=grid)
 
 
-def drop_tick(request, ticks):
-    """폐기된 요청이 대기열에서 제거된 틱(허용 지연에 처음 도달한 틱)."""
-    limit = request["ts"] + MAX_DELAY_MS[request["type"]]
-    return next((tk["t"] for tk in ticks if tk["t"] >= limit), ticks[-1]["t"])
-
-
 def first_cycle_ms(ticks):
     """탐색 1번 빔이 처음 나간 틱부터 다시 1번이 나간 틱까지의 시간(ms). 한 바퀴가 없으면 None."""
     starts = [tk["t"] for tk in ticks if tk["type"] == "SEARCH" and tk["beam_id"] == 1]
@@ -192,13 +187,13 @@ def verify(scenario, data):
         if r["sent"] < 0:
             continue
         delay = r["sent"] - r["ts"]
-        if delay < 0 or delay >= MAX_DELAY_MS[r["type"]]:
-            failures.append(f"request {r['name']} sent with delay {delay}ms (limit {MAX_DELAY_MS[r['type']]}ms)")
+        if delay < 0:
+            failures.append(f"request {r['name']} sent {-delay}ms before its time")
 
-    dropped = sorted(r["name"] for r in requests if r["sent"] < 0)
-    expected_dropped = ["D", "H"] if scenario == "mixed" else []
-    if dropped != expected_dropped:
-        failures.append(f"dropped requests {dropped}, expected {expected_dropped}")
+    # 요청은 폐기되지 않으므로 시나리오 안에서 모두 송신되어야 한다.
+    unsent = sorted(r["name"] for r in requests if r["sent"] < 0)
+    if unsent:
+        failures.append(f"requests never sent {unsent}")
 
     return failures
 
@@ -240,12 +235,11 @@ def tint(color, alpha=0.22):
 # ----- mixed: 요청이 끼어들 때 -------------------------------------------------------
 def draw_rules(ax):
     ax.axis("off")
-    delay = MAX_DELAY_MS
     lines = [
         "읽는 방법",
         f"1. 빔은 10ms마다 1개씩 나갑니다.  아래 그림의 한 칸이 10ms입니다.",
         "2. 확인/추적 요청이 있으면 탐색 빔보다 먼저 보냅니다.  요청이 없을 때만 탐색 빔(1번 → 189번 순서)을 보냅니다.",
-        f"3. 요청은 들어온 뒤 확인 {delay['CONFIRMATION']}ms, 추적 {delay['TRACKING']}ms가 지나도록 못 나가면 폐기됩니다.",
+        "3. 요청은 폐기되지 않습니다.  한꺼번에 몰리면 시각 순서대로 한 칸씩 보내고, 밀린 요청은 그만큼 늦게 나갑니다.",
         "4. 같은 시각에 들어온 요청은 확인 빔이 먼저, 종류가 같으면 먼저 들어온 요청이 먼저 나갑니다.",
     ]
     ax.text(0.0, 1.0, lines[0], va="top", fontsize=12, color=C_TEXT, fontweight="bold")
@@ -307,19 +301,31 @@ def draw_blocks(ax, data):
         ax.annotate(r["name"], (r["ts"], y), xytext=(8, -1), textcoords="offset points",
                     fontsize=10, color=C_TEXT, va="center", zorder=6)
 
-    # 맨 아래 줄: 폐기된 요청
-    for r in requests:
-        if r["sent"] < 0:
-            t_drop = drop_tick(r, ticks)
-            ax.scatter(t_drop, -0.5, s=90, marker="X", color=C_TEXT, edgecolor=C_SURFACE, linewidth=0.8, zorder=6)
-            ax.annotate(f"{r['name']} 폐기", (t_drop, -0.5), xytext=(9, 0), textcoords="offset points",
-                        fontsize=10, color=C_TEXT, va="center", zorder=6)
+    # 맨 아래 줄: 요청이 들어온 뒤 나갈 때까지 기다린 구간. 겹치는 구간은 아래로 쌓는다.
+    waits = sorted((r for r in requests if r["sent"] > r["ts"]), key=lambda item: item["ts"])
+    level_end, wait_level = [], {}
+    for r in waits:
+        level = next((i for i, end in enumerate(level_end) if end + 22 <= r["ts"]), len(level_end))
+        if level == len(level_end):
+            level_end.append(r["sent"])
+        else:
+            level_end[level] = r["sent"]
+        wait_level[r["name"]] = level
+    for r in waits:
+        y = -0.35 - 0.3 * wait_level[r["name"]]
+        color = TYPE_STYLE[r["type"]][0]
+        ax.plot([r["ts"], r["sent"]], [y, y], color=color, linewidth=3.0, solid_capstyle="butt", zorder=5)
+        filled(ax, r["sent"], y, r["type"], size=40, zorder=6)
+        ax.annotate(f"{r['name']} {r['sent'] - r['ts']}ms", (r["sent"], y), xytext=(8, 0), textcoords="offset points",
+                    fontsize=9, color=C_TEXT, va="center", zorder=6)
+    wait_rows = max(len(level_end), 1)
+    wait_bottom = -0.35 - 0.3 * (wait_rows - 1) - 0.3
 
-    ax.set_ylim(-0.95, 1.55 + 0.42 * (max(levels.values()) + 1))
+    ax.set_ylim(wait_bottom, 1.55 + 0.42 * (max(levels.values()) + 1))
     ax.set_xlim(ticks[0]["t"] - 8, ticks[-1]["t"] + 8)
     ax.set_xticks(range(0, ticks[-1]["t"] + 1, 50))
-    ax.set_yticks([-0.5, 0.5, 1.55 + 0.42 * max(levels.values()) / 2])
-    ax.set_yticklabels(["폐기된 요청", "실제로\n나간 빔", "요청이\n들어온 시각"], fontsize=10, color=C_MUTED)
+    ax.set_yticks([-0.35 - 0.3 * (wait_rows - 1) / 2, 0.5, 1.55 + 0.42 * max(levels.values()) / 2])
+    ax.set_yticklabels(["기다린 구간", "실제로\n나간 빔", "요청이\n들어온 시각"], fontsize=10, color=C_MUTED)
     ax.tick_params(axis="y", length=0)
     ax.set_xlabel("시간 (ms)", color=C_MUTED, fontsize=10)
 
@@ -329,11 +335,12 @@ def draw_blocks(ax, data):
         Patch(facecolor=tint(C_TRACK), edgecolor=C_TRACK, linewidth=1.4),
         Line2D([0], [0], marker="o", linestyle="", markerfacecolor=C_SURFACE, markeredgecolor=C_MUTED,
                markeredgewidth=1.6, markersize=8),
-        Line2D([0], [0], marker="X", linestyle="", color=C_TEXT, markersize=9),
+        Line2D([0], [0], color=C_MUTED, linewidth=3.0),
         Patch(facecolor=C_GRID, edgecolor=C_DOT, linewidth=1.4),
     ]
     names = ["탐색 빔이 나감", "확인 빔이 나감 (칸 안의 글자 = 요청 이름)", "추적 빔이 나감 (칸 안의 글자 = 요청 이름)",
-             "요청이 들어온 시각 (빈 도형, 모양은 종류별)", "폐기됨", "아직 보내지 않는 구간"]
+             "요청이 들어온 시각 (빈 도형, 모양은 종류별)", "들어온 뒤 나갈 때까지 기다린 구간 (끝의 숫자 = 기다린 시간)",
+             "아직 보내지 않는 구간"]
     ax.legend(handles, names, loc="upper left", bbox_to_anchor=(0.0, -0.22), ncol=3, fontsize=9.5,
               frameon=False, labelcolor=C_MUTED, columnspacing=1.8, handletextpad=0.5)
 
@@ -341,30 +348,28 @@ def draw_blocks(ax, data):
 def explain_request(r, data):
     """요청 한 건이 어떻게 처리됐는지 평이한 문장으로 만든다."""
     ticks, requests = data["ticks"], data["requests"]
-    limit = MAX_DELAY_MS[r["type"]]
     name_at = {q["sent"]: q["name"] for q in requests if q["sent"] >= 0}
-    end = r["sent"] if r["sent"] >= 0 else r["ts"] + limit
+    end = r["sent"] if r["sent"] >= 0 else ticks[-1]["t"] + TICK_MS
     ahead = [name_at[tk["t"]] for tk in ticks if r["ts"] <= tk["t"] < end and tk["t"] in name_at]
 
-    if r["sent"] >= 0:
-        delay = r["sent"] - r["ts"]
-        if delay == 0:
-            text = "들어오자마자 바로 나감"
-        elif ahead:
-            text = f"먼저 나간 요청({', '.join(ahead)}) 때문에 {delay}ms 기다린 뒤 나감"
-        else:
-            text = f"다음 송신 시점까지 {delay}ms 기다린 뒤 나감"
-        later_same_time = [q["name"] for q in requests
-                           if q is not r and q["ts"] == r["ts"] and q["type"] != "CONFIRMATION"
-                           and (q["sent"] < 0 or q["sent"] > r["sent"])]
-        if r["type"] == "CONFIRMATION" and later_same_time:
-            text += f"\n확인 빔이라 같은 시각의 추적 요청({', '.join(later_same_time)})보다 먼저 나감"
+    if r["sent"] < 0:
+        text = f"시나리오가 끝날 때까지({ticks[-1]['t']}ms) 나가지 못함"
+        if ahead:
+            text += f"\n그 사이 먼저 나간 요청: {', '.join(ahead)}"
         return text
 
-    t_drop = drop_tick(r, ticks)
-    text = f"{limit}ms 안에 못 나가서 {t_drop}ms에 폐기됨"
-    if ahead:
-        text += f"\n그 사이 먼저 나간 요청: {', '.join(ahead)}"
+    delay = r["sent"] - r["ts"]
+    if delay == 0:
+        text = "들어오자마자 바로 나감"
+    elif ahead:
+        text = f"먼저 나간 요청({', '.join(ahead)}) 때문에 {delay}ms 기다린 뒤 나감"
+    else:
+        text = f"다음 송신 시점까지 {delay}ms 기다린 뒤 나감"
+    later_same_time = [q["name"] for q in requests
+                       if q is not r and q["ts"] == r["ts"] and q["type"] != "CONFIRMATION"
+                       and (q["sent"] < 0 or q["sent"] > r["sent"])]
+    if r["type"] == "CONFIRMATION" and later_same_time:
+        text += f"\n확인 빔이라 같은 시각의 추적 요청({', '.join(later_same_time)})보다 먼저 나감"
     return text
 
 
@@ -387,19 +392,19 @@ def draw_request_table(ax, data):
     ax.plot([0, 1], [1, 1], color=C_DOT, linewidth=1.0)
 
     for i, r in enumerate(requests, start=1):
-        dropped = r["sent"] < 0
-        if dropped:
+        waited_long = r["sent"] < 0 or r["sent"] - r["ts"] >= LONG_WAIT_MS
+        if waited_long:
             ax.add_patch(Rectangle((0, i), 1, 1, facecolor=C_WARN, edgecolor="none", zorder=0))
         ax.plot([0, 1], [i + 1, i + 1], color=C_GRID, linewidth=0.8)
         color, marker, kind_name = TYPE_STYLE[r["type"]]
         ax.scatter([0.075], [i + 0.5], s=40, marker=marker, color=color, zorder=3)
         values = [
-            (r["name"], 0.01, "bold" if dropped else "normal"),
+            (r["name"], 0.01, "bold" if waited_long else "normal"),
             (kind_name, 0.09, "normal"),
             (f"{r['ts']}ms", 0.165, "normal"),
-            ("-" if dropped else f"{r['sent']}ms", 0.27, "normal"),
-            ("-" if dropped else f"{r['sent'] - r['ts']}ms", 0.365, "normal"),
-            (explain_request(r, data), 0.47, "bold" if dropped else "normal"),
+            ("-" if r["sent"] < 0 else f"{r['sent']}ms", 0.27, "normal"),
+            ("-" if r["sent"] < 0 else f"{r['sent'] - r['ts']}ms", 0.365, "normal"),
+            (explain_request(r, data), 0.47, "bold" if waited_long else "normal"),
         ]
         for text, x, weight in values:
             ax.text(x, i + 0.5, text, fontsize=10.5, color=C_TEXT, va="center", fontweight=weight, linespacing=1.35)
@@ -417,43 +422,89 @@ def draw_mixed(data, att):
     return fig
 
 
+def search_runs(ticks):
+    """연속해서 나간 탐색 빔 묶음. 요청 빔이 끼어들면 새 묶음이 시작된다."""
+    runs, current = [], []
+    for tk in ticks:
+        if tk["type"] == "SEARCH":
+            current.append(tk)
+        elif current:
+            runs.append(current)
+            current = []
+    if current:
+        runs.append(current)
+    return runs
+
+
 def draw_sky_mixed(data, att):
     ticks, requests, grid = data["ticks"], data["requests"], data["grid"]
-    fig, ax = plt.subplots(figsize=(10, 7.5), layout="constrained")
+    fig, ax = plt.subplots(figsize=(11, 7.8), layout="constrained")
     fig.patch.set_facecolor(C_SURFACE)
-    style_axis(ax, "빔이 가리키는 방향 (안테나 좌표계)")
+    style_axis(ax, "빔이 가리키는 방향과 나간 시각 (안테나 좌표계)")
     ax.set_xlabel("방위각 (deg)", color=C_MUTED, fontsize=10)
     ax.set_ylabel("고각 (deg)", color=C_MUTED, fontsize=10)
     ax.set_aspect("equal", adjustable="box")
 
     ax.scatter([g["az"] for g in grid], [g["el"] for g in grid], s=10, color=C_DOT, zorder=1)
 
-    searches = [tk for tk in ticks if tk["type"] == "SEARCH"]
-    az = np.array([tk["az"] for tk in searches])
-    el = np.array([tk["el"] for tk in searches])
-    # 한 줄(고각)이 끝나 다음 줄 왼쪽으로 넘어가는 곳에서는 선을 끊는다.
-    breaks = np.where(np.diff(az) < 0)[0] + 1
-    ax.plot(np.insert(az, breaks, np.nan), np.insert(el, breaks, np.nan), color=C_SEARCH, linewidth=1.0,
-            alpha=0.55, zorder=2)
-    ax.scatter(az, el, s=26, color=C_SEARCH, edgecolor=C_SURFACE, linewidth=0.8, zorder=3)
-    arrow = dict(arrowstyle="-", color=C_MUTED, linewidth=0.8)
-    first, last = searches[0], searches[-1]
-    ax.annotate(f"처음 보낸 탐색 빔 #{first['beam_id']}", (first["az"], first["el"]), xytext=(-8, -42),
-                textcoords="offset points", fontsize=9.5, color=C_TEXT, ha="center", arrowprops=arrow, zorder=7)
-    ax.annotate(f"마지막 탐색 빔 #{last['beam_id']}", (last["az"], last["el"]), xytext=(30, -40),
-                textcoords="offset points", fontsize=9.5, color=C_TEXT, ha="center", arrowprops=arrow, zorder=7)
+    # 나간 순서대로 이어 그린다. 탐색끼리는 파란 실선, 요청 빔이 끼어든 구간은 가는 회색 점선이고 끝에 화살표를 붙인다.
+    sent = [tk for tk in ticks if tk["type"] != "NONE"]
+    for previous, current in zip(sent, sent[1:]):
+        xs, ys = [previous["az"], current["az"]], [previous["el"], current["el"]]
+        if previous["type"] == "SEARCH" and current["type"] == "SEARCH":
+            if current["az"] > previous["az"]:  # 줄 바꿈(다음 고각 줄의 왼쪽으로 이동)에서는 선을 끊는다
+                ax.plot(xs, ys, color=C_SEARCH, linewidth=1.0, alpha=0.55, zorder=2)
+        else:
+            ax.plot(xs, ys, color=C_MUTED, linewidth=0.6, linestyle=(0, (2, 2.5)), alpha=0.85, zorder=2)
+            # 도착하는 빔 쪽 끝에 화살촉만 붙여서 어느 쪽으로 이어지는지 보이게 한다(마커에 가려지지 않게 조금 앞에서 끝낸다).
+            tail = (xs[1] - 0.08 * (xs[1] - xs[0]), ys[1] - 0.08 * (ys[1] - ys[0]))
+            ax.annotate("", xy=(xs[1], ys[1]), xytext=tail,
+                        arrowprops=dict(arrowstyle="-|>", color=C_MUTED, linewidth=0.6, alpha=0.85,
+                                        mutation_scale=9, shrinkA=0, shrinkB=6), zorder=2)
 
+    searches = [tk for tk in ticks if tk["type"] == "SEARCH"]
+    scatter = ax.scatter([tk["az"] for tk in searches], [tk["el"] for tk in searches], c=[tk["t"] for tk in searches],
+                         cmap=SEQ_BLUE, s=38, edgecolor=C_SURFACE, linewidth=0.6, zorder=3,
+                         vmin=ticks[0]["t"], vmax=ticks[-1]["t"])
+    colorbar = fig.colorbar(scatter, ax=ax, shrink=0.8, pad=0.02)
+    colorbar.set_label("탐색 빔이 나간 시각 (ms)", fontsize=9, color=C_MUTED)
+    colorbar.ax.tick_params(labelsize=9, colors=C_MUTED)
+    colorbar.outline.set_visible(False)
+
+    # 탐색 묶음마다 나간 시각의 범위를 첫 빔 아래에 쓴다
+    for run in search_runs(ticks):
+        first, last = run[0], run[-1]
+        text = f"{first['t']}ms" if first is last else f"{first['t']}~{last['t']}ms"
+        ax.annotate(text, (first["az"], first["el"]), xytext=(0, -13), textcoords="offset points",
+                    fontsize=8.5, color=C_MUTED, ha="center", va="top", zorder=7)
+
+    # 가까이 있는 요청끼리 글자가 겹치지 않도록 이웃한 요청은 위/아래로 번갈아 쓴다.
+    placed = []
     for r in requests:
-        (hollow if r["sent"] < 0 else filled)(ax, r["az"], r["el"], r["type"], size=80, zorder=6)
-        label = r["name"] + (" (폐기)" if r["sent"] < 0 else "")
-        ax.annotate(label, (r["az"], r["el"]), xytext=(7, 5), textcoords="offset points",
-                    fontsize=9.5, color=C_TEXT, zorder=7)
+        label = f"{r['name']}  {r['sent']}ms"
+        if r["sent"] < 0:
+            hollow(ax, r["az"], r["el"], r["type"], size=90, zorder=6)
+            label = f"{r['name']}  (미송신)"
+        else:
+            filled(ax, r["az"], r["el"], r["type"], size=90, zorder=6)
+            if r["sent"] > r["ts"]:
+                label += f"\n(+{r['sent'] - r['ts']}ms 대기)"
+        near = [slot for (az, el, slot) in placed if abs(az - r["az"]) <= 8 and abs(el - r["el"]) <= 3]
+        slot = (near[-1] + 1) % 2 if near else 0
+        placed.append((r["az"], r["el"], slot))
+        if slot == 0:
+            ax.annotate(label, (r["az"], r["el"]), xytext=(8, 8), textcoords="offset points",
+                        fontsize=9, color=C_TEXT, va="bottom", linespacing=1.2, zorder=7)
+        else:
+            ax.annotate(label, (r["az"], r["el"]), xytext=(8, -8), textcoords="offset points",
+                        fontsize=9, color=C_TEXT, va="top", linespacing=1.2, zorder=7)
 
     xlim, ylim = sky_limits(grid)
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
-    ax.text(0.0, -0.1, "회색 점: BeamTable의 탐색 빔 189개   파란 점: 이번에 나간 탐색 빔(순서대로)\n"
-                       "채워진 사각형/삼각형: 나간 확인/추적 빔   빈 도형: 폐기된 요청\n"
+    ax.text(0.0, -0.1, "회색 점: BeamTable의 탐색 빔 189개   파란 점: 나간 탐색 빔 (색 = 나간 시각, 아래 숫자 = 그 묶음이 나간 시각)\n"
+                       "사각형/삼각형: 나간 확인/추적 빔 (글자 = 요청 이름과 나간 시각)\n"
+                       "파란 실선: 탐색이 이어지는 순서   회색 점선 화살표: 요청 빔이 끼어들어 갔다가 탐색으로 돌아오는 순서(화살표 방향 = 나간 순서)\n"
                        f"안테나 자세 roll,pitch,yaw = {att[0]:g},{att[1]:g},{att[2]:g}",
             transform=ax.transAxes, fontsize=9, color=C_MUTED, va="top")
     return fig
@@ -467,7 +518,7 @@ def draw_tiles(ax, data):
     cycle = first_cycle_ms(ticks)
     ideal = BEAM_COUNT * TICK_MS
     sent = sum(1 for r in requests if r["sent"] >= 0)
-    dropped = len(requests) - sent
+    longest_wait = max((r["sent"] - r["ts"] for r in requests if r["sent"] >= 0), default=0)
     hold = 0
     if cycle:
         t_start = next(tk["t"] for tk in ticks if tk["type"] == "SEARCH" and tk["beam_id"] == 1)
@@ -478,7 +529,7 @@ def draw_tiles(ax, data):
         (f"+{(cycle / ideal - 1) * 100:.0f}%" if cycle else "해당 없음",
          f"추적 빔 {hold}개가 먼저 나가서\n탐색이 {hold * TICK_MS}ms 멈춤" if cycle else ""),
         (f"{sent} / {len(requests)}", "나간 추적 요청 수\n(전체 요청 중)"),
-        (f"{dropped}", "폐기된 요청\n(요청이 50ms 간격이라 겹치지 않음)"),
+        (f"{longest_wait}ms", "요청이 나가기까지 가장 오래\n기다린 시간 (요청이 50ms 간격이라 겹치지 않음)"),
     ]
     for i, (value, caption) in enumerate(tiles):
         x = 0.01 + 0.25 * i
@@ -548,48 +599,6 @@ def draw_tracks(data, att):
     return fig
 
 
-def draw_sky_cycle(data, att):
-    ticks, requests, grid = data["ticks"], data["requests"], data["grid"]
-    fig, ax = plt.subplots(figsize=(10, 7.5), layout="constrained")
-    fig.patch.set_facecolor(C_SURFACE)
-    style_axis(ax, "첫 탐색 한 바퀴의 순서와 추적 빔 위치 (안테나 좌표계)")
-    ax.set_xlabel("방위각 (deg)", color=C_MUTED, fontsize=10)
-    ax.set_ylabel("고각 (deg)", color=C_MUTED, fontsize=10)
-    ax.set_aspect("equal", adjustable="box")
-
-    time_of = {}
-    for tk in ticks:
-        if tk["type"] == "SEARCH" and tk["beam_id"] not in time_of:
-            time_of[tk["beam_id"]] = tk["t"]
-    t0 = min(time_of.values())
-    order = [time_of.get(g["beam_id"], np.nan) - t0 for g in grid]
-    scatter = ax.scatter([g["az"] for g in grid], [g["el"] for g in grid], c=order, cmap=SEQ_BLUE, s=34,
-                         edgecolor=C_SURFACE, linewidth=0.6, zorder=3)
-    colorbar = fig.colorbar(scatter, ax=ax, shrink=0.8, pad=0.02)
-    colorbar.set_label("첫 바퀴에서 탐색된 시각 (첫 탐색 빔부터 ms)", fontsize=9, color=C_MUTED)
-    colorbar.ax.tick_params(labelsize=9, colors=C_MUTED)
-    colorbar.outline.set_visible(False)
-
-    sent = [r for r in requests if r["sent"] >= 0]
-    ax.scatter([r["az"] for r in sent], [r["el"] for r in sent], s=40, marker="^", color=C_TRACK,
-               edgecolor=C_TEXT, linewidth=0.5, zorder=5)
-    first = min(grid, key=lambda g: g["beam_id"])
-    last = max(grid, key=lambda g: g["beam_id"])
-    arrow = dict(arrowstyle="-", color=C_MUTED, linewidth=0.8)
-    ax.annotate("시작: 탐색 빔 1번", (first["az"], first["el"]), xytext=(-10, -40), textcoords="offset points",
-                fontsize=9.5, color=C_TEXT, ha="center", arrowprops=arrow, zorder=7)
-    ax.annotate(f"끝: 탐색 빔 {BEAM_COUNT}번", (last["az"], last["el"]), xytext=(-10, 40), textcoords="offset points",
-                fontsize=9.5, color=C_TEXT, ha="center", arrowprops=arrow, zorder=7)
-
-    xlim, ylim = sky_limits(grid)
-    ax.set_xlim(*xlim)
-    ax.set_ylim(*ylim)
-    ax.text(0.0, -0.1, "점: 탐색 빔 189개 (진할수록 나중에 탐색)   초록 삼각형: 추적 빔 위치\n"
-                       f"안테나 자세 roll,pitch,yaw = {att[0]:g},{att[1]:g},{att[2]:g}",
-            transform=ax.transAxes, fontsize=9, color=C_MUTED, va="top")
-    return fig
-
-
 # ----- 실행 ----------------------------------------------------------------------
 def parse_att(text):
     try:
@@ -608,7 +617,7 @@ def main():
     ap.add_argument("--out-dir", type=Path, default=None,
                     help="저장 폴더 (기본: <aesa-processor 상위>/document/testImage/<오늘 날짜>)")
     ap.add_argument("--out", default=None, help="예전 방식: 저장할 PNG 경로의 접두어 (<접두어>_<시나리오>.png)")
-    ap.add_argument("--map", action="store_true", help="빔이 가리키는 방향 그림(<이름>_map.png)도 함께 저장")
+    ap.add_argument("--map", action="store_true", help="빔이 가리키는 방향 그림(mixed 시나리오만, <이름>_map.png)도 함께 저장")
     ap.add_argument("--verify", action="store_true", help="출력이 설계 규칙과 맞는지 검사 (어긋나면 exit 1)")
     args = ap.parse_args()
 
@@ -621,15 +630,15 @@ def main():
 
     scenarios = ["mixed", "tracks"] if args.scenario == "both" else [args.scenario]
     drawers = {"mixed": draw_mixed, "tracks": draw_tracks}
-    map_drawers = {"mixed": draw_sky_mixed, "tracks": draw_sky_cycle}
+    map_drawers = {"mixed": draw_sky_mixed}  # tracks 는 방향도를 만들지 않는다
 
     failed = False
     for scenario in scenarios:
         data = run_dump(args.binary, scenario, args.att)
         sent = sum(1 for tk in data["ticks"] if tk["type"] != "NONE")
-        dropped = sum(1 for r in data["requests"] if r["sent"] < 0)
+        unsent = sum(1 for r in data["requests"] if r["sent"] < 0)
         line = (f"[{scenario}] ticks={len(data['ticks'])} beams sent={sent} "
-                f"requests={len(data['requests'])} dropped={dropped}")
+                f"requests={len(data['requests'])} unsent={unsent}")
         cycle = first_cycle_ms(data["ticks"])
         if cycle:
             line += f" first search sweep={cycle}ms (search only: {BEAM_COUNT * TICK_MS}ms)"
@@ -643,7 +652,7 @@ def main():
             failed |= bool(failures)
 
         outputs = [(f"{prefix}_{scenario}.png", drawers[scenario](data, args.att))]
-        if args.map:
+        if args.map and scenario in map_drawers:
             outputs.append((f"{prefix}_{scenario}_map.png", map_drawers[scenario](data, args.att)))
         for path, fig in outputs:
             fig.savefig(path, dpi=130, facecolor=fig.get_facecolor())

@@ -8,6 +8,10 @@
 namespace beam
 {
 
+// 확인/추적 빔 송신 요청.
+// - azimuth_ant, elevation_ant는 안테나 좌표계 각도이며, 변환 없이 BeamCommand로 그대로 전달된다.
+// - 좌표 변환과 추적 영역 범위 검증은 요청을 만드는 쪽의 책임이며, 빔 모듈은 값을 검사하지 않는다.
+// - requestId는 BeamCommand::beamId로 전달된다.
 struct BeamRequest
 {
     enum class BeamType : uint8_t;

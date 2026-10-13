@@ -4,7 +4,7 @@
 // 출력  : 빈 줄 없이 "# ticks", "# requests", "# grid" 세 구역을 차례로 출력한다.
 //   # ticks    tick_ms,status,type,beamID,commandCount,az_deg,el_deg,az_width_deg,el_width_deg
 //              (송신할 빔이 없는 틱은 type 이 NONE 이고 나머지 칸이 비어 있다)
-//   # requests name,type,timestamp_ms,az_deg,el_deg,sent_tick_ms   (송신되지 못한 요청은 -1)
+//   # requests name,type,timestamp_ms,az_deg,el_deg,sent_tick_ms   (시나리오가 끝날 때까지 송신되지 못한 요청은 -1)
 //   # grid     idx,beamID,az_deg,el_deg   (BeamTable 189개, 안테나 기준 각도)
 //
 // 시나리오 정의와 실행은 schedule_scenario.hpp 를 scheduler_scenario_test 와 함께 쓴다.

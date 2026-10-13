@@ -4,7 +4,7 @@
 // 쓰도록 한 곳에 둔다. 그림으로 본 동작과 테스트가 검증하는 동작이 어긋나지 않게 하기 위함이다.
 //
 // 시나리오:
-//   mixed  : 짧은 구간(400ms)에 확인/추적 요청을 섞어 넣고, 같은 시각에 몰릴 때의 순서와 폐기를 본다.
+//   mixed  : 짧은 구간(400ms)에 확인/추적 요청을 섞어 넣고, 같은 시각에 몰릴 때의 순서와 지연을 본다.
 //   tracks : 추적 20개를 1초 주기(50ms 간격)로 요청하며 3초 동안 돌려, 요청이 탐색 한 바퀴에 주는 영향을 본다.
 
 #pragma once
@@ -36,7 +36,7 @@ struct RequestSpec
 {
     std::string name;
     beam::BeamRequest request;
-    // 이 요청 때문에 송신된 빔의 틱(ms). 송신되지 못하고 폐기되었으면 -1
+    // 이 요청 때문에 송신된 빔의 틱(ms). 시나리오가 끝날 때까지 송신되지 못했으면 -1 (요청은 폐기되지 않는다)
     long long sentTick_ms = -1;
 };
 
@@ -91,13 +91,13 @@ inline Scenario makeMixedScenario()
     scenario.requests = std::vector<RequestSpec>{
         makeRequestSpec("C1", Type::CONFIRMATION, 100ms, -10.0, 12.0),
         makeRequestSpec("T1", Type::TRACKING, 150ms, 20.0, 25.0),
-        // 200ms 부근에 네 요청이 몰린다: 송신 순서는 A -> B(확인 우선) -> C, D는 지연이 길어져 폐기.
+        // 200ms 부근에 네 요청이 몰린다: 송신 순서는 A -> B(확인 우선) -> C, D(30ms 지연되어 송신).
         // 확인 B를 도착 순서상 가장 나중에 넣어서, 도착 순서가 아니라 종류 때문에 먼저 나가는지 드러나게 한다.
         makeRequestSpec("A", Type::TRACKING, 205ms, -30.0, 8.0),
         makeRequestSpec("C", Type::TRACKING, 210ms, 15.0, 30.0),
         makeRequestSpec("D", Type::TRACKING, 210ms, 25.0, 15.0),
         makeRequestSpec("B", Type::CONFIRMATION, 210ms, 5.0, 20.0),
-        // 300ms에 추적 4개가 같은 시각: E, F, G는 지연되어 송신되고 H는 폐기
+        // 300ms에 추적 4개가 같은 시각: E는 바로, F, G, H는 한 틱씩 밀려 차례로 송신 (H는 30ms 지연)
         makeRequestSpec("E", Type::TRACKING, 300ms, -20.0, 35.0),
         makeRequestSpec("F", Type::TRACKING, 300ms, -15.0, 35.0),
         makeRequestSpec("G", Type::TRACKING, 300ms, -10.0, 35.0),
