@@ -1,9 +1,8 @@
 #pragma once
 
-#include <math/angle.hpp>
-#include <math/square_matrix.hpp>
+#include <math/quantity/angle.hpp>
+#include <math/linear_algebra/square_matrix.hpp>
 
-#include <chrono>
 #include <cstddef>
 
 namespace beam
@@ -29,13 +28,6 @@ struct SearchGridConfig
     math::Angle beamWidth = 6_deg;
 };
 
-// 확인/추적 빔 요청이 자신의 시각 이후 이 시간 이상 지나면 만료로 보고 폐기한다.
-struct RequestQueueConfig
-{
-    std::chrono::milliseconds confirmationMaxDelay{20};
-    std::chrono::milliseconds trackingMaxDelay{30};
-};
-
 struct RequestBeamConfig
 {
     math::Angle confirmationBeamWidth = 3_deg;
@@ -46,7 +38,6 @@ struct BeamConfig
 {
     AttitudeConfig attitude;
     SearchGridConfig searchGrid;
-    RequestQueueConfig requestQueue;
     RequestBeamConfig requestBeam;
 };
 

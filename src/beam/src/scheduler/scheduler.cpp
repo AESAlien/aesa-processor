@@ -3,7 +3,6 @@
 #include "attitude/ant_enu_transform.hpp"
 #include "beam/config/beam_config.hpp"
 
-#include <cmath>
 #include <stdexcept>
 
 namespace beam
@@ -12,15 +11,10 @@ namespace
 {
 using namespace math::literals;
 
-bool isFinite(math::Angle angle)
-{
-    return std::isfinite(angle.deg());
-}
-
 void validate(const RequestBeamConfig& config)
 {
     // NaN은 크기 비교가 모두 false이므로 유한성을 먼저 확인한다.
-    if (!isFinite(config.confirmationBeamWidth) || !isFinite(config.trackingBeamWidth))
+    if (!config.confirmationBeamWidth.isFinite() || !config.trackingBeamWidth.isFinite())
     {
         throw std::invalid_argument("RequestBeamConfig: beam width must be finite");
     }
@@ -28,6 +22,15 @@ void validate(const RequestBeamConfig& config)
     if (config.confirmationBeamWidth <= 0_deg || config.trackingBeamWidth <= 0_deg)
     {
         throw std::invalid_argument("RequestBeamConfig: beam width must be greater than 0");
+    }
+}
+
+void validate(const BeamRequest& request)
+{
+    if (request.beamType != BeamRequest::BeamType::CONFIRMATION &&
+        request.beamType != BeamRequest::BeamType::TRACKING)
+    {
+        throw std::invalid_argument("Unknown beam request type");
     }
 }
 
@@ -95,8 +98,7 @@ BeamCommand makeRequestCommand(
 }
 } // namespace
 
-Scheduler::Scheduler(const BeamConfig& config)
-    : _config(config), _requestQueue(config.requestQueue)
+Scheduler::Scheduler(const BeamConfig& config) : _config(config)
 {
     validate(_config.requestBeam);
 }
@@ -134,6 +136,7 @@ void Scheduler::addRequest(const BeamRequest& request)
         return;
     }
 
+    validate(request);
     _requestQueue.add(request);
 }
 

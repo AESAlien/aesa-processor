@@ -1,4 +1,4 @@
-﻿#include "math/square_matrix.hpp"
+﻿#include "math/linear_algebra/square_matrix.hpp"
 
 #include <cmath>
 #include <stdexcept>
@@ -61,6 +61,11 @@ bool SquareMatrix::empty() const noexcept
     return _matrix.empty();
 }
 
+bool SquareMatrix::isFinite() const noexcept
+{
+    return _matrix.isFinite();
+}
+
 bool SquareMatrix::equals(const SquareMatrix& other, const SquareMatrix& absoluteTolerance) const noexcept
 {
     if (size() != other.size() || size() != absoluteTolerance.size())
@@ -87,6 +92,47 @@ bool SquareMatrix::equals(const SquareMatrix& other, const SquareMatrix& absolut
 bool SquareMatrix::equals(const SquareMatrix& other, double relativeTolerance) const noexcept
 {
     return _matrix.equals(other._matrix, relativeTolerance);
+}
+
+bool SquareMatrix::isOrthogonal(double tolerance) const
+{
+    if (!std::isfinite(tolerance) || tolerance < 0.0)
+    {
+        throw std::invalid_argument("Orthogonality tolerance must be finite and non-negative");
+    }
+
+    if (!isFinite())
+    {
+        return false;
+    }
+
+    for (std::size_t i = 0; i < columns(); ++i)
+    {
+        for (std::size_t j = i; j < columns(); ++j)
+        {
+            double dot = 0.0;
+            for (std::size_t row = 0; row < rows(); ++row)
+            {
+                dot += at(row, i) * at(row, j);
+            }
+            const double expected = i == j ? 1.0 : 0.0;
+            if (!std::isfinite(dot) || std::abs(dot - expected) > tolerance)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool SquareMatrix::isRotation(double tolerance) const
+{
+    if (!std::isfinite(tolerance) || tolerance < 0.0)
+    {
+        return false;
+    }
+
+    return isOrthogonal(tolerance) && std::abs(det() - 1.0) <= tolerance;
 }
 
 double& SquareMatrix::at(std::size_t row, std::size_t column)

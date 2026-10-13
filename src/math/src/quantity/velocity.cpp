@@ -1,10 +1,11 @@
-﻿#include "math/velocity.hpp"
+﻿#include "math/quantity/velocity.hpp"
 
-#include "relative_comparison.hpp"
+#include "../relative_comparison.hpp"
 #include <cmath>
 
 namespace math
 {
+using namespace literals;
 
 Velocity Velocity::fromMetersPerSecond(double metersPerSecond) noexcept
 {
@@ -16,10 +17,16 @@ double Velocity::mps() const noexcept
     return _metersPerSecond;
 }
 
+bool Velocity::isFinite() const noexcept
+{
+    return std::isfinite(_metersPerSecond);
+}
+
 bool Velocity::equals(const Velocity& other, const Velocity& absoluteTolerance) const noexcept
 {
-    return std::isfinite(absoluteTolerance._metersPerSecond)
-        && absoluteTolerance._metersPerSecond >= 0.0
+    return isFinite() && other.isFinite()
+        && absoluteTolerance.isFinite()
+        && absoluteTolerance >= 0.0_mps
         && std::abs(_metersPerSecond - other._metersPerSecond) <= absoluteTolerance._metersPerSecond;
 }
 
@@ -56,6 +63,11 @@ Velocity Velocity::operator-() const noexcept
 Velocity::Velocity(double metersPerSecond) noexcept
     : _metersPerSecond(metersPerSecond)
 {
+}
+
+Velocity abs(Velocity velocity) noexcept
+{
+    return Velocity::fromMetersPerSecond(std::abs(velocity.mps()));
 }
 
 namespace literals

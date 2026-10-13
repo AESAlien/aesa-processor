@@ -3,9 +3,9 @@
 #include <chrono>
 #include <cstdint>
 #include <optional>
-#include <math/angle.hpp>
-#include <math/distance.hpp>
-#include <math/velocity.hpp>
+#include <math/quantity/angle.hpp>
+#include <math/quantity/distance.hpp>
+#include <math/quantity/velocity.hpp>
 
 namespace target
 {
