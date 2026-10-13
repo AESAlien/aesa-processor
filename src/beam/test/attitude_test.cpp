@@ -60,9 +60,9 @@ TEST(AttitudeTransformTest, ZeroAttitudeKeepsAngles)
 
 TEST(AttitudeTransformTest, AcceptsAnglesCreatedFromRadians)
 {
-    const auto transform = makeValidTransform(0_deg, 0_deg, (math::PI / 2.0)_rad);
+    const auto transform = makeValidTransform(0_deg, 0_deg, math::Angle::fromRadians(math::PI / 2.0));
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(
-        (-math::PI / 6.0)_rad, (math::PI / 18.0)_rad));
+        math::Angle::fromRadians(-math::PI / 6.0), math::Angle::fromRadians(math::PI / 18.0)));
 
     EXPECT_TRUE(direction_enu.azimuth().equals(60_deg, 1e-9));
     EXPECT_TRUE(direction_enu.elevation().equals(10_deg, 1e-9));
