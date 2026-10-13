@@ -252,8 +252,8 @@ TEST(AttitudeTransformTest, AntToEnuAndBackRestoresAngles)
         {
             const auto direction_enu = transform.antToEnu(math::SphericalDirection(azimuth_ant, elevation_ant));
             const auto directionRestored_ant = transform.enuToAnt(direction_enu);
-            EXPECT_TRUE(directionRestored_ant.azimuth().equals(azimuth_ant, 1e-9));
-            EXPECT_TRUE(directionRestored_ant.elevation().equals(elevation_ant, 1e-9));
+            EXPECT_TRUE(directionRestored_ant.azimuth().equals(azimuth_ant, 1e-9_deg));
+            EXPECT_TRUE(directionRestored_ant.elevation().equals(elevation_ant, 1e-9_deg));
         }
     }
 }

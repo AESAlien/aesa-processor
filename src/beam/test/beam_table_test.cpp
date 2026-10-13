@@ -140,8 +140,8 @@ TEST(BeamTableTest, TableConvertedBackToFixedFrameRestoresGrid)
     {
         const math::SphericalDirection direction_enu = transform.antToEnu(math::SphericalDirection(
             table.get(beamIndex).azimuth_ant, table.get(beamIndex).elevation_ant));
-        EXPECT_TRUE(direction_enu.azimuth().equals(gridAzimuth(beamIndex).wrap180(), 1e-3)) << "beamIndex=" << beamIndex;
-        EXPECT_TRUE(direction_enu.elevation().equals(gridElevation(beamIndex), 1e-3)) << "beamIndex=" << beamIndex;
+        EXPECT_TRUE(direction_enu.azimuth().equals(gridAzimuth(beamIndex).wrap180(), 1e-3_deg)) << "beamIndex=" << beamIndex;
+        EXPECT_TRUE(direction_enu.elevation().equals(gridElevation(beamIndex), 1e-3_deg)) << "beamIndex=" << beamIndex;
     }
 }
 
