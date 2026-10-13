@@ -5,6 +5,7 @@ add_library(math STATIC
     src/distance.cpp
     src/matrix.cpp
     src/square_matrix.cpp
+    src/spherical_point.cpp
     src/vector.cpp
     src/velocity.cpp
 )
@@ -22,6 +23,10 @@ gtest_discover_tests(angle_test)
 add_executable(distance_test test/distance_test.cpp)
 target_link_libraries(distance_test PRIVATE math GTest::gtest_main)
 gtest_discover_tests(distance_test)
+
+add_executable(spherical_point_test test/spherical_point_test.cpp)
+target_link_libraries(spherical_point_test PRIVATE math GTest::gtest_main)
+gtest_discover_tests(spherical_point_test)
 
 add_executable(velocity_test test/velocity_test.cpp)
 target_link_libraries(velocity_test PRIVATE math GTest::gtest_main)
