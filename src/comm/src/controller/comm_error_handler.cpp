@@ -1,6 +1,6 @@
 #include <controller/comm_error_handler.hpp>
 
-#include <comm/controller/comm_error.hpp>
+#include <comm/error/comm_error.hpp>
 
 #include <iostream>
 #include <mutex>

@@ -1,4 +1,4 @@
-#include <comm/controller/comm_error.hpp>
+#include <comm/error/comm_error.hpp>
 
 #include <controller/comm_error_handler.hpp>
 
