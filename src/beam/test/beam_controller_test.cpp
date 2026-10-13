@@ -80,8 +80,8 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheBeamTable)
         const auto command = controller.nextBeamCommand(std::chrono::milliseconds(10 * index));
 
         ASSERT_TRUE(command.has_value());
-        EXPECT_TRUE(command->azimuth_ant.equals(expectedTable.get(index).azimuth_ant, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-9})) << "index=" << index;
-        EXPECT_TRUE(command->elevation_ant.equals(expectedTable.get(index).elevation_ant, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 1e-9}))
+        EXPECT_EQ(command->azimuth_ant, expectedTable.get(index).azimuth_ant) << "index=" << index;
+        EXPECT_EQ(command->elevation_ant, expectedTable.get(index).elevation_ant)
             << "index=" << index;
     }
 }
@@ -105,8 +105,8 @@ TEST(BeamControllerTest, RequestBeamIsDeliveredToScheduler)
 
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::TRACKING);
-    EXPECT_TRUE(command->azimuth_ant.equals(7.5_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(command->elevation_ant.equals(15.5_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_EQ(command->azimuth_ant, 7.5_deg);
+    EXPECT_EQ(command->elevation_ant, 15.5_deg);
 }
 
 TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)

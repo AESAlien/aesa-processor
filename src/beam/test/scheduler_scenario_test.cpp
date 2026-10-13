@@ -108,14 +108,14 @@ void expectCommonRules(const Result& result)
         EXPECT_EQ(command.transmitTime, std::chrono::milliseconds(tick.tick_ms));
         if (command.beamType == beam::BeamCommand::BeamType::SEARCH)
         {
-            EXPECT_TRUE(command.azimuthBeamWidth.equals(6_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
-            EXPECT_TRUE(command.elevationBeamWidth.equals(6_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
+            EXPECT_EQ(command.azimuthBeamWidth, 6_deg) << "tick " << tick.tick_ms << "ms";
+            EXPECT_EQ(command.elevationBeamWidth, 6_deg) << "tick " << tick.tick_ms << "ms";
         }
         else
         {
             EXPECT_EQ(command.beamId, 0u) << "tick " << tick.tick_ms << "ms";
-            EXPECT_TRUE(command.azimuthBeamWidth.equals(3_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
-            EXPECT_TRUE(command.elevationBeamWidth.equals(3_deg, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0})) << "tick " << tick.tick_ms << "ms";
+            EXPECT_EQ(command.azimuthBeamWidth, 3_deg) << "tick " << tick.tick_ms << "ms";
+            EXPECT_EQ(command.elevationBeamWidth, 3_deg) << "tick " << tick.tick_ms << "ms";
         }
     }
 
@@ -324,13 +324,13 @@ TEST(SchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
 
         if (left.command->beamType == beam::BeamCommand::BeamType::SEARCH)
         {
-            anySearchAngleDiffers |= !left.command->azimuth_ant.equals(right.command->azimuth_ant, math::QuantityTolerance{0.001_deg, 0.0});
+            anySearchAngleDiffers |= !left.command->azimuth_ant.equals(right.command->azimuth_ant);
         }
         else
         {
             // 요청 빔의 각도는 요청 그대로 나가므로 자세와 무관하다.
-            EXPECT_TRUE(left.command->azimuth_ant.equals(right.command->azimuth_ant, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
-            EXPECT_TRUE(left.command->elevation_ant.equals(right.command->elevation_ant, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.0}));
+            EXPECT_EQ(left.command->azimuth_ant, right.command->azimuth_ant);
+            EXPECT_EQ(left.command->elevation_ant, right.command->elevation_ant);
         }
     }
 
