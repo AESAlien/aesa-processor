@@ -38,6 +38,8 @@ private:
     double _metersPerSecond = 0.0;
 };
 
+Velocity abs(Velocity velocity) noexcept;
+
 // 거리를 chrono 시간으로 나눠 초당 미터 속도를 계산한다.
 // 시간이 0이면 std::domain_error를 던진다.
 template <typename Rep, typename Period>

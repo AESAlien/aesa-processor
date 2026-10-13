@@ -74,6 +74,11 @@ Distance::Distance(double meters) noexcept
 {
 }
 
+Distance abs(Distance distance) noexcept
+{
+    return Distance::fromMeters(std::abs(distance.m()));
+}
+
 namespace literals
 {
 

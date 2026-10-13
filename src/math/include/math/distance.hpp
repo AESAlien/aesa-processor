@@ -34,6 +34,8 @@ private:
     double _meters = 0.0;
 };
 
+Distance abs(Distance distance) noexcept;
+
 namespace literals
 {
 

@@ -65,6 +65,11 @@ Velocity::Velocity(double metersPerSecond) noexcept
 {
 }
 
+Velocity abs(Velocity velocity) noexcept
+{
+    return Velocity::fromMetersPerSecond(std::abs(velocity.mps()));
+}
+
 namespace literals
 {
 

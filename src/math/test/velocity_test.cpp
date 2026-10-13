@@ -55,6 +55,17 @@ TEST(VelocityTest, ChecksWhetherStoredMetersPerSecondAreFinite)
         std::numeric_limits<double>::quiet_NaN()).isFinite());
 }
 
+TEST(VelocityTest, AbsPreservesVelocityTypeAndReturnsNonnegativeValue)
+{
+    using namespace math::literals;
+
+    static_assert(std::is_same<decltype(math::abs(-2_mps)), math::Velocity>::value,
+        "Absolute value of a velocity must remain a Velocity");
+    EXPECT_DOUBLE_EQ(math::abs(-2_mps).mps(), 2.0);
+    EXPECT_DOUBLE_EQ(math::abs(2_mps).mps(), 2.0);
+    EXPECT_DOUBLE_EQ(math::abs(0_mps).mps(), 0.0);
+}
+
 // 정수와 실수 초당 미터 리터럴이 올바른 Velocity 값과 타입을 생성한다.
 TEST(VelocityTest, CreatesVelocitiesFromMetersPerSecondLiterals)
 {

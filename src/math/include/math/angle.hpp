@@ -56,6 +56,7 @@ private:
     double _degrees = 0.0;
 };
 
+Angle abs(Angle angle) noexcept;
 Angle operator*(double scalar, const Angle& angle) noexcept;
 
 namespace literals

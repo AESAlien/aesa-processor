@@ -184,3 +184,14 @@ TEST(DistanceTest, ChecksWhetherStoredMetersAreFinite)
     EXPECT_FALSE(math::Distance::fromMeters(-std::numeric_limits<double>::infinity()).isFinite());
     EXPECT_FALSE(math::Distance::fromMeters(std::numeric_limits<double>::quiet_NaN()).isFinite());
 }
+
+TEST(DistanceTest, AbsPreservesDistanceTypeAndReturnsNonnegativeValue)
+{
+    using namespace math::literals;
+
+    static_assert(std::is_same<decltype(math::abs(-2_km)), math::Distance>::value,
+        "Absolute value of a distance must remain a Distance");
+    EXPECT_DOUBLE_EQ(math::abs(-2_km).km(), 2.0);
+    EXPECT_DOUBLE_EQ(math::abs(2_km).km(), 2.0);
+    EXPECT_DOUBLE_EQ(math::abs(0_m).m(), 0.0);
+}

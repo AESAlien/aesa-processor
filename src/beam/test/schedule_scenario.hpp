@@ -12,7 +12,6 @@
 #include "scheduler/scheduler.hpp"
 
 #include <chrono>
-#include <cmath>
 #include <optional>
 #include <string>
 #include <utility>
@@ -143,7 +142,7 @@ namespace detail
 
 inline bool sameAngle(math::Angle left, math::Angle right)
 {
-    return std::abs(left.deg() - right.deg()) < 1e-9;
+    return left.equals(right, math::Angle::fromDegrees(1e-9));
 }
 
 // 송신된 요청 빔을 보낸 요청과 짝짓는다(종류와 각도가 같은 아직 짝이 없는 요청).

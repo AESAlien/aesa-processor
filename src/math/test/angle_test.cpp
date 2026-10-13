@@ -244,3 +244,14 @@ TEST(AngleTest, ChecksWhetherStoredDegreesAreFinite)
     EXPECT_FALSE(math::Angle::fromDegrees(-std::numeric_limits<double>::infinity()).isFinite());
     EXPECT_FALSE(math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN()).isFinite());
 }
+
+TEST(AngleTest, AbsPreservesAngleTypeAndReturnsNonnegativeValue)
+{
+    using namespace math::literals;
+
+    static_assert(std::is_same<decltype(math::abs(-30_deg)), math::Angle>::value,
+        "Absolute value of an angle must remain an Angle");
+    EXPECT_DOUBLE_EQ(math::abs(-30_deg).deg(), 30.0);
+    EXPECT_DOUBLE_EQ(math::abs(30_deg).deg(), 30.0);
+    EXPECT_DOUBLE_EQ(math::abs(0_deg).deg(), 0.0);
+}

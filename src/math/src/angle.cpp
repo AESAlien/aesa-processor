@@ -63,7 +63,7 @@ bool Angle::equals(const Angle& other, const Angle& absoluteTolerance) const noe
 {
     return absoluteTolerance.isFinite()
         && absoluteTolerance >= 0.0_deg
-        && std::abs(_degrees - other._degrees) <= absoluteTolerance._degrees;
+        && abs(*this - other) <= absoluteTolerance;
 }
 
 bool Angle::equals(const Angle& other, double relativeTolerance) const noexcept
@@ -165,6 +165,11 @@ Angle& Angle::operator/=(double scalar)
 Angle::Angle(double degrees) noexcept
     : _degrees(degrees)
 {
+}
+
+Angle abs(Angle angle) noexcept
+{
+    return Angle::fromDegrees(std::abs(angle.deg()));
 }
 
 Angle operator*(double scalar, const Angle& angle) noexcept

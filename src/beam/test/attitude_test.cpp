@@ -275,5 +275,5 @@ TEST(AttitudeTransformTest, AzimuthIsWrappedToSignedRange)
     EXPECT_NEAR(azimuthBelow180_enu.deg(), 179, 1e-9);
 
     const auto [azimuthAt180_enu, elevationAt180_enu] = transform.antToEnu(180_deg, 0_deg);
-    EXPECT_NEAR(std::fabs(azimuthAt180_enu.deg()), 180, 1e-9); // 후방은 ±180 (0이 되면 안 됨)
+    EXPECT_NEAR(math::abs(azimuthAt180_enu).deg(), 180, 1e-9); // 후방은 ±180 (0이 되면 안 됨)
 }
