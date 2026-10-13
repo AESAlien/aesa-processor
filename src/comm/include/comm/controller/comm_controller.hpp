@@ -41,6 +41,9 @@ public:
     // 실패하면 상세 시스템 오류는 comm 내부에 기록하고 ServerOpenError를 던진다.
     void openServer();
 
+    // 타임아웃과 정상 연결 종료는 내부에서 기다린다.
+    // 연결 수립 실패는 ConnectionError, 수신 및 메시지 처리 실패는
+    // ReceiveError로 전달한다.
     std::optional<IncomingDto> receiveData();
 
     void sendBeamCommand(
