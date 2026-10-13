@@ -13,25 +13,25 @@ namespace
 beam::BeamRequest makeRequest(
     beam::BeamRequest::BeamType beamType,
     std::chrono::milliseconds transmitTime,
-    double azimuth_deg = 0.0
+    math::Angle azimuth = 0_deg
 ) {
     return beam::BeamRequest::Builder()
         .beamType(beamType)
         .transmitTime(transmitTime)
         .requestId(0)
-        .azimuth_ant(math::Angle::fromDegrees(azimuth_deg))
+        .azimuth_ant(azimuth)
         .elevation_ant(0_deg)
         .build();
 }
 
-beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, double azimuth_deg = 0.0)
+beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)
 {
-    return makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, transmitTime, azimuth_deg);
+    return makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, transmitTime, azimuth);
 }
 
-beam::BeamRequest makeTracking(std::chrono::milliseconds transmitTime, double azimuth_deg = 0.0)
+beam::BeamRequest makeTracking(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)
 {
-    return makeRequest(beam::BeamRequest::BeamType::TRACKING, transmitTime, azimuth_deg);
+    return makeRequest(beam::BeamRequest::BeamType::TRACKING, transmitTime, azimuth);
 }
 
 } // namespace
@@ -77,20 +77,20 @@ TEST(RequestQueueTest, PoppedRequestIsRemovedFromQueue)
 TEST(RequestQueueTest, EarliestDueRequestComesFirstRegardlessOfInsertionOrder)
 {
     beam::RequestQueue queue;
-    queue.add(makeTracking(1010ms, 3.0));
-    queue.add(makeTracking(1000ms, 1.0));
-    queue.add(makeTracking(1005ms, 2.0));
+    queue.add(makeTracking(1010ms, 3_deg));
+    queue.add(makeTracking(1000ms, 1_deg));
+    queue.add(makeTracking(1005ms, 2_deg));
 
-    EXPECT_DOUBLE_EQ(queue.popNextDue(1010ms)->azimuth_ant.deg(), 1.0);
-    EXPECT_DOUBLE_EQ(queue.popNextDue(1010ms)->azimuth_ant.deg(), 2.0);
-    EXPECT_DOUBLE_EQ(queue.popNextDue(1010ms)->azimuth_ant.deg(), 3.0);
+    EXPECT_TRUE(queue.popNextDue(1010ms)->azimuth_ant.equals(1_deg, 0.0));
+    EXPECT_TRUE(queue.popNextDue(1010ms)->azimuth_ant.equals(2_deg, 0.0));
+    EXPECT_TRUE(queue.popNextDue(1010ms)->azimuth_ant.equals(3_deg, 0.0));
 }
 
 TEST(RequestQueueTest, SameTransmitTimeConfirmationComesBeforeTracking)
 {
     beam::RequestQueue queue;
-    queue.add(makeTracking(1000ms, 1.0));
-    queue.add(makeConfirmation(1000ms, 2.0));
+    queue.add(makeTracking(1000ms, 1_deg));
+    queue.add(makeConfirmation(1000ms, 2_deg));
 
     const auto first = queue.popNextDue(1000ms);
     const auto second = queue.popNextDue(1010ms);
@@ -104,13 +104,13 @@ TEST(RequestQueueTest, SameTransmitTimeConfirmationComesBeforeTracking)
 TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
 {
     beam::RequestQueue queue;
-    queue.add(makeTracking(1000ms, 1.0));
-    queue.add(makeTracking(1000ms, 2.0));
-    queue.add(makeTracking(1000ms, 3.0));
+    queue.add(makeTracking(1000ms, 1_deg));
+    queue.add(makeTracking(1000ms, 2_deg));
+    queue.add(makeTracking(1000ms, 3_deg));
 
-    EXPECT_DOUBLE_EQ(queue.popNextDue(1000ms)->azimuth_ant.deg(), 1.0);
-    EXPECT_DOUBLE_EQ(queue.popNextDue(1000ms)->azimuth_ant.deg(), 2.0);
-    EXPECT_DOUBLE_EQ(queue.popNextDue(1000ms)->azimuth_ant.deg(), 3.0);
+    EXPECT_TRUE(queue.popNextDue(1000ms)->azimuth_ant.equals(1_deg, 0.0));
+    EXPECT_TRUE(queue.popNextDue(1000ms)->azimuth_ant.equals(2_deg, 0.0));
+    EXPECT_TRUE(queue.popNextDue(1000ms)->azimuth_ant.equals(3_deg, 0.0));
 }
 
 TEST(RequestQueueTest, EarlierTrackingStillComesBeforeLaterConfirmation)
@@ -129,8 +129,8 @@ TEST(RequestQueueTest, VeryOldRequestIsStillPopped)
 {
     // 요청은 만료로 폐기되지 않는다. 아무리 오래 기다렸어도 꺼낼 수 있다.
     beam::RequestQueue queue;
-    queue.add(makeConfirmation(1000ms, 1.0));
-    queue.add(makeTracking(1000ms, 2.0));
+    queue.add(makeConfirmation(1000ms, 1_deg));
+    queue.add(makeTracking(1000ms, 2_deg));
 
     const auto first = queue.popNextDue(100000ms);
     const auto second = queue.popNextDue(100000ms);
@@ -146,11 +146,11 @@ TEST(RequestQueueTest, CrowdedRequestsAreAllPoppedInTimeOrderWithoutDrop)
 {
     // 방위각으로 기대 순서를 표시한다. 일부러 시각 순서와 다르게 넣는다.
     beam::RequestQueue queue;
-    queue.add(makeTracking(1020ms, 5.0));
-    queue.add(makeConfirmation(1010ms, 2.0));
-    queue.add(makeTracking(1010ms, 3.0));
-    queue.add(makeTracking(1000ms, 1.0));
-    queue.add(makeConfirmation(1020ms, 4.0));
+    queue.add(makeTracking(1020ms, 5_deg));
+    queue.add(makeConfirmation(1010ms, 2_deg));
+    queue.add(makeTracking(1010ms, 3_deg));
+    queue.add(makeTracking(1000ms, 1_deg));
+    queue.add(makeConfirmation(1020ms, 4_deg));
 
     // 모든 요청이 한참 지난 시각에 꺼내도 하나도 사라지지 않고 시각 순(같은 시각이면 확인 빔 먼저)으로 나온다.
     for (double expectedAzimuth = 1.0; expectedAzimuth <= 5.0; expectedAzimuth += 1.0)

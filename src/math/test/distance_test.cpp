@@ -1,4 +1,4 @@
-﻿#include "math/distance.hpp"
+﻿#include "math/quantity/distance.hpp"
 
 #include <gtest/gtest.h>
 
@@ -173,4 +173,25 @@ TEST(DistanceTest, EqualsHandlesRelativeComparisonAtNumericLimits)
     const double smallest = std::numeric_limits<double>::denorm_min();
     EXPECT_TRUE(math::Distance::fromMeters(2.0 * smallest).equals(
         math::Distance::fromMeters(smallest), 0.5));
+}
+
+// 유한한 거리는 true를 반환하고 무한대와 NaN은 false를 반환한다.
+TEST(DistanceTest, ChecksWhetherStoredMetersAreFinite)
+{
+    EXPECT_TRUE(math::Distance::fromMeters(0.0).isFinite());
+    EXPECT_TRUE(math::Distance::fromMeters(-1.0).isFinite());
+    EXPECT_FALSE(math::Distance::fromMeters(std::numeric_limits<double>::infinity()).isFinite());
+    EXPECT_FALSE(math::Distance::fromMeters(-std::numeric_limits<double>::infinity()).isFinite());
+    EXPECT_FALSE(math::Distance::fromMeters(std::numeric_limits<double>::quiet_NaN()).isFinite());
+}
+
+TEST(DistanceTest, AbsPreservesDistanceTypeAndReturnsNonnegativeValue)
+{
+    using namespace math::literals;
+
+    static_assert(std::is_same<decltype(math::abs(-2_km)), math::Distance>::value,
+        "Absolute value of a distance must remain a Distance");
+    EXPECT_DOUBLE_EQ(math::abs(-2_km).km(), 2.0);
+    EXPECT_DOUBLE_EQ(math::abs(2_km).km(), 2.0);
+    EXPECT_DOUBLE_EQ(math::abs(0_m).m(), 0.0);
 }

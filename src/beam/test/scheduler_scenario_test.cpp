@@ -108,14 +108,14 @@ void expectCommonRules(const Result& result)
         EXPECT_EQ(command.transmitTime, std::chrono::milliseconds(tick.tick_ms));
         if (command.beamType == beam::BeamCommand::BeamType::SEARCH)
         {
-            EXPECT_DOUBLE_EQ(command.azimuthBeamWidth.deg(), 6.0) << "tick " << tick.tick_ms << "ms";
-            EXPECT_DOUBLE_EQ(command.elevationBeamWidth.deg(), 6.0) << "tick " << tick.tick_ms << "ms";
+            EXPECT_TRUE(command.azimuthBeamWidth.equals(6_deg, 0.0)) << "tick " << tick.tick_ms << "ms";
+            EXPECT_TRUE(command.elevationBeamWidth.equals(6_deg, 0.0)) << "tick " << tick.tick_ms << "ms";
         }
         else
         {
             EXPECT_EQ(command.beamId, 0u) << "tick " << tick.tick_ms << "ms";
-            EXPECT_DOUBLE_EQ(command.azimuthBeamWidth.deg(), 3.0) << "tick " << tick.tick_ms << "ms";
-            EXPECT_DOUBLE_EQ(command.elevationBeamWidth.deg(), 3.0) << "tick " << tick.tick_ms << "ms";
+            EXPECT_TRUE(command.azimuthBeamWidth.equals(3_deg, 0.0)) << "tick " << tick.tick_ms << "ms";
+            EXPECT_TRUE(command.elevationBeamWidth.equals(3_deg, 0.0)) << "tick " << tick.tick_ms << "ms";
         }
     }
 
@@ -329,8 +329,8 @@ TEST(SchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
         else
         {
             // 요청 빔의 각도는 요청 그대로 나가므로 자세와 무관하다.
-            EXPECT_DOUBLE_EQ(left.command->azimuth_ant.deg(), right.command->azimuth_ant.deg());
-            EXPECT_DOUBLE_EQ(left.command->elevation_ant.deg(), right.command->elevation_ant.deg());
+            EXPECT_TRUE(left.command->azimuth_ant.equals(right.command->azimuth_ant, 0.0));
+            EXPECT_TRUE(left.command->elevation_ant.equals(right.command->elevation_ant, 0.0));
         }
     }
 

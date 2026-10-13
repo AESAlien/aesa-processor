@@ -1,9 +1,9 @@
 #pragma once
 
 #include <beam/dto/beam_command.hpp>
-#include <math/angle.hpp>
-#include <math/distance.hpp>
-#include <math/velocity.hpp>
+#include <math/quantity/angle.hpp>
+#include <math/quantity/distance.hpp>
+#include <math/quantity/velocity.hpp>
 
 #include <chrono>
 #include <cstdint>

@@ -1,6 +1,6 @@
-﻿#include "math/matrix.hpp"
+﻿#include "math/linear_algebra/matrix.hpp"
 
-#include "relative_comparison.hpp"
+#include "../relative_comparison.hpp"
 
 #include <cmath>
 #include <limits>
@@ -55,6 +55,18 @@ std::size_t Matrix::columns() const noexcept
 bool Matrix::empty() const noexcept
 {
     return _rows == 0 || _columns == 0;
+}
+
+bool Matrix::isFinite() const noexcept
+{
+    for (double value : _values)
+    {
+        if (!std::isfinite(value))
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool Matrix::equals(const Matrix& other, double relativeTolerance) const noexcept
