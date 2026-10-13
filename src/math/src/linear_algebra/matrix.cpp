@@ -1,6 +1,6 @@
-﻿#include "math/matrix.hpp"
+﻿#include "math/linear_algebra/matrix.hpp"
 
-#include "relative_comparison.hpp"
+#include "../relative_comparison.hpp"
 
 #include <cmath>
 #include <limits>

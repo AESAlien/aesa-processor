@@ -1,5 +1,5 @@
-﻿#include "math/vector.hpp"
-#include "math/square_matrix.hpp"
+﻿#include "math/linear_algebra/vector.hpp"
+#include "math/linear_algebra/square_matrix.hpp"
 
 #include <cmath>
 #include <stdexcept>

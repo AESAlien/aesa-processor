@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "math/matrix.hpp"
+#include "math/linear_algebra/matrix.hpp"
 
 namespace math
 {

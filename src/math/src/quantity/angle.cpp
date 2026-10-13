@@ -1,6 +1,6 @@
-﻿#include "math/angle.hpp"
+﻿#include "math/quantity/angle.hpp"
 
-#include "relative_comparison.hpp"
+#include "../relative_comparison.hpp"
 #include <cmath>
 #include <stdexcept>
 

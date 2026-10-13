@@ -1,4 +1,4 @@
-﻿#include "math/square_matrix.hpp"
+﻿#include "math/linear_algebra/square_matrix.hpp"
 
 #include <gtest/gtest.h>
 

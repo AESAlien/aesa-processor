@@ -1,6 +1,6 @@
-﻿#include "math/distance.hpp"
+﻿#include "math/quantity/distance.hpp"
 
-#include "relative_comparison.hpp"
+#include "../relative_comparison.hpp"
 #include <cmath>
 
 namespace math

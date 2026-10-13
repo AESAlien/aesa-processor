@@ -1,7 +1,7 @@
-#include "math/spherical_direction.hpp"
+#include "math/geometry/spherical_direction.hpp"
 
 #include "math/trigonometry.hpp"
-#include "math/vector.hpp"
+#include "math/linear_algebra/vector.hpp"
 
 #include <cmath>
 #include <stdexcept>

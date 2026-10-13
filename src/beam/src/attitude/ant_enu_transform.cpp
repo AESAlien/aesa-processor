@@ -3,11 +3,11 @@
 
 #include <cmath>
 #include <stdexcept>
-#include <math/angle.hpp>
-#include <math/spherical_direction.hpp>
-#include <math/square_matrix.hpp>
+#include <math/quantity/angle.hpp>
+#include <math/geometry/spherical_direction.hpp>
+#include <math/linear_algebra/square_matrix.hpp>
 #include <math/trigonometry.hpp>
-#include <math/vector.hpp>
+#include <math/linear_algebra/vector.hpp>
 
 namespace beam
 {

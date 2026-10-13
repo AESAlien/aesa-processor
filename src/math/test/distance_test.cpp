@@ -1,4 +1,4 @@
-﻿#include "math/distance.hpp"
+﻿#include "math/quantity/distance.hpp"
 
 #include <gtest/gtest.h>
 

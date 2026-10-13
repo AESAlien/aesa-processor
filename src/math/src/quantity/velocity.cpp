@@ -1,6 +1,6 @@
-﻿#include "math/velocity.hpp"
+﻿#include "math/quantity/velocity.hpp"
 
-#include "relative_comparison.hpp"
+#include "../relative_comparison.hpp"
 #include <cmath>
 
 namespace math

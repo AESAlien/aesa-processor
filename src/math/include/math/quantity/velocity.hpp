@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "math/distance.hpp"
+#include "math/quantity/distance.hpp"
 
 #include <chrono>
 #include <stdexcept>

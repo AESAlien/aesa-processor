@@ -1,7 +1,7 @@
 #pragma once
 
-#include "math/spherical_direction.hpp"
-#include "math/distance.hpp"
+#include "math/geometry/spherical_direction.hpp"
+#include "math/quantity/distance.hpp"
 
 namespace math
 {

@@ -1,6 +1,6 @@
-#include "math/spherical_point.hpp"
+#include "math/geometry/spherical_point.hpp"
 #include "math/trigonometry.hpp"
-#include "math/vector.hpp"
+#include "math/linear_algebra/vector.hpp"
 
 #include <gtest/gtest.h>
 

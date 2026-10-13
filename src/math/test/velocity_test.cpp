@@ -1,4 +1,4 @@
-﻿#include "math/velocity.hpp"
+﻿#include "math/quantity/velocity.hpp"
 
 #include <gtest/gtest.h>
 

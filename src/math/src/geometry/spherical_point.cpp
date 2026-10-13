@@ -1,4 +1,4 @@
-#include "math/spherical_point.hpp"
+#include "math/geometry/spherical_point.hpp"
 
 #include <stdexcept>
 

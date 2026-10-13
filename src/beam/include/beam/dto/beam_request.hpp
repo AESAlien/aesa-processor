@@ -1,6 +1,6 @@
 #pragma once
 
-#include <math/angle.hpp>
+#include <math/quantity/angle.hpp>
 #include <chrono>
 #include <cstdint>
 #include <optional>

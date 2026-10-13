@@ -1,15 +1,15 @@
 find_package(GTest REQUIRED)
 
 add_library(math STATIC
-    src/angle.cpp
-    src/distance.cpp
-    src/spherical_direction.cpp
-    src/matrix.cpp
-    src/square_matrix.cpp
-    src/spherical_point.cpp
+    src/quantity/angle.cpp
+    src/quantity/distance.cpp
+    src/geometry/spherical_direction.cpp
+    src/linear_algebra/matrix.cpp
+    src/linear_algebra/square_matrix.cpp
+    src/geometry/spherical_point.cpp
     src/trigonometry.cpp
-    src/vector.cpp
-    src/velocity.cpp
+    src/linear_algebra/vector.cpp
+    src/quantity/velocity.cpp
 )
 
 target_include_directories(math PUBLIC
