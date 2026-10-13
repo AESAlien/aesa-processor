@@ -35,7 +35,7 @@ Angle SphericalDirection::elevation() const noexcept
     return _elevation;
 }
 
-Vector SphericalDirection::toEnuVector() const
+Vector SphericalDirection::toCartesianUnitVector() const
 {
     const double cosElevation = cos(_elevation);
     return Vector{
@@ -45,11 +45,11 @@ Vector SphericalDirection::toEnuVector() const
     };
 }
 
-SphericalDirection SphericalDirection::fromEnuVector(const Vector& vector)
+SphericalDirection SphericalDirection::fromCartesianUnitVector(const Vector& vector)
 {
     if (vector.size() != 3 || !vector.isFinite())
     {
-        throw std::invalid_argument("ENU direction requires a finite 3D vector");
+        throw std::invalid_argument("Cartesian direction requires a finite 3D vector");
     }
 
     const double maxComponent = std::max({
@@ -59,16 +59,16 @@ SphericalDirection SphericalDirection::fromEnuVector(const Vector& vector)
     });
     if (maxComponent == 0.0)
     {
-        throw std::invalid_argument("ENU direction cannot be created from a zero vector");
+        throw std::invalid_argument("Cartesian direction cannot be created from a zero vector");
     }
 
-    const double east = vector(0) / maxComponent;
-    const double north = vector(1) / maxComponent;
-    const double up = vector(2) / maxComponent;
-    const double horizontalNorm = std::hypot(east, north);
+    const double x = vector(0) / maxComponent;
+    const double y = vector(1) / maxComponent;
+    const double z = vector(2) / maxComponent;
+    const double horizontalNorm = std::hypot(x, y);
 
-    const Angle azimuth = Angle::fromRadians(std::atan2(east, north)).wrap180();
-    const Angle elevation = Angle::fromRadians(std::atan2(up, horizontalNorm));
+    const Angle azimuth = Angle::fromRadians(std::atan2(x, y)).wrap180();
+    const Angle elevation = Angle::fromRadians(std::atan2(z, horizontalNorm));
     return SphericalDirection(azimuth, elevation);
 }
 

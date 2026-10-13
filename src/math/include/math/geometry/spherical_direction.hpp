@@ -16,10 +16,10 @@ public:
     Angle azimuth() const noexcept;
     Angle elevation() const noexcept;
 
-    // Converts to a unit vector with ENU component order: east, north, up.
-    Vector toEnuVector() const;
-    // Converts a finite, non-zero 3D ENU vector to a direction.
-    static SphericalDirection fromEnuVector(const Vector& vector);
+    // Converts to a Cartesian unit vector using azimuth 0 along +y.
+    Vector toCartesianUnitVector() const;
+    // Converts a finite, non-zero 3D Cartesian vector to a direction; its magnitude is ignored.
+    static SphericalDirection fromCartesianUnitVector(const Vector& vector);
 
 private:
     Angle _azimuth;
