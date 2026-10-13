@@ -36,62 +36,6 @@ bool allFinite(const RadarAttitude& attitude)
            attitude.pitch.isFinite() && attitude.yaw.isFinite();
 }
 
-bool isOrthogonalMatrix(const math::SquareMatrix& matrix, double tolerance)
-{
-    if (!std::isfinite(tolerance) || tolerance < 0.0)
-    {
-        throw std::invalid_argument("Orthogonality tolerance must be finite and non-negative");
-    }
-    for (std::size_t row = 0; row < matrix.rows(); ++row)
-    {
-        for (std::size_t column = 0; column < matrix.columns(); ++column)
-        {
-            if (!std::isfinite(matrix(row, column)))
-            {
-                return false;
-            }
-        }
-    }
-
-    for (std::size_t i = 0; i < matrix.columns(); ++i)
-    {
-        for (std::size_t j = i; j < matrix.columns(); ++j)
-        {
-            double dot = 0.0;
-            for (std::size_t row = 0; row < matrix.rows(); ++row)
-            {
-                dot += matrix(row, i) * matrix(row, j);
-            }
-            const double expected = i == j ? 1.0 : 0.0;
-            if (!std::isfinite(dot) || std::abs(dot - expected) > tolerance)
-            {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-bool isRotationMatrix(const math::SquareMatrix& matrix, double tolerance)
-{
-    if (matrix.rows() != 3 || matrix.columns() != 3 || !std::isfinite(tolerance) || tolerance < 0.0)
-    {
-        return false;
-    }
-
-    if (isOrthogonalMatrix(matrix, tolerance) == false)
-    {
-        return false;
-    }
-
-    if (std::fabs(matrix.det() - 1.0) > tolerance)
-    {
-        return false;
-    }
-
-    return true;
-}
-
 double clamp1(double x)
 {
     return std::fmax(-1.0, std::fmin(1.0, x));
@@ -136,7 +80,8 @@ AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeCo
         throw AttitudeError(AttitudeErrorCode::GIMBAL_LOCK, "pitch is too close to gimbal lock");
     }
 
-    if (!isRotationMatrix(config.mountAntToBodyRotation, config.mountOrthogonalTolerance))
+    if (config.mountAntToBodyRotation.size() != 3 ||
+        !config.mountAntToBodyRotation.isRotation(config.mountOrthogonalTolerance))
     {
         throw AttitudeError(AttitudeErrorCode::INVALID_MOUNT, "mountAntToBodyRotation is not a rotation matrix");
     }

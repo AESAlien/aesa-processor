@@ -34,6 +34,14 @@ public:
     // 크기 불일치, 음수·무한대·NaN 허용오차와 무한대·NaN 원소는 false를 반환한다.
     bool equals(const SquareMatrix& other, double relativeTolerance = DEFAULT_RELATIVE_TOLERANCE) const noexcept;
 
+    // 열벡터들이 허용오차 내에서 정규직교를 이루는지 검사한다.
+    // 허용오차가 음수·무한대·NaN이면 std::invalid_argument를 던진다.
+    // 행렬 원소가 무한대·NaN이면 false를 반환한다.
+    bool isOrthogonal(double tolerance) const;
+    // 임의 크기의 정방행렬이 허용오차 내에서 직교하며 행렬식이 1인지 검사한다.
+    // 잘못된 허용오차, 행렬 원소가 무한대·NaN이거나 행렬이 회전행렬이 아니면 false를 반환한다.
+    bool isRotation(double tolerance) const;
+
     // 모든 원소 접근은 범위를 검사한다.
     double& at(std::size_t row, std::size_t column);
     const double& at(std::size_t row, std::size_t column) const;
