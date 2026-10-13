@@ -146,11 +146,11 @@ TEST(RequestQueueTest, CrowdedRequestsAreAllPoppedInTimeOrderWithoutDrop)
 {
     // 방위각으로 기대 순서를 표시한다. 일부러 시각 순서와 다르게 넣는다.
     beam::RequestQueue queue;
-    queue.add(makeTracking(1020ms, 5.0));
-    queue.add(makeConfirmation(1010ms, 2.0));
-    queue.add(makeTracking(1010ms, 3.0));
-    queue.add(makeTracking(1000ms, 1.0));
-    queue.add(makeConfirmation(1020ms, 4.0));
+    queue.add(makeTracking(1020ms, 5_deg));
+    queue.add(makeConfirmation(1010ms, 2_deg));
+    queue.add(makeTracking(1010ms, 3_deg));
+    queue.add(makeTracking(1000ms, 1_deg));
+    queue.add(makeConfirmation(1020ms, 4_deg));
 
     // 모든 요청이 한참 지난 시각에 꺼내도 하나도 사라지지 않고 시각 순(같은 시각이면 확인 빔 먼저)으로 나온다.
     for (double expectedAzimuth = 1.0; expectedAzimuth <= 5.0; expectedAzimuth += 1.0)

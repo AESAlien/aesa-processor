@@ -394,7 +394,7 @@ namespace
 
 beam::BeamRequest makeUnknownTypeRequest()
 {
-    return makeRequest(static_cast<beam::BeamRequest::BeamType>(0), 0ms, 9, 1.0, 2.0);
+    return makeRequest(static_cast<beam::BeamRequest::BeamType>(0), 0ms, 9, 1_deg, 2_deg);
 }
 
 } // namespace
