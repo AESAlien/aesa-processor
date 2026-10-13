@@ -5,6 +5,7 @@
 
 namespace math
 {
+using namespace literals;
 
 Velocity Velocity::fromMetersPerSecond(double metersPerSecond) noexcept
 {
@@ -24,8 +25,8 @@ bool Velocity::isFinite() const noexcept
 bool Velocity::equals(const Velocity& other, const Velocity& absoluteTolerance) const noexcept
 {
     return isFinite() && other.isFinite()
-        && absoluteTolerance._metersPerSecond >= 0.0
         && absoluteTolerance.isFinite()
+        && absoluteTolerance >= 0.0_mps
         && std::abs(_metersPerSecond - other._metersPerSecond) <= absoluteTolerance._metersPerSecond;
 }
 

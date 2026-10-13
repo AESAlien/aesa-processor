@@ -6,6 +6,7 @@
 
 namespace math
 {
+using namespace literals;
 
 const double PI = 3.14159265358979323846;
 
@@ -48,8 +49,8 @@ Angle Angle::wrap180() const noexcept
 
 bool Angle::equals(const Angle& other, const Angle& absoluteTolerance) const noexcept
 {
-        && absoluteTolerance._degrees >= 0.0
     return absoluteTolerance.isFinite()
+        && absoluteTolerance >= 0.0_deg
         && std::abs(_degrees - other._degrees) <= absoluteTolerance._degrees;
 }
 

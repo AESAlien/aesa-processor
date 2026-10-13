@@ -5,6 +5,7 @@
 
 namespace math
 {
+using namespace literals;
 
 Distance Distance::fromMeters(double meters) noexcept
 {
@@ -33,8 +34,8 @@ bool Distance::isFinite() const noexcept
 
 bool Distance::equals(const Distance& other, const Distance& absoluteTolerance) const noexcept
 {
-        && absoluteTolerance._meters >= 0.0
     return absoluteTolerance.isFinite()
+        && absoluteTolerance >= 0.0_m
         && std::abs(_meters - other._meters) <= absoluteTolerance._meters;
 }
 
