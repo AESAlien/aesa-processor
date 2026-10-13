@@ -10,6 +10,8 @@ extern const double PI;
 class Angle : public Quantity
 {
 public:
+    static const QuantityTolerance<Angle> DEFAULT_TOLERANCE;
+
     static Angle fromDegrees(double degrees) noexcept;
     static Angle fromRadians(double radians) noexcept;
 
@@ -23,7 +25,8 @@ public:
     Angle wrap90() const noexcept;
 
     // 지정한 절대오차 또는 상대오차 범위 안이면 true를 반환한다. 무한대·NaN 값은 false를 반환한다.
-    bool equals(const Angle& other, const QuantityTolerance<Angle>& tolerance) const noexcept;
+    // 허용오차를 생략하면 DEFAULT 절대·상대오차를 적용한다.
+    bool equals(const Angle& other, const QuantityTolerance<Angle>& tolerance = DEFAULT_TOLERANCE) const noexcept;
 
     // DEFAULT 절대오차 또는 상대오차 범위 안이면 true를 반환한다. 무한대·NaN 값은 false를 반환한다.
     bool operator==(const Angle& other) const noexcept;

@@ -6,6 +6,11 @@ namespace math
 {
 using namespace literals;
 
+const QuantityTolerance<Distance> Distance::DEFAULT_TOLERANCE{
+    Distance::fromMeters(DEFAULT_ABSOLUTE_TOLERANCE),
+    DEFAULT_RELATIVE_TOLERANCE
+};
+
 Distance Distance::fromMeters(double meters) noexcept
 {
     return Distance(meters);
@@ -33,12 +38,7 @@ bool Distance::equals(const Distance& other, const QuantityTolerance<Distance>& 
 
 bool Distance::operator==(const Distance& other) const noexcept
 {
-    static const QuantityTolerance<Distance> DEFAULT_DISTANCE_TOLERANCE{
-        fromMeters(DEFAULT_TOLERANCE.absolute()),
-        DEFAULT_TOLERANCE.relative()
-    };
-
-    return equals(other, DEFAULT_DISTANCE_TOLERANCE);
+    return equals(other);
 }
 
 bool Distance::operator!=(const Distance& other) const noexcept

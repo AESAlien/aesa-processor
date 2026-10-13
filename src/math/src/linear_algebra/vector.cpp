@@ -83,7 +83,7 @@ bool Vector::operator!=(const Vector& other) const noexcept
 
 bool Vector::operator==(const Vector& other) const noexcept
 {
-    return equals(other, DEFAULT_TOLERANCE);
+    return equals(other);
 }
 
 double& Vector::at(std::size_t index)

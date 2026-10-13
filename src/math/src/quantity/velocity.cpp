@@ -6,6 +6,11 @@ namespace math
 {
 using namespace literals;
 
+const QuantityTolerance<Velocity> Velocity::DEFAULT_TOLERANCE{
+    Velocity::fromMetersPerSecond(DEFAULT_ABSOLUTE_TOLERANCE),
+    DEFAULT_RELATIVE_TOLERANCE
+};
+
 Velocity Velocity::fromMetersPerSecond(double metersPerSecond) noexcept
 {
     return Velocity(metersPerSecond);
@@ -23,12 +28,7 @@ bool Velocity::equals(const Velocity& other, const QuantityTolerance<Velocity>& 
 
 bool Velocity::operator==(const Velocity& other) const noexcept
 {
-    static const QuantityTolerance<Velocity> DEFAULT_VELOCITY_TOLERANCE{
-        fromMetersPerSecond(DEFAULT_TOLERANCE.absolute()),
-        DEFAULT_TOLERANCE.relative()
-    };
-
-    return equals(other, DEFAULT_VELOCITY_TOLERANCE);
+    return equals(other);
 }
 
 bool Velocity::operator!=(const Velocity& other) const noexcept

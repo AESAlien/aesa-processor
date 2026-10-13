@@ -93,7 +93,7 @@ bool Matrix::operator!=(const Matrix& other) const noexcept
 
 bool Matrix::operator==(const Matrix& other) const noexcept
 {
-    return equals(other, DEFAULT_TOLERANCE);
+    return equals(other);
 }
 
 double& Matrix::at(std::size_t row, std::size_t column)

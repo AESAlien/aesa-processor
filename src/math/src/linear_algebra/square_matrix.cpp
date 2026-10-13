@@ -83,7 +83,7 @@ bool SquareMatrix::operator!=(const SquareMatrix& other) const noexcept
 
 bool SquareMatrix::operator==(const SquareMatrix& other) const noexcept
 {
-    return equals(other, DEFAULT_TOLERANCE);
+    return equals(other);
 }
 
 bool SquareMatrix::isOrthogonal(const Tolerance& tolerance) const

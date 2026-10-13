@@ -8,6 +8,8 @@ namespace math
 class Distance : public Quantity
 {
 public:
+    static const QuantityTolerance<Distance> DEFAULT_TOLERANCE;
+
     static Distance fromMeters(double meters) noexcept;
     static Distance fromKilometers(double kilometers) noexcept;
 
@@ -15,7 +17,8 @@ public:
     double km() const noexcept;
 
     // 지정한 절대오차 또는 상대오차 범위 안이면 true를 반환한다. 무한대·NaN 값은 false를 반환한다.
-    bool equals(const Distance& other, const QuantityTolerance<Distance>& tolerance) const noexcept;
+    // 허용오차를 생략하면 DEFAULT 절대·상대오차를 적용한다.
+    bool equals(const Distance& other, const QuantityTolerance<Distance>& tolerance = DEFAULT_TOLERANCE) const noexcept;
 
     // DEFAULT 절대오차 또는 상대오차 범위 안이면 true를 반환한다. 무한대·NaN 값은 false를 반환한다.
     bool operator==(const Distance& other) const noexcept;

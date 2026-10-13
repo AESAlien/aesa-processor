@@ -7,6 +7,11 @@ namespace math
 {
 using namespace literals;
 
+const QuantityTolerance<Angle> Angle::DEFAULT_TOLERANCE{
+    Angle::fromDegrees(DEFAULT_ABSOLUTE_TOLERANCE),
+    DEFAULT_RELATIVE_TOLERANCE
+};
+
 const double PI = 3.14159265358979323846;
 
 Angle Angle::fromDegrees(double degrees) noexcept
@@ -70,12 +75,7 @@ bool Angle::equals(const Angle& other, const QuantityTolerance<Angle>& tolerance
 
 bool Angle::operator==(const Angle& other) const noexcept
 {
-    static const QuantityTolerance<Angle> DEFAULT_ANGLE_TOLERANCE{
-        fromDegrees(DEFAULT_TOLERANCE.absolute()),
-        DEFAULT_TOLERANCE.relative()
-    };
-
-    return equals(other, DEFAULT_ANGLE_TOLERANCE);
+    return equals(other);
 }
 
 bool Angle::operator!=(const Angle& other) const noexcept

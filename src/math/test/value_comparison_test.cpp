@@ -38,11 +38,13 @@ TYPED_TEST(EqualsTest, HandlesRoundingAndDefaultTolerances)
 {
     const auto calculated = makeValue<TypeParam>(0.1 + 0.2, 1.0);
     const auto expected = makeValue<TypeParam>(0.3, 1.0);
+    EXPECT_TRUE(calculated.equals(expected));
     EXPECT_TRUE(calculated == expected);
     EXPECT_FALSE(calculated != expected);
     EXPECT_FALSE(calculated.equals(expected, math::Tolerance{0.0, 0.0}));
     EXPECT_TRUE(calculated.equals(expected, math::DEFAULT_TOLERANCE));
     EXPECT_FALSE(expected == makeValue<TypeParam>(0.4, 1.0));
+    EXPECT_FALSE(expected.equals(makeValue<TypeParam>(0.4, 1.0)));
     EXPECT_TRUE(expected != makeValue<TypeParam>(0.4, 1.0));
 }
 
@@ -104,6 +106,7 @@ TYPED_TEST(EqualsTest, RejectsNonfiniteElements)
                            std::numeric_limits<double>::quiet_NaN()})
     {
         const auto value = makeValue<TypeParam>(1.0, invalid);
+        EXPECT_FALSE(value.equals(value));
         EXPECT_FALSE(value == value);
         EXPECT_TRUE(value != value);
         EXPECT_FALSE(value.equals(finite, math::DEFAULT_TOLERANCE));
@@ -264,6 +267,9 @@ TYPED_TEST(QuantityComparisonTest, RoundingUsesSamePolicyForEqualityAndOrdering)
 {
     const auto calculated = makeQuantity<TypeParam>(0.1 + 0.2);
     const auto expected = makeQuantity<TypeParam>(0.3);
+    EXPECT_TRUE(calculated.equals(expected));
+    EXPECT_TRUE(expected.equals(calculated));
+    EXPECT_FALSE(calculated.equals(makeQuantity<TypeParam>(0.4)));
     EXPECT_TRUE(calculated == expected);
     EXPECT_TRUE(expected == calculated);
     EXPECT_TRUE(calculated <= expected);
@@ -289,9 +295,11 @@ TYPED_TEST(QuantityComparisonTest, InequalityComplementsDefaultEquality)
     EXPECT_TRUE(outside != calculated);
     EXPECT_TRUE(makeQuantity<TypeParam>(0.0) == makeQuantity<TypeParam>(-0.0));
     const auto nan = makeQuantity<TypeParam>(std::numeric_limits<double>::quiet_NaN());
+    EXPECT_FALSE(nan.equals(nan));
     EXPECT_FALSE(nan == nan);
     EXPECT_TRUE(nan != nan);
     const auto infinity = makeQuantity<TypeParam>(std::numeric_limits<double>::infinity());
+    EXPECT_FALSE(infinity.equals(infinity));
     EXPECT_FALSE(infinity == infinity);
     EXPECT_TRUE(infinity != infinity);
 }

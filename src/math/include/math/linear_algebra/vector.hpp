@@ -28,7 +28,8 @@ public:
     bool isFinite() const noexcept;
 
     // 차원이 같고 모든 원소가 지정한 절대오차 또는 상대오차 범위 안이면 true를 반환한다. 무한대·NaN 원소가 있으면 false를 반환한다.
-    bool equals(const Vector& other, const Tolerance& tolerance) const noexcept;
+    // 허용오차를 생략하면 DEFAULT 절대·상대오차를 적용한다.
+    bool equals(const Vector& other, const Tolerance& tolerance = DEFAULT_TOLERANCE) const noexcept;
 
     // 차원이 같고 모든 원소가 DEFAULT 절대오차 또는 상대오차 범위 안이면 true를 반환한다. 무한대·NaN 원소가 있으면 false를 반환한다.
     bool operator==(const Vector& other) const noexcept;
