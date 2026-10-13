@@ -4,6 +4,8 @@
 
 #include <iostream>
 #include <mutex>
+#include <sstream>
+#include <string>
 
 namespace comm
 {
@@ -125,54 +127,39 @@ std::mutex& logMutex()
     return mutex;
 }
 
-void reportNetworkFailure(
-    const char* action,
+std::string makeNetworkFailureMessage(
+    const char* message,
     NetworkOperation operation,
     int errorCode
-) noexcept
+)
 {
-    try
-    {
-        std::lock_guard<std::mutex> lock(logMutex());
-
-        std::cerr
-            << "[CommController] Failed to "
-            << action
-            << ": operation="
-            << operationName(operation)
-            << ", systemError="
-            << errorCode
-            << '\n';
-    }
-    catch (...)
-    {
-        // A logging failure must not replace the communication failure.
-    }
+    std::ostringstream stream;
+    stream
+        << message
+        << ": operation="
+        << operationName(operation)
+        << ", systemError="
+        << errorCode;
+    return stream.str();
 }
 
-void reportProtocolFailure(
+std::string makeProtocolFailureMessage(
+    const char* message,
     const char* stage,
     NetworkPeer peer,
     const char* error
-) noexcept
+)
 {
-    try
-    {
-        std::lock_guard<std::mutex> lock(logMutex());
-
-        std::cerr
-            << "[CommController] Failed to process received data: stage="
-            << stage
-            << ", peer="
-            << peerName(peer)
-            << ", error="
-            << error
-            << '\n';
-    }
-    catch (...)
-    {
-        // A logging failure must not replace the communication failure.
-    }
+    std::ostringstream stream;
+    stream
+        << message
+        << ": stage="
+        << stage
+        << ", peer="
+        << peerName(peer)
+        << ", error="
+        << error;
+    return stream.str();
 }
 
 bool isConnectionOperation(NetworkOperation operation)
@@ -186,24 +173,22 @@ bool isConnectionOperation(NetworkOperation operation)
 
 void throwServerOpenFailure(const OperationResult& result)
 {
-    reportNetworkFailure(
-        "open server",
-        result.operation,
-        result.errorCode);
     throw ServerOpenError(
-        "Communication server could not be opened");
+        makeNetworkFailureMessage(
+            "Communication server could not be opened",
+            result.operation,
+            result.errorCode));
 }
 
 void throwPollFailure(const PollResult& result)
 {
     if (isConnectionOperation(result.failedOperation))
     {
-        reportNetworkFailure(
-            "accept connection",
-            result.failedOperation,
-            result.errorCode);
         throw ConnectionError(
-            "Communication connection could not be established");
+            makeNetworkFailureMessage(
+                "Communication connection could not be established",
+                result.failedOperation,
+                result.errorCode));
     }
 
     throwReceiveFailure(
@@ -216,12 +201,11 @@ void throwReceiveFailure(
     int errorCode
 )
 {
-    reportNetworkFailure(
-        "receive data",
-        operation,
-        errorCode);
     throw ReceiveError(
-        "Communication data could not be received");
+        makeNetworkFailureMessage(
+            "Communication data could not be received",
+            operation,
+            errorCode));
 }
 
 void throwFramingFailure(
@@ -229,12 +213,12 @@ void throwFramingFailure(
     FramingError error
 )
 {
-    reportProtocolFailure(
-        "framing",
-        peer,
-        framingErrorName(error));
     throw ReceiveError(
-        "Communication data could not be received");
+        makeProtocolFailureMessage(
+            "Communication data could not be received",
+            "framing",
+            peer,
+            framingErrorName(error)));
 }
 
 void throwDecodingFailure(
@@ -242,12 +226,12 @@ void throwDecodingFailure(
     DecodingError error
 )
 {
-    reportProtocolFailure(
-        "decoding",
-        peer,
-        decodingErrorName(error));
     throw ReceiveError(
-        "Communication data could not be received");
+        makeProtocolFailureMessage(
+            "Communication data could not be received",
+            "decoding",
+            peer,
+            decodingErrorName(error)));
 }
 
 void reportRejectedConnection(

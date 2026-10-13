@@ -38,7 +38,7 @@ public:
     CommController(CommController&&) = delete;
     CommController& operator=(CommController&&) = delete;
 
-    // 실패하면 상세 시스템 오류는 comm 내부에 기록하고 ServerOpenError를 던진다.
+    // 실패하면 상세 시스템 오류를 메시지에 포함한 ServerOpenError를 던진다.
     void openServer();
 
     // 타임아웃과 정상 연결 종료는 내부에서 기다린다.

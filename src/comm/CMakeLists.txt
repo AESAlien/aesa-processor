@@ -37,3 +37,16 @@ target_include_directories(comm_message_decoder_test PRIVATE
 target_link_libraries(comm_message_decoder_test PRIVATE
     comm
 )
+
+find_package(GTest REQUIRED)
+include(GoogleTest)
+
+add_executable(comm_error_handler_test test/comm_error_handler_test.cpp)
+target_include_directories(comm_error_handler_test PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(comm_error_handler_test PRIVATE
+    comm
+    GTest::gtest_main
+)
+gtest_discover_tests(comm_error_handler_test)
