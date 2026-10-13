@@ -6,9 +6,10 @@ add_library(target STATIC
     src/selector/track_selector.cpp
     src/domain/target.cpp
     src/repository/target_repository.cpp
+    src/validation/detection_validation.cpp
 )
 
-target_link_libraries(target PUBLIC beam)
+target_link_libraries(target PUBLIC beam math)
 target_include_directories(target PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"

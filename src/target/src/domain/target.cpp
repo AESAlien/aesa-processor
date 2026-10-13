@@ -1,44 +1,30 @@
 #include "target.hpp"
 
 #include "calculation/tracking/tracking_algorithm.hpp"
+#include "validation/detection_validation.hpp"
 
-#include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <utility>
 
 namespace target
 {
-namespace
-{
-
-constexpr double MAX_INITIAL_SPEED_MPS = 1000.0;
-constexpr double MAX_INITIAL_DOPPLER_DIFFERENCE_MPS = 30.0;
-
-bool isValidPlot(const DetectionEvent::Plot& plot)
-{
-    return std::isfinite(plot.slantRange.m()) && plot.slantRange.m() > 0.0
-        && std::isfinite(plot.azimuth.deg())
-        && std::isfinite(plot.elevation.deg())
-        && std::abs(plot.elevation.deg()) <= 90.0
-        && std::isfinite(plot.dopplerVelocity.mps());
-}
-
-} // namespace
 
 Target::Target(
-    std::uint32_t id,
-    const DetectionEvent::Plot& initialPlot,
-    std::chrono::milliseconds initialTime,
+    math::Distance slantRange,
+    math::Angle azimuth,
+    math::Angle elevation,
+    math::Velocity dopplerVelocity,
+    float power_db,
+    std::chrono::milliseconds time,
     std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm)
-    : _id(id)
-    , _initialSlantRange(initialPlot.slantRange)
-    , _initialAzimuth(initialPlot.azimuth)
-    , _initialElevation(initialPlot.elevation)
-    , _initialDopplerVelocity(initialPlot.dopplerVelocity)
-    , _initialPowerDb(initialPlot.power_db)
-    , _initialTime(initialTime)
-    , _lastResultTime(initialTime)
+    : _initialSlantRange(slantRange)
+    , _initialAzimuth(azimuth)
+    , _initialElevation(elevation)
+    , _initialDopplerVelocity(dopplerVelocity)
+    , _initialPower_db(power_db)
+    , _initialTime(time)
+    , _lastResultTime(time)
     , _trackingAlgorithm(std::move(trackingAlgorithm))
 {
     if (!_trackingAlgorithm)
@@ -46,9 +32,10 @@ Target::Target(
         throw std::invalid_argument("Tracking algorithm must not be null");
     }
 
-    if (_id == 0 || initialTime.count() < 0 || !isValidPlot(initialPlot))
+    if (time.count() < 0
+        || !validation::hasValidMeasurement(slantRange, azimuth, elevation, dopplerVelocity))
     {
-        throw std::invalid_argument("Target requires a nonzero ID and valid initial detection/time");
+        throw std::invalid_argument("Target requires a valid observation and time");
     }
 }
 
@@ -59,24 +46,36 @@ std::uint32_t Target::id() const
 
 TargetState Target::state() const
 {
+    if (_id == 0)
+    {
+        return TargetState::UNREGISTERED;
+    }
     return _trackingState ? TargetState::TRACKING : TargetState::TENTATIVE;
 }
 
-DetectionEvent::Plot Target::initialPlot() const
+math::Distance Target::slantRange() const
 {
-    return DetectionEvent::Plot{_initialSlantRange, _initialAzimuth, _initialElevation,
-        _initialDopplerVelocity, _initialPowerDb};
+    return _trackingState ? _trackingState->slantRange : _initialSlantRange;
 }
 
-DetectionEvent::Plot Target::lastPlot() const
+math::Angle Target::azimuth() const
 {
-    if (!_trackingState)
-    {
-        return initialPlot();
-    }
+    return _trackingState ? _trackingState->azimuth : _initialAzimuth;
+}
 
-    return DetectionEvent::Plot{_trackingState->slantRange, _trackingState->azimuth,
-        _trackingState->elevation, _trackingState->dopplerVelocity, _trackingState->powerDb};
+math::Angle Target::elevation() const
+{
+    return _trackingState ? _trackingState->elevation : _initialElevation;
+}
+
+math::Velocity Target::dopplerVelocity() const
+{
+    return _trackingState ? _trackingState->dopplerVelocity : _initialDopplerVelocity;
+}
+
+float Target::power_db() const
+{
+    return _trackingState ? _trackingState->power_db : _initialPower_db;
 }
 
 std::chrono::milliseconds Target::initialTime() const
@@ -104,15 +103,29 @@ const std::optional<TargetTrackingState>& Target::trackingState() const
     return _trackingState;
 }
 
-bool Target::canConfirm(const DetectionEvent::Plot& plot, std::chrono::milliseconds time) const
+void Target::registerAs(std::uint32_t id)
 {
-    return initializeTrackingState(plot, time).has_value();
+    if (id == 0 || state() != TargetState::UNREGISTERED || _trackingState)
+    {
+        throw std::invalid_argument("Only an unregistered Target can receive a nonzero ID");
+    }
+    _id = id;
 }
 
-bool Target::confirm(const DetectionEvent::Plot& plot, std::chrono::milliseconds time)
+bool Target::confirm(const Target& observation)
 {
-    auto initialized = initializeTrackingState(plot, time);
-    if (!initialized)
+    const auto time = observation.lastObservationTime();
+    if (state() != TargetState::TENTATIVE
+        || observation.state() != TargetState::UNREGISTERED
+        || !validation::isValidTarget(observation)
+        || time <= _lastResultTime || time <= _initialTime)
+    {
+        return false;
+    }
+
+    const auto initialized = _trackingAlgorithm->initialize(*this, observation);
+    if (!initialized || initialized->timestamp != time
+        || !validation::isValidTrackingState(*initialized))
     {
         return false;
     }
@@ -123,16 +136,20 @@ bool Target::confirm(const DetectionEvent::Plot& plot, std::chrono::milliseconds
     return true;
 }
 
-bool Target::update(const DetectionEvent::Plot& plot, std::chrono::milliseconds time)
+bool Target::update(const Target& observation)
 {
-    if (!_trackingState || !isValidPlot(plot)
+    const auto time = observation.lastObservationTime();
+    if (state() != TargetState::TRACKING
+        || observation.state() != TargetState::UNREGISTERED
+        || !validation::isValidTarget(observation)
         || time <= _lastResultTime || time <= _trackingState->timestamp)
     {
         return false;
     }
 
-    auto updated = _trackingAlgorithm->update(*_trackingState, plot, time);
-    if (!updated || updated->timestamp != time)
+    const auto updated = _trackingAlgorithm->update(*this, observation);
+    if (!updated || updated->timestamp != time
+        || !validation::isValidTrackingState(*updated))
     {
         return false;
     }
@@ -145,7 +162,7 @@ bool Target::update(const DetectionEvent::Plot& plot, std::chrono::milliseconds 
 
 bool Target::recordTrackingMiss(std::chrono::milliseconds time)
 {
-    if (!_trackingState || !markResultProcessed(time))
+    if (state() != TargetState::TRACKING || !markResultProcessed(time))
     {
         return false;
     }
@@ -170,47 +187,18 @@ bool Target::markResultProcessed(std::chrono::milliseconds time)
 
 std::optional<TargetPrediction> Target::predict(std::chrono::milliseconds time) const
 {
-    if (!_trackingState || time < _trackingState->timestamp)
+    if (state() != TargetState::TRACKING || time < _trackingState->timestamp)
     {
         return std::nullopt;
     }
 
-    const auto prediction = _trackingAlgorithm->predict(*_trackingState, time);
-    if (!prediction || prediction->timestamp != time)
+    const auto prediction = _trackingAlgorithm->predict(*this, time);
+    if (!prediction || prediction->timestamp != time
+        || !validation::isValidPrediction(*prediction))
     {
         return std::nullopt;
     }
     return prediction;
-}
-
-std::optional<TargetTrackingState> Target::initializeTrackingState(
-    const DetectionEvent::Plot& plot,
-    std::chrono::milliseconds time) const
-{
-    if (state() != TargetState::TENTATIVE || !isValidPlot(plot)
-        || time <= _lastResultTime || time <= _initialTime)
-    {
-        return std::nullopt;
-    }
-
-    auto initialized = _trackingAlgorithm->initialize(initialPlot(), _initialTime, plot, time);
-    if (!initialized || initialized->timestamp != time)
-    {
-        return std::nullopt;
-    }
-
-    const auto& velocity = initialized->velocityMetersPerSecond;
-    const double speed = std::hypot(velocity[0], velocity[1], velocity[2]);
-    const double dopplerDifference = std::abs(plot.dopplerVelocity.mps()
-        - _initialDopplerVelocity.mps());
-    if (!std::isfinite(speed) || speed > MAX_INITIAL_SPEED_MPS
-        || !std::isfinite(dopplerDifference)
-        || dopplerDifference > MAX_INITIAL_DOPPLER_DIFFERENCE_MPS)
-    {
-        return std::nullopt;
-    }
-
-    return initialized;
 }
 
 } // namespace target

@@ -1,22 +1,27 @@
 #include "tentative_selector.hpp"
 
+#include "calculation/association/detection_matcher.hpp"
 #include "repository/target_repository.hpp"
 
 namespace target
 {
 
-TentativeSelector::TentativeSelector(const TargetRepository& repository)
+TentativeSelector::TentativeSelector(
+    const TargetRepository& repository,
+    const DetectionMatcher& matcher)
     : _targetRepository(repository)
+    , _matcher(matcher)
 {
 }
 
 std::optional<std::size_t> TentativeSelector::selectNewCandidate(
-    const std::vector<DetectionEvent::Plot>& plots) const
+    const std::vector<Target>& observations) const
 {
-    for (std::size_t index = 0; index < plots.size(); ++index)
+    for (std::size_t index = 0; index < observations.size(); ++index)
     {
-        const DetectionEvent::Plot& plot = plots[index];
-        if (!_matcher.isValidPosition(plot))
+        const Target& observation = observations[index];
+        if (observation.state() != TargetState::UNREGISTERED
+            || !_matcher.isValidPosition(observation))
         {
             continue;
         }
@@ -24,7 +29,7 @@ std::optional<std::size_t> TentativeSelector::selectNewCandidate(
         bool associated = false;
         for (const Target& target : _targetRepository.targets())
         {
-            if (_matcher.matchesPosition(plot, target.lastPlot()))
+            if (_matcher.matchesPosition(observation, target))
             {
                 associated = true;
                 break;

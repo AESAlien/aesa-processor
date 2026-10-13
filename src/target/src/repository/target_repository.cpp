@@ -8,27 +8,28 @@
 namespace target
 {
 
-TargetRepository::TargetRepository(std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm)
-    : _trackingAlgorithm(std::move(trackingAlgorithm))
+std::uint32_t TargetRepository::nextTargetId() const
 {
-    if (!_trackingAlgorithm)
-    {
-        throw std::invalid_argument("Tracking algorithm must not be null");
-    }
-}
-
-std::uint32_t TargetRepository::add(
-    const DetectionEvent::Plot& initialPlot,
-    std::chrono::milliseconds time)
-{
-    // TrackEvent's current console contract must represent the same stable ID.
+    // The current console contract must represent the same stable ID.
     if (_nextTargetId > std::numeric_limits<std::uint16_t>::max())
     {
-        throw std::overflow_error("Target ID exceeds the TrackEvent console ID range");
+        throw std::overflow_error("Target ID exceeds the console ID range");
     }
 
-    const auto id = static_cast<std::uint32_t>(_nextTargetId);
-    _targets.emplace_back(id, initialPlot, time, _trackingAlgorithm);
+    return static_cast<std::uint32_t>(_nextTargetId);
+}
+
+std::uint32_t TargetRepository::add(Target target)
+{
+    if (target.id() != 0 || target.state() != TargetState::UNREGISTERED)
+    {
+        throw std::invalid_argument("Only an unregistered Target can be added");
+    }
+
+    const auto id = nextTargetId();
+    target.registerAs(id);
+    // Consume the ID only after storing the registered copy succeeds.
+    _targets.push_back(std::move(target));
     ++_nextTargetId;
     return id;
 }

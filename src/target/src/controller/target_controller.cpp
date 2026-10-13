@@ -1,11 +1,13 @@
 #include <target/controller/target_controller.hpp>
 
 #include "calculation/association/detection_matcher.hpp"
+#include "calculation/tracking/cartesian_math.hpp"
 #include "calculation/tracking/constant_velocity_algorithm.hpp"
 #include "domain/target.hpp"
 #include "repository/target_repository.hpp"
 #include "selector/tentative_selector.hpp"
 #include "selector/track_selector.hpp"
+#include "validation/detection_validation.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -46,14 +48,29 @@ void validateDetection(const DetectionEvent& detection)
         throw std::invalid_argument("Invalid beam detection metadata");
     }
 
-    const DetectionMatcher matcher;
+    // Validate the entire external message before converting or storing any target.
     for (const auto& plot : detection.plots)
     {
-        if (!matcher.isValidPosition(plot))
+        if (!validation::hasValidMeasurement(
+                plot.slantRange, plot.azimuth, plot.elevation, plot.dopplerVelocity))
         {
             throw std::invalid_argument("Invalid beam detection plot");
         }
     }
+}
+
+std::vector<Target> toTargets(
+    const DetectionEvent& detection,
+    const std::shared_ptr<const ITrackingAlgorithm>& trackingAlgorithm)
+{
+    std::vector<Target> targets;
+    targets.reserve(detection.plots.size());
+    for (const auto& plot : detection.plots)
+    {
+        targets.emplace_back(plot.slantRange, plot.azimuth, plot.elevation,
+            plot.dopplerVelocity, plot.power_db, detection.transmitTime, trackingAlgorithm);
+    }
+    return targets;
 }
 
 std::optional<beam::BeamRequest> trackingRequest(
@@ -82,33 +99,36 @@ TrackEvent trackEvent(const Target& target)
     }
 
     const auto& state = target.trackingState().value();
-    const auto plot = target.lastPlot();
-    const auto& position = state.positionMeters;
-    const auto& velocity = state.velocityMetersPerSecond;
-    const double horizontalRange = std::hypot(position[0], position[1]);
-    const double horizontalSpeed = std::hypot(velocity[0], velocity[1]);
-    const double speed = std::hypot(velocity[0], velocity[1], velocity[2]);
+    using namespace math::literals;
+
+    const auto& position = state.position;
+    const auto& velocity = state.velocity;
+    const auto horizontalRange = math::Distance::fromMeters(
+        math::Vector{position[0].m(), position[1].m()}.norm());
+    const auto horizontalSpeed = math::Velocity::fromMetersPerSecond(
+        math::Vector{velocity[0].mps(), velocity[1].mps()}.norm());
+    const auto speed = math::Velocity::fromMetersPerSecond(cartesian::toVector(velocity).norm());
     // Report position and motion in the same fixed radar frame as the detections.
     // Latitude/longitude are unavailable; a stationary target has no motion angle.
     const double unavailable = std::numeric_limits<double>::quiet_NaN();
-    const auto heading = horizontalSpeed > 0.0
-        ? math::Angle::fromRadians(std::atan2(velocity[1], velocity[0]))
+    const auto heading = horizontalSpeed > 0.0_mps
+        ? math::Angle::fromRadians(std::atan2(velocity[1].mps(), velocity[0].mps()))
         : math::Angle::fromDegrees(unavailable);
-    const auto flightPathAngle = speed > 0.0
-        ? math::Angle::fromRadians(std::atan2(velocity[2], horizontalSpeed))
+    const auto flightPathAngle = speed > 0.0_mps
+        ? math::Angle::fromRadians(std::atan2(velocity[2].mps(), horizontalSpeed.mps()))
         : math::Angle::fromDegrees(unavailable);
     return TrackEvent(
         static_cast<std::uint16_t>(target.id()),
         TrackEvent::TrackState::TRACKING,
-        plot.slantRange,
-        math::Distance::fromMeters(horizontalRange),
-        plot.azimuth,
-        plot.elevation,
-        plot.dopplerVelocity,
+        target.slantRange(),
+        horizontalRange,
+        target.azimuth(),
+        target.elevation(),
+        target.dopplerVelocity(),
         math::Angle::fromDegrees(unavailable),
         math::Angle::fromDegrees(unavailable),
-        math::Distance::fromMeters(position[2]),
-        math::Velocity::fromMetersPerSecond(speed),
+        position[2],
+        speed,
         heading,
         flightPathAngle,
         target.lastObservationTime());
@@ -117,74 +137,80 @@ TrackEvent trackEvent(const Target& target)
 } // namespace
 
 TargetController::TargetController()
-    : _targetRepository(std::make_shared<TargetRepository>(
-        std::make_shared<ConstantVelocityAlgorithm>()))
+    : _trackingAlgorithm(std::make_shared<ConstantVelocityAlgorithm>())
+    , _targetRepository(std::make_shared<TargetRepository>())
+    , _matcher(std::make_shared<DetectionMatcher>())
+    , _tentativeSelector(std::make_shared<TentativeSelector>(
+          *_targetRepository, *_matcher))
+    , _trackSelector(std::make_shared<TrackSelector>(
+          *_targetRepository, *_matcher))
 {
 }
 
 std::optional<beam::BeamRequest> TargetController::handleDetection(DetectionEvent detection)
 {
     validateDetection(detection);
+    const auto receivedTargets = toTargets(detection, _trackingAlgorithm);
+    // Beam metadata belongs to the result, not to an individual physical target.
+    const auto beamType = detection.beamType;
+    const auto requestId = detection.requestId;
+    const auto resultTime = detection.transmitTime;
 
     using BeamType = beam::BeamCommand::BeamType;
-    if (detection.beamType == BeamType::SEARCH)
+    if (beamType == BeamType::SEARCH)
     {
-        const auto previous = _targetRepository->lastSearchResultTime(detection.requestId);
-        if (previous && detection.transmitTime <= *previous)
+        const auto previous = _targetRepository->lastSearchResultTime(requestId);
+        if (previous && resultTime <= *previous)
         {
             return std::nullopt;
         }
 
-        const TentativeSelector selector(*_targetRepository);
-        const auto selected = selector.selectNewCandidate(detection.plots);
+        const auto selected = _tentativeSelector->selectNewCandidate(receivedTargets);
         if (!selected)
         {
-            _targetRepository->markSearchResultProcessed(
-                detection.requestId, detection.transmitTime);
+            _targetRepository->markSearchResultProcessed(requestId, resultTime);
             return std::nullopt;
         }
 
-        const auto transmitTime = addTime(detection.transmitTime, CONFIRMATION_DELAY);
-        const auto& plot = detection.plots[*selected];
-        const auto id = _targetRepository->add(plot, detection.transmitTime);
-        _targetRepository->markSearchResultProcessed(detection.requestId, detection.transmitTime);
+        const auto transmitTime = addTime(resultTime, CONFIRMATION_DELAY);
+        const Target& candidate = receivedTargets[*selected];
+        const auto id = _targetRepository->add(candidate);
+        _targetRepository->markSearchResultProcessed(requestId, resultTime);
         return beam::BeamRequest(
             beam::BeamRequest::BeamType::CONFIRMATION,
             transmitTime,
             id,
-            plot.azimuth,
-            plot.elevation);
+            candidate.azimuth(),
+            candidate.elevation());
     }
 
-    Target* target = _targetRepository->find(detection.requestId);
-    const auto expectedState = detection.beamType == BeamType::CONFIRMATION
+    Target* target = _targetRepository->find(requestId);
+    const auto expectedState = beamType == BeamType::CONFIRMATION
         ? TargetState::TENTATIVE : TargetState::TRACKING;
-    if (!target || target->state() != expectedState
-        || detection.transmitTime <= target->lastResultTime())
+    if (!target || target->state() != expectedState || resultTime <= target->lastResultTime())
     {
         return std::nullopt;
     }
 
-    const TrackSelector selector(*_targetRepository);
-    const auto selected = selector.selectObservation(detection);
-    if (detection.beamType == BeamType::CONFIRMATION)
+    const auto selected = _trackSelector->selectObservation(requestId, resultTime, receivedTargets);
+    if (beamType == BeamType::CONFIRMATION)
     {
         if (!selected)
         {
-            _targetRepository->remove(detection.requestId);
+            _targetRepository->remove(requestId);
             return std::nullopt;
         }
 
-        const auto transmitTime = addTime(detection.transmitTime, TRACKING_INTERVAL);
-        if (!target->confirm(detection.plots[*selected], detection.transmitTime))
+        const auto transmitTime = addTime(resultTime, TRACKING_INTERVAL);
+        if (!target->confirm(receivedTargets[*selected]))
         {
-            _targetRepository->remove(detection.requestId);
+            _targetRepository->remove(requestId);
             return std::nullopt;
         }
         const auto request = trackingRequest(*target, transmitTime);
         if (!request)
         {
-            _targetRepository->remove(detection.requestId);
+            _targetRepository->remove(requestId);
         }
         return request;
     }
@@ -192,20 +218,19 @@ std::optional<beam::BeamRequest> TargetController::handleDetection(DetectionEven
     if (!selected
         && target->consecutiveMissCount() >= MAX_CONSECUTIVE_TRACKING_MISSES - 1)
     {
-        target->recordTrackingMiss(detection.transmitTime);
-        _targetRepository->remove(detection.requestId);
+        target->recordTrackingMiss(resultTime);
+        _targetRepository->remove(requestId);
         return std::nullopt;
     }
 
-    const auto transmitTime = addTime(detection.transmitTime, TRACKING_INTERVAL);
-    const bool updated = selected
-        && target->update(detection.plots[*selected], detection.transmitTime);
+    const auto transmitTime = addTime(resultTime, TRACKING_INTERVAL);
+    const bool updated = selected && target->update(receivedTargets[*selected]);
     if (!updated)
     {
-        target->recordTrackingMiss(detection.transmitTime);
+        target->recordTrackingMiss(resultTime);
         if (target->consecutiveMissCount() >= MAX_CONSECUTIVE_TRACKING_MISSES)
         {
-            _targetRepository->remove(detection.requestId);
+            _targetRepository->remove(requestId);
             return std::nullopt;
         }
     }
@@ -213,7 +238,7 @@ std::optional<beam::BeamRequest> TargetController::handleDetection(DetectionEven
     const auto request = trackingRequest(*target, transmitTime);
     if (!request)
     {
-        _targetRepository->remove(detection.requestId);
+        _targetRepository->remove(requestId);
     }
     return request;
 }

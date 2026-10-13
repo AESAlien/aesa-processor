@@ -12,6 +12,10 @@ namespace target
 {
 
 class TargetRepository;
+class ITrackingAlgorithm;
+class DetectionMatcher;
+class TentativeSelector;
+class TrackSelector;
 
 class TargetController
 {
@@ -22,7 +26,12 @@ public:
     std::vector<TrackEvent> nextTrackEvents() const;
 
 private:
+    std::shared_ptr<const ITrackingAlgorithm> _trackingAlgorithm;
     std::shared_ptr<TargetRepository> _targetRepository;
+    std::shared_ptr<const DetectionMatcher> _matcher;
+    // The selectors share the repository and matcher owned by this controller.
+    std::shared_ptr<const TentativeSelector> _tentativeSelector;
+    std::shared_ptr<const TrackSelector> _trackSelector;
 };
 
 } // namespace target

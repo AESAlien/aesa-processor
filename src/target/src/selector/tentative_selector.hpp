@@ -1,6 +1,6 @@
 #pragma once
 
-#include "calculation/association/detection_matcher.hpp"
+#include "domain/target.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -10,20 +10,23 @@ namespace target
 {
 
 class TargetRepository;
+class DetectionMatcher;
 
 // Select at most one new tentative target from a search beam result.
 class TentativeSelector
 {
 public:
-    explicit TentativeSelector(const TargetRepository& repository);
+    TentativeSelector(
+        const TargetRepository& repository,
+        const DetectionMatcher& matcher);
 
     std::optional<std::size_t> selectNewCandidate(
-        const std::vector<DetectionEvent::Plot>& plots) const;
+        const std::vector<Target>& observations) const;
 
 private:
-    // The injected repository must outlive this selector.
+    // The injected repository and matcher must outlive this selector.
     const TargetRepository& _targetRepository;
-    DetectionMatcher _matcher{};
+    const DetectionMatcher& _matcher;
 };
 
 } // namespace target

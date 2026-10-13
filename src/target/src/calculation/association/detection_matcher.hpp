@@ -1,19 +1,18 @@
 #pragma once
 
-#include <target/dto/detection_event.hpp>
-
 namespace target
 {
 
-struct TargetPrediction;
+class Target;
 
 // Shared association boundary. NDS and its input covariance are not implemented yet.
 class DetectionMatcher
 {
 public:
-    bool isValidPosition(const DetectionEvent::Plot& plot) const;
-    bool matchesPosition(const DetectionEvent::Plot& plot, const DetectionEvent::Plot& other) const;
-    bool matchesPosition(const DetectionEvent::Plot& plot, const TargetPrediction& prediction) const;
+    bool isValidPosition(const Target& observation) const;
+    bool matchesPosition(const Target& observation, const Target& other) const;
+    bool matchesConfirmation(const Target& observation, const Target& tentative) const;
+    bool matchesTracking(const Target& observation, const Target& tracking) const;
 };
 
 } // namespace target

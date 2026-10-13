@@ -24,11 +24,11 @@ struct TargetTrackingState
     math::Angle azimuth;
     math::Angle elevation;
     math::Velocity dopplerVelocity;
-    float powerDb;
+    float power_db;
     std::chrono::milliseconds timestamp;
     // Antenna-local Cartesian axes: x at azimuth 0, y at azimuth +90, z upward.
-    std::array<double, 3> positionMeters;
-    std::array<double, 3> velocityMetersPerSecond;
+    std::array<math::Distance, 3> position;
+    std::array<math::Velocity, 3> velocity;
 };
 
 } // namespace target

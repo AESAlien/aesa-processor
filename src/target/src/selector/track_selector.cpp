@@ -1,50 +1,49 @@
 #include "track_selector.hpp"
 
+#include "calculation/association/detection_matcher.hpp"
 #include "repository/target_repository.hpp"
 
 namespace target
 {
 
-TrackSelector::TrackSelector(const TargetRepository& repository)
+TrackSelector::TrackSelector(
+    const TargetRepository& repository,
+    const DetectionMatcher& matcher)
     : _targetRepository(repository)
+    , _matcher(matcher)
 {
 }
 
 std::optional<std::size_t> TrackSelector::selectObservation(
-    const DetectionEvent& detection) const
+    std::uint32_t requestId,
+    std::chrono::milliseconds resultTime,
+    const std::vector<Target>& observations) const
 {
-    const Target* requestedTarget = _targetRepository.find(detection.requestId);
-    if (!requestedTarget)
+    const Target* requestedTarget = _targetRepository.find(requestId);
+    if (!requestedTarget || resultTime <= requestedTarget->lastResultTime())
     {
         return std::nullopt;
     }
 
     const Target& target = *requestedTarget;
-    const bool tentative = target.state() == TargetState::TENTATIVE;
-    const auto expectedBeamType = tentative
-        ? beam::BeamCommand::BeamType::CONFIRMATION
-        : beam::BeamCommand::BeamType::TRACKING;
-    if (detection.beamType != expectedBeamType || detection.requestId != target.id()
-        || detection.transmitTime <= target.lastResultTime())
+    if (target.state() != TargetState::TENTATIVE && target.state() != TargetState::TRACKING)
     {
         return std::nullopt;
     }
 
-    const auto prediction = tentative ? std::nullopt : target.predict(detection.transmitTime);
-    for (std::size_t index = 0; index < detection.plots.size(); ++index)
+    for (std::size_t index = 0; index < observations.size(); ++index)
     {
-        const DetectionEvent::Plot& plot = detection.plots[index];
-        if (tentative)
+        const Target& observation = observations[index];
+        if (observation.state() != TargetState::UNREGISTERED
+            || observation.lastObservationTime() != resultTime)
         {
-            if (target.canConfirm(plot, detection.transmitTime))
-            {
-                return index;
-            }
             continue;
         }
 
-        // Temporary exact prediction match; NDS association is not implemented.
-        if (prediction && _matcher.matchesPosition(plot, *prediction))
+        const bool associated = target.state() == TargetState::TENTATIVE
+            ? _matcher.matchesConfirmation(observation, target)
+            : _matcher.matchesTracking(observation, target);
+        if (associated)
         {
             return index;
         }

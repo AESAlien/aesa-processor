@@ -1,28 +1,36 @@
 #pragma once
 
-#include "calculation/association/detection_matcher.hpp"
+#include "domain/target.hpp"
 
+#include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
+#include <vector>
 
 namespace target
 {
 
 class TargetRepository;
+class DetectionMatcher;
 
 // Select one observation for the requested target without modifying its state.
 class TrackSelector
 {
 public:
-    explicit TrackSelector(const TargetRepository& repository);
+    TrackSelector(
+        const TargetRepository& repository,
+        const DetectionMatcher& matcher);
 
     std::optional<std::size_t> selectObservation(
-        const DetectionEvent& detection) const;
+        std::uint32_t requestId,
+        std::chrono::milliseconds resultTime,
+        const std::vector<Target>& observations) const;
 
 private:
-    // The injected repository must outlive this selector.
+    // The injected repository and matcher must outlive this selector.
     const TargetRepository& _targetRepository;
-    DetectionMatcher _matcher{};
+    const DetectionMatcher& _matcher;
 };
 
 } // namespace target
