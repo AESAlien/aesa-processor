@@ -3,6 +3,7 @@
 #include "math/trigonometry.hpp"
 #include "math/linear_algebra/vector.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
@@ -52,14 +53,23 @@ SphericalDirection SphericalDirection::fromEnuVector(const Vector& vector)
         throw std::invalid_argument("ENU direction requires a finite 3D vector");
     }
 
-    const double horizontalNorm = std::hypot(vector(0), vector(1));
-    if (horizontalNorm == 0.0 && vector(2) == 0.0)
+    const double maxComponent = std::max({
+        std::abs(vector(0)),
+        std::abs(vector(1)),
+        std::abs(vector(2))
+    });
+    if (maxComponent == 0.0)
     {
         throw std::invalid_argument("ENU direction cannot be created from a zero vector");
     }
 
-    const Angle azimuth = Angle::fromRadians(std::atan2(vector(0), vector(1))).wrap180();
-    const Angle elevation = Angle::fromRadians(std::atan2(vector(2), horizontalNorm));
+    const double east = vector(0) / maxComponent;
+    const double north = vector(1) / maxComponent;
+    const double up = vector(2) / maxComponent;
+    const double horizontalNorm = std::hypot(east, north);
+
+    const Angle azimuth = Angle::fromRadians(std::atan2(east, north)).wrap180();
+    const Angle elevation = Angle::fromRadians(std::atan2(up, horizontalNorm));
     return SphericalDirection(azimuth, elevation);
 }
 

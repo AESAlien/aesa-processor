@@ -73,6 +73,16 @@ TEST(SphericalDirectionTest, ConvertsVerticalEnuVectors)
     EXPECT_DOUBLE_EQ(up.elevation().deg(), 90.0);
 }
 
+TEST(SphericalDirectionTest, ConvertsLargeFiniteEnuVectorsWithoutOverflow)
+{
+    const double max = std::numeric_limits<double>::max();
+    const math::SphericalDirection direction =
+        math::SphericalDirection::fromEnuVector(math::Vector{max, max, max});
+
+    EXPECT_DOUBLE_EQ(direction.azimuth().deg(), 45.0);
+    EXPECT_NEAR(direction.elevation().deg(), 35.264389682754654, 1e-12);
+}
+
 TEST(SphericalDirectionTest, RejectsInvalidEnuVectors)
 {
     EXPECT_THROW((math::SphericalDirection::fromEnuVector(math::Vector{1.0, 2.0})), std::invalid_argument);
