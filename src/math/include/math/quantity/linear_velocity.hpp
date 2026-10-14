@@ -14,17 +14,18 @@ class LinearVelocity : public Quantity<LinearVelocity>
 {
 public:
     static const QuantityTolerance<LinearVelocity> DEFAULT_TOLERANCE;
-    // 절대·상대 허용오차 없이 비교한다. 무한대·NaN 값은 같다고 판단하지 않는다.
+    // 절대·상대 허용오차 없이 비교한다.
     static const QuantityTolerance<LinearVelocity> NONE_TOLERANCE;
 
-    static LinearVelocity fromMetersPerSecond(double metersPerSecond) noexcept;
+    // Rejects non-finite stored values with std::invalid_argument.
+    static LinearVelocity fromMetersPerSecond(double metersPerSecond);
 
     double mps() const noexcept;
 
     LinearVelocity operator-() const noexcept;
 
 private:
-    explicit LinearVelocity(double metersPerSecond) noexcept;
+    explicit LinearVelocity(double metersPerSecond);
 };
 
 LinearVelocity abs(LinearVelocity velocity) noexcept;
@@ -50,7 +51,7 @@ namespace literals
 {
 
 LinearVelocity operator""_mps(unsigned long long metersPerSecond) noexcept;
-LinearVelocity operator""_mps(long double metersPerSecond) noexcept;
+LinearVelocity operator""_mps(long double metersPerSecond);
 
 }
 

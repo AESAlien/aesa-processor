@@ -27,8 +27,6 @@ TEST(AngleTest, EqualsUsesInclusiveAbsoluteTolerance)
     EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::Angle::fromDegrees(-0.25), 0.0}), std::invalid_argument);
     EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::Angle::fromDegrees(std::numeric_limits<double>::infinity()), 0.0}), std::invalid_argument);
     EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN()), 0.0}), std::invalid_argument);
-    EXPECT_FALSE(value.equals(math::Angle::fromDegrees(
-        std::numeric_limits<double>::quiet_NaN()), math::QuantityTolerance{math::Angle::fromDegrees(0.25), 0.0}));
 }
 
 // 라디안으로 만든 허용오차도 도 단위 각도 비교에 올바르게 적용한다.
@@ -212,9 +210,8 @@ TEST(AngleTest, EqualsUsesInclusiveRelativeTolerance)
 }
 
 // 같은 값끼리 비교해도 잘못된 상대 허용오차는 거부하며, 유한하지 않은 값도 거부한다.
-TEST(AngleTest, EqualsRejectsInvalidRelativeToleranceAndNonfiniteValues)
+TEST(AngleTest, EqualsRejectsInvalidRelativeTolerance)
 {
-    const auto value = math::Angle::fromDegrees(1.0);
     const double infinity = std::numeric_limits<double>::infinity();
     const double nan = std::numeric_limits<double>::quiet_NaN();
 
@@ -223,13 +220,7 @@ TEST(AngleTest, EqualsRejectsInvalidRelativeToleranceAndNonfiniteValues)
         EXPECT_THROW((math::QuantityTolerance<math::Angle>{
             math::Angle::fromDegrees(0.0), relativeTolerance}), std::invalid_argument);
     }
-    for (const double nonfinite : {infinity, -infinity, nan})
-    {
-        const auto invalid = math::Angle::fromDegrees(nonfinite);
-        EXPECT_FALSE(value.equals(invalid, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.01}));
-        EXPECT_FALSE(invalid.equals(value, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.01}));
-        EXPECT_FALSE(invalid.equals(invalid, math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.01}));
-    }
+
 }
 
 // 큰 값의 차나 허용오차의 곱이 오버플로하거나 매우 작은 값을 비교해도 상대 오차를 올바르게 판단한다.
@@ -247,16 +238,6 @@ TEST(AngleTest, EqualsHandlesRelativeComparisonAtNumericLimits)
     EXPECT_TRUE(math::Angle::fromDegrees(2.0 * smallest).equals(math::Angle::fromDegrees(smallest), math::QuantityTolerance<math::Angle>{math::Angle::fromDegrees(0.0), 0.5}));
 }
 
-// 유한한 각도는 true를 반환하고 무한대와 NaN은 false를 반환한다.
-TEST(AngleTest, ChecksWhetherStoredDegreesAreFinite)
-{
-    EXPECT_TRUE(math::Angle::fromDegrees(0.0).isFinite());
-    EXPECT_TRUE(math::Angle::fromDegrees(-180.0).isFinite());
-    EXPECT_FALSE(math::Angle::fromDegrees(std::numeric_limits<double>::infinity()).isFinite());
-    EXPECT_FALSE(math::Angle::fromDegrees(-std::numeric_limits<double>::infinity()).isFinite());
-    EXPECT_FALSE(math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN()).isFinite());
-}
-
 TEST(AngleTest, AbsPreservesAngleTypeAndReturnsNonnegativeValue)
 {
     using namespace math::literals;
@@ -266,4 +247,65 @@ TEST(AngleTest, AbsPreservesAngleTypeAndReturnsNonnegativeValue)
     EXPECT_DOUBLE_EQ(math::abs(-30_deg).deg(), 30.0);
     EXPECT_DOUBLE_EQ(math::abs(30_deg).deg(), 30.0);
     EXPECT_DOUBLE_EQ(math::abs(0_deg).deg(), 0.0);
+}
+
+TEST(AngleTest, RejectsNonFiniteInputsAndConvertedValues)
+{
+    const double INVALID_VALUES[] =
+    {
+        std::numeric_limits<double>::infinity(),
+        -std::numeric_limits<double>::infinity(),
+        std::numeric_limits<double>::quiet_NaN()
+    };
+    for (double value : INVALID_VALUES)
+    {
+        EXPECT_THROW(math::Angle::fromDegrees(value), std::invalid_argument);
+        EXPECT_THROW(math::Angle::fromRadians(value), std::invalid_argument);
+        EXPECT_THROW(math::literals::operator""_deg(static_cast<long double>(value)), std::invalid_argument);
+        EXPECT_THROW(math::literals::operator""_rad(static_cast<long double>(value)), std::invalid_argument);
+    }
+    const double MAX_VALUE = std::numeric_limits<double>::max();
+    EXPECT_THROW(math::Angle::fromRadians(MAX_VALUE), std::invalid_argument);
+    EXPECT_THROW(math::Angle::fromRadians(-MAX_VALUE), std::invalid_argument);
+    EXPECT_THROW(math::literals::operator""_rad(static_cast<long double>(MAX_VALUE)), std::invalid_argument);
+    EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(MAX_VALUE).deg(), MAX_VALUE);
+    EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(-MAX_VALUE).deg(), -MAX_VALUE);
+}
+
+TEST(AngleTest, RejectsArithmeticOverflowWithoutChangingValue)
+{
+    const double MAX_VALUE = std::numeric_limits<double>::max();
+    const auto maximum = math::Angle::fromDegrees(MAX_VALUE);
+    auto angle = maximum;
+    EXPECT_THROW(angle + maximum, std::invalid_argument);
+    EXPECT_THROW(angle - (-maximum), std::invalid_argument);
+    EXPECT_THROW(angle * 2.0, std::invalid_argument);
+    EXPECT_THROW(2.0 * angle, std::invalid_argument);
+    EXPECT_THROW(angle / 0.5, std::invalid_argument);
+    EXPECT_THROW(angle += maximum, std::invalid_argument);
+    EXPECT_DOUBLE_EQ(angle.deg(), MAX_VALUE);
+    EXPECT_THROW(angle -= -maximum, std::invalid_argument);
+    EXPECT_DOUBLE_EQ(angle.deg(), MAX_VALUE);
+    EXPECT_THROW(angle *= 2.0, std::invalid_argument);
+    EXPECT_DOUBLE_EQ(angle.deg(), MAX_VALUE);
+    EXPECT_THROW(angle /= 0.5, std::invalid_argument);
+    EXPECT_DOUBLE_EQ(angle.deg(), MAX_VALUE);
+}
+
+TEST(AngleTest, RejectsNonFiniteArithmeticResultsWithoutChangingValue)
+{
+    auto angle = math::Angle::fromDegrees(1.0);
+    const double INVALID_VALUES[] =
+    {
+        std::numeric_limits<double>::infinity(),
+        -std::numeric_limits<double>::infinity(),
+        std::numeric_limits<double>::quiet_NaN()
+    };
+    for (double value : INVALID_VALUES)
+    {
+        EXPECT_THROW(angle *= value, std::invalid_argument);
+        EXPECT_DOUBLE_EQ(angle.deg(), 1.0);
+    }
+    EXPECT_THROW(angle /= std::numeric_limits<double>::quiet_NaN(), std::invalid_argument);
+    EXPECT_DOUBLE_EQ(angle.deg(), 1.0);
 }

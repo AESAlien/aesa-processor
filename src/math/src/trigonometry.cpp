@@ -8,31 +8,16 @@ namespace math
 
 double sin(Angle angle)
 {
-    if (!angle.isFinite())
-    {
-        throw std::domain_error("Sine requires a finite angle");
-    }
-
     return std::sin(angle.wrap180().rad());
 }
 
 double cos(Angle angle)
 {
-    if (!angle.isFinite())
-    {
-        throw std::domain_error("Cosine requires a finite angle");
-    }
-
     return std::cos(angle.wrap180().rad());
 }
 
 double tan(Angle angle)
 {
-    if (!angle.isFinite())
-    {
-        throw std::domain_error("Tangent requires a finite angle");
-    }
-
     return std::tan(angle.wrap180().rad());
 }
 

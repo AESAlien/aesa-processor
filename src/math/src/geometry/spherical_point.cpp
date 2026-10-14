@@ -4,15 +4,13 @@
 
 namespace math
 {
-using namespace literals;
-
 SphericalPoint::SphericalPoint(Distance radius, SphericalDirection direction)
     : radius(radius),
       direction(direction)
 {
-    if (!radius.isFinite() || radius < 0.0_m)
+    if (!radius.isNonnegative())
     {
-        throw std::invalid_argument("Spherical point radius must be finite and non-negative");
+        throw std::invalid_argument("Spherical point radius must be non-negative");
     }
 }
 

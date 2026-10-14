@@ -255,23 +255,6 @@ TEST(BeamTableTest, NonPositiveBeamWidthThrows)
     EXPECT_THROW(beam::BeamTable(makeValidTransform(0_deg, 0_deg, 0_deg), negativeWidth), std::invalid_argument);
 }
 
-TEST(BeamTableTest, NonFiniteAngleThrows)
-{
-    const double nan = std::numeric_limits<double>::quiet_NaN();
-    const double inf = std::numeric_limits<double>::infinity();
-
-    beam::SearchGridConfig nanStart;
-    nanStart.azimuthStart = math::Angle::fromDegrees(nan);
-    beam::SearchGridConfig infStep;
-    infStep.elevationStep = math::Angle::fromDegrees(inf);
-    beam::SearchGridConfig nanWidth;
-    nanWidth.beamWidth = math::Angle::fromDegrees(nan);
-
-    EXPECT_THROW(beam::BeamTable(makeValidTransform(0_deg, 0_deg, 0_deg), nanStart), std::invalid_argument);
-    EXPECT_THROW(beam::BeamTable(makeValidTransform(0_deg, 0_deg, 0_deg), infStep), std::invalid_argument);
-    EXPECT_THROW(beam::BeamTable(makeValidTransform(0_deg, 0_deg, 0_deg), nanWidth), std::invalid_argument);
-}
-
 TEST(BeamTableTest, GridAngleOverflowThrows)
 {
     const auto maxAngle = math::Angle::fromDegrees(std::numeric_limits<double>::max());
@@ -314,8 +297,6 @@ TEST(BeamTableTest, LargeStepWithSingleBeamPerAxisIsAccepted)
     const beam::BeamTable table(makeValidTransform(0_deg, 0_deg, 0_deg), config);
 
     ASSERT_EQ(table.size(), 1u);
-    EXPECT_TRUE(table.get(0).azimuth_ant.isFinite());
-    EXPECT_TRUE(table.get(0).elevation_ant.isFinite());
 }
 
 TEST(BeamTableTest, LargeAzimuthStartWithSingleBeamPreservesWrappedDirection)

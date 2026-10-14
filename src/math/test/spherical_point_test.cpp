@@ -52,14 +52,11 @@ TEST(SphericalPointTest, StoresValidCoordinates)
     EXPECT_DOUBLE_EQ(origin.radius.m(), 0.0);
 }
 
-TEST(SphericalPointTest, RejectsInvalidRadius)
+TEST(SphericalPointTest, RejectsNegativeRadius)
 {
     EXPECT_THROW((math::SphericalPoint(-1_m, math::SphericalDirection(0_deg, 0_deg))), std::invalid_argument);
     EXPECT_THROW((math::SphericalPoint(
-        math::Distance::fromMeters(std::numeric_limits<double>::infinity()),
-        math::SphericalDirection(0_deg, 0_deg))), std::invalid_argument);
-    EXPECT_THROW((math::SphericalPoint(
-        math::Distance::fromMeters(std::numeric_limits<double>::quiet_NaN()),
+        math::Distance::fromMeters(-std::numeric_limits<double>::denorm_min()),
         math::SphericalDirection(0_deg, 0_deg))), std::invalid_argument);
 }
 
@@ -68,18 +65,12 @@ TEST(SphericalDirectionTest, RejectsAzimuthOutsideHalfOpenRange)
     EXPECT_THROW((math::SphericalDirection(-180.001_deg, 0_deg)), std::invalid_argument);
     EXPECT_THROW((math::SphericalDirection(180_deg, 0_deg)), std::invalid_argument);
     EXPECT_THROW((math::SphericalDirection(180.001_deg, 0_deg)), std::invalid_argument);
-    EXPECT_THROW((math::SphericalDirection(
-        math::Angle::fromDegrees(std::numeric_limits<double>::infinity()),
-        0_deg)), std::invalid_argument);
 }
 
 TEST(SphericalDirectionTest, RejectsElevationOutsideInclusiveRange)
 {
     EXPECT_THROW((math::SphericalDirection(0_deg, -90.001_deg)), std::invalid_argument);
     EXPECT_THROW((math::SphericalDirection(0_deg, 90.001_deg)), std::invalid_argument);
-    EXPECT_THROW((math::SphericalDirection(
-        0_deg,
-        math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN()))), std::invalid_argument);
 }
 
 TEST(SphericalDirectionTest, ConvertsToAndFromCartesianUnitVectors)
@@ -139,4 +130,24 @@ TEST(CartesianGeometryTest, StoresCoordinatesAndSupportsCopyConstruction)
     EXPECT_EQ(velocityCopy.x, -1_mps);
     EXPECT_EQ(velocityCopy.y, 2_mps);
     EXPECT_EQ(velocityCopy.z, 3_mps);
+}
+
+TEST(CartesianGeometryTest, StoresFiniteBoundaryValues)
+{
+    const double MAX_VALUE = std::numeric_limits<double>::max();
+    const math::CartesianPoint point(
+        math::Distance::fromMeters(-MAX_VALUE),
+        0_m,
+        math::Distance::fromMeters(MAX_VALUE));
+    EXPECT_DOUBLE_EQ(point.x.m(), -MAX_VALUE);
+    EXPECT_DOUBLE_EQ(point.y.m(), 0.0);
+    EXPECT_DOUBLE_EQ(point.z.m(), MAX_VALUE);
+
+    const math::CartesianVelocity velocity(
+        math::LinearVelocity::fromMetersPerSecond(-MAX_VALUE),
+        0_mps,
+        math::LinearVelocity::fromMetersPerSecond(MAX_VALUE));
+    EXPECT_DOUBLE_EQ(velocity.x.mps(), -MAX_VALUE);
+    EXPECT_DOUBLE_EQ(velocity.y.mps(), 0.0);
+    EXPECT_DOUBLE_EQ(velocity.z.mps(), MAX_VALUE);
 }

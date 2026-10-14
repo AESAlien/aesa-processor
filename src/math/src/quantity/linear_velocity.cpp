@@ -16,22 +16,22 @@ const QuantityTolerance<LinearVelocity> LinearVelocity::DEFAULT_TOLERANCE{
     DEFAULT_RELATIVE_TOLERANCE
 };
 
-LinearVelocity LinearVelocity::fromMetersPerSecond(double metersPerSecond) noexcept
+LinearVelocity LinearVelocity::fromMetersPerSecond(double metersPerSecond)
 {
     return LinearVelocity(metersPerSecond);
 }
 
 double LinearVelocity::mps() const noexcept
 {
-    return _value;
+    return value();
 }
 
 LinearVelocity LinearVelocity::operator-() const noexcept
 {
-    return LinearVelocity(-_value);
+    return LinearVelocity(-value());
 }
 
-LinearVelocity::LinearVelocity(double metersPerSecond) noexcept
+LinearVelocity::LinearVelocity(double metersPerSecond)
     : Quantity<LinearVelocity>(metersPerSecond)
 {
 }
@@ -49,7 +49,7 @@ LinearVelocity operator""_mps(unsigned long long metersPerSecond) noexcept
     return LinearVelocity::fromMetersPerSecond(static_cast<double>(metersPerSecond));
 }
 
-LinearVelocity operator""_mps(long double metersPerSecond) noexcept
+LinearVelocity operator""_mps(long double metersPerSecond)
 {
     return LinearVelocity::fromMetersPerSecond(static_cast<double>(metersPerSecond));
 }

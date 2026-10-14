@@ -26,8 +26,6 @@ TEST(LinearVelocityTest, EqualsUsesInclusiveAbsoluteTolerance)
     EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::LinearVelocity::fromMetersPerSecond(-0.25), 0.0}), std::invalid_argument);
     EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::LinearVelocity::fromMetersPerSecond(std::numeric_limits<double>::infinity()), 0.0}), std::invalid_argument);
     EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::LinearVelocity::fromMetersPerSecond(std::numeric_limits<double>::quiet_NaN()), 0.0}), std::invalid_argument);
-    EXPECT_FALSE(value.equals(math::LinearVelocity::fromMetersPerSecond(
-        std::numeric_limits<double>::quiet_NaN()), math::QuantityTolerance{math::LinearVelocity::fromMetersPerSecond(0.25), 0.0}));
 }
 
 // 초당 미터로 생성한 속도의 부호와 값을 보존하고 부호 반전을 검증한다.
@@ -43,17 +41,6 @@ TEST(LinearVelocityTest, PreservesSignedMetersPerSecond)
     }
 }
 
-TEST(LinearVelocityTest, ChecksWhetherStoredMetersPerSecondAreFinite)
-{
-    EXPECT_TRUE(math::LinearVelocity::fromMetersPerSecond(0.0).isFinite());
-    EXPECT_TRUE(math::LinearVelocity::fromMetersPerSecond(-1.0).isFinite());
-    EXPECT_FALSE(math::LinearVelocity::fromMetersPerSecond(
-        std::numeric_limits<double>::infinity()).isFinite());
-    EXPECT_FALSE(math::LinearVelocity::fromMetersPerSecond(
-        -std::numeric_limits<double>::infinity()).isFinite());
-    EXPECT_FALSE(math::LinearVelocity::fromMetersPerSecond(
-        std::numeric_limits<double>::quiet_NaN()).isFinite());
-}
 
 TEST(LinearVelocityTest, AbsPreservesLinearVelocityTypeAndReturnsNonnegativeValue)
 {
@@ -161,9 +148,8 @@ TEST(LinearVelocityTest, EqualsUsesInclusiveRelativeTolerance)
 }
 
 // 같은 값끼리 비교해도 잘못된 상대 허용오차는 거부하며, 유한하지 않은 값도 거부한다.
-TEST(LinearVelocityTest, EqualsRejectsInvalidRelativeToleranceAndNonfiniteValues)
+TEST(LinearVelocityTest, EqualsRejectsInvalidRelativeTolerance)
 {
-    const auto value = math::LinearVelocity::fromMetersPerSecond(1.0);
     const double infinity = std::numeric_limits<double>::infinity();
     const double nan = std::numeric_limits<double>::quiet_NaN();
 
@@ -171,13 +157,6 @@ TEST(LinearVelocityTest, EqualsRejectsInvalidRelativeToleranceAndNonfiniteValues
     {
         EXPECT_THROW((math::QuantityTolerance<math::LinearVelocity>{
             math::LinearVelocity::fromMetersPerSecond(0.0), relativeTolerance}), std::invalid_argument);
-    }
-    for (const double nonfinite : {infinity, -infinity, nan})
-    {
-        const auto invalid = math::LinearVelocity::fromMetersPerSecond(nonfinite);
-        EXPECT_FALSE(value.equals(invalid, math::QuantityTolerance<math::LinearVelocity>{math::LinearVelocity::fromMetersPerSecond(0.0), 0.01}));
-        EXPECT_FALSE(invalid.equals(value, math::QuantityTolerance<math::LinearVelocity>{math::LinearVelocity::fromMetersPerSecond(0.0), 0.01}));
-        EXPECT_FALSE(invalid.equals(invalid, math::QuantityTolerance<math::LinearVelocity>{math::LinearVelocity::fromMetersPerSecond(0.0), 0.01}));
     }
 }
 
@@ -194,4 +173,29 @@ TEST(LinearVelocityTest, EqualsHandlesRelativeComparisonAtNumericLimits)
 
     const double smallest = std::numeric_limits<double>::denorm_min();
     EXPECT_TRUE(math::LinearVelocity::fromMetersPerSecond(2.0 * smallest).equals(math::LinearVelocity::fromMetersPerSecond(smallest), math::QuantityTolerance<math::LinearVelocity>{math::LinearVelocity::fromMetersPerSecond(0.0), 0.5}));
+}
+
+TEST(LinearVelocityTest, RejectsNonFiniteValues)
+{
+    const double INVALID_VALUES[] =
+    {
+        std::numeric_limits<double>::infinity(),
+        -std::numeric_limits<double>::infinity(),
+        std::numeric_limits<double>::quiet_NaN()
+    };
+    for (double value : INVALID_VALUES)
+    {
+        EXPECT_THROW(math::LinearVelocity::fromMetersPerSecond(value), std::invalid_argument);
+        EXPECT_THROW(math::literals::operator""_mps(static_cast<long double>(value)), std::invalid_argument);
+    }
+}
+
+TEST(LinearVelocityTest, RejectsNonFiniteResultsFromDurationDivision)
+{
+    using namespace math::literals;
+    const auto distance = math::Distance::fromMeters(std::numeric_limits<double>::max());
+    EXPECT_THROW(distance / std::chrono::duration<double>(0.5), std::invalid_argument);
+    EXPECT_THROW(distance / std::chrono::duration<double>(-0.5), std::invalid_argument);
+    EXPECT_THROW(1_m / std::chrono::duration<double>(std::numeric_limits<double>::quiet_NaN()),
+        std::invalid_argument);
 }

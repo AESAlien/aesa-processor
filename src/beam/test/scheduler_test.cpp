@@ -495,17 +495,6 @@ TEST(SchedulerTest, NonPositiveRequestBeamWidthThrows)
     EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(3_deg, -1_deg)), std::invalid_argument);
 }
 
-TEST(SchedulerTest, NonFiniteRequestBeamWidthThrows)
-{
-    const auto nan = math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN());
-    const auto inf = math::Angle::fromDegrees(std::numeric_limits<double>::infinity());
-
-    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(nan, 3_deg)), std::invalid_argument);
-    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(inf, 3_deg)), std::invalid_argument);
-    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(3_deg, nan)), std::invalid_argument);
-    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(3_deg, inf)), std::invalid_argument);
-}
-
 TEST(SchedulerTest, ConfiguredRequestBeamWidthIsUsedPerBeamType)
 {
     beam::Scheduler scheduler(makeConfigWithRequestBeamWidth(2_deg, 4_deg));

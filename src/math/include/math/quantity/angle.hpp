@@ -11,11 +11,12 @@ class Angle : public Quantity<Angle>
 {
 public:
     static const QuantityTolerance<Angle> DEFAULT_TOLERANCE;
-    // 절대·상대 허용오차 없이 비교한다. 무한대·NaN 값은 같다고 판단하지 않는다.
+    // 절대·상대 허용오차 없이 비교한다.
     static const QuantityTolerance<Angle> NONE_TOLERANCE;
 
-    static Angle fromDegrees(double degrees) noexcept;
-    static Angle fromRadians(double radians) noexcept;
+    // Rejects non-finite stored values with std::invalid_argument.
+    static Angle fromDegrees(double degrees);
+    static Angle fromRadians(double radians);
 
     double deg() const noexcept;
     double rad() const noexcept;
@@ -29,33 +30,34 @@ public:
     Angle operator+() const noexcept;
     Angle operator-() const noexcept;
 
-    Angle operator+(const Angle& other) const noexcept;
-    Angle operator-(const Angle& other) const noexcept;
+    Angle operator+(const Angle& other) const;
+    Angle operator-(const Angle& other) const;
 
-    Angle operator*(double scalar) const noexcept;
+    Angle operator*(double scalar) const;
     // 0으로 나누면 std::domain_error를 던진다.
     Angle operator/(double scalar) const;
 
-    Angle& operator+=(const Angle& other) noexcept;
-    Angle& operator-=(const Angle& other) noexcept;
-    Angle& operator*=(double scalar) noexcept;
+    // Non-finite results throw std::invalid_argument without changing the value.
+    Angle& operator+=(const Angle& other);
+    Angle& operator-=(const Angle& other);
+    Angle& operator*=(double scalar);
     // 0으로 나누면 원본을 유지하고 std::domain_error를 던진다.
     Angle& operator/=(double scalar);
 
 private:
-    explicit Angle(double degrees) noexcept;
+    explicit Angle(double degrees);
 };
 
 Angle abs(Angle angle) noexcept;
-Angle operator*(double scalar, const Angle& angle) noexcept;
+Angle operator*(double scalar, const Angle& angle);
 
 namespace literals
 {
 
 Angle operator""_deg(unsigned long long degrees) noexcept;
-Angle operator""_deg(long double degrees) noexcept;
+Angle operator""_deg(long double degrees);
 Angle operator""_rad(unsigned long long radians) noexcept;
-Angle operator""_rad(long double radians) noexcept;
+Angle operator""_rad(long double radians);
 
 }
 

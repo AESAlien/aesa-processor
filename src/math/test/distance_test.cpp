@@ -26,8 +26,6 @@ TEST(DistanceTest, EqualsUsesInclusiveAbsoluteTolerance)
     EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::Distance::fromKilometers(-0.25), 0.0}), std::invalid_argument);
     EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::Distance::fromKilometers(std::numeric_limits<double>::infinity()), 0.0}), std::invalid_argument);
     EXPECT_THROW(value.equals(value, math::QuantityTolerance{math::Distance::fromKilometers(std::numeric_limits<double>::quiet_NaN()), 0.0}), std::invalid_argument);
-    EXPECT_FALSE(value.equals(math::Distance::fromKilometers(
-        std::numeric_limits<double>::quiet_NaN()), math::QuantityTolerance{math::Distance::fromKilometers(0.25), 0.0}));
 }
 
 // 미터로 생성한 거리의 부호와 값을 보존하고, 킬로미터 조회 및 부호 반전을 검증한다.
@@ -139,9 +137,8 @@ TEST(DistanceTest, EqualsUsesInclusiveRelativeTolerance)
 }
 
 // 같은 값끼리 비교해도 잘못된 상대 허용오차는 거부하며, 유한하지 않은 값도 거부한다.
-TEST(DistanceTest, EqualsRejectsInvalidRelativeToleranceAndNonfiniteValues)
+TEST(DistanceTest, EqualsRejectsInvalidRelativeTolerance)
 {
-    const auto value = math::Distance::fromMeters(1.0);
     const double infinity = std::numeric_limits<double>::infinity();
     const double nan = std::numeric_limits<double>::quiet_NaN();
 
@@ -149,13 +146,6 @@ TEST(DistanceTest, EqualsRejectsInvalidRelativeToleranceAndNonfiniteValues)
     {
         EXPECT_THROW((math::QuantityTolerance<math::Distance>{
             math::Distance::fromMeters(0.0), relativeTolerance}), std::invalid_argument);
-    }
-    for (const double nonfinite : {infinity, -infinity, nan})
-    {
-        const auto invalid = math::Distance::fromMeters(nonfinite);
-        EXPECT_FALSE(value.equals(invalid, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
-        EXPECT_FALSE(invalid.equals(value, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
-        EXPECT_FALSE(invalid.equals(invalid, math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.01}));
     }
 }
 
@@ -174,16 +164,6 @@ TEST(DistanceTest, EqualsHandlesRelativeComparisonAtNumericLimits)
     EXPECT_TRUE(math::Distance::fromMeters(2.0 * smallest).equals(math::Distance::fromMeters(smallest), math::QuantityTolerance<math::Distance>{math::Distance::fromMeters(0.0), 0.5}));
 }
 
-// 유한한 거리는 true를 반환하고 무한대와 NaN은 false를 반환한다.
-TEST(DistanceTest, ChecksWhetherStoredMetersAreFinite)
-{
-    EXPECT_TRUE(math::Distance::fromMeters(0.0).isFinite());
-    EXPECT_TRUE(math::Distance::fromMeters(-1.0).isFinite());
-    EXPECT_FALSE(math::Distance::fromMeters(std::numeric_limits<double>::infinity()).isFinite());
-    EXPECT_FALSE(math::Distance::fromMeters(-std::numeric_limits<double>::infinity()).isFinite());
-    EXPECT_FALSE(math::Distance::fromMeters(std::numeric_limits<double>::quiet_NaN()).isFinite());
-}
-
 TEST(DistanceTest, AbsPreservesDistanceTypeAndReturnsNonnegativeValue)
 {
     using namespace math::literals;
@@ -193,4 +173,29 @@ TEST(DistanceTest, AbsPreservesDistanceTypeAndReturnsNonnegativeValue)
     EXPECT_DOUBLE_EQ(math::abs(-2_km).km(), 2.0);
     EXPECT_DOUBLE_EQ(math::abs(2_km).km(), 2.0);
     EXPECT_DOUBLE_EQ(math::abs(0_m).m(), 0.0);
+}
+
+TEST(DistanceTest, RejectsNonFiniteValues)
+{
+    const double INVALID_VALUES[] =
+    {
+        std::numeric_limits<double>::infinity(),
+        -std::numeric_limits<double>::infinity(),
+        std::numeric_limits<double>::quiet_NaN()
+    };
+    for (double value : INVALID_VALUES)
+    {
+        EXPECT_THROW(math::Distance::fromMeters(value), std::invalid_argument);
+        EXPECT_THROW(math::Distance::fromKilometers(value), std::invalid_argument);
+        EXPECT_THROW(math::literals::operator""_m(static_cast<long double>(value)), std::invalid_argument);
+        EXPECT_THROW(math::literals::operator""_km(static_cast<long double>(value)), std::invalid_argument);
+    }
+}
+
+TEST(DistanceTest, RejectsOverflowDuringKilometerConversion)
+{
+    const double MAX_VALUE = std::numeric_limits<double>::max();
+    EXPECT_THROW(math::Distance::fromKilometers(MAX_VALUE), std::invalid_argument);
+    EXPECT_THROW(math::Distance::fromKilometers(-MAX_VALUE), std::invalid_argument);
+    EXPECT_THROW(math::literals::operator""_km(static_cast<long double>(MAX_VALUE)), std::invalid_argument);
 }

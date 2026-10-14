@@ -9,11 +9,12 @@ class Distance : public Quantity<Distance>
 {
 public:
     static const QuantityTolerance<Distance> DEFAULT_TOLERANCE;
-    // 절대·상대 허용오차 없이 비교한다. 무한대·NaN 값은 같다고 판단하지 않는다.
+    // 절대·상대 허용오차 없이 비교한다.
     static const QuantityTolerance<Distance> NONE_TOLERANCE;
 
-    static Distance fromMeters(double meters) noexcept;
-    static Distance fromKilometers(double kilometers) noexcept;
+    // Rejects non-finite stored values with std::invalid_argument.
+    static Distance fromMeters(double meters);
+    static Distance fromKilometers(double kilometers);
 
     double m() const noexcept;
     double km() const noexcept;
@@ -21,7 +22,7 @@ public:
     Distance operator-() const noexcept;
 
 private:
-    explicit Distance(double meters) noexcept;
+    explicit Distance(double meters);
 };
 
 Distance abs(Distance distance) noexcept;
@@ -30,10 +31,10 @@ namespace literals
 {
 
 Distance operator""_m(unsigned long long meters) noexcept;
-Distance operator""_m(long double meters) noexcept;
+Distance operator""_m(long double meters);
 
 Distance operator""_km(unsigned long long kilometers) noexcept;
-Distance operator""_km(long double kilometers) noexcept;
+Distance operator""_km(long double kilometers);
 
 }
 

@@ -4,7 +4,6 @@
 #include <target/controller/target_controller.hpp>
 
 #include <chrono>
-#include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <thread>
@@ -38,15 +37,7 @@ void printAngle(
     const math::Angle& angle)
 {
     std::cout << ", " << name << '=';
-
-    if (std::isfinite(angle.deg()))
-    {
-        std::cout << angle.deg();
-    }
-    else
-    {
-        std::cout << "N/A";
-    }
+    std::cout << angle.deg();
 }
 
 void printTracks(

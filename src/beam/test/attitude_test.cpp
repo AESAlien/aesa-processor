@@ -70,15 +70,15 @@ TEST(AttitudeTransformTest, AcceptsAnglesCreatedFromRadians)
 
 TEST(AttitudeTransformTest, ThrowsOnNonFiniteValues)
 {
-    const beam::AttitudeConfig config;
     beam::RadarAttitude attitude = makeAttitude(0_deg, 0_deg, 0_deg);
 
-    attitude.roll = math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN());
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::NOT_FINITE);
+    EXPECT_THROW(attitude.roll = math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN()),
+        std::invalid_argument);
 
     attitude = makeAttitude(0_deg, 0_deg, 0_deg);
-    attitude.altitude = math::Distance::fromKilometers(std::numeric_limits<double>::infinity());
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::NOT_FINITE);
+    EXPECT_THROW(
+        attitude.altitude = math::Distance::fromKilometers(std::numeric_limits<double>::infinity()),
+        std::invalid_argument);
 }
 
 TEST(AttitudeTransformTest, ThrowsOnOutOfRangeValues)

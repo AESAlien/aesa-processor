@@ -32,7 +32,7 @@ public:
         return _numericTolerance.relative();
     }
 
-    // 지정한 절대오차 또는 상대오차 범위 안이면 true를 반환한다. 무한대·NaN 값은 false를 반환한다.
+    // 지정한 절대오차 또는 상대오차 범위 안이면 true를 반환한다.
     bool isWithin(const T& left, const T& right) const noexcept
     {
         return _numericTolerance.isWithin(left.value(), right.value());

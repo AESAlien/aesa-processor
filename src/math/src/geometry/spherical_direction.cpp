@@ -15,11 +15,11 @@ SphericalDirection::SphericalDirection(Angle azimuth, Angle elevation)
     : azimuth(azimuth),
       elevation(elevation)
 {
-    if (!azimuth.isFinite() || azimuth < -180_deg || azimuth >= 180_deg)
+    if (azimuth < -180_deg || azimuth >= 180_deg)
     {
         throw std::invalid_argument("SphericalDirection azimuth must be in [-180, 180) degrees");
     }
-    if (!elevation.isFinite() || elevation < -90_deg || elevation > 90_deg)
+    if (elevation < -90_deg || elevation > 90_deg)
     {
         throw std::invalid_argument("SphericalDirection elevation must be in [-90, 90] degrees");
     }

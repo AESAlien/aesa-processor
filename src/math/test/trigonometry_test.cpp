@@ -28,16 +28,6 @@ TEST(TrigonometryTest, ReducesLargeAnglesBeforeConvertingToRadians)
     EXPECT_NEAR(math::tan(largeAngle), math::tan(equivalentAngle), 1e-15);
 }
 
-TEST(TrigonometryTest, RejectsNonfiniteAngles)
-{
-    const auto infinity = math::Angle::fromDegrees(std::numeric_limits<double>::infinity());
-    const auto nan = math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN());
-
-    EXPECT_THROW(math::sin(infinity), std::domain_error);
-    EXPECT_THROW(math::cos(nan), std::domain_error);
-    EXPECT_THROW(math::tan(infinity), std::domain_error);
-}
-
 TEST(TrigonometryTest, ComputesInverseSineCosineAndTangent)
 {
     EXPECT_NEAR(math::asin(0.5).deg(), 30.0, 1e-12);

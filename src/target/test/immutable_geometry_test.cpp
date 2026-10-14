@@ -1,5 +1,6 @@
 #include "calculation/tracking/constant_velocity_algorithm.hpp"
 #include "repository/target_repository.hpp"
+#include "target/controller/target_controller.hpp"
 
 #include <gtest/gtest.h>
 
@@ -39,4 +40,33 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     EXPECT_TRUE(repository.remove(lastId));
     EXPECT_TRUE(repository.targets().empty());
     EXPECT_FALSE(repository.remove(lastId));
+}
+
+TEST(ImmutableGeometryTest, ReportsMissingLocationAndStationaryMotionAngles)
+{
+    using BeamType = beam::BeamCommand::BeamType;
+    for (double displacement : {0.0, 1.0})
+    {
+        target::TargetController controller;
+        const auto confirmation = controller.handleDetection(target::DetectionEvent(
+            BeamType::SEARCH, 1, 0ms, {{100_m, 0_deg, 0_deg, 0_mps, 1.0f}}));
+        ASSERT_TRUE(confirmation.has_value());
+        const auto tracking = controller.handleDetection(target::DetectionEvent(
+            BeamType::CONFIRMATION,
+            confirmation->requestId,
+            1000ms,
+            {{math::Distance::fromMeters(100.0 + displacement), 0_deg, 0_deg, 0_mps, 1.0f}}));
+        ASSERT_TRUE(tracking.has_value());
+        const auto events = controller.nextTrackEvents();
+        ASSERT_EQ(events.size(), 1u);
+        EXPECT_FALSE(events[0].latitude.has_value());
+        EXPECT_FALSE(events[0].longitude.has_value());
+        EXPECT_EQ(events[0].heading.has_value(), displacement > 0.0);
+        EXPECT_EQ(events[0].flightPathAngle.has_value(), displacement > 0.0);
+        if (displacement > 0.0)
+        {
+            EXPECT_DOUBLE_EQ(events[0].heading->deg(), 0.0);
+            EXPECT_DOUBLE_EQ(events[0].flightPathAngle->deg(), 0.0);
+        }
+    }
 }
