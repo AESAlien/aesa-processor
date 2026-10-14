@@ -153,8 +153,8 @@ TEST(ToleranceTest, ComparesFiniteNumbersUsingItsPolicy)
 
 TEST(ToleranceTest, NoneToleranceRequiresExactFiniteEquality)
 {
-    EXPECT_DOUBLE_EQ(math::NONE_TOLERANCE.absolute(), 0.0);
-    EXPECT_DOUBLE_EQ(math::NONE_TOLERANCE.relative(), 0.0);
+    EXPECT_DOUBLE_EQ(math::NONE_TOLERANCE.absolute, 0.0);
+    EXPECT_DOUBLE_EQ(math::NONE_TOLERANCE.relative, 0.0);
     EXPECT_TRUE(math::NONE_TOLERANCE.isWithin(1.0, 1.0));
     EXPECT_TRUE(math::NONE_TOLERANCE.isWithin(0.0, -0.0));
     EXPECT_FALSE(math::NONE_TOLERANCE.isWithin(0.1 + 0.2, 0.3));
@@ -187,8 +187,10 @@ TEST(ToleranceTest, ValidatesScalarPolicyAtConstruction)
 TEST(ToleranceTest, PreservesUnitsAndSupportsConstantPolicies)
 {
     const math::Tolerance exact{0.0, 0.0};
-    EXPECT_DOUBLE_EQ(exact.absolute(), 0.0);
-    EXPECT_DOUBLE_EQ(exact.relative(), 0.0);
+    EXPECT_DOUBLE_EQ(exact.absolute, 0.0);
+    EXPECT_DOUBLE_EQ(exact.relative, 0.0);
+    static_assert(std::is_const_v<decltype(exact.absolute)>);
+    static_assert(std::is_const_v<decltype(exact.relative)>);
     static_assert(!std::is_constructible_v<math::QuantityTolerance<math::Angle>, math::Distance, double>);
     static_assert(!std::is_assignable_v<math::Tolerance&, math::Tolerance>);
     EXPECT_FALSE((math::Matrix{{0.1 + 0.2}}).equals(math::Matrix{{0.3}}, exact));
@@ -546,8 +548,8 @@ TYPED_TEST(QuantityComparisonTest, AcceptsUnitPreservingTolerancePolicy)
     const auto value = makeQuantity<TypeParam>(1e6);
     const auto nearby = makeQuantity<TypeParam>(1e6 + 0.0005);
     const math::QuantityTolerance<TypeParam> defaults{
-        makeQuantity<TypeParam>(math::DEFAULT_TOLERANCE.absolute()),
-        math::DEFAULT_TOLERANCE.relative()};
+        makeQuantity<TypeParam>(math::DEFAULT_TOLERANCE.absolute),
+        math::DEFAULT_TOLERANCE.relative};
     EXPECT_EQ(value == nearby, value.equals(nearby, defaults));
     EXPECT_TRUE(value.equals(nearby, defaults));
     EXPECT_FALSE(value.equals(nearby, math::QuantityTolerance<TypeParam>{zero, 0.0}));
