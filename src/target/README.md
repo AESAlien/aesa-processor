@@ -102,7 +102,7 @@ Target은 알고리즘의 반환 시각과 좌표·각도·속도의 유효성�
 최초 측정값은 별도 필드에 보존하고 현재 값 getter는 Tracking일 때 최근 추적 상태를 반환한다.
 예측은 저장 상태와 관측 시각을 앞당기지 않는다.
 
-position은 array<math::Distance, 3>, velocity는 array<math::Velocity, 3>이다.
+position은 math::CartesianPoint, velocity는 array<math::Velocity, 3>이다.
 안테나 고정 좌표계는 방위각 0도 방향 x, 방위각 +90도 방향 y, 위쪽 z를 사용한다.
 cartesian_math.hpp가 Target 극좌표의 Cartesian 변환과 단위 성분↔math::Vector 변환을 공유한다.
 차분·외삽·크기는 math::Vector로 계산하고, 단위 리터럴과 equals를 사용한다.

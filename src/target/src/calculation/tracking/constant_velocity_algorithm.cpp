@@ -22,10 +22,10 @@ double elapsedSeconds(
     return std::chrono::duration<double>(current - previous).count();
 }
 
-bool isFinite(const std::array<math::Distance, 3>& position)
+bool isFinite(const math::CartesianPoint& position)
 {
-    return std::isfinite(position[0].m()) && std::isfinite(position[1].m())
-        && std::isfinite(position[2].m());
+    return std::isfinite(position.x().m()) && std::isfinite(position.y().m())
+        && std::isfinite(position.z().m());
 }
 
 bool isFinite(const std::array<math::Velocity, 3>& velocity)
@@ -122,12 +122,12 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     }
 
     const auto horizontalRange = math::Distance::fromMeters(
-        math::Vector{position[0].m(), position[1].m()}.norm());
+        math::Vector{position.x().m(), position.y().m()}.norm());
     return TargetPrediction{
         time,
         range,
-        math::Angle::fromRadians(std::atan2(position[1].m(), position[0].m())),
-        math::Angle::fromRadians(std::atan2(position[2].m(), horizontalRange.m()))
+        math::Angle::fromRadians(std::atan2(position.y().m(), position.x().m())),
+        math::Angle::fromRadians(std::atan2(position.z().m(), horizontalRange.m()))
     };
 }
 

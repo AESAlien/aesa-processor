@@ -104,7 +104,7 @@ TrackEvent trackEvent(const Target& target)
     const auto& position = state.position;
     const auto& velocity = state.velocity;
     const auto horizontalRange = math::Distance::fromMeters(
-        math::Vector{position[0].m(), position[1].m()}.norm());
+        math::Vector{position.x().m(), position.y().m()}.norm());
     const auto horizontalSpeed = math::Velocity::fromMetersPerSecond(
         math::Vector{velocity[0].mps(), velocity[1].mps()}.norm());
     const auto speed = math::Velocity::fromMetersPerSecond(cartesian::toVector(velocity).norm());
@@ -127,7 +127,7 @@ TrackEvent trackEvent(const Target& target)
         target.dopplerVelocity(),
         math::Angle::fromDegrees(unavailable),
         math::Angle::fromDegrees(unavailable),
-        position[2],
+        position.z(),
         speed,
         heading,
         flightPathAngle,

@@ -44,9 +44,9 @@ bool isValidTrackingState(const TargetTrackingState& state)
     return state.timestamp.count() >= 0
         && hasValidMeasurement(state.slantRange, state.azimuth, state.elevation,
             state.dopplerVelocity)
-        && std::isfinite(state.position[0].m())
-        && std::isfinite(state.position[1].m())
-        && std::isfinite(state.position[2].m())
+        && std::isfinite(state.position.x().m())
+        && std::isfinite(state.position.y().m())
+        && std::isfinite(state.position.z().m())
         && std::isfinite(state.velocity[0].mps())
         && std::isfinite(state.velocity[1].mps())
         && std::isfinite(state.velocity[2].mps())

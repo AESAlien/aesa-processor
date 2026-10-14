@@ -1,6 +1,7 @@
 find_package(GTest REQUIRED)
 
 add_library(math STATIC
+    src/geometry/cartesian_point.cpp
     src/quantity/angle.cpp
     src/quantity/distance.cpp
     src/geometry/spherical_direction.cpp
