@@ -1,5 +1,5 @@
 ﻿#include "math/linear_algebra/square_matrix.hpp"
-
+#include "math/linear_algebra/vector.hpp"
 
 #include <cmath>
 #include <stdexcept>
@@ -30,12 +30,13 @@ SquareMatrix::SquareMatrix(Matrix matrix)
 }
 
 SquareMatrix::SquareMatrix(const SquareMatrix&) = default;
-SquareMatrix& SquareMatrix::operator=(const SquareMatrix&) = default;
 
 SquareMatrix::SquareMatrix(SquareMatrix&& other) noexcept
 {
     std::swap(_matrix, other._matrix);
 }
+
+SquareMatrix& SquareMatrix::operator=(const SquareMatrix&) = default;
 
 SquareMatrix& SquareMatrix::operator=(SquareMatrix&& other) noexcept
 {
@@ -81,6 +82,26 @@ bool SquareMatrix::empty() const noexcept
 bool SquareMatrix::isFinite() const noexcept
 {
     return _matrix.isFinite();
+}
+
+bool SquareMatrix::isSymmetric(const Tolerance& tolerance) const noexcept
+{
+    if (!isFinite())
+    {
+        return false;
+    }
+
+    for (std::size_t row = 0; row < size(); ++row)
+    {
+        for (std::size_t column = 0; column < row; ++column)
+        {
+            if (!tolerance.isWithin(at(row, column), at(column, row)))
+            {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 bool SquareMatrix::equals(const SquareMatrix& other, const Tolerance& tolerance) const noexcept
@@ -206,6 +227,52 @@ double SquareMatrix::det() const
     return determinant;
 }
 
+Vector SquareMatrix::solveLowerTriangular(const Vector& rhs) const
+{
+    if (size() != rhs.size())
+    {
+        throw std::invalid_argument("Lower triangular matrix and right-hand side dimensions must match");
+    }
+    if (!isFinite() || !rhs.isFinite())
+    {
+        throw std::domain_error("Lower triangular solve requires finite values");
+    }
+
+    for (std::size_t row = 0; row < size(); ++row)
+    {
+        if (at(row, row) == 0.0)
+        {
+            throw std::domain_error("Lower triangular matrix must have nonzero diagonal values");
+        }
+        for (std::size_t column = row + 1; column < size(); ++column)
+        {
+            if (at(row, column) != 0.0)
+            {
+                throw std::domain_error("Lower triangular matrix must be zero above the diagonal");
+            }
+        }
+    }
+
+    Vector solution(rhs.size());
+    for (std::size_t row = 0; row < size(); ++row)
+    {
+        double value = rhs(row);
+        for (std::size_t column = 0; column < row; ++column)
+        {
+            value -= at(row, column) * solution(column);
+        }
+
+        value /= at(row, row);
+        if (!std::isfinite(value))
+        {
+            throw std::domain_error("Lower triangular solve failed to produce finite values");
+        }
+        solution(row) = value;
+    }
+
+    return solution;
+}
+
 SquareMatrix SquareMatrix::operator+(const SquareMatrix& other) const
 {
     return SquareMatrix(_matrix + other._matrix);
@@ -239,6 +306,52 @@ const Matrix& SquareMatrix::asMatrix() const noexcept
 SquareMatrix operator*(double scalar, const SquareMatrix& matrix)
 {
     return matrix * scalar;
+}
+
+SquareMatrix cholesky(const SquareMatrix& matrix)
+{
+    if (!matrix.isFinite())
+    {
+        throw std::domain_error("Cholesky decomposition requires finite values");
+    }
+
+    if (!matrix.isSymmetric(NONE_TOLERANCE))
+    {
+        throw std::domain_error("Cholesky decomposition requires a symmetric matrix");
+    }
+
+    SquareMatrix lower(matrix.size());
+    for (std::size_t row = 0; row < matrix.size(); ++row)
+    {
+        for (std::size_t column = 0; column <= row; ++column)
+        {
+            double value = matrix(row, column);
+            for (std::size_t entry = 0; entry < column; ++entry)
+            {
+                value -= lower(row, entry) * lower(column, entry);
+            }
+
+            if (row == column)
+            {
+                if (!(value > 0.0) || !std::isfinite(value))
+                {
+                    throw std::domain_error("Cholesky decomposition requires a positive definite matrix");
+                }
+                lower(row, column) = std::sqrt(value);
+            }
+            else
+            {
+                value /= lower(column, column);
+                if (!std::isfinite(value))
+                {
+                    throw std::domain_error("Cholesky decomposition failed to produce finite values");
+                }
+                lower(row, column) = value;
+            }
+        }
+    }
+
+    return lower;
 }
 
 }
