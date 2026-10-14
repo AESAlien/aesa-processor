@@ -24,14 +24,14 @@ double elapsedSeconds(
 
 bool isFinite(const math::CartesianPoint& position)
 {
-    return std::isfinite(position.x().m()) && std::isfinite(position.y().m())
-        && std::isfinite(position.z().m());
+    return std::isfinite(position.x.m()) && std::isfinite(position.y.m())
+        && std::isfinite(position.z.m());
 }
 
 bool isFinite(const math::CartesianVelocity& velocity)
 {
-    return std::isfinite(velocity.x().mps()) && std::isfinite(velocity.y().mps())
-        && std::isfinite(velocity.z().mps());
+    return std::isfinite(velocity.x.mps()) && std::isfinite(velocity.y.mps())
+        && std::isfinite(velocity.z.mps());
 }
 
 } // namespace
@@ -105,9 +105,9 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     const auto& state = *currentState;
     // Preserve a stationary measured position exactly while matching remains exact.
     const auto& velocity = state.velocity;
-    if (velocity.x().equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
-        && velocity.y().equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
-        && velocity.z().equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0}))
+    if (velocity.x.equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
+        && velocity.y.equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
+        && velocity.z.equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0}))
     {
         return TargetPrediction{time, state.slantRange, state.azimuth, state.elevation};
     }
@@ -122,12 +122,12 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     }
 
     const auto horizontalRange = math::Distance::fromMeters(
-        math::Vector{position.x().m(), position.y().m()}.norm());
+        math::Vector{position.x.m(), position.y.m()}.norm());
     return TargetPrediction{
         time,
         range,
-        math::Angle::fromRadians(std::atan2(position.y().m(), position.x().m())),
-        math::Angle::fromRadians(std::atan2(position.z().m(), horizontalRange.m()))
+        math::Angle::fromRadians(std::atan2(position.y.m(), position.x.m())),
+        math::Angle::fromRadians(std::atan2(position.z.m(), horizontalRange.m()))
     };
 }
 

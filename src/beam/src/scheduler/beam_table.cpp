@@ -67,8 +67,8 @@ BeamTable::BeamTable(const AntEnuTransform& transform, const SearchGridConfig& c
 
             BeamInfo beam;
             beam.beamId = static_cast<uint32_t>(_beams.size() + 1);
-            beam.azimuth_ant = direction_ant.azimuth();
-            beam.elevation_ant = direction_ant.elevation();
+            beam.azimuth_ant = direction_ant.azimuth;
+            beam.elevation_ant = direction_ant.elevation;
             beam.azimuthBeamWidth = config.beamWidth;
             beam.elevationBeamWidth = config.beamWidth;
             _beams.push_back(beam);

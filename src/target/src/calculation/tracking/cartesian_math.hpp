@@ -18,12 +18,12 @@ namespace cartesian
 // Convert typed components only at the boundary of dimensionless vector arithmetic.
 inline math::Vector toVector(const math::CartesianPoint& position)
 {
-    return {position.x().m(), position.y().m(), position.z().m()};
+    return {position.x.m(), position.y.m(), position.z.m()};
 }
 
 inline math::Vector toVector(const math::CartesianVelocity& velocity)
 {
-    return {velocity.x().mps(), velocity.y().mps(), velocity.z().mps()};
+    return {velocity.x.mps(), velocity.y.mps(), velocity.z.mps()};
 }
 
 inline math::CartesianPoint toPosition(const math::Vector& position)

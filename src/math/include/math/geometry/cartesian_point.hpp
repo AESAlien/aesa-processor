@@ -5,19 +5,13 @@
 namespace math
 {
 
-class CartesianPoint
+struct CartesianPoint
 {
-public:
     CartesianPoint(Distance x, Distance y, Distance z) noexcept;
 
-    Distance x() const noexcept;
-    Distance y() const noexcept;
-    Distance z() const noexcept;
-
-private:
-    Distance _x;
-    Distance _y;
-    Distance _z;
+    const Distance x;
+    const Distance y;
+    const Distance z;
 };
 
 }

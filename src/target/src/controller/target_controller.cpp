@@ -104,18 +104,18 @@ TrackEvent trackEvent(const Target& target)
     const auto& position = state.position;
     const auto& velocity = state.velocity;
     const auto horizontalRange = math::Distance::fromMeters(
-        math::Vector{position.x().m(), position.y().m()}.norm());
+        math::Vector{position.x.m(), position.y.m()}.norm());
     const auto horizontalSpeed = math::LinearVelocity::fromMetersPerSecond(
-        math::Vector{velocity.x().mps(), velocity.y().mps()}.norm());
+        math::Vector{velocity.x.mps(), velocity.y.mps()}.norm());
     const auto speed = math::LinearVelocity::fromMetersPerSecond(cartesian::toVector(velocity).norm());
     // Report position and motion in the same fixed radar frame as the detections.
     // Latitude/longitude are unavailable; a stationary target has no motion angle.
     const double unavailable = std::numeric_limits<double>::quiet_NaN();
     const auto heading = horizontalSpeed > 0.0_mps
-        ? math::Angle::fromRadians(std::atan2(velocity.y().mps(), velocity.x().mps()))
+        ? math::Angle::fromRadians(std::atan2(velocity.y.mps(), velocity.x.mps()))
         : math::Angle::fromDegrees(unavailable);
     const auto flightPathAngle = speed > 0.0_mps
-        ? math::Angle::fromRadians(std::atan2(velocity.z().mps(), horizontalSpeed.mps()))
+        ? math::Angle::fromRadians(std::atan2(velocity.z.mps(), horizontalSpeed.mps()))
         : math::Angle::fromDegrees(unavailable);
     return TrackEvent(
         static_cast<std::uint16_t>(target.id()),
@@ -127,7 +127,7 @@ TrackEvent trackEvent(const Target& target)
         target.dopplerVelocity(),
         math::Angle::fromDegrees(unavailable),
         math::Angle::fromDegrees(unavailable),
-        position.z(),
+        position.z,
         speed,
         heading,
         flightPathAngle,

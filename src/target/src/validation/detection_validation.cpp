@@ -44,12 +44,12 @@ bool isValidTrackingState(const TargetTrackingState& state)
     return state.timestamp.count() >= 0
         && hasValidMeasurement(state.slantRange, state.azimuth, state.elevation,
             state.dopplerVelocity)
-        && std::isfinite(state.position.x().m())
-        && std::isfinite(state.position.y().m())
-        && std::isfinite(state.position.z().m())
-        && std::isfinite(state.velocity.x().mps())
-        && std::isfinite(state.velocity.y().mps())
-        && std::isfinite(state.velocity.z().mps())
+        && std::isfinite(state.position.x.m())
+        && std::isfinite(state.position.y.m())
+        && std::isfinite(state.position.z.m())
+        && std::isfinite(state.velocity.x.mps())
+        && std::isfinite(state.velocity.y.mps())
+        && std::isfinite(state.velocity.z.mps())
         && std::isfinite(cartesian::toVector(state.velocity).norm());
 }
 

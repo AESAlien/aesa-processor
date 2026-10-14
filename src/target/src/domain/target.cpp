@@ -130,7 +130,7 @@ bool Target::confirm(const Target& observation)
         return false;
     }
 
-    _trackingState = *initialized;
+    _trackingState.emplace(*initialized);
     _lastResultTime = time;
     _consecutiveMissCount = 0;
     return true;
@@ -154,7 +154,7 @@ bool Target::update(const Target& observation)
         return false;
     }
 
-    _trackingState = *updated;
+    _trackingState.emplace(*updated);
     _lastResultTime = time;
     _consecutiveMissCount = 0;
     return true;
