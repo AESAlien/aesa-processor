@@ -1,7 +1,7 @@
 #include "scheduler/scheduler.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
-#include "attitude/attitude_config.hpp"
+#include "beam/config/beam_config.hpp"
 
 #include <stdexcept>
 
@@ -11,10 +11,28 @@ namespace
 {
 using namespace math::literals;
 
-// 확인/추적 빔의 beamId. 탐색 그리드 번호가 1부터 시작하므로 0은 그리드 빔이 아님을 뜻한다.
-constexpr std::uint32_t NON_GRID_BEAM_ID = 0;
+void validate(const RequestBeamConfig& config)
+{
+    // NaN은 크기 비교가 모두 false이므로 유한성을 먼저 확인한다.
+    if (!config.confirmationBeamWidth.isFinite() || !config.trackingBeamWidth.isFinite())
+    {
+        throw std::invalid_argument("RequestBeamConfig: beam width must be finite");
+    }
 
-const math::Angle REQUEST_BEAM_WIDTH = 3_deg;
+    if (config.confirmationBeamWidth <= 0_deg || config.trackingBeamWidth <= 0_deg)
+    {
+        throw std::invalid_argument("RequestBeamConfig: beam width must be greater than 0");
+    }
+}
+
+void validate(const BeamRequest& request)
+{
+    if (request.beamType != BeamRequest::BeamType::CONFIRMATION &&
+        request.beamType != BeamRequest::BeamType::TRACKING)
+    {
+        throw std::invalid_argument("Unknown beam request type");
+    }
+}
 
 BeamCommand::BeamType toCommandBeamType(BeamRequest::BeamType beamType)
 {
@@ -28,6 +46,19 @@ BeamCommand::BeamType toCommandBeamType(BeamRequest::BeamType beamType)
     }
 
     throw std::invalid_argument("Unknown beam request type");
+}
+
+math::Angle requestBeamWidth(const RequestBeamConfig& config, BeamRequest::BeamType beamType)
+{
+    switch (beamType)
+    {
+    case BeamRequest::BeamType::CONFIRMATION:
+        return config.confirmationBeamWidth;
+    case BeamRequest::BeamType::TRACKING:
+        return config .trackingBeamWidth;
+    }
+
+    throw std::invalid_argument("Unkown beam request type");
 }
 
 BeamCommand makeSearchCommand(
@@ -49,21 +80,28 @@ BeamCommand makeSearchCommand(
 
 BeamCommand makeRequestCommand(
     const BeamRequest& request,
+    const RequestBeamConfig& config,
     std::chrono::milliseconds currentTime,
     std::uint32_t commandCount
 ) {
+    math::Angle width = requestBeamWidth(config, request.beamType);
     return BeamCommand::Builder()
         .beamType(toCommandBeamType(request.beamType))
         .transmitTime(currentTime)
-        .beamId(NON_GRID_BEAM_ID)
+        .beamId(request.requestId)
         .commandCount(commandCount)
         .azimuth_ant(request.azimuth_ant)
         .elevation_ant(request.elevation_ant)
-        .azimuthBeamWidth(REQUEST_BEAM_WIDTH)
-        .elevationBeamWidth(REQUEST_BEAM_WIDTH)
+        .azimuthBeamWidth(width)
+        .elevationBeamWidth(width)
         .build();
 }
 } // namespace
+
+Scheduler::Scheduler(const BeamConfig& config) : _config(config)
+{
+    validate(_config.requestBeam);
+}
 
 void Scheduler::setOperationState(OperationState state)
 {
@@ -87,8 +125,8 @@ void Scheduler::setAttitude(const RadarAttitude& attitude)
     }
 
     // 생성 중 예외가 발생하면 _beamTable은 비어 있는 채로 유지된다.
-    const AntEnuTransform transform(attitude, AttitudeConfig{});
-    _beamTable.emplace(transform);
+    const AntEnuTransform transform(attitude, _config.attitude);
+    _beamTable.emplace(transform, _config.searchGrid);
 }
 
 void Scheduler::addRequest(const BeamRequest& request)
@@ -98,6 +136,7 @@ void Scheduler::addRequest(const BeamRequest& request)
         return;
     }
 
+    validate(request);
     _requestQueue.add(request);
 }
 
@@ -112,11 +151,11 @@ std::optional<BeamCommand> Scheduler::next(std::chrono::milliseconds currentTime
 
     if (const std::optional<BeamRequest> request = _requestQueue.popNextDue(currentTime))
     {
-        return makeRequestCommand(*request, currentTime, _commandCount);
+        return makeRequestCommand(*request, _config.requestBeam, currentTime, _commandCount);
     }
 
     const BeamInfo& beamInfo = _beamTable->get(_searchCursor);
-    _searchCursor = (_searchCursor + 1) % BeamTable::size();
+    _searchCursor = (_searchCursor + 1) % _beamTable->size();
     return makeSearchCommand(beamInfo, currentTime, _commandCount);
 }
 

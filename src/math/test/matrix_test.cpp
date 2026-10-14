@@ -1,4 +1,4 @@
-﻿#include "math/matrix.hpp"
+﻿#include "math/linear_algebra/matrix.hpp"
 
 #include <gtest/gtest.h>
 
@@ -46,6 +46,21 @@ TEST(MatrixTest, ConstructsAndInitializesRequestedDimensions)
             EXPECT_DOUBLE_EQ(matrix(row, column), 4.5);
         }
     }
+}
+
+// 모든 원소가 유한해야 하며 빈 행렬은 유한한 것으로 판단한다.
+TEST(MatrixTest, ChecksWhetherAllElementsAreFinite)
+{
+    math::Matrix matrix{{1.0, -2.0}, {3.0, 4.0}};
+    EXPECT_TRUE(matrix.isFinite());
+    EXPECT_TRUE(math::Matrix().isFinite());
+
+    matrix(0, 1) = std::numeric_limits<double>::infinity();
+    EXPECT_FALSE(matrix.isFinite());
+    matrix(0, 1) = -std::numeric_limits<double>::infinity();
+    EXPECT_FALSE(matrix.isFinite());
+    matrix(0, 1) = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_FALSE(matrix.isFinite());
 }
 
 // 행과 열의 곱이 저장 크기 범위를 넘으면 할당 전에 예외를 발생시킨다.

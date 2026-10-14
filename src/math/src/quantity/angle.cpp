@@ -1,11 +1,12 @@
-﻿#include "math/angle.hpp"
+﻿#include "math/quantity/angle.hpp"
 
-#include "relative_comparison.hpp"
+#include "../relative_comparison.hpp"
 #include <cmath>
 #include <stdexcept>
 
 namespace math
 {
+using namespace literals;
 
 const double PI = 3.14159265358979323846;
 
@@ -29,23 +30,50 @@ double Angle::rad() const noexcept
     return _degrees * (PI / 180.0);
 }
 
+bool Angle::isFinite() const noexcept
+{
+    return std::isfinite(_degrees);
+}
+
 Angle Angle::wrap180() const noexcept
 {
-    // 180도를 더해 나머지를 구한 뒤 음수 나머지를 보정한다.
-    double degrees = std::fmod(_degrees + 180.0, 360.0);
+    // 먼저 360도 주기의 나머지를 구해 큰 각도에서 오프셋 정밀도 손실을 피한다.
+    double degrees = std::fmod(_degrees, 360.0);
     if (degrees < 0.0)
     {
         degrees += 360.0;
     }
 
-    return Angle(degrees - 180.0);
+    if (degrees >= 180.0)
+    {
+        degrees -= 360.0;
+    }
+
+    return Angle(degrees);
+}
+
+Angle Angle::wrap90() const noexcept
+{
+    // 먼저 180도 주기의 나머지를 구해 큰 각도에서 오프셋 정밀도 손실을 피한다.
+    double degrees = std::fmod(_degrees, 180.0);
+    if (degrees < 0.0)
+    {
+        degrees += 180.0;
+    }
+
+    if (degrees >= 90.0)
+    {
+        degrees -= 180.0;
+    }
+
+    return Angle(degrees);
 }
 
 bool Angle::equals(const Angle& other, const Angle& absoluteTolerance) const noexcept
 {
-    return std::isfinite(absoluteTolerance._degrees)
-        && absoluteTolerance._degrees >= 0.0
-        && std::abs(_degrees - other._degrees) <= absoluteTolerance._degrees;
+    return absoluteTolerance.isFinite()
+        && absoluteTolerance >= 0.0_deg
+        && abs(*this - other) <= absoluteTolerance;
 }
 
 bool Angle::equals(const Angle& other, double relativeTolerance) const noexcept
@@ -149,6 +177,11 @@ Angle::Angle(double degrees) noexcept
 {
 }
 
+Angle abs(Angle angle) noexcept
+{
+    return Angle::fromDegrees(std::abs(angle.deg()));
+}
+
 Angle operator*(double scalar, const Angle& angle) noexcept
 {
     return angle * scalar;
@@ -165,6 +198,16 @@ Angle operator""_deg(unsigned long long degrees) noexcept
 Angle operator""_deg(long double degrees) noexcept
 {
     return Angle::fromDegrees(static_cast<double>(degrees));
+}
+
+Angle operator""_rad(unsigned long long radians) noexcept
+{
+    return Angle::fromRadians(static_cast<double>(radians));
+}
+
+Angle operator""_rad(long double radians) noexcept
+{
+    return Angle::fromRadians(static_cast<double>(radians));
 }
 
 }

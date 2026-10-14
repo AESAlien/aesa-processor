@@ -1,9 +1,10 @@
-﻿#include "math/vector.hpp"
-#include "math/square_matrix.hpp"
+﻿#include "math/linear_algebra/vector.hpp"
+#include "math/linear_algebra/square_matrix.hpp"
 
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -41,6 +42,21 @@ TEST(VectorTest, ConstructsColumnVectors)
     EXPECT_DOUBLE_EQ(converted(0), 4.0);
     EXPECT_DOUBLE_EQ(converted(1), 5.0);
     EXPECT_TRUE(math::Vector(math::Matrix(0, 1)).empty());
+}
+
+// 모든 원소가 유한해야 하며 빈 벡터는 유한한 것으로 판단한다.
+TEST(VectorTest, ChecksWhetherAllElementsAreFinite)
+{
+    math::Vector vector{1.0, -2.0, 3.0};
+    EXPECT_TRUE(vector.isFinite());
+    EXPECT_TRUE(math::Vector().isFinite());
+
+    vector(1) = std::numeric_limits<double>::infinity();
+    EXPECT_FALSE(vector.isFinite());
+    vector(1) = -std::numeric_limits<double>::infinity();
+    EXPECT_FALSE(vector.isFinite());
+    vector(1) = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_FALSE(vector.isFinite());
 }
 
 // 행벡터·다중 열·0×0 행렬은 열벡터 생성 시 거부한다.

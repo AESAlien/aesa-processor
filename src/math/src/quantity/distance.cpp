@@ -1,10 +1,11 @@
-﻿#include "math/distance.hpp"
+﻿#include "math/quantity/distance.hpp"
 
-#include "relative_comparison.hpp"
+#include "../relative_comparison.hpp"
 #include <cmath>
 
 namespace math
 {
+using namespace literals;
 
 Distance Distance::fromMeters(double meters) noexcept
 {
@@ -26,10 +27,15 @@ double Distance::km() const noexcept
     return _meters / 1000.0;
 }
 
+bool Distance::isFinite() const noexcept
+{
+    return std::isfinite(_meters);
+}
+
 bool Distance::equals(const Distance& other, const Distance& absoluteTolerance) const noexcept
 {
-    return std::isfinite(absoluteTolerance._meters)
-        && absoluteTolerance._meters >= 0.0
+    return absoluteTolerance.isFinite()
+        && absoluteTolerance >= 0.0_m
         && std::abs(_meters - other._meters) <= absoluteTolerance._meters;
 }
 
@@ -66,6 +72,11 @@ Distance Distance::operator-() const noexcept
 Distance::Distance(double meters) noexcept
     : _meters(meters)
 {
+}
+
+Distance abs(Distance distance) noexcept
+{
+    return Distance::fromMeters(std::abs(distance.m()));
 }
 
 namespace literals

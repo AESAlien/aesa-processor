@@ -1,0 +1,40 @@
+#pragma once
+
+#include <network/message_decoder.hpp>
+#include <network/message_framer.hpp>
+#include <network/network_types.hpp>
+
+namespace comm
+{
+namespace controller_error
+{
+
+[[noreturn]] void throwServerOpenFailure(
+    const OperationResult& result
+);
+
+[[noreturn]] void throwPollFailure(
+    const PollResult& result
+);
+
+[[noreturn]] void throwReceiveFailure(
+    NetworkOperation operation,
+    int errorCode
+);
+
+[[noreturn]] void throwFramingFailure(
+    NetworkPeer peer,
+    FramingError error
+);
+
+[[noreturn]] void throwDecodingFailure(
+    NetworkPeer peer,
+    DecodingError error
+);
+
+void reportRejectedConnection(
+    const ConnectionRejectedEvent& event
+) noexcept;
+
+} // namespace controller_error
+} // namespace comm

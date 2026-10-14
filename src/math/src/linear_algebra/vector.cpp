@@ -1,5 +1,5 @@
-﻿#include "math/vector.hpp"
-#include "math/square_matrix.hpp"
+﻿#include "math/linear_algebra/vector.hpp"
+#include "math/linear_algebra/square_matrix.hpp"
 
 #include <cmath>
 #include <stdexcept>
@@ -61,6 +61,11 @@ std::size_t Vector::size() const noexcept
 bool Vector::empty() const noexcept
 {
     return _matrix.empty();
+}
+
+bool Vector::isFinite() const noexcept
+{
+    return _matrix.isFinite();
 }
 
 bool Vector::equals(const Vector& other, const Vector& absoluteTolerance) const noexcept

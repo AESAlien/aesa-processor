@@ -1,4 +1,4 @@
-﻿#include "math/angle.hpp"
+﻿#include "math/quantity/angle.hpp"
 
 #include <gtest/gtest.h>
 
@@ -52,6 +52,17 @@ TEST(AngleTest, CreatesAnglesFromDegreeLiterals)
     EXPECT_DOUBLE_EQ((30.5_deg).deg(), 30.5);
 }
 
+// 정수와 실수 라디안 리터럴이 올바른 Angle 값과 타입을 생성한다.
+TEST(AngleTest, CreatesAnglesFromRadianLiterals)
+{
+    using namespace math::literals;
+
+    static_assert(std::is_same<decltype(1_rad), math::Angle>::value,
+        "Radian literals must produce an Angle");
+    EXPECT_DOUBLE_EQ((1_rad).rad(), 1.0);
+    EXPECT_DOUBLE_EQ((0.37_rad).rad(), 0.37);
+}
+
 // 범위 안의 값, ±180도 경계와 여러 회전 값을 [-180, 180) 범위로 정규화한다.
 TEST(AngleTest, WrapsToSignedDegreeRange)
 {
@@ -68,11 +79,36 @@ TEST(AngleTest, WrapsToSignedDegreeRange)
     EXPECT_TRUE(((-540_deg).wrap180()).equals(-180_deg, math::Angle::fromDegrees(0.0)));
     EXPECT_TRUE(((1080_deg).wrap180()).equals(0_deg, math::Angle::fromDegrees(0.0)));
     EXPECT_TRUE(((-1080_deg).wrap180()).equals(0_deg, math::Angle::fromDegrees(0.0)));
+    EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(1e18).wrap180().deg(), -80.0);
 
     // 정규화는 새 각도를 반환하며 원본 값은 유지한다.
     const auto angle = 450_deg;
     EXPECT_TRUE((angle.wrap180()).equals(90_deg, math::Angle::fromDegrees(0.0)));
     EXPECT_TRUE((angle).equals(450_deg, math::Angle::fromDegrees(0.0)));
+}
+
+// 범위 안의 값, ±90도 경계와 여러 회전 값을 [-90, 90) 범위로 정규화한다.
+TEST(AngleTest, WrapsToSignedNinetyDegreeRange)
+{
+    using namespace math::literals;
+
+    EXPECT_DOUBLE_EQ((0_deg).wrap90().deg(), 0.0);
+    EXPECT_DOUBLE_EQ((89.5_deg).wrap90().deg(), 89.5);
+    EXPECT_DOUBLE_EQ((-89.5_deg).wrap90().deg(), -89.5);
+    EXPECT_DOUBLE_EQ((90_deg).wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ((-90_deg).wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ((91_deg).wrap90().deg(), -89.0);
+    EXPECT_DOUBLE_EQ((-91_deg).wrap90().deg(), 89.0);
+    EXPECT_DOUBLE_EQ((180_deg).wrap90().deg(), 0.0);
+    EXPECT_DOUBLE_EQ((270_deg).wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ((-270_deg).wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ((450_deg).wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ((-450_deg).wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(1e18).wrap90().deg(), -80.0);
+
+    const auto angle = 450_deg;
+    EXPECT_DOUBLE_EQ(angle.wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ(angle.deg(), 450.0);
 }
 
 // 0과 양수·음수 각도의 도→라디안 변환을 검증하고, 회전 범위를 넘는 도 값도 그대로 보존한다.
@@ -210,4 +246,25 @@ TEST(AngleTest, EqualsHandlesRelativeComparisonAtNumericLimits)
     const double smallest = std::numeric_limits<double>::denorm_min();
     EXPECT_TRUE(math::Angle::fromDegrees(2.0 * smallest).equals(
         math::Angle::fromDegrees(smallest), 0.5));
+}
+
+// 유한한 각도는 true를 반환하고 무한대와 NaN은 false를 반환한다.
+TEST(AngleTest, ChecksWhetherStoredDegreesAreFinite)
+{
+    EXPECT_TRUE(math::Angle::fromDegrees(0.0).isFinite());
+    EXPECT_TRUE(math::Angle::fromDegrees(-180.0).isFinite());
+    EXPECT_FALSE(math::Angle::fromDegrees(std::numeric_limits<double>::infinity()).isFinite());
+    EXPECT_FALSE(math::Angle::fromDegrees(-std::numeric_limits<double>::infinity()).isFinite());
+    EXPECT_FALSE(math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN()).isFinite());
+}
+
+TEST(AngleTest, AbsPreservesAngleTypeAndReturnsNonnegativeValue)
+{
+    using namespace math::literals;
+
+    static_assert(std::is_same<decltype(math::abs(-30_deg)), math::Angle>::value,
+        "Absolute value of an angle must remain an Angle");
+    EXPECT_DOUBLE_EQ(math::abs(-30_deg).deg(), 30.0);
+    EXPECT_DOUBLE_EQ(math::abs(30_deg).deg(), 30.0);
+    EXPECT_DOUBLE_EQ(math::abs(0_deg).deg(), 0.0);
 }

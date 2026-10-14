@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "math/distance.hpp"
+#include "math/quantity/distance.hpp"
 
 #include <chrono>
 #include <stdexcept>
@@ -15,6 +15,7 @@ public:
     static Velocity fromMetersPerSecond(double metersPerSecond) noexcept;
 
     double mps() const noexcept;
+    bool isFinite() const noexcept;
 
     // 초당 미터 단위 절대 차이가 허용오차 이하인지 비교한다.
     // 음수·무한대·NaN 허용오차는 false를 반환한다.
@@ -36,6 +37,8 @@ private:
 
     double _metersPerSecond = 0.0;
 };
+
+Velocity abs(Velocity velocity) noexcept;
 
 // 거리를 chrono 시간으로 나눠 초당 미터 속도를 계산한다.
 // 시간이 0이면 std::domain_error를 던진다.

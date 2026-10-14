@@ -22,6 +22,7 @@ namespace beam
 // - 모든 메서드는 같은 스레드에서 직렬로 호출된다. 스레드 안전하지 않다.
 // - next()는 틱(10ms)마다 한 번만 호출된다.
 // - 자세정보는 ON 이후에 한 번만 도착한다.
+// - OFF 후 다시 ON하면 자세정보도 다시 도착한다(ON마다 재전송). ON 때 모든 상태를 초기화하기 때문이다.
 //
 // 상태:
 // - OFF에서는 모든 입력을 무시하고 next()는 std::nullopt를 반환한다.
@@ -30,6 +31,8 @@ namespace beam
 class Scheduler
 {
 public:
+    explicit Scheduler(const BeamConfig& config = BeamConfig{});
+
     void setOperationState(OperationState state);
 
     // ON이고 BeamTable이 아직 없을 때만 받아들이고, 그 외에는 무시한다.
@@ -37,6 +40,8 @@ public:
     void setAttitude(const RadarAttitude& attitude);
 
     // 준비 상태(ON이고 BeamTable이 있음)가 아니면 무시한다.
+    // 알 수 없는 BeamType이면 std::invalid_argument를 던지며, 이때 요청은 큐에 들어가지 않는다.
+    // 요청의 각도는 안테나 좌표계로 간주하며, 범위(추적 영역) 검증은 하지 않는다.
     void addRequest(const BeamRequest& request);
 
     // 준비 상태가 아니면 std::nullopt를 반환한다.
@@ -46,6 +51,8 @@ public:
 private:
     bool isReady() const;
     void reset();
+
+    BeamConfig _config;
 
     OperationState _operationState = OperationState::OFF;
     std::optional<BeamTable> _beamTable;

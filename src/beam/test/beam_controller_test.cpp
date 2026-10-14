@@ -73,15 +73,15 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheBeamTable)
     attitude.roll = roll;
     attitude.pitch = pitch;
     attitude.yaw = yaw;
-    const beam::BeamTable expectedTable(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}));
+    const beam::BeamTable expectedTable(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}), beam::SearchGridConfig{});
 
     for (std::size_t index = 0; index < 5; ++index)
     {
         const auto command = controller.nextBeamCommand(std::chrono::milliseconds(10 * index));
 
         ASSERT_TRUE(command.has_value());
-        EXPECT_NEAR(command->azimuth_ant.deg(), expectedTable.get(index).azimuth_ant.deg(), 1e-9) << "index=" << index;
-        EXPECT_NEAR(command->elevation_ant.deg(), expectedTable.get(index).elevation_ant.deg(), 1e-9)
+        EXPECT_TRUE(command->azimuth_ant.equals(expectedTable.get(index).azimuth_ant, 1e-9)) << "index=" << index;
+        EXPECT_TRUE(command->elevation_ant.equals(expectedTable.get(index).elevation_ant, 1e-9))
             << "index=" << index;
     }
 }
@@ -105,8 +105,8 @@ TEST(BeamControllerTest, RequestBeamIsDeliveredToScheduler)
 
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::TRACKING);
-    EXPECT_DOUBLE_EQ(command->azimuth_ant.deg(), 7.5);
-    EXPECT_DOUBLE_EQ(command->elevation_ant.deg(), 15.5);
+    EXPECT_TRUE(command->azimuth_ant.equals(7.5_deg, 0.0));
+    EXPECT_TRUE(command->elevation_ant.equals(15.5_deg, 0.0));
 }
 
 TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
