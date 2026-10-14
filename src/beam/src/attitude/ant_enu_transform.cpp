@@ -2,7 +2,6 @@
 #include "attitude/attitude_error.hpp"
 
 #include <cmath>
-#include <stdexcept>
 #include <math/quantity/angle.hpp>
 #include <math/geometry/spherical_direction.hpp>
 #include <math/linear_algebra/square_matrix.hpp>
@@ -13,8 +12,6 @@ namespace beam
 {
 namespace
 {
-using namespace math::literals;
-
 math::SquareMatrix bodyToEnu(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     const double cr = math::cos(roll);
@@ -31,55 +28,17 @@ math::SquareMatrix bodyToEnu(math::Angle roll, math::Angle pitch, math::Angle ya
     return Rz * (Rx * Ry);
 }
 
-bool allFinite(const RadarAttitude& attitude)
-{
-    return attitude.latitude.isFinite() && attitude.longitude.isFinite() &&
-           attitude.altitude.isFinite() && attitude.roll.isFinite() &&
-           attitude.pitch.isFinite() && attitude.yaw.isFinite();
-}
-
 } // namespace
 
-AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeConfig& config) : _attitude(attitude)
+AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeConfig& config)
 {
-    if (!allFinite(attitude))
-    {
-        throw AttitudeError(AttitudeErrorCode::NOT_FINITE, "RadarAttitude contains NaN or Inf");
-    }
-
-    if (attitude.latitude  < -90_deg  || attitude.latitude  > 90_deg ||
-        attitude.longitude < -180_deg || attitude.longitude > 180_deg ||
-        attitude.altitude  < -0.5_km  || attitude.altitude  > 100_km ||
-        attitude.roll      < -180_deg || attitude.roll      > 180_deg ||
-        attitude.yaw       < -360_deg || attitude.yaw       > 360_deg
-    ) {
-        throw AttitudeError(AttitudeErrorCode::OUT_OF_RANGE, "RadarAttitude value is out of range");
-    }
-
-    if (attitude.pitch <= -config.maxAbsPitch || attitude.pitch >= config.maxAbsPitch)
+    if (attitude.pitch() <= -config.maxAbsPitch() || attitude.pitch() >= config.maxAbsPitch())
     {
         throw AttitudeError(AttitudeErrorCode::GIMBAL_LOCK, "pitch is too close to gimbal lock");
     }
 
-    bool validMount = false;
-    try
-    {
-        validMount = config.mountAntToBodyRotation.size() == 3
-            && config.mountAntToBodyRotation.isRotation(
-                math::Tolerance{config.mountOrthogonalTolerance, 0.0});
-    }
-    catch (const std::invalid_argument&)
-    {
-        throw AttitudeError(AttitudeErrorCode::INVALID_MOUNT,
-            "mountOrthogonalTolerance must be finite and non-negative");
-    }
-    if (!validMount)
-    {
-        throw AttitudeError(AttitudeErrorCode::INVALID_MOUNT, "mountAntToBodyRotation is not a rotation matrix");
-    }
-
     _rotationMatrix =
-        bodyToEnu(attitude.roll, attitude.pitch, attitude.yaw) * config.mountAntToBodyRotation;
+        bodyToEnu(attitude.roll(), attitude.pitch(), attitude.yaw()) * config.mountAntToBodyRotation();
 }
 
 math::SphericalDirection AntEnuTransform::antToEnu(const math::SphericalDirection& direction_ant) const

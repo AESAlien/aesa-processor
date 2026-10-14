@@ -12,16 +12,20 @@ using namespace math::literals;
 namespace
 {
 
+beam::RadarAttitude makeAttitude(
+    math::Angle latitude,
+    math::Angle longitude,
+    math::Distance altitude,
+    math::Angle roll,
+    math::Angle pitch,
+    math::Angle yaw
+) {
+    return beam::RadarAttitude(latitude, longitude, altitude, roll, pitch, yaw);
+}
+
 beam::RadarAttitude makeAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    beam::RadarAttitude attitude{};
-    attitude.latitude = 37.0_deg;
-    attitude.longitude = 127.0_deg;
-    attitude.altitude = 0.1_km;
-    attitude.roll = roll;
-    attitude.pitch = pitch;
-    attitude.yaw = yaw;
-    return attitude;
+    return makeAttitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
 }
 
 beam::AntEnuTransform makeValidTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
@@ -68,58 +72,78 @@ TEST(AttitudeTransformTest, AcceptsAnglesCreatedFromRadians)
     EXPECT_EQ(direction_enu.elevation(), 10_deg);
 }
 
-TEST(AttitudeTransformTest, ThrowsOnNonFiniteValues)
+// ---------------------------------------------------------------- RadarAttitude 검증
+
+TEST(RadarAttitudeTest, StoresGivenValues)
 {
-    const beam::AttitudeConfig config;
-    beam::RadarAttitude attitude = makeAttitude(0_deg, 0_deg, 0_deg);
+    const beam::RadarAttitude attitude = makeAttitude(1_deg, 2_deg, 3_km, 4_deg, 5_deg, 6_deg);
 
-    attitude.roll = math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN());
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::NOT_FINITE);
-
-    attitude = makeAttitude(0_deg, 0_deg, 0_deg);
-    attitude.altitude = math::Distance::fromKilometers(std::numeric_limits<double>::infinity());
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::NOT_FINITE);
+    EXPECT_EQ(attitude.latitude(), 1_deg);
+    EXPECT_EQ(attitude.longitude(), 2_deg);
+    EXPECT_EQ(attitude.altitude(), 3_km);
+    EXPECT_EQ(attitude.roll(), 4_deg);
+    EXPECT_EQ(attitude.pitch(), 5_deg);
+    EXPECT_EQ(attitude.yaw(), 6_deg);
 }
 
-TEST(AttitudeTransformTest, ThrowsOnOutOfRangeValues)
+TEST(RadarAttitudeTest, ThrowsOnNonFiniteValues)
 {
-    const beam::AttitudeConfig config;
-    beam::RadarAttitude attitude;
+    const auto nan = math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN());
+    const auto inf = math::Distance::fromKilometers(std::numeric_limits<double>::infinity());
 
-    attitude = makeAttitude(0_deg, 0_deg, 0_deg);
-    attitude.latitude = 91_deg;
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
-
-    attitude = makeAttitude(0_deg, 0_deg, 0_deg);
-    attitude.longitude = -181_deg;
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
-
-    attitude = makeAttitude(0_deg, 0_deg, 0_deg);
-    attitude.altitude = 101_km;
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
-
-    attitude = makeAttitude(181_deg, 0_deg, 0_deg);
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
-
-    attitude = makeAttitude(0_deg, 0_deg, 361_deg);
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(nan, 0_deg, 0_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::NOT_FINITE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, nan, 0_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::NOT_FINITE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, inf, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::NOT_FINITE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, 0_km, nan, 0_deg, 0_deg), beam::AttitudeErrorCode::NOT_FINITE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, 0_km, 0_deg, nan, 0_deg), beam::AttitudeErrorCode::NOT_FINITE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, 0_km, 0_deg, 0_deg, nan), beam::AttitudeErrorCode::NOT_FINITE);
 }
 
-TEST(AttitudeTransformTest, ValidatesAltitudeBoundariesWithDistanceLiterals)
+TEST(RadarAttitudeTest, NonFiniteIsReportedBeforeOutOfRange)
 {
-    const beam::AttitudeConfig config;
-    auto attitude = makeAttitude(0_deg, 0_deg, 0_deg);
+    const auto nan = math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN());
 
-    attitude.altitude = -0.5_km;
-    EXPECT_NO_THROW(beam::AntEnuTransform(attitude, config));
-    attitude.altitude = 100_km;
-    EXPECT_NO_THROW(beam::AntEnuTransform(attitude, config));
-
-    attitude.altitude = -0.501_km;
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    attitude.altitude = 100.001_km;
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    // 위도는 범위를 벗어났지만 roll이 NaN이므로 NOT_FINITE가 먼저 보고된다.
+    EXPECT_ATTITUDE_ERROR(makeAttitude(91_deg, 0_deg, 0_km, nan, 0_deg, 0_deg), beam::AttitudeErrorCode::NOT_FINITE);
 }
+
+TEST(RadarAttitudeTest, ThrowsOnOutOfRangeValues)
+{
+    EXPECT_ATTITUDE_ERROR(makeAttitude(91_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(37_deg, -181_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(37_deg, 127_deg, 101_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(181_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, 361_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+}
+
+TEST(RadarAttitudeTest, ValidatesAltitudeBoundariesWithDistanceLiterals)
+{
+    EXPECT_NO_THROW(makeAttitude(37_deg, 127_deg, -0.5_km, 0_deg, 0_deg, 0_deg));
+    EXPECT_NO_THROW(makeAttitude(37_deg, 127_deg, 100_km, 0_deg, 0_deg, 0_deg));
+
+    EXPECT_ATTITUDE_ERROR(makeAttitude(37_deg, 127_deg, -0.501_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(37_deg, 127_deg, 100.001_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+}
+
+TEST(RadarAttitudeTest, AcceptsBoundaryAnglesIncludingEndpoints)
+{
+    EXPECT_NO_THROW(makeAttitude(90_deg, 180_deg, 0_km, 180_deg, 0_deg, 360_deg));
+    EXPECT_NO_THROW(makeAttitude(-90_deg, -180_deg, 0_km, -180_deg, 0_deg, -360_deg));
+}
+
+TEST(RadarAttitudeTest, PitchIsOnlyCheckedForFiniteness)
+{
+    // 짐벌락 판정은 AttitudeConfig에 의존하므로 AntEnuTransform의 책임이다.
+    EXPECT_NO_THROW(makeAttitude(0_deg, 90_deg, 0_deg));
+    EXPECT_NO_THROW(makeAttitude(0_deg, -95_deg, 0_deg));
+}
+
+TEST(RadarAttitudeTest, AttitudeErrorIsInvalidArgument)
+{
+    EXPECT_THROW(makeAttitude(91_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
+}
+
+// ---------------------------------------------------------------- AntEnuTransform 검증
 
 TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
 {
@@ -132,83 +156,32 @@ TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
 
 TEST(AttitudeTransformTest, AcceptsRotationMount)
 {
-    beam::AttitudeConfig config;
-    config.mountAntToBodyRotation = math::SquareMatrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}}; // z축 90도 회전
+    const beam::AttitudeConfig config = beam::AttitudeConfig::Builder()
+        .mountAntToBodyRotation(math::SquareMatrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}}) // z축 90도 회전
+        .build();
 
     EXPECT_NO_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 0_deg, 0_deg), config));
 }
 
-TEST(AttitudeTransformTest, ThrowsOnInvalidMount)
+TEST(AttitudeTransformTest, MountRotationIsAppliedToAntDirection)
 {
-    beam::AttitudeConfig config;
-    const auto attitude = makeAttitude(0_deg, 0_deg, 0_deg);
+    const beam::AttitudeConfig config = beam::AttitudeConfig::Builder()
+        .mountAntToBodyRotation(math::SquareMatrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}})
+        .build();
+    const beam::AntEnuTransform transform(makeAttitude(0_deg, 0_deg, 0_deg), config);
 
-    config.mountAntToBodyRotation = math::SquareMatrix{{2, 0, 0}, {0, 1, 0}, {0, 0, 1}}; // 스케일
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
-
-    config.mountAntToBodyRotation = math::SquareMatrix{{1, 0, 0}, {0, 1, 0}, {0, 0, -1}}; // 반사 (det = -1)
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
-
-    config.mountAntToBodyRotation = math::SquareMatrix{{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}; // 특이 행렬
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
-
-    config.mountAntToBodyRotation = math::SquareMatrix{{1, 0, 0}, {0, 1, 0}, {0, 0, std::numeric_limits<double>::infinity()}};
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
-
-    config.mountAntToBodyRotation = math::SquareMatrix::identity(2); // 3x3 이 아님
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
+    // 안테나 정면(방위각 0도)이 몸체 기준 -90도(서쪽)로 장착되어 있다.
+    const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
+    EXPECT_EQ(direction_enu.azimuth(), -90_deg);
+    EXPECT_EQ(direction_enu.elevation(), 0_deg);
 }
 
-TEST(AttitudeTransformTest, AcceptsRotationMountWithFloatingPointEntries)
+TEST(AttitudeTransformTest, MaxAbsPitchFromConfigIsUsedForGimbalLock)
 {
-    beam::AttitudeConfig config;
-    const math::Angle angle = 0.37_rad;
-    const double c = math::cos(angle);
-    const double s = math::sin(angle);
-    config.mountAntToBodyRotation = math::SquareMatrix{{c, -s, 0}, {s, c, 0}, {0, 0, 1}};
+    const beam::AttitudeConfig config = beam::AttitudeConfig::Builder().maxAbsPitch(60_deg).build();
 
-    EXPECT_NO_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 0_deg, 0_deg), config));
-}
-
-TEST(AttitudeTransformTest, MountOrthogonalityUsesConfiguredTolerance)
-{
-    beam::AttitudeConfig config;
-    const auto attitude = makeAttitude(0_deg, 0_deg, 0_deg);
-
-    config.mountAntToBodyRotation = math::SquareMatrix{{1, 0.1, 0}, {0, 1, 0}, {0, 0, 1}};
-    config.mountOrthogonalTolerance = 0.2;
-    EXPECT_NO_THROW(beam::AntEnuTransform(attitude, config));
-    config.mountOrthogonalTolerance = 0.05;
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
-}
-
-TEST(AttitudeTransformTest, RejectsNonFiniteMountEntriesAndOverflow)
-{
-    beam::AttitudeConfig config;
-    const auto attitude = makeAttitude(0_deg, 0_deg, 0_deg);
-
-    for (double value : {std::numeric_limits<double>::quiet_NaN(),
-                         std::numeric_limits<double>::infinity(),
-                         std::numeric_limits<double>::max()})
-    {
-        config.mountAntToBodyRotation = math::SquareMatrix{{value, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-        EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
-    }
-}
-
-TEST(AttitudeTransformTest, RejectsInvalidMountOrthogonalTolerance)
-{
-    beam::AttitudeConfig config;
-    const auto attitude = makeAttitude(0_deg, 0_deg, 0_deg);
-
-    config.mountOrthogonalTolerance = 0.0;
-    EXPECT_NO_THROW(beam::AntEnuTransform(attitude, config));
-    for (double tolerance : {-1.0, std::numeric_limits<double>::quiet_NaN(),
-                             std::numeric_limits<double>::infinity()})
-    {
-        config.mountOrthogonalTolerance = tolerance;
-        EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::INVALID_MOUNT);
-    }
+    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(makeAttitude(0_deg, 60_deg, 0_deg), config), beam::AttitudeErrorCode::GIMBAL_LOCK);
+    EXPECT_NO_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 59.9_deg, 0_deg), config));
 }
 
 TEST(AttitudeTransformTest, AttitudeErrorIsInvalidArgument)

@@ -20,14 +20,7 @@ constexpr std::size_t AZIMUTH_COUNT = 21;
 
 beam::RadarAttitude makeAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    beam::RadarAttitude attitude{};
-    attitude.latitude = 37.0_deg;
-    attitude.longitude = 127.0_deg;
-    attitude.altitude = 0.1_km;
-    attitude.roll = roll;
-    attitude.pitch = pitch;
-    attitude.yaw = yaw;
-    return attitude;
+    return beam::RadarAttitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
 }
 
 beam::RadarAttitude makeZeroAttitude()
@@ -172,7 +165,7 @@ TEST(SchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
     beam::Scheduler scheduler;
     makeReady(scheduler);
 
-    beam::BeamTable table(beam::AntEnuTransform(makeZeroAttitude(), beam::AttitudeConfig{}), beam::SearchGridConfig{});
+    beam::SearchBeamTable table(beam::AntEnuTransform(makeZeroAttitude(), beam::AttitudeConfig{}), beam::SearchGridConfig{});
     for (std::size_t index = 0; index < table.size(); ++index)
     {
         ASSERT_TRUE(scheduler.next(std::chrono::milliseconds(10 * index)).has_value());
@@ -472,39 +465,23 @@ TEST(SchedulerTest, TurningOffWhileAlreadyOffDoesNothing)
     EXPECT_TRUE(scheduler.next(0ms).has_value());
 }
 
-// ---------- 요청 빔 설정 검증 ----------
+// ---------- 요청 빔 설정 반영 ----------
+// 설정 값 검증(빔폭 0 이하, NaN, Inf)은 config_test.cpp 에서 확인한다.
 
 namespace
 {
 
 beam::BeamConfig makeConfigWithRequestBeamWidth(math::Angle confirmationWidth, math::Angle trackingWidth)
 {
-    beam::BeamConfig config;
-    config.requestBeam.confirmationBeamWidth = confirmationWidth;
-    config.requestBeam.trackingBeamWidth = trackingWidth;
-    return config;
+    return beam::BeamConfig::Builder()
+        .requestBeamConfig(beam::RequestBeamConfig::Builder()
+            .confirmationBeamWidth(confirmationWidth)
+            .trackingBeamWidth(trackingWidth)
+            .build())
+        .build();
 }
 
 } // namespace
-
-TEST(SchedulerTest, NonPositiveRequestBeamWidthThrows)
-{
-    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(0_deg, 3_deg)), std::invalid_argument);
-    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(-1_deg, 3_deg)), std::invalid_argument);
-    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(3_deg, 0_deg)), std::invalid_argument);
-    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(3_deg, -1_deg)), std::invalid_argument);
-}
-
-TEST(SchedulerTest, NonFiniteRequestBeamWidthThrows)
-{
-    const auto nan = math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN());
-    const auto inf = math::Angle::fromDegrees(std::numeric_limits<double>::infinity());
-
-    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(nan, 3_deg)), std::invalid_argument);
-    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(inf, 3_deg)), std::invalid_argument);
-    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(3_deg, nan)), std::invalid_argument);
-    EXPECT_THROW(beam::Scheduler(makeConfigWithRequestBeamWidth(3_deg, inf)), std::invalid_argument);
-}
 
 TEST(SchedulerTest, ConfiguredRequestBeamWidthIsUsedPerBeamType)
 {

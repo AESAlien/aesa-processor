@@ -11,8 +11,7 @@ enum class AttitudeErrorCode : uint8_t
 {
     NOT_FINITE,
     OUT_OF_RANGE,
-    GIMBAL_LOCK,
-    INVALID_MOUNT
+    GIMBAL_LOCK
 };
 
 class AttitudeError : public std::invalid_argument

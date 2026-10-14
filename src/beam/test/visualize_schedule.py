@@ -502,7 +502,7 @@ def draw_sky_mixed(data, att):
     xlim, ylim = sky_limits(grid)
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
-    ax.text(0.0, -0.1, "회색 점: BeamTable의 탐색 빔 189개   파란 점: 나간 탐색 빔 (색 = 나간 시각, 아래 숫자 = 그 묶음이 나간 시각)\n"
+    ax.text(0.0, -0.1, "회색 점: SearchBeamTable의 탐색 빔 189개   파란 점: 나간 탐색 빔 (색 = 나간 시각, 아래 숫자 = 그 묶음이 나간 시각)\n"
                        "사각형/삼각형: 나간 확인/추적 빔 (글자 = 요청 이름과 나간 시각)\n"
                        "파란 실선: 탐색이 이어지는 순서   회색 점선 화살표: 요청 빔이 끼어들어 갔다가 탐색으로 돌아오는 순서(화살표 방향 = 나간 순서)\n"
                        f"안테나 자세 roll,pitch,yaw = {att[0]:g},{att[1]:g},{att[2]:g}",

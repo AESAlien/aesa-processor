@@ -1,7 +1,6 @@
 #include "scheduler/scheduler.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
-#include "beam/config/beam_config.hpp"
 
 #include <stdexcept>
 
@@ -9,22 +8,6 @@ namespace beam
 {
 namespace
 {
-using namespace math::literals;
-
-void validate(const RequestBeamConfig& config)
-{
-    // NaN은 크기 비교가 모두 false이므로 유한성을 먼저 확인한다.
-    if (!config.confirmationBeamWidth.isFinite() || !config.trackingBeamWidth.isFinite())
-    {
-        throw std::invalid_argument("RequestBeamConfig: beam width must be finite");
-    }
-
-    if (config.confirmationBeamWidth <= 0_deg || config.trackingBeamWidth <= 0_deg)
-    {
-        throw std::invalid_argument("RequestBeamConfig: beam width must be greater than 0");
-    }
-}
-
 void validate(const BeamRequest& request)
 {
     if (request.beamType != BeamRequest::BeamType::CONFIRMATION &&
@@ -53,28 +36,28 @@ math::Angle requestBeamWidth(const RequestBeamConfig& config, BeamRequest::BeamT
     switch (beamType)
     {
     case BeamRequest::BeamType::CONFIRMATION:
-        return config.confirmationBeamWidth;
+        return config.confirmationBeamWidth();
     case BeamRequest::BeamType::TRACKING:
-        return config .trackingBeamWidth;
+        return config.trackingBeamWidth();
     }
 
     throw std::invalid_argument("Unkown beam request type");
 }
 
 BeamCommand makeSearchCommand(
-    const BeamInfo& beamInfo,
+    const SearchBeam& searchBeam,
     std::chrono::milliseconds currentTime,
     std::uint32_t commandCount
 ) {
     return BeamCommand::Builder()
         .beamType(BeamCommand::BeamType::SEARCH)
         .transmitTime(currentTime)
-        .beamId(beamInfo.beamId)
+        .beamId(searchBeam.beamId)
         .commandCount(commandCount)
-        .azimuth_ant(beamInfo.azimuth_ant)
-        .elevation_ant(beamInfo.elevation_ant)
-        .azimuthBeamWidth(beamInfo.azimuthBeamWidth)
-        .elevationBeamWidth(beamInfo.elevationBeamWidth)
+        .azimuth_ant(searchBeam.direction_ant.azimuth())
+        .elevation_ant(searchBeam.direction_ant.elevation())
+        .azimuthBeamWidth(searchBeam.azimuthBeamWidth)
+        .elevationBeamWidth(searchBeam.elevationBeamWidth)
         .build();
 }
 
@@ -100,7 +83,6 @@ BeamCommand makeRequestCommand(
 
 Scheduler::Scheduler(const BeamConfig& config) : _config(config)
 {
-    validate(_config.requestBeam);
 }
 
 void Scheduler::setOperationState(OperationState state)
@@ -119,14 +101,14 @@ void Scheduler::setOperationState(OperationState state)
 
 void Scheduler::setAttitude(const RadarAttitude& attitude)
 {
-    if (_operationState != OperationState::ON || _beamTable.has_value())
+    if (_operationState != OperationState::ON || _searchBeamTable.has_value())
     {
         return;
     }
 
-    // 생성 중 예외가 발생하면 _beamTable은 비어 있는 채로 유지된다.
-    const AntEnuTransform transform(attitude, _config.attitude);
-    _beamTable.emplace(transform, _config.searchGrid);
+    // 생성 중 예외가 발생하면 _searchBeamTable은 비어 있는 채로 유지된다.
+    const AntEnuTransform transform(attitude, _config.attitude());
+    _searchBeamTable.emplace(transform, _config.searchGrid());
 }
 
 void Scheduler::addRequest(const BeamRequest& request)
@@ -151,24 +133,21 @@ std::optional<BeamCommand> Scheduler::next(std::chrono::milliseconds currentTime
 
     if (const std::optional<BeamRequest> request = _requestQueue.popNextDue(currentTime))
     {
-        return makeRequestCommand(*request, _config.requestBeam, currentTime, _commandCount);
+        return makeRequestCommand(*request, _config.requestBeam(), currentTime, _commandCount);
     }
 
-    const BeamInfo& beamInfo = _beamTable->get(_searchCursor);
-    _searchCursor = (_searchCursor + 1) % _beamTable->size();
-    return makeSearchCommand(beamInfo, currentTime, _commandCount);
+    return makeSearchCommand(_searchBeamTable->nextBeam(), currentTime, _commandCount);
 }
 
 bool Scheduler::isReady() const
 {
-    return _operationState == OperationState::ON && _beamTable.has_value();
+    return _operationState == OperationState::ON && _searchBeamTable.has_value();
 }
 
 void Scheduler::reset()
 {
-    _beamTable.reset();
+    _searchBeamTable.reset();
     _requestQueue.clear();
-    _searchCursor = 0;
     _commandCount = 0;
 }
 
