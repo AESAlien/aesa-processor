@@ -1,4 +1,4 @@
-#include <network/message_encoder.hpp>
+#include <network/message_encoder/message_encoder.hpp>
 
 #include <protocol/ST_BeamTxMsg.hpp>
 #include <protocol/ST_TrkMsg.hpp>
@@ -36,7 +36,7 @@ EncodeResult failed(EncodingError error)
     return result;
 }
 
-//메시지 구조체 공통 헤더 생성
+// Creates the common header shared by protocol message structures.
 protocol::ST_MsgHeader makeHeader(
     protocol::MessageId messageId,
     std::size_t blockSize
@@ -48,7 +48,7 @@ protocol::ST_MsgHeader makeHeader(
     return header;
 }
 
-//DTO type을 메시지 구조체 float으로 캐스팅 및 범위 검사
+// Converts a DTO value to the protocol float representation.
 bool convertFloat(double value, float& converted)
 {
     if (std::isnan(value))
@@ -71,7 +71,7 @@ bool convertFloat(double value, float& converted)
     return true;
 }
 
-//DTO type을 메시지 구조체 uint32로 캐스팅 및 범위 검사
+// Converts a DTO timestamp to the protocol uint32 representation.
 bool convertTimestamp(
     std::chrono::milliseconds timestamp,
     uint32_t& converted
@@ -161,7 +161,7 @@ bool encodeTrack(
             encodedTrack.timeStamp);
 }
 
-//TCP send를 위한 바이트 직렬화
+// Serializes a protocol message for TCP transmission.
 template <typename Message>
 std::vector<uint8_t> toBytes(const Message& message)
 {

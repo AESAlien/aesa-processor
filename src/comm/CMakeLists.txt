@@ -1,10 +1,10 @@
 add_library(comm STATIC
     src/controller/comm_controller.cpp
     src/controller/comm_error_handler.cpp
-    src/network/message_decoder.cpp
-    src/network/message_encoder.cpp
-    src/network/message_framer.cpp
-    src/network/network_manager.cpp
+    src/network/message_decoder/message_decoder.cpp
+    src/network/message_encoder/message_encoder.cpp
+    src/network/message_framer/message_framer.cpp
+    src/network/network_manager/network_manager.cpp
 )
 target_include_directories(comm
     PUBLIC

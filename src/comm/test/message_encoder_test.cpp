@@ -1,4 +1,4 @@
-#include <network/message_encoder.hpp>
+#include <network/message_encoder/message_encoder.hpp>
 
 #include <protocol/ST_BeamTxMsg.hpp>
 #include <protocol/ST_TrkMsg.hpp>
