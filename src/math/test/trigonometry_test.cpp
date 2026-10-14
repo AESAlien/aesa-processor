@@ -38,6 +38,16 @@ TEST(TrigonometryTest, ComputesInverseSineCosineAndTangent)
     EXPECT_NEAR(math::atan(-1.0).deg(), -45.0, 1e-12);
 }
 
+TEST(TrigonometryTest, ComputesInverseTangentFromDistances)
+{
+    EXPECT_NEAR(math::atan2(1_m, 1_m).deg(), 45.0, 1e-12);
+    EXPECT_NEAR(math::atan2(1_m, -1_m).deg(), 135.0, 1e-12);
+    EXPECT_NEAR(math::atan2(-1_m, -1_m).deg(), -135.0, 1e-12);
+    EXPECT_NEAR(math::atan2(-1_m, 1_m).deg(), -45.0, 1e-12);
+    EXPECT_NEAR(math::atan2(1_m, 0_m).deg(), 90.0, 1e-12);
+    EXPECT_NEAR(math::atan2(0_m, -1_m).deg(), 180.0, 1e-12);
+}
+
 TEST(TrigonometryTest, RejectsInvalidInverseFunctionInputs)
 {
     const double infinity = std::numeric_limits<double>::infinity();

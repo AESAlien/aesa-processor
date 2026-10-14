@@ -51,4 +51,9 @@ Angle atan(double value)
     return Angle::fromRadians(std::atan(value));
 }
 
+Angle atan2(Distance y, Distance x)
+{
+    return Angle::fromRadians(std::atan2(y.m(), x.m()));
+}
+
 }

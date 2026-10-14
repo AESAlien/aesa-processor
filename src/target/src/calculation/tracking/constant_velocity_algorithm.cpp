@@ -3,6 +3,8 @@
 #include "cartesian_math.hpp"
 #include "validation/detection_validation.hpp"
 
+#include <math/trigonometry.hpp>
+
 #include <array>
 #include <cmath>
 
@@ -126,8 +128,8 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     return TargetPrediction{
         time,
         range,
-        math::Angle::fromRadians(std::atan2(position.y.m(), position.x.m())),
-        math::Angle::fromRadians(std::atan2(position.z.m(), horizontalRange.m()))
+        math::atan2(position.y, position.x),
+        math::atan2(position.z, horizontalRange)
     };
 }
 
