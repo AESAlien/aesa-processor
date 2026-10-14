@@ -1,619 +1,295 @@
-#include <app/worker/beam_worker.hpp>
-#include <app/worker/comm_worker.hpp>
-#include <app/worker/target_worker.hpp>
+#include <app/worker/worker_error.hpp>
 
-#include <atomic>
+#include <beam/controller/beam_controller.hpp>
+#include <target/controller/target_controller.hpp>
+
 #include <chrono>
-#include <condition_variable>
-#include <cstdint>
-#include <deque>
-#include <exception>
+#include <cmath>
 #include <iostream>
-#include <memory>
-#include <mutex>
-#include <optional>
 #include <stdexcept>
 #include <thread>
 #include <utility>
-#include <variant>
 #include <vector>
 
 namespace demo
 {
-using Clock = std::chrono::steady_clock;
 
-std::mutex mutex;
-std::condition_variable ready;
+using BeamType = beam::BeamCommand::BeamType;
 
-std::deque<comm::IncomingDto> inbox;
-std::vector<target::TrackEvent> tracks;
-
-std::vector<int> operations;
-std::vector<int> sentTrackIds;
-
-bool closed = false;
-
-int received = 0;
-int targetErrors = 0;
-int trackBatches = 0;
-int detectionBatches = 0;
-
-int searchCount = 0;
-int confirmCount = 0;
-int trackingCount = 0;
-
-// 테스트용 논리 시각이며 종료 플래그가 아니다.
-std::atomic<long long> tickTime{0};
-
-const auto start = Clock::now();
-
-void require(bool value, const char* message)
+struct Result
 {
-    if (!value)
+    bool searchResultSubmitted = false;
+
+    int confirmationCommands = 0;
+    int trackingCommands = 0;
+    int reportedTracks = 0;
+};
+
+void require(bool condition, const char* message)
+{
+    if (!condition)
     {
         throw std::runtime_error(message);
     }
 }
 
-// demo::mutex를 획득한 상태에서 호출한다.
-template <typename... Values>
-void log(const Values&... values)
+void printAngle(
+    const char* name,
+    const math::Angle& angle)
 {
-    const auto elapsed =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            Clock::now() - start).count();
+    std::cout << ", " << name << '=';
 
-    std::cout << '[' << elapsed << " ms] ";
-    (std::cout << ... << values);
-    std::cout << '\n';
+    if (std::isfinite(angle.deg()))
+    {
+        std::cout << angle.deg();
+    }
+    else
+    {
+        std::cout << "N/A";
+    }
 }
 
-beam::SetOperationStateCommand operation(
-    beam::OperationState state)
+void printTracks(
+    const std::vector<target::TrackEvent>& tracks)
 {
-    return beam::SetOperationStateCommand(state);
+    std::cout
+        << "[TRACKS] count="
+        << tracks.size()
+        << '\n';
+
+    for (const auto& track : tracks)
+    {
+        std::cout
+            << "[CONSOLE OUTPUT]"
+            << " id=" << track.id
+            << ", state=" << static_cast<int>(track.state)
+            << ", range(m)=" << track.slantRange.m()
+            << ", ground(m)=" << track.groundRange.m()
+            << ", az(deg)=" << track.azimuth.deg()
+            << ", el(deg)=" << track.elevation.deg()
+            << ", doppler(m/s)=" << track.dopplerVelocity.mps()
+            << ", speed(m/s)=" << track.velocity.mps()
+            << ", altitude(m)=" << track.altitude.m()
+            << ", timestamp(ms)=" << track.timestamp.count();
+
+        printAngle("latitude(deg)", track.latitude);
+        printAngle("longitude(deg)", track.longitude);
+        printAngle("heading(deg)", track.heading);
+        printAngle("flightPath(deg)", track.flightPathAngle);
+
+        std::cout << '\n';
+    }
 }
 
-beam::SetAttitudeCommand attitude(double yaw)
-{
-    return beam::SetAttitudeCommand(
-        math::Angle::fromDegrees(37),
-        math::Angle::fromDegrees(127),
-        math::Distance::fromMeters(100),
-        math::Angle::fromDegrees(0),
-        math::Angle::fromDegrees(0),
-        math::Angle::fromDegrees(yaw));
-}
-
-target::DetectionEvent detection(
-    beam::BeamCommand::BeamType type,
-    std::uint32_t requestId,
-    int count = 1)
+target::DetectionEvent makeStationaryDetection(
+    const beam::BeamCommand& command)
 {
     std::vector<target::DetectionEvent::Plot> plots;
 
-    for (int i = 0; i < count; ++i)
-    {
-        plots.emplace_back(
-            math::Distance::fromMeters(12000 + 1000 * i),
-            math::Angle::fromDegrees(10),
-            math::Angle::fromDegrees(5),
-            math::Velocity::fromMetersPerSecond(20),
-            30.0f);
-    }
+    // 거리 12km, 방위각 0도, 고각 0도의 정지 표적을
+    // 탐지했다고 가정하는 테스트 입력이다.
+    //
+    // 실제 빔 범위나 모의기의 탐지 과정은 구현하지 않는다.
+    plots.emplace_back(
+        math::Distance::fromMeters(12000),
+        math::Angle::fromDegrees(0),
+        math::Angle::fromDegrees(0),
+        math::Velocity::fromMetersPerSecond(0),
+        30.0f);
 
+    // 확인/추적 결과는 해당 빔 명령의 ID를 그대로 반환한다.
+    // 현재 스케줄러는 요청의 requestId를 beamId에 넣는다.
     return target::DetectionEvent(
-        type,
-        requestId,
-        std::chrono::milliseconds(tickTime.load()),
+        command.beamType,
+        command.beamId,
+        command.transmitTime,
         std::move(plots));
 }
 
-void push(comm::IncomingDto message)
+void handleResult(
+    beam::BeamController& beamController,
+    target::TargetController& targetController,
+    const beam::BeamCommand& command,
+    Result& result)
 {
+    std::cout
+        << "[DETECTION INPUT]"
+        << " type=" << static_cast<int>(command.beamType)
+        << ", requestId=" << command.beamId
+        << ", time(ms)=" << command.transmitTime.count()
+        << '\n';
+
+    // 실제 Target 모듈에서 탐지정보를 처리한다.
+    auto request = targetController.handleDetection(
+        makeStationaryDetection(command));
+
+    if (request)
     {
-        std::lock_guard<std::mutex> lock(mutex);
-        inbox.push_back(std::move(message));
+        std::cout
+            << "[TARGET REQUEST]"
+            << " type=" << static_cast<int>(request->beamType)
+            << ", requestId=" << request->requestId
+            << ", transmitTime(ms)="
+            << request->transmitTime.count()
+            << '\n';
+
+        // Target이 생성한 확인/추적 요청을
+        // 실제 Beam 모듈에 전달한다.
+        beamController.requestBeam(*request);
+    }
+    else
+    {
+        std::cout << "[TARGET REQUEST] none\n";
     }
 
-    ready.notify_all();
+    // 실제 Target 모듈이 보유한 추적정보를 가져온다.
+    const auto tracks = targetController.nextTrackEvents();
+
+    printTracks(tracks);
+
+    result.reportedTracks +=
+        static_cast<int>(tracks.size());
 }
 
-void finishInput()
-{
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        closed = true;
-    }
-
-    ready.notify_all();
-}
-
-void timer(app::BeamChannel& channel)
-{
-    auto next = Clock::now();
-
-    // 테스트 타이머는 정해진 횟수만 실행한다.
-    for (int tick = 0; tick < 150; ++tick)
-    {
-        next += std::chrono::milliseconds(10);
-        std::this_thread::sleep_until(next);
-
-        const auto time = tickTime.fetch_add(10) + 10;
-
-        try
-        {
-            channel.write(
-                app::NextBeamCommandEvent{
-                    std::chrono::milliseconds(time)});
-        }
-        catch (const app::ChannelClosedError&)
-        {
-            // 오류 종료 경로에서 채널이 닫혔으면 타이머도 종료한다.
-            return;
-        }
-
-        if (next < Clock::now())
-        {
-            next = Clock::now();
-        }
-    }
-}
 } // namespace demo
-
-// 실제 TCP가 아닌 테스트용 CommController 정의
-namespace comm
-{
-class CommController::Impl
-{
-public:
-    explicit Impl(CommConfiguration value)
-        : configuration(std::move(value))
-    {
-    }
-
-    CommConfiguration configuration;
-};
-
-CommController::CommController(
-    CommConfiguration configuration)
-    : _impl(std::make_unique<Impl>(std::move(configuration)))
-{
-}
-
-CommController::~CommController() = default;
-
-void CommController::openServer()
-{
-    std::lock_guard<std::mutex> lock(demo::mutex);
-
-    demo::log("TEST input opened; no TCP socket");
-}
-
-std::optional<IncomingDto> CommController::receiveData()
-{
-    std::unique_lock<std::mutex> lock(demo::mutex);
-
-    // 입력이 없으면 기다리고, 입력 큐가 닫혀도 깨어난다.
-    demo::ready.wait(lock, []
-    {
-        return demo::closed || !demo::inbox.empty();
-    });
-
-    if (demo::inbox.empty())
-    {
-        // 이 테스트에서는 nullopt를 수신 종료로 사용한다.
-        return std::nullopt;
-    }
-
-    auto message = std::move(demo::inbox.front());
-    demo::inbox.pop_front();
-
-    ++demo::received;
-
-    if (auto* state =
-            std::get_if<beam::SetOperationStateCommand>(&message))
-    {
-        const int value =
-            state->powerState == beam::OperationState::ON ? 1 : 0;
-
-        demo::operations.push_back(value);
-        demo::log("RX operation=", value);
-    }
-    else if (auto* command =
-                 std::get_if<beam::SetAttitudeCommand>(&message))
-    {
-        demo::log(
-            "RX attitude yaw=",
-            command->yaw.deg());
-    }
-
-    demo::ready.notify_all();
-
-    return message;
-}
-
-void CommController::sendBeamCommand(
-    const beam::BeamCommand& command)
-{
-    std::lock_guard<std::mutex> lock(demo::mutex);
-
-    switch (command.beamType)
-    {
-    case beam::BeamCommand::BeamType::SEARCH:
-        ++demo::searchCount;
-        break;
-
-    case beam::BeamCommand::BeamType::CONFIRMATION:
-        ++demo::confirmCount;
-        break;
-
-    case beam::BeamCommand::BeamType::TRACKING:
-        ++demo::trackingCount;
-        break;
-    }
-
-    demo::log(
-        "TX simulator: type=",
-        static_cast<int>(command.beamType),
-        ", beamId=", command.beamId,
-        ", count=", command.commandCount,
-        ", transmitTime(ms)=",
-        command.transmitTime.count());
-}
-
-void CommController::sendTrackEvents(
-    const std::vector<target::TrackEvent>& events)
-{
-    std::lock_guard<std::mutex> lock(demo::mutex);
-
-    demo::require(
-        !events.empty(),
-        "Empty track batch");
-
-    for (const auto& track : events)
-    {
-        demo::sentTrackIds.push_back(track.id);
-
-        demo::require(
-            track.dopplerVelocity.mps() == 20 &&
-            track.velocity.mps() == 200,
-            "Track velocity conversion failed");
-
-        demo::log(
-            "TX console: id=", track.id,
-            ", state=", static_cast<int>(track.state),
-            ", range(m)=", track.slantRange.m(),
-            ", az(deg)=", track.azimuth.deg(),
-            ", el(deg)=", track.elevation.deg(),
-            ", doppler(m/s)=", track.dopplerVelocity.mps(),
-            ", velocity(m/s)=", track.velocity.mps(),
-            ", time(ms)=", track.timestamp.count());
-    }
-
-    ++demo::trackBatches;
-}
-} // namespace comm
-
-// 실제 추적 알고리즘이 아닌 DTO 전달 확인용 샘플
-namespace target
-{
-std::optional<beam::BeamRequest>
-TargetController::handleDetection(
-    DetectionEvent detection)
-{
-    std::lock_guard<std::mutex> lock(demo::mutex);
-
-    // 예외 발생 후 다음 이벤트가 처리되는지 확인한다.
-    if (detection.requestId == 999)
-    {
-        ++demo::targetErrors;
-
-        throw std::invalid_argument(
-            "Injected detection error");
-    }
-
-    ++demo::detectionBatches;
-
-    demo::log(
-        "Target received type=",
-        static_cast<int>(detection.beamType),
-        ", plots=", detection.plots.size());
-
-    demo::tracks.clear();
-
-    const auto state = demo::detectionBatches == 1
-        ? TrackEvent::TrackState::INIT
-        : TrackEvent::TrackState::TRACKING;
-
-    // 전달 확인을 위한 샘플이며 실제 표적 연관 로직은 아니다.
-    for (std::size_t i = 0; i < detection.plots.size(); ++i)
-    {
-        const auto& plot = detection.plots[i];
-
-        demo::tracks.emplace_back(
-            static_cast<std::uint16_t>(101 + i),
-            state,
-            plot.slantRange,
-            math::Distance::fromMeters(11000),
-            plot.azimuth,
-            plot.elevation,
-            plot.dopplerVelocity,
-            math::Angle::fromDegrees(37),
-            math::Angle::fromDegrees(127),
-            math::Distance::fromMeters(1000),
-            math::Velocity::fromMetersPerSecond(200),
-            math::Angle::fromDegrees(90),
-            math::Angle::fromDegrees(0),
-            detection.transmitTime);
-    }
-
-    return std::nullopt;
-}
-
-std::vector<TrackEvent>
-TargetController::nextTrackEvents() const
-{
-    std::lock_guard<std::mutex> lock(demo::mutex);
-
-    return demo::tracks;
-}
-} // namespace target
 
 int main()
 {
-    using Type = beam::BeamCommand::BeamType;
-    using State = beam::OperationState;
-
-    app::BeamChannel beamChannel;
-    app::CommChannel commChannel;
-    app::TargetChannel targetChannel;
-
-    // 실제 Beam 모듈 구현을 사용한다.
-    beam::BeamController beamController;
-
-    comm::CommController commController(
-        comm::CommConfiguration{
-            {"127.0.0.20", 3200},
-            {"127.0.0.10", 3100},
-            {"127.0.0.100", 3300}});
-
-    target::TargetController targetController;
-
-    app::BeamWorker beamWorker(
-        beamChannel,
-        commChannel,
-        beamController);
-
-    app::CommWorker commWorker(
-        commChannel,
-        beamChannel,
-        targetChannel,
-        commController);
-
-    app::TargetWorker targetWorker(
-        targetChannel,
-        beamChannel,
-        commChannel,
-        targetController);
-
-    std::mutex errorMutex;
-    std::exception_ptr workerError;
-
-    std::thread rx;
-    std::thread simulatorTx;
-    std::thread consoleTx;
-    std::thread beamTask;
-    std::thread targetTask;
-    std::thread timerTask;
-
-    auto startThread = [&](auto action)
-    {
-        return std::thread([&, action]
-        {
-            try
-            {
-                action();
-            }
-            catch (...)
-            {
-                {
-                    std::lock_guard<std::mutex> lock(errorMutex);
-
-                    if (!workerError)
-                    {
-                        workerError = std::current_exception();
-                    }
-                }
-
-                // 워커 밖으로 나온 예외에 대한 테스트 종료 처리
-                demo::finishInput();
-
-                targetChannel.close();
-                beamChannel.close();
-                commChannel.close();
-            }
-        });
-    };
-
-    auto joinAll = [&]
-    {
-        for (auto* task : {
-            &rx,
-            &simulatorTx,
-            &consoleTx,
-            &beamTask,
-            &targetTask,
-            &timerTask})
-        {
-            if (task->joinable())
-            {
-                task->join();
-            }
-        }
-    };
+    using namespace std::chrono_literals;
 
     try
     {
-        std::vector<comm::IncomingDto> scenario{
-            demo::operation(State::OFF),       //    0ms
-            demo::operation(State::ON),        //  100ms
-            demo::attitude(30),                //  200ms
-            demo::detection(Type::SEARCH, 1),   //  300ms
-            demo::detection(Type::CONFIRMATION, 2),
-            demo::detection(Type::TRACKING, 3),
-            demo::detection(Type::SEARCH, 999), //  600ms: 예외
-            demo::detection(Type::SEARCH, 4, 2),
-            demo::operation(State::OFF),       //  800ms
-            demo::operation(State::ON),        //  900ms
-            demo::attitude(-15),               // 1000ms
-            demo::detection(Type::SEARCH, 5, 0),
-            demo::detection(Type::SEARCH, 6),
-            demo::operation(State::OFF),       // 1300ms
-            demo::attitude(0)};
+        beam::BeamController beamController;
+        target::TargetController targetController;
 
-        commController.openServer();
+        demo::Result result;
 
-        rx = startThread([&]
-        {
-            commWorker.runReceive();
-        });
+        // 운용 ON 이전에는 빔이 생성되지 않아야 한다.
+        demo::require(
+            !beamController.nextBeamCommand(0ms),
+            "Beam generated before operation ON");
 
-        simulatorTx = startThread([&]
-        {
-            commWorker.runSendSimulator();
-        });
+        beamController.setOperationState(
+            beam::SetOperationStateCommand(
+                beam::OperationState::ON));
 
-        consoleTx = startThread([&]
-        {
-            commWorker.runSendConsole();
-        });
+        beamController.setAttitude(
+            beam::SetAttitudeCommand(
+                math::Angle::fromDegrees(37),
+                math::Angle::fromDegrees(127),
+                math::Distance::fromMeters(100),
+                math::Angle::fromDegrees(0),
+                math::Angle::fromDegrees(0),
+                math::Angle::fromDegrees(0)));
 
-        beamTask = startThread([&]
-        {
-            beamWorker.run();
-        });
+        const auto start =
+            std::chrono::steady_clock::now();
 
-        targetTask = startThread([&]
-        {
-            targetWorker.run();
-        });
-
-        timerTask = startThread([&]
-        {
-            demo::timer(beamChannel);
-        });
-
-        const auto begin = demo::Clock::now();
-
-        for (std::size_t i = 0; i < scenario.size(); ++i)
+        // 10ms 간격으로 스케줄러를 호출한다.
+        // currentTime은 테스트용 논리 시각이다.
+        for (
+            auto currentTime = 0ms;
+            currentTime <= 2200ms;
+            currentTime += 10ms)
         {
             std::this_thread::sleep_until(
-                begin + std::chrono::milliseconds(100 * i));
+                start + currentTime);
 
-            auto message = std::move(scenario[i]);
+            const bool success = app::tryWorkerAction(
+                "TargetExample",
+                [&]
+                {
+                    const auto command =
+                        beamController.nextBeamCommand(
+                            currentTime);
 
-            if (auto* event =
-                    std::get_if<target::DetectionEvent>(&message))
-            {
-                demo::push(
-                    target::DetectionEvent(
-                        event->beamType,
-                        event->requestId,
-                        std::chrono::milliseconds(
-                            demo::tickTime.load()),
-                        event->plots));
-            }
-            else
-            {
-                demo::push(std::move(message));
-            }
-
-            // 확인·추적빔 요청 전달은 직접 주입하여 검증한다.
-            if (i == 4 || i == 5)
-            {
-                const beam::BeamRequest request(
-                    i == 4
-                        ? beam::BeamRequest::BeamType::CONFIRMATION
-                        : beam::BeamRequest::BeamType::TRACKING,
-                    std::chrono::milliseconds(
-                        demo::tickTime.load() + 100),
-                    static_cast<std::uint32_t>(i),
-                    math::Angle::fromDegrees(10),
-                    math::Angle::fromDegrees(5));
-
-                // write는 void이며 실패하면 예외를 던진다.
-                beamChannel.write(request);
-            }
-        }
-
-        {
-            std::unique_lock<std::mutex> lock(demo::mutex);
-
-            demo::require(
-                demo::ready.wait_for(
-                    lock,
-                    std::chrono::seconds(2),
-                    [&]
+                    if (!command)
                     {
-                        return demo::received ==
-                            static_cast<int>(scenario.size());
-                    }),
-                "Receive timed out");
+                        return;
+                    }
+
+                    // 검색빔 출력은 100ms마다 표시한다.
+                    // 확인/추적빔은 모두 표시한다.
+                    if (
+                        command->beamType !=
+                            demo::BeamType::SEARCH
+                        || currentTime.count() % 100 == 0)
+                    {
+                        std::cout
+                            << "[BEAM OUTPUT]"
+                            << " type="
+                            << static_cast<int>(
+                                command->beamType)
+                            << ", beamId="
+                            << command->beamId
+                            << ", count="
+                            << command->commandCount
+                            << ", time(ms)="
+                            << command->transmitTime.count()
+                            << '\n';
+                    }
+
+                    if (
+                        command->beamType ==
+                        demo::BeamType::SEARCH)
+                    {
+                        // 동일한 표적을 여러 번 신규 등록하지 않도록
+                        // 검색 탐지정보는 처음 한 번만 입력한다.
+                        if (result.searchResultSubmitted)
+                        {
+                            return;
+                        }
+
+                        result.searchResultSubmitted = true;
+                    }
+                    else if (
+                        command->beamType ==
+                        demo::BeamType::CONFIRMATION)
+                    {
+                        ++result.confirmationCommands;
+                    }
+                    else if (
+                        command->beamType ==
+                        demo::BeamType::TRACKING)
+                    {
+                        ++result.trackingCommands;
+                    }
+
+                    demo::handleResult(
+                        beamController,
+                        targetController,
+                        *command,
+                        result);
+                });
+
+            // 예외는 tryWorkerAction에서 출력한다.
+            // 이 테스트에서는 처리 실패를 PASS로 판단하지 않도록
+            // 실패 시 테스트를 종료한다.
+            demo::require(
+                success,
+                "Controller processing failed; see error log");
         }
 
-        // 남은 입력 처리 후 receiveData가 nullopt를 반환한다.
-        demo::finishInput();
-
-        timerTask.join();
-        rx.join();
-
-        targetChannel.close();
-        targetTask.join();
-
-        beamChannel.close();
-        beamTask.join();
-
-        commChannel.close();
-        simulatorTx.join();
-        consoleTx.join();
-
-        if (workerError)
-        {
-            std::rethrow_exception(workerError);
-        }
+        beamController.setOperationState(
+            beam::SetOperationStateCommand(
+                beam::OperationState::OFF));
 
         demo::require(
-            demo::operations ==
-                std::vector<int>{0, 1, 0, 1, 0},
-            "Operation routing failed");
+            !beamController.nextBeamCommand(2210ms),
+            "Beam generated after operation OFF");
 
         demo::require(
-            demo::searchCount > 0 &&
-            demo::confirmCount == 1 &&
-            demo::trackingCount == 1,
-            "Beam type delivery failed");
+            result.confirmationCommands >= 1,
+            "Confirmation request was not delivered");
 
         demo::require(
-            demo::targetErrors == 1,
-            "Exception injection failed");
-
-        demo::require(
-            demo::trackBatches == 5 &&
-            demo::sentTrackIds ==
-                std::vector<int>{101, 101, 101, 101, 102, 101},
-            "Console track routing or exception continuation failed");
+            result.trackingCommands >= 1
+                && result.reportedTracks >= 1,
+            "Tracking or track reporting failed");
 
         std::cout
-            << "[PASS] Actual BeamController: "
-               "SEARCH/CONFIRMATION/TRACKING\n";
-
-        std::cout
-            << "[PASS] Console tracks: 5 batches, 6 records\n";
-
-        std::cout
-            << "[PASS] Target exception handled; "
-               "subsequent events processed\n";
+            << "[PASS] Real TargetController: "
+            << "search -> confirmation -> tracking\n";
 
         return 0;
     }
@@ -628,14 +304,6 @@ int main()
     {
         std::cerr << "[FAIL] Unknown error\n";
     }
-
-    demo::finishInput();
-
-    targetChannel.close();
-    beamChannel.close();
-    commChannel.close();
-
-    joinAll();
 
     return 1;
 }
