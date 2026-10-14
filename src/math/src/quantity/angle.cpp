@@ -7,6 +7,11 @@ namespace math
 {
 using namespace literals;
 
+const QuantityTolerance<Angle> Angle::NONE_TOLERANCE{
+    Angle::fromDegrees(0.0),
+    0.0
+};
+
 const QuantityTolerance<Angle> Angle::DEFAULT_TOLERANCE{
     Angle::fromDegrees(DEFAULT_ABSOLUTE_TOLERANCE),
     DEFAULT_RELATIVE_TOLERANCE

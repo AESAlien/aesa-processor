@@ -22,6 +22,8 @@ const Tolerance DEFAULT_TOLERANCE{
     DEFAULT_RELATIVE_TOLERANCE
 };
 
+const Tolerance NONE_TOLERANCE{0.0, 0.0};
+
 Tolerance::Tolerance(double absoluteTolerance, double relativeTolerance)
     : _absoluteTolerance(absoluteTolerance),
       _relativeTolerance(relativeTolerance)

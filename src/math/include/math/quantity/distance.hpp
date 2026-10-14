@@ -9,6 +9,8 @@ class Distance : public Quantity<Distance>
 {
 public:
     static const QuantityTolerance<Distance> DEFAULT_TOLERANCE;
+    // 절대·상대 허용오차 없이 비교한다. 무한대·NaN 값은 같다고 판단하지 않는다.
+    static const QuantityTolerance<Distance> NONE_TOLERANCE;
 
     static Distance fromMeters(double meters) noexcept;
     static Distance fromKilometers(double kilometers) noexcept;

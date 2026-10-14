@@ -41,7 +41,7 @@ TYPED_TEST(EqualsTest, HandlesRoundingAndDefaultTolerances)
     EXPECT_TRUE(calculated.equals(expected));
     EXPECT_TRUE(calculated == expected);
     EXPECT_FALSE(calculated != expected);
-    EXPECT_FALSE(calculated.equals(expected, math::Tolerance{0.0, 0.0}));
+    EXPECT_FALSE(calculated.equals(expected, math::NONE_TOLERANCE));
     EXPECT_TRUE(calculated.equals(expected, math::DEFAULT_TOLERANCE));
     EXPECT_FALSE(expected == makeValue<TypeParam>(0.4, 1.0));
     EXPECT_FALSE(expected.equals(makeValue<TypeParam>(0.4, 1.0)));
@@ -148,6 +148,25 @@ TEST(ToleranceTest, ComparesFiniteNumbersUsingItsPolicy)
         EXPECT_FALSE(combined.isWithin(nonfinite, nonfinite));
         EXPECT_FALSE(combined.isWithin(0.0, nonfinite));
         EXPECT_FALSE(combined.isWithin(nonfinite, 0.0));
+    }
+}
+
+TEST(ToleranceTest, NoneToleranceRequiresExactFiniteEquality)
+{
+    EXPECT_DOUBLE_EQ(math::NONE_TOLERANCE.absolute(), 0.0);
+    EXPECT_DOUBLE_EQ(math::NONE_TOLERANCE.relative(), 0.0);
+    EXPECT_TRUE(math::NONE_TOLERANCE.isWithin(1.0, 1.0));
+    EXPECT_TRUE(math::NONE_TOLERANCE.isWithin(0.0, -0.0));
+    EXPECT_FALSE(math::NONE_TOLERANCE.isWithin(0.1 + 0.2, 0.3));
+    EXPECT_FALSE(math::NONE_TOLERANCE.isWithin(1.0, std::nextafter(1.0, 2.0)));
+    EXPECT_FALSE(math::NONE_TOLERANCE.isWithin(0.0, std::numeric_limits<double>::denorm_min()));
+    for (double nonfinite : {std::numeric_limits<double>::infinity(),
+                             -std::numeric_limits<double>::infinity(),
+                             std::numeric_limits<double>::quiet_NaN()})
+    {
+        EXPECT_FALSE(math::NONE_TOLERANCE.isWithin(nonfinite, nonfinite));
+        EXPECT_FALSE(math::NONE_TOLERANCE.isWithin(0.0, nonfinite));
+        EXPECT_FALSE(math::NONE_TOLERANCE.isWithin(nonfinite, 0.0));
     }
 }
 
@@ -318,6 +337,37 @@ class QuantityComparisonTest : public testing::Test
 
 using QuantityTypes = testing::Types<math::Angle, math::Distance, math::Velocity>;
 TYPED_TEST_SUITE(QuantityComparisonTest, QuantityTypes);
+
+TYPED_TEST(QuantityComparisonTest, NoneToleranceDisablesAbsoluteAndRelativeTolerance)
+{
+    const auto& NONE = TypeParam::NONE_TOLERANCE;
+    static_assert(std::is_same_v<decltype(NONE), const math::QuantityTolerance<TypeParam>&>);
+    EXPECT_DOUBLE_EQ(NONE.absolute().value(), 0.0);
+    EXPECT_DOUBLE_EQ(NONE.relative(), 0.0);
+    const auto ZERO = makeQuantity<TypeParam>(0.0);
+    EXPECT_TRUE(ZERO.equals(ZERO, NONE));
+    EXPECT_FALSE(ZERO.notEquals(ZERO, NONE));
+    for (double value : {0.0, 1e6})
+    {
+        const auto LOW = makeQuantity<TypeParam>(value);
+        const auto HIGH = makeQuantity<TypeParam>(std::nextafter(value, std::numeric_limits<double>::infinity()));
+        EXPECT_TRUE(LOW.equals(HIGH));
+        EXPECT_FALSE(LOW.equals(HIGH, NONE));
+        EXPECT_TRUE(LOW.notEquals(HIGH, NONE));
+        EXPECT_TRUE(LOW.lessThan(HIGH, NONE));
+        EXPECT_TRUE(HIGH.greaterThan(LOW, NONE));
+        EXPECT_FALSE(LOW.greaterThanOrEqual(HIGH, NONE));
+        EXPECT_FALSE(HIGH.lessThanOrEqual(LOW, NONE));
+    }
+    for (double nonfinite : {std::numeric_limits<double>::infinity(),
+                             -std::numeric_limits<double>::infinity(),
+                             std::numeric_limits<double>::quiet_NaN()})
+    {
+        const auto VALUE = makeQuantity<TypeParam>(nonfinite);
+        EXPECT_FALSE(VALUE.equals(VALUE, NONE));
+        EXPECT_TRUE(VALUE.notEquals(VALUE, NONE));
+    }
+}
 
 TYPED_TEST(QuantityComparisonTest, RestrictsComparisonsToMatchingQuantityTypes)
 {

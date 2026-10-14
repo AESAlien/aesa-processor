@@ -6,6 +6,11 @@ namespace math
 {
 using namespace literals;
 
+const QuantityTolerance<Distance> Distance::NONE_TOLERANCE{
+    Distance::fromMeters(0.0),
+    0.0
+};
+
 const QuantityTolerance<Distance> Distance::DEFAULT_TOLERANCE{
     Distance::fromMeters(DEFAULT_ABSOLUTE_TOLERANCE),
     DEFAULT_RELATIVE_TOLERANCE

@@ -6,6 +6,11 @@ namespace math
 {
 using namespace literals;
 
+const QuantityTolerance<Velocity> Velocity::NONE_TOLERANCE{
+    Velocity::fromMetersPerSecond(0.0),
+    0.0
+};
+
 const QuantityTolerance<Velocity> Velocity::DEFAULT_TOLERANCE{
     Velocity::fromMetersPerSecond(DEFAULT_ABSOLUTE_TOLERANCE),
     DEFAULT_RELATIVE_TOLERANCE

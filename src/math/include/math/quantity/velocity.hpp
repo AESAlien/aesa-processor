@@ -13,6 +13,8 @@ class Velocity : public Quantity<Velocity>
 {
 public:
     static const QuantityTolerance<Velocity> DEFAULT_TOLERANCE;
+    // 절대·상대 허용오차 없이 비교한다. 무한대·NaN 값은 같다고 판단하지 않는다.
+    static const QuantityTolerance<Velocity> NONE_TOLERANCE;
 
     static Velocity fromMetersPerSecond(double metersPerSecond) noexcept;
 

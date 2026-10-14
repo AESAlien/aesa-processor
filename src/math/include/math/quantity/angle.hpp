@@ -11,6 +11,8 @@ class Angle : public Quantity<Angle>
 {
 public:
     static const QuantityTolerance<Angle> DEFAULT_TOLERANCE;
+    // 절대·상대 허용오차 없이 비교한다. 무한대·NaN 값은 같다고 판단하지 않는다.
+    static const QuantityTolerance<Angle> NONE_TOLERANCE;
 
     static Angle fromDegrees(double degrees) noexcept;
     static Angle fromRadians(double radians) noexcept;

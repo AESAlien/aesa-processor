@@ -29,5 +29,7 @@ private:
 inline constexpr double DEFAULT_ABSOLUTE_TOLERANCE = 1e-12;
 inline constexpr double DEFAULT_RELATIVE_TOLERANCE = 1e-9;
 extern const Tolerance DEFAULT_TOLERANCE;
+// 절대·상대 허용오차 없이 비교한다. 무한대·NaN 값은 같다고 판단하지 않는다.
+extern const Tolerance NONE_TOLERANCE;
 
 }
