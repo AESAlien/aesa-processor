@@ -21,48 +21,13 @@ double Velocity::mps() const noexcept
     return _value;
 }
 
-bool Velocity::equals(const Velocity& other, const QuantityTolerance<Velocity>& tolerance) const noexcept
-{
-    return tolerance.isWithin(*this, other);
-}
-
-bool Velocity::operator==(const Velocity& other) const noexcept
-{
-    return equals(other);
-}
-
-bool Velocity::operator!=(const Velocity& other) const noexcept
-{
-    return !(*this == other);
-}
-
-bool Velocity::operator<(const Velocity& other) const noexcept
-{
-    return _value < other._value && *this != other;
-}
-
-bool Velocity::operator<=(const Velocity& other) const noexcept
-{
-    return _value <= other._value || *this == other;
-}
-
-bool Velocity::operator>(const Velocity& other) const noexcept
-{
-    return _value > other._value && *this != other;
-}
-
-bool Velocity::operator>=(const Velocity& other) const noexcept
-{
-    return _value >= other._value || *this == other;
-}
-
 Velocity Velocity::operator-() const noexcept
 {
     return Velocity(-_value);
 }
 
 Velocity::Velocity(double metersPerSecond) noexcept
-    : Quantity(metersPerSecond)
+    : Quantity<Velocity>(metersPerSecond)
 {
 }
 

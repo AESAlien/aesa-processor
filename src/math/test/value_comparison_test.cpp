@@ -210,17 +210,17 @@ T makeQuantity(double value)
 
 TEST(QuantityTest, SharesStorageAndChecksWithoutLosingUnitSafety)
 {
-    static_assert(std::is_base_of_v<math::Quantity, math::Angle>);
-    static_assert(std::is_base_of_v<math::Quantity, math::Distance>);
-    static_assert(std::is_base_of_v<math::Quantity, math::Velocity>);
+    static_assert(std::is_base_of_v<math::Quantity<math::Angle>, math::Angle>);
+    static_assert(std::is_base_of_v<math::Quantity<math::Distance>, math::Distance>);
+    static_assert(std::is_base_of_v<math::Quantity<math::Velocity>, math::Velocity>);
     static_assert(sizeof(math::Angle) == sizeof(double));
     static_assert(sizeof(math::Distance) == sizeof(double));
     static_assert(sizeof(math::Velocity) == sizeof(double));
-    static_assert(!std::is_assignable_v<math::Quantity&, math::Distance>);
+    static_assert(!std::is_assignable_v<math::Quantity<math::Distance>&, math::Distance>);
     static_assert(!std::is_constructible_v<math::Angle, math::Distance>);
 
     const auto angle = math::Angle::fromDegrees(-90.0);
-    const math::Quantity& quantity = angle;
+    const math::Quantity<math::Angle>& quantity = angle;
     EXPECT_DOUBLE_EQ(quantity.value(), angle.deg());
     EXPECT_TRUE(quantity.isFinite());
     EXPECT_FALSE(quantity.isNonnegative());
@@ -229,14 +229,71 @@ TEST(QuantityTest, SharesStorageAndChecksWithoutLosingUnitSafety)
 }
 
 // 새 물리량도 단위별 분기 없이 공통 정책을 사용할 수 있다.
-class TestQuantity : public math::Quantity
+class TestQuantity : public math::Quantity<TestQuantity>
 {
 public:
+    static const math::QuantityTolerance<TestQuantity> DEFAULT_TOLERANCE;
+
     explicit TestQuantity(double value) noexcept
-        : Quantity(value)
+        : Quantity<TestQuantity>(value)
     {
     }
 };
+
+const math::QuantityTolerance<TestQuantity> TestQuantity::DEFAULT_TOLERANCE{
+    TestQuantity(0.5), 0.0
+};
+
+TEST(QuantityTest, NewQuantityInheritsComparisonsAndUsesItsOwnDefaultTolerance)
+{
+    const TestQuantity LOW(1.0);
+    const TestQuantity NEARBY(1.5);
+    const TestQuantity HIGH(2.0);
+    const math::QuantityTolerance EXACT{TestQuantity(0.0), 0.0};
+    EXPECT_TRUE(LOW.equals(NEARBY));
+    EXPECT_FALSE(LOW.equals(NEARBY, EXACT));
+    EXPECT_FALSE(LOW.notEquals(NEARBY));
+    EXPECT_TRUE(LOW.notEquals(NEARBY, EXACT));
+    EXPECT_FALSE(LOW.lessThan(NEARBY));
+    EXPECT_TRUE(LOW.lessThan(NEARBY, EXACT));
+    EXPECT_TRUE(NEARBY.greaterThan(LOW, EXACT));
+    EXPECT_TRUE(LOW.lessThanOrEqual(NEARBY));
+    EXPECT_TRUE(LOW.greaterThanOrEqual(NEARBY));
+    EXPECT_FALSE(LOW.greaterThanOrEqual(NEARBY, EXACT));
+    EXPECT_FALSE(NEARBY.lessThanOrEqual(LOW, EXACT));
+    EXPECT_TRUE(LOW == NEARBY);
+    EXPECT_FALSE(LOW != NEARBY);
+    EXPECT_FALSE(LOW < NEARBY);
+    EXPECT_FALSE(NEARBY > LOW);
+    EXPECT_TRUE(LOW <= NEARBY);
+    EXPECT_TRUE(LOW >= NEARBY);
+    EXPECT_TRUE(LOW != HIGH);
+    EXPECT_TRUE(LOW < HIGH);
+    EXPECT_TRUE(HIGH > LOW);
+}
+
+template<typename Left, typename Right>
+void checkComparisonTypes()
+{
+    constexpr bool SAME_TYPE = std::is_same_v<Left, Right>;
+    using Policy = math::QuantityTolerance<Left>;
+    static_assert(std::is_invocable_v<decltype(&Left::equals), const Left&, const Right&, const Policy&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::notEquals), const Left&, const Right&, const Policy&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::notEquals), const Left&, const Left&,
+        const math::QuantityTolerance<Right>&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::lessThan), const Left&, const Right&, const Policy&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::lessThanOrEqual), const Left&, const Right&, const Policy&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::greaterThan), const Left&, const Right&, const Policy&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::greaterThanOrEqual), const Left&, const Right&, const Policy&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::operator==), const Left&, const Right&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::operator!=), const Left&, const Right&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::operator<), const Left&, const Right&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::operator<=), const Left&, const Right&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::operator>), const Left&, const Right&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::operator>=), const Left&, const Right&> == SAME_TYPE);
+    static_assert(std::is_invocable_v<decltype(&Left::equals), const Left&, const Left&,
+        const math::QuantityTolerance<Right>&> == SAME_TYPE);
+}
 
 TEST(QuantityToleranceTest, SupportsNewQuantitiesAndRestrictsComparisonTypes)
 {
@@ -261,6 +318,123 @@ class QuantityComparisonTest : public testing::Test
 
 using QuantityTypes = testing::Types<math::Angle, math::Distance, math::Velocity>;
 TYPED_TEST_SUITE(QuantityComparisonTest, QuantityTypes);
+
+TYPED_TEST(QuantityComparisonTest, RestrictsComparisonsToMatchingQuantityTypes)
+{
+    checkComparisonTypes<TypeParam, math::Angle>();
+    checkComparisonTypes<TypeParam, math::Distance>();
+    checkComparisonTypes<TypeParam, math::Velocity>();
+}
+
+TYPED_TEST(QuantityComparisonTest, NamedInequalitySupportsExplicitTolerancesAndNonfiniteValues)
+{
+    const auto ZERO = makeQuantity<TypeParam>(0.0);
+    const auto BOUNDARY = makeQuantity<TypeParam>(0.25);
+    const auto OUTSIDE = makeQuantity<TypeParam>(std::nextafter(0.25, 1.0));
+    const math::QuantityTolerance ABSOLUTE{BOUNDARY, 0.0};
+    const math::QuantityTolerance EXACT{ZERO, 0.0};
+    EXPECT_FALSE(ZERO.notEquals(ZERO, EXACT));
+    EXPECT_FALSE(ZERO.notEquals(BOUNDARY, ABSOLUTE));
+    EXPECT_FALSE(BOUNDARY.notEquals(ZERO, ABSOLUTE));
+    EXPECT_TRUE(ZERO.notEquals(OUTSIDE, ABSOLUTE));
+    EXPECT_TRUE(ZERO.notEquals(BOUNDARY, EXACT));
+    const auto LOW = makeQuantity<TypeParam>(4.0);
+    const auto HIGH = makeQuantity<TypeParam>(8.0);
+    const math::QuantityTolerance RELATIVE{ZERO, 0.5};
+    const math::QuantityTolerance BELOW_BOUNDARY{ZERO, std::nextafter(0.5, 0.0)};
+    EXPECT_FALSE(LOW.notEquals(HIGH, RELATIVE));
+    EXPECT_FALSE(HIGH.notEquals(LOW, RELATIVE));
+    EXPECT_TRUE(LOW.notEquals(HIGH, BELOW_BOUNDARY));
+    const auto NEARBY = makeQuantity<TypeParam>(0.5 * math::DEFAULT_ABSOLUTE_TOLERANCE);
+    EXPECT_FALSE(ZERO.notEquals(NEARBY));
+    EXPECT_TRUE(ZERO.notEquals(NEARBY, EXACT));
+    EXPECT_TRUE(ZERO.notEquals(HIGH));
+    EXPECT_EQ(ZERO.notEquals(NEARBY), ZERO != NEARBY);
+    EXPECT_EQ(ZERO.notEquals(HIGH), ZERO != HIGH);
+    for (double nonfinite : {std::numeric_limits<double>::infinity(),
+                             -std::numeric_limits<double>::infinity(),
+                             std::numeric_limits<double>::quiet_NaN()})
+    {
+        const auto VALUE = makeQuantity<TypeParam>(nonfinite);
+        EXPECT_TRUE(VALUE.notEquals(VALUE));
+        EXPECT_TRUE(VALUE.notEquals(VALUE, EXACT));
+        EXPECT_TRUE(VALUE.notEquals(ZERO, ABSOLUTE));
+        EXPECT_TRUE(ZERO.notEquals(VALUE, ABSOLUTE));
+        EXPECT_EQ(VALUE.notEquals(VALUE), VALUE != VALUE);
+    }
+}
+
+TYPED_TEST(QuantityComparisonTest, NamedOrderingUsesExplicitToleranceBoundaries)
+{
+    const auto ZERO = makeQuantity<TypeParam>(0.0);
+    const math::QuantityTolerance ABSOLUTE{makeQuantity<TypeParam>(0.25), 0.0};
+    const math::QuantityTolerance RELATIVE{ZERO, 0.5};
+    const math::QuantityTolerance EXACT{ZERO, 0.0};
+    for (double sign : {-1.0, 1.0})
+    {
+        const auto BOUNDARY = makeQuantity<TypeParam>(sign * 0.25);
+        EXPECT_FALSE(ZERO.lessThan(BOUNDARY, ABSOLUTE));
+        EXPECT_FALSE(ZERO.greaterThan(BOUNDARY, ABSOLUTE));
+        EXPECT_TRUE(ZERO.lessThanOrEqual(BOUNDARY, ABSOLUTE));
+        EXPECT_TRUE(ZERO.greaterThanOrEqual(BOUNDARY, ABSOLUTE));
+        const auto OUTSIDE = makeQuantity<TypeParam>(sign * std::nextafter(0.25, 1.0));
+        EXPECT_EQ(ZERO.lessThan(OUTSIDE, ABSOLUTE), sign > 0.0);
+        EXPECT_EQ(ZERO.greaterThan(OUTSIDE, ABSOLUTE), sign < 0.0);
+        EXPECT_EQ(ZERO.lessThanOrEqual(OUTSIDE, ABSOLUTE), sign > 0.0);
+        EXPECT_EQ(ZERO.greaterThanOrEqual(OUTSIDE, ABSOLUTE), sign < 0.0);
+    }
+    const auto LOW = makeQuantity<TypeParam>(4.0);
+    const auto HIGH = makeQuantity<TypeParam>(8.0);
+    EXPECT_FALSE(LOW.lessThan(HIGH, RELATIVE));
+    EXPECT_FALSE(HIGH.greaterThan(LOW, RELATIVE));
+    EXPECT_TRUE(LOW.greaterThanOrEqual(HIGH, RELATIVE));
+    EXPECT_TRUE(HIGH.lessThanOrEqual(LOW, RELATIVE));
+    const math::QuantityTolerance BELOW_BOUNDARY{ZERO, std::nextafter(0.5, 0.0)};
+    EXPECT_TRUE(LOW.lessThan(HIGH, BELOW_BOUNDARY));
+    EXPECT_TRUE(HIGH.greaterThan(LOW, BELOW_BOUNDARY));
+    EXPECT_FALSE(LOW.greaterThanOrEqual(HIGH, BELOW_BOUNDARY));
+    EXPECT_FALSE(HIGH.lessThanOrEqual(LOW, BELOW_BOUNDARY));
+    const auto NEARBY = makeQuantity<TypeParam>(0.5 * math::DEFAULT_ABSOLUTE_TOLERANCE);
+    EXPECT_TRUE(ZERO.lessThan(NEARBY, EXACT));
+    EXPECT_TRUE(NEARBY.greaterThan(ZERO, EXACT));
+    EXPECT_FALSE(ZERO.greaterThanOrEqual(NEARBY, EXACT));
+    EXPECT_FALSE(NEARBY.lessThanOrEqual(ZERO, EXACT));
+    EXPECT_FALSE(ZERO.lessThan(ZERO, EXACT));
+    EXPECT_FALSE(ZERO.greaterThan(ZERO, EXACT));
+    EXPECT_TRUE(ZERO.lessThanOrEqual(ZERO, EXACT));
+    EXPECT_TRUE(ZERO.greaterThanOrEqual(ZERO, EXACT));
+}
+
+TYPED_TEST(QuantityComparisonTest, NamedOrderingMatchesDefaultOperatorsAndNonfiniteRules)
+{
+    const double VALUES[] =
+    {
+        -std::numeric_limits<double>::infinity(),
+        -1.0,
+        0.0,
+        0.5 * math::DEFAULT_ABSOLUTE_TOLERANCE,
+        1.0,
+        std::numeric_limits<double>::infinity(),
+        std::numeric_limits<double>::quiet_NaN()
+    };
+    const math::QuantityTolerance EXACT{makeQuantity<TypeParam>(0.0), 0.0};
+    for (double left : VALUES)
+    {
+        for (double right : VALUES)
+        {
+            const auto LEFT = makeQuantity<TypeParam>(left);
+            const auto RIGHT = makeQuantity<TypeParam>(right);
+            EXPECT_EQ(LEFT.lessThan(RIGHT), LEFT < RIGHT);
+            EXPECT_EQ(LEFT.lessThanOrEqual(RIGHT), LEFT <= RIGHT);
+            EXPECT_EQ(LEFT.greaterThan(RIGHT), LEFT > RIGHT);
+            EXPECT_EQ(LEFT.greaterThanOrEqual(RIGHT), LEFT >= RIGHT);
+            EXPECT_EQ(LEFT.lessThan(RIGHT, EXACT), left < right);
+            EXPECT_EQ(LEFT.lessThanOrEqual(RIGHT, EXACT), left <= right);
+            EXPECT_EQ(LEFT.greaterThan(RIGHT, EXACT), left > right);
+            EXPECT_EQ(LEFT.greaterThanOrEqual(RIGHT, EXACT), left >= right);
+        }
+    }
+}
 
 // 모든 물리량은 계산 오차 범위에서 같은 값으로 판단하고 순서 연산자도 일치한다.
 TYPED_TEST(QuantityComparisonTest, RoundingUsesSamePolicyForEqualityAndOrdering)

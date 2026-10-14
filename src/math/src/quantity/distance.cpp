@@ -31,48 +31,13 @@ double Distance::km() const noexcept
     return _value / 1000.0;
 }
 
-bool Distance::equals(const Distance& other, const QuantityTolerance<Distance>& tolerance) const noexcept
-{
-    return tolerance.isWithin(*this, other);
-}
-
-bool Distance::operator==(const Distance& other) const noexcept
-{
-    return equals(other);
-}
-
-bool Distance::operator!=(const Distance& other) const noexcept
-{
-    return !(*this == other);
-}
-
-bool Distance::operator<(const Distance& other) const noexcept
-{
-    return _value < other._value && *this != other;
-}
-
-bool Distance::operator<=(const Distance& other) const noexcept
-{
-    return _value <= other._value || *this == other;
-}
-
-bool Distance::operator>(const Distance& other) const noexcept
-{
-    return _value > other._value && *this != other;
-}
-
-bool Distance::operator>=(const Distance& other) const noexcept
-{
-    return _value >= other._value || *this == other;
-}
-
 Distance Distance::operator-() const noexcept
 {
     return Distance(-_value);
 }
 
 Distance::Distance(double meters) noexcept
-    : Quantity(meters)
+    : Quantity<Distance>(meters)
 {
 }
 

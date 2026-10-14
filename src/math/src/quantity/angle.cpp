@@ -68,41 +68,6 @@ Angle Angle::wrap90() const noexcept
     return Angle(degrees);
 }
 
-bool Angle::equals(const Angle& other, const QuantityTolerance<Angle>& tolerance) const noexcept
-{
-    return tolerance.isWithin(*this, other);
-}
-
-bool Angle::operator==(const Angle& other) const noexcept
-{
-    return equals(other);
-}
-
-bool Angle::operator!=(const Angle& other) const noexcept
-{
-    return !(*this == other);
-}
-
-bool Angle::operator<(const Angle& other) const noexcept
-{
-    return _value < other._value && *this != other;
-}
-
-bool Angle::operator<=(const Angle& other) const noexcept
-{
-    return _value <= other._value || *this == other;
-}
-
-bool Angle::operator>(const Angle& other) const noexcept
-{
-    return _value > other._value && *this != other;
-}
-
-bool Angle::operator>=(const Angle& other) const noexcept
-{
-    return _value >= other._value || *this == other;
-}
-
 Angle Angle::operator+() const noexcept
 {
     return *this;
@@ -175,7 +140,7 @@ Angle& Angle::operator/=(double scalar)
 }
 
 Angle::Angle(double degrees) noexcept
-    : Quantity(degrees)
+    : Quantity<Angle>(degrees)
 {
 }
 
