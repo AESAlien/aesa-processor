@@ -1,6 +1,5 @@
 ﻿#include "math/linear_algebra/matrix.hpp"
 
-#include "../relative_comparison.hpp"
 
 #include <cmath>
 #include <limits>
@@ -8,6 +7,8 @@
 
 namespace math
 {
+
+Matrix::Matrix() noexcept = default;
 
 Matrix::Matrix(std::size_t rows, std::size_t columns, double value)
     : _rows(rows),
@@ -69,21 +70,30 @@ bool Matrix::isFinite() const noexcept
     return true;
 }
 
-bool Matrix::equals(const Matrix& other, double relativeTolerance) const noexcept
+bool Matrix::equals(const Matrix& other, const Tolerance& tolerance) const noexcept
 {
-    if (_rows != other._rows || _columns != other._columns ||
-        !std::isfinite(relativeTolerance) || relativeTolerance < 0.0)
+    if (_rows != other._rows || _columns != other._columns)
     {
         return false;
     }
     for (std::size_t index = 0; index < _values.size(); ++index)
     {
-        if (!detail::relativeEquals(_values[index], other._values[index], relativeTolerance))
+        if (!tolerance.isWithin(_values[index], other._values[index]))
         {
             return false;
         }
     }
     return true;
+}
+
+bool Matrix::operator==(const Matrix& other) const noexcept
+{
+    return equals(other);
+}
+
+bool Matrix::operator!=(const Matrix& other) const noexcept
+{
+    return !(*this == other);
 }
 
 double& Matrix::at(std::size_t row, std::size_t column)
@@ -96,11 +106,6 @@ double& Matrix::at(std::size_t row, std::size_t column)
     return _values[row * _columns + column];
 }
 
-double& Matrix::operator()(std::size_t row, std::size_t column)
-{
-    return at(row, column);
-}
-
 const double& Matrix::at(std::size_t row, std::size_t column) const
 {
     if (row >= _rows || column >= _columns)
@@ -108,6 +113,11 @@ const double& Matrix::at(std::size_t row, std::size_t column) const
         throw std::out_of_range("Matrix index out of range");
     }
     return _values[row * _columns + column];
+}
+
+double& Matrix::operator()(std::size_t row, std::size_t column)
+{
+    return at(row, column);
 }
 
 const double& Matrix::operator()(std::size_t row, std::size_t column) const

@@ -37,6 +37,9 @@ Vector::Vector(Matrix matrix)
     }
 }
 
+Vector::Vector(const Vector&) = default;
+Vector& Vector::operator=(const Vector&) = default;
+
 Vector::Vector(Vector&& other)
     : Vector()
 {
@@ -68,32 +71,27 @@ bool Vector::isFinite() const noexcept
     return _matrix.isFinite();
 }
 
-bool Vector::equals(const Vector& other, const Vector& absoluteTolerance) const noexcept
+bool Vector::equals(const Vector& other, const Tolerance& tolerance) const noexcept
 {
-    if (size() != other.size() || size() != absoluteTolerance.size())
-    {
-        return false;
-    }
-    for (std::size_t index = 0; index < size(); ++index)
-    {
-        const double a = at(index);
-        const double b = other.at(index);
-        const double tolerance = absoluteTolerance.at(index);
-        if (!std::isfinite(a) || !std::isfinite(b) ||
-            !std::isfinite(tolerance) || tolerance < 0.0 || std::abs(a - b) > tolerance)
-        {
-            return false;
-        }
-    }
-    return true;
+    return _matrix.equals(other._matrix, tolerance);
 }
 
-bool Vector::equals(const Vector& other, double relativeTolerance) const noexcept
+bool Vector::operator==(const Vector& other) const noexcept
 {
-    return _matrix.equals(other._matrix, relativeTolerance);
+    return equals(other);
+}
+
+bool Vector::operator!=(const Vector& other) const noexcept
+{
+    return !(*this == other);
 }
 
 double& Vector::at(std::size_t index)
+{
+    return _matrix.at(index, 0);
+}
+
+const double& Vector::at(std::size_t index) const
 {
     return _matrix.at(index, 0);
 }
@@ -103,17 +101,12 @@ double& Vector::operator()(std::size_t index)
     return at(index);
 }
 
-double& Vector::operator[](std::size_t index)
+const double& Vector::operator()(std::size_t index) const
 {
     return at(index);
 }
 
-const double& Vector::at(std::size_t index) const
-{
-    return _matrix.at(index, 0);
-}
-
-const double& Vector::operator()(std::size_t index) const
+double& Vector::operator[](std::size_t index)
 {
     return at(index);
 }

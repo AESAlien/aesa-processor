@@ -8,6 +8,7 @@ add_library(math STATIC
     src/linear_algebra/square_matrix.cpp
     src/geometry/spherical_point.cpp
     src/trigonometry.cpp
+    src/tolerance.cpp
     src/linear_algebra/vector.cpp
     src/quantity/velocity.cpp
 )
@@ -49,3 +50,7 @@ gtest_discover_tests(square_matrix_test)
 add_executable(vector_test test/vector_test.cpp)
 target_link_libraries(vector_test PRIVATE math GTest::gtest_main)
 gtest_discover_tests(vector_test)
+
+add_executable(value_comparison_test test/value_comparison_test.cpp)
+target_link_libraries(value_comparison_test PRIVATE math GTest::gtest_main)
+gtest_discover_tests(value_comparison_test)

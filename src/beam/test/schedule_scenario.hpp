@@ -1,4 +1,4 @@
-// Scheduler를 시나리오로 실행하는 테스트/시각화 공용 헤더
+﻿// Scheduler를 시나리오로 실행하는 테스트/시각화 공용 헤더
 //
 // beam_schedule_dump(시각화용 도구)와 scheduler_scenario_test(GTest)가 같은 시나리오와 실행 로직을
 // 쓰도록 한 곳에 둔다. 그림으로 본 동작과 테스트가 검증하는 동작이 어긋나지 않게 하기 위함이다.
@@ -142,7 +142,7 @@ namespace detail
 
 inline bool sameAngle(math::Angle left, math::Angle right)
 {
-    return left.equals(right, math::Angle::fromDegrees(1e-9));
+    return left.equals(right);
 }
 
 // 송신된 요청 빔을 보낸 요청과 짝짓는다(종류와 각도가 같은 아직 짝이 없는 요청).

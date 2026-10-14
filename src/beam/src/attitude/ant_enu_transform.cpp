@@ -1,4 +1,4 @@
-#include "attitude/ant_enu_transform.hpp"
+﻿#include "attitude/ant_enu_transform.hpp"
 #include "attitude/attitude_error.hpp"
 
 #include <cmath>
@@ -61,8 +61,19 @@ AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeCo
         throw AttitudeError(AttitudeErrorCode::GIMBAL_LOCK, "pitch is too close to gimbal lock");
     }
 
-    if (config.mountAntToBodyRotation.size() != 3 ||
-        !config.mountAntToBodyRotation.isRotation(config.mountOrthogonalTolerance))
+    bool validMount = false;
+    try
+    {
+        validMount = config.mountAntToBodyRotation.size() == 3
+            && config.mountAntToBodyRotation.isRotation(
+                math::Tolerance{config.mountOrthogonalTolerance, 0.0});
+    }
+    catch (const std::invalid_argument&)
+    {
+        throw AttitudeError(AttitudeErrorCode::INVALID_MOUNT,
+            "mountOrthogonalTolerance must be finite and non-negative");
+    }
+    if (!validMount)
     {
         throw AttitudeError(AttitudeErrorCode::INVALID_MOUNT, "mountAntToBodyRotation is not a rotation matrix");
     }

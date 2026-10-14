@@ -1,11 +1,14 @@
 ﻿#include "math/linear_algebra/square_matrix.hpp"
 
+
 #include <cmath>
 #include <stdexcept>
 #include <utility>
 
 namespace math
 {
+
+SquareMatrix::SquareMatrix() noexcept = default;
 
 SquareMatrix::SquareMatrix(std::size_t size, double value)
     : _matrix(size, size, value)
@@ -26,6 +29,9 @@ SquareMatrix::SquareMatrix(Matrix matrix)
     }
 }
 
+SquareMatrix::SquareMatrix(const SquareMatrix&) = default;
+SquareMatrix& SquareMatrix::operator=(const SquareMatrix&) = default;
+
 SquareMatrix::SquareMatrix(SquareMatrix&& other) noexcept
 {
     std::swap(_matrix, other._matrix);
@@ -39,6 +45,17 @@ SquareMatrix& SquareMatrix::operator=(SquareMatrix&& other) noexcept
         std::swap(_matrix, moved._matrix);
     }
     return *this;
+}
+
+SquareMatrix SquareMatrix::identity(std::size_t size)
+{
+    SquareMatrix result(size);
+    for (std::size_t i = 0; i < size; ++i)
+    {
+        result._matrix(i, i) = 1.0;
+    }
+
+    return result;
 }
 
 std::size_t SquareMatrix::size() const noexcept
@@ -66,41 +83,23 @@ bool SquareMatrix::isFinite() const noexcept
     return _matrix.isFinite();
 }
 
-bool SquareMatrix::equals(const SquareMatrix& other, const SquareMatrix& absoluteTolerance) const noexcept
+bool SquareMatrix::equals(const SquareMatrix& other, const Tolerance& tolerance) const noexcept
 {
-    if (size() != other.size() || size() != absoluteTolerance.size())
-    {
-        return false;
-    }
-    for (std::size_t row = 0; row < size(); ++row)
-    {
-        for (std::size_t column = 0; column < size(); ++column)
-        {
-            const double a = at(row, column);
-            const double b = other.at(row, column);
-            const double tolerance = absoluteTolerance.at(row, column);
-            if (!std::isfinite(a) || !std::isfinite(b) ||
-                !std::isfinite(tolerance) || tolerance < 0.0 || std::abs(a - b) > tolerance)
-            {
-                return false;
-            }
-        }
-    }
-    return true;
+    return _matrix.equals(other._matrix, tolerance);
 }
 
-bool SquareMatrix::equals(const SquareMatrix& other, double relativeTolerance) const noexcept
+bool SquareMatrix::operator==(const SquareMatrix& other) const noexcept
 {
-    return _matrix.equals(other._matrix, relativeTolerance);
+    return equals(other);
 }
 
-bool SquareMatrix::isOrthogonal(double tolerance) const
+bool SquareMatrix::operator!=(const SquareMatrix& other) const noexcept
 {
-    if (!std::isfinite(tolerance) || tolerance < 0.0)
-    {
-        throw std::invalid_argument("Orthogonality tolerance must be finite and non-negative");
-    }
+    return !(*this == other);
+}
 
+bool SquareMatrix::isOrthogonal(const Tolerance& tolerance) const
+{
     if (!isFinite())
     {
         return false;
@@ -116,7 +115,7 @@ bool SquareMatrix::isOrthogonal(double tolerance) const
                 dot += at(row, i) * at(row, j);
             }
             const double expected = i == j ? 1.0 : 0.0;
-            if (!std::isfinite(dot) || std::abs(dot - expected) > tolerance)
+            if (!tolerance.isWithin(dot, expected))
             {
                 return false;
             }
@@ -125,14 +124,9 @@ bool SquareMatrix::isOrthogonal(double tolerance) const
     return true;
 }
 
-bool SquareMatrix::isRotation(double tolerance) const
+bool SquareMatrix::isRotation(const Tolerance& tolerance) const
 {
-    if (!std::isfinite(tolerance) || tolerance < 0.0)
-    {
-        return false;
-    }
-
-    return isOrthogonal(tolerance) && std::abs(det() - 1.0) <= tolerance;
+    return isOrthogonal(tolerance) && tolerance.isWithin(det(), 1.0);
 }
 
 double& SquareMatrix::at(std::size_t row, std::size_t column)
@@ -140,14 +134,14 @@ double& SquareMatrix::at(std::size_t row, std::size_t column)
     return _matrix.at(row, column);
 }
 
-double& SquareMatrix::operator()(std::size_t row, std::size_t column)
-{
-    return at(row, column);
-}
-
 const double& SquareMatrix::at(std::size_t row, std::size_t column) const
 {
     return _matrix.at(row, column);
+}
+
+double& SquareMatrix::operator()(std::size_t row, std::size_t column)
+{
+    return at(row, column);
 }
 
 const double& SquareMatrix::operator()(std::size_t row, std::size_t column) const
@@ -158,52 +152,6 @@ const double& SquareMatrix::operator()(std::size_t row, std::size_t column) cons
 SquareMatrix SquareMatrix::transpose() const
 {
     return SquareMatrix(_matrix.transpose());
-}
-
-SquareMatrix SquareMatrix::operator+(const SquareMatrix& other) const
-{
-    return SquareMatrix(_matrix + other._matrix);
-}
-
-SquareMatrix SquareMatrix::operator-(const SquareMatrix& other) const
-{
-    return SquareMatrix(_matrix - other._matrix);
-}
-
-SquareMatrix SquareMatrix::operator*(const SquareMatrix& other) const
-{
-    return SquareMatrix(_matrix * other._matrix);
-}
-
-SquareMatrix SquareMatrix::operator*(double scalar) const
-{
-    return SquareMatrix(_matrix * scalar);
-}
-
-SquareMatrix SquareMatrix::operator/(double scalar) const
-{
-    return SquareMatrix(_matrix / scalar);
-}
-
-const Matrix& SquareMatrix::asMatrix() const noexcept
-{
-    return _matrix;
-}
-
-SquareMatrix operator*(double scalar, const SquareMatrix& matrix)
-{
-    return matrix * scalar;
-}
-
-SquareMatrix SquareMatrix::identity(std::size_t size)
-{
-    SquareMatrix result(size);
-    for (std::size_t i = 0; i < size; ++i)
-    {
-        result._matrix(i, i) = 1.0;
-    }
-
-    return result;
 }
 
 double SquareMatrix::det() const
@@ -256,6 +204,41 @@ double SquareMatrix::det() const
     }
 
     return determinant;
+}
+
+SquareMatrix SquareMatrix::operator+(const SquareMatrix& other) const
+{
+    return SquareMatrix(_matrix + other._matrix);
+}
+
+SquareMatrix SquareMatrix::operator-(const SquareMatrix& other) const
+{
+    return SquareMatrix(_matrix - other._matrix);
+}
+
+SquareMatrix SquareMatrix::operator*(const SquareMatrix& other) const
+{
+    return SquareMatrix(_matrix * other._matrix);
+}
+
+SquareMatrix SquareMatrix::operator*(double scalar) const
+{
+    return SquareMatrix(_matrix * scalar);
+}
+
+SquareMatrix SquareMatrix::operator/(double scalar) const
+{
+    return SquareMatrix(_matrix / scalar);
+}
+
+const Matrix& SquareMatrix::asMatrix() const noexcept
+{
+    return _matrix;
+}
+
+SquareMatrix operator*(double scalar, const SquareMatrix& matrix)
+{
+    return matrix * scalar;
 }
 
 }

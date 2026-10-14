@@ -1,4 +1,4 @@
-#include "constant_velocity_algorithm.hpp"
+﻿#include "constant_velocity_algorithm.hpp"
 
 #include "cartesian_math.hpp"
 #include "validation/detection_validation.hpp"
@@ -105,9 +105,9 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     const auto& state = *currentState;
     // Preserve a stationary measured position exactly while matching remains exact.
     const auto& velocity = state.velocity;
-    if (velocity[0].equals(0.0_mps, 0.0_mps)
-        && velocity[1].equals(0.0_mps, 0.0_mps)
-        && velocity[2].equals(0.0_mps, 0.0_mps))
+    if (velocity[0].equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
+        && velocity[1].equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
+        && velocity[2].equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0}))
     {
         return TargetPrediction{time, state.slantRange, state.azimuth, state.elevation};
     }

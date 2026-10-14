@@ -1,38 +1,30 @@
 ﻿#pragma once
 
+#include "math/quantity/quantity_tolerance.hpp"
+
 namespace math
 {
 
 extern const double PI;
 
-class Angle
+class Angle : public Quantity<Angle>
 {
 public:
+    static const QuantityTolerance<Angle> DEFAULT_TOLERANCE;
+    // 절대·상대 허용오차 없이 비교한다. 무한대·NaN 값은 같다고 판단하지 않는다.
+    static const QuantityTolerance<Angle> NONE_TOLERANCE;
+
     static Angle fromDegrees(double degrees) noexcept;
     static Angle fromRadians(double radians) noexcept;
 
     double deg() const noexcept;
     double rad() const noexcept;
-    bool isFinite() const noexcept;
 
     // 원본을 유지하며 [-180, 180)도 범위로 정규화한 새 각도를 반환한다.
     Angle wrap180() const noexcept;
 
     // 원본을 유지하며 [-90, 90)도 범위로 정규화한 새 각도를 반환한다.
     Angle wrap90() const noexcept;
-
-    // 도 단위 절대 차이가 허용오차 이하인지 비교한다.
-    // 음수·무한대·NaN 허용오차는 false를 반환한다.
-    bool equals(const Angle& other, const Angle& absoluteTolerance) const noexcept;
-
-    // 큰 쪽 값의 절댓값에 대한 차이의 비율로 비교한다. 예: 0.01은 1%이다.
-    // 음수·무한대·NaN 허용오차와 무한대·NaN 값은 false를 반환한다.
-    bool equals(const Angle& other, double relativeTolerance) const noexcept;
-
-    bool operator<(const Angle& other) const noexcept;
-    bool operator<=(const Angle& other) const noexcept;
-    bool operator>(const Angle& other) const noexcept;
-    bool operator>=(const Angle& other) const noexcept;
 
     Angle operator+() const noexcept;
     Angle operator-() const noexcept;
@@ -47,13 +39,11 @@ public:
     Angle& operator+=(const Angle& other) noexcept;
     Angle& operator-=(const Angle& other) noexcept;
     Angle& operator*=(double scalar) noexcept;
-    // 0이면 원본을 유지하고 std::domain_error를 던진다.
+    // 0으로 나누면 원본을 유지하고 std::domain_error를 던진다.
     Angle& operator/=(double scalar);
 
 private:
     explicit Angle(double degrees) noexcept;
-
-    double _degrees = 0.0;
 };
 
 Angle abs(Angle angle) noexcept;

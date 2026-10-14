@@ -1,11 +1,20 @@
 ﻿#include "math/quantity/distance.hpp"
 
-#include "../relative_comparison.hpp"
 #include <cmath>
 
 namespace math
 {
 using namespace literals;
+
+const QuantityTolerance<Distance> Distance::NONE_TOLERANCE{
+    Distance::fromMeters(0.0),
+    0.0
+};
+
+const QuantityTolerance<Distance> Distance::DEFAULT_TOLERANCE{
+    Distance::fromMeters(DEFAULT_ABSOLUTE_TOLERANCE),
+    DEFAULT_RELATIVE_TOLERANCE
+};
 
 Distance Distance::fromMeters(double meters) noexcept
 {
@@ -19,58 +28,21 @@ Distance Distance::fromKilometers(double kilometers) noexcept
 
 double Distance::m() const noexcept
 {
-    return _meters;
+    return _value;
 }
 
 double Distance::km() const noexcept
 {
-    return _meters / 1000.0;
-}
-
-bool Distance::isFinite() const noexcept
-{
-    return std::isfinite(_meters);
-}
-
-bool Distance::equals(const Distance& other, const Distance& absoluteTolerance) const noexcept
-{
-    return absoluteTolerance.isFinite()
-        && absoluteTolerance >= 0.0_m
-        && std::abs(_meters - other._meters) <= absoluteTolerance._meters;
-}
-
-bool Distance::equals(const Distance& other, double relativeTolerance) const noexcept
-{
-    return detail::relativeEquals(_meters, other._meters, relativeTolerance);
-}
-
-bool Distance::operator<(const Distance& other) const noexcept
-{
-    return _meters < other._meters;
-}
-
-bool Distance::operator<=(const Distance& other) const noexcept
-{
-    return _meters <= other._meters;
-}
-
-bool Distance::operator>(const Distance& other) const noexcept
-{
-    return _meters > other._meters;
-}
-
-bool Distance::operator>=(const Distance& other) const noexcept
-{
-    return _meters >= other._meters;
+    return _value / 1000.0;
 }
 
 Distance Distance::operator-() const noexcept
 {
-    return Distance(-_meters);
+    return Distance(-_value);
 }
 
 Distance::Distance(double meters) noexcept
-    : _meters(meters)
+    : Quantity<Distance>(meters)
 {
 }
 

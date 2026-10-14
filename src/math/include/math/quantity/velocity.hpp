@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "math/quantity/quantity_tolerance.hpp"
 #include "math/quantity/distance.hpp"
 
 #include <chrono>
@@ -8,34 +9,21 @@
 namespace math
 {
 
-// 속도를 초당 미터 단위로 저장하며 음수로 반대 방향을 표현한다.
-class Velocity
+class Velocity : public Quantity<Velocity>
 {
 public:
+    static const QuantityTolerance<Velocity> DEFAULT_TOLERANCE;
+    // 절대·상대 허용오차 없이 비교한다. 무한대·NaN 값은 같다고 판단하지 않는다.
+    static const QuantityTolerance<Velocity> NONE_TOLERANCE;
+
     static Velocity fromMetersPerSecond(double metersPerSecond) noexcept;
 
     double mps() const noexcept;
-    bool isFinite() const noexcept;
-
-    // 초당 미터 단위 절대 차이가 허용오차 이하인지 비교한다.
-    // 음수·무한대·NaN 허용오차는 false를 반환한다.
-    bool equals(const Velocity& other, const Velocity& absoluteTolerance) const noexcept;
-
-    // 큰 쪽 값의 절댓값에 대한 차이의 비율로 비교한다. 예: 0.01은 1%이다.
-    // 음수·무한대·NaN 허용오차와 무한대·NaN 값은 false를 반환한다.
-    bool equals(const Velocity& other, double relativeTolerance) const noexcept;
-
-    bool operator<(const Velocity& other) const noexcept;
-    bool operator<=(const Velocity& other) const noexcept;
-    bool operator>(const Velocity& other) const noexcept;
-    bool operator>=(const Velocity& other) const noexcept;
 
     Velocity operator-() const noexcept;
 
 private:
     explicit Velocity(double metersPerSecond) noexcept;
-
-    double _metersPerSecond = 0.0;
 };
 
 Velocity abs(Velocity velocity) noexcept;

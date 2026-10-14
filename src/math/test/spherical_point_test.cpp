@@ -18,7 +18,7 @@ TEST(SphericalPointTest, StoresValidCoordinates)
     EXPECT_DOUBLE_EQ(point.direction().azimuth().deg(), -180.0);
     EXPECT_DOUBLE_EQ(point.direction().elevation().deg(), 90.0);
 
-    const math::SphericalPoint origin(0_m, math::SphericalDirection(180_deg, -90_deg));
+    const math::SphericalPoint origin(0_m, math::SphericalDirection(-180_deg, -90_deg));
     EXPECT_DOUBLE_EQ(origin.radius().m(), 0.0);
 }
 
@@ -33,9 +33,10 @@ TEST(SphericalPointTest, RejectsInvalidRadius)
         math::SphericalDirection(0_deg, 0_deg))), std::invalid_argument);
 }
 
-TEST(SphericalDirectionTest, RejectsAzimuthOutsideInclusiveRange)
+TEST(SphericalDirectionTest, RejectsAzimuthOutsideHalfOpenRange)
 {
     EXPECT_THROW((math::SphericalDirection(-180.001_deg, 0_deg)), std::invalid_argument);
+    EXPECT_THROW((math::SphericalDirection(180_deg, 0_deg)), std::invalid_argument);
     EXPECT_THROW((math::SphericalDirection(180.001_deg, 0_deg)), std::invalid_argument);
     EXPECT_THROW((math::SphericalDirection(
         math::Angle::fromDegrees(std::numeric_limits<double>::infinity()),
