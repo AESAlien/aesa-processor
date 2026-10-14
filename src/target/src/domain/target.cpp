@@ -14,7 +14,7 @@ Target::Target(
     math::Distance slantRange,
     math::Angle azimuth,
     math::Angle elevation,
-    math::Velocity dopplerVelocity,
+    math::LinearVelocity dopplerVelocity,
     float power_db,
     std::chrono::milliseconds time,
     std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm)
@@ -68,7 +68,7 @@ math::Angle Target::elevation() const
     return _trackingState ? _trackingState->elevation : _initialElevation;
 }
 
-math::Velocity Target::dopplerVelocity() const
+math::LinearVelocity Target::dopplerVelocity() const
 {
     return _trackingState ? _trackingState->dopplerVelocity : _initialDopplerVelocity;
 }

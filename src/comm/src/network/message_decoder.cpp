@@ -93,7 +93,7 @@ target::DetectionEvent::Plot decodePlot(
         .azimuth(math::Angle::fromDegrees(plot.azi_deg))
         .elevation(math::Angle::fromDegrees(plot.elv_deg))
         .dopplerVelocity(
-            math::Velocity::fromMetersPerSecond(plot.doppler_mps))
+            math::LinearVelocity::fromMetersPerSecond(plot.doppler_mps))
         .power_db(plot.pwr_DB)
         .build();
 }

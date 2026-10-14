@@ -3,11 +3,11 @@
 #include "domain/target.hpp"
 
 #include <math/geometry/cartesian_point.hpp>
+#include <math/geometry/cartesian_velocity.hpp>
 #include <math/linear_algebra/vector.hpp>
 #include <math/quantity/distance.hpp>
-#include <math/quantity/velocity.hpp>
+#include <math/quantity/linear_velocity.hpp>
 
-#include <array>
 #include <cmath>
 
 namespace target
@@ -21,9 +21,9 @@ inline math::Vector toVector(const math::CartesianPoint& position)
     return {position.x().m(), position.y().m(), position.z().m()};
 }
 
-inline math::Vector toVector(const std::array<math::Velocity, 3>& velocity)
+inline math::Vector toVector(const math::CartesianVelocity& velocity)
 {
-    return {velocity[0].mps(), velocity[1].mps(), velocity[2].mps()};
+    return {velocity.x().mps(), velocity.y().mps(), velocity.z().mps()};
 }
 
 inline math::CartesianPoint toPosition(const math::Vector& position)
@@ -33,11 +33,11 @@ inline math::CartesianPoint toPosition(const math::Vector& position)
         math::Distance::fromMeters(position[2])};
 }
 
-inline std::array<math::Velocity, 3> toVelocity(const math::Vector& velocity)
+inline math::CartesianVelocity toVelocity(const math::Vector& velocity)
 {
-    return {math::Velocity::fromMetersPerSecond(velocity[0]),
-        math::Velocity::fromMetersPerSecond(velocity[1]),
-        math::Velocity::fromMetersPerSecond(velocity[2])};
+    return {math::LinearVelocity::fromMetersPerSecond(velocity[0]),
+        math::LinearVelocity::fromMetersPerSecond(velocity[1]),
+        math::LinearVelocity::fromMetersPerSecond(velocity[2])};
 }
 
 inline math::CartesianPoint position(const Target& target)

@@ -14,8 +14,8 @@ namespace
 
 using namespace math::literals;
 
-const math::Velocity MAX_INITIAL_SPEED = 1000.0_mps;
-const math::Velocity MAX_INITIAL_DOPPLER_DIFFERENCE = 30.0_mps;
+const math::LinearVelocity MAX_INITIAL_SPEED = 1000.0_mps;
+const math::LinearVelocity MAX_INITIAL_DOPPLER_DIFFERENCE = 30.0_mps;
 
 bool positionsEqual(
     const Target& observation,
@@ -60,7 +60,7 @@ bool DetectionMatcher::matchesConfirmation(
         - cartesian::toVector(cartesian::position(tentative));
     // Ordered nonnegative times keep this integer subtraction within its range.
     const double seconds = std::chrono::duration<double>(time - tentative.initialTime()).count();
-    const auto speed = math::Velocity::fromMetersPerSecond((displacement / seconds).norm());
+    const auto speed = math::LinearVelocity::fromMetersPerSecond((displacement / seconds).norm());
     return std::isfinite(speed.mps()) && speed <= MAX_INITIAL_SPEED
         && observation.dopplerVelocity().equals(
             tentative.dopplerVelocity(), math::QuantityTolerance{MAX_INITIAL_DOPPLER_DIFFERENCE, 0.0});

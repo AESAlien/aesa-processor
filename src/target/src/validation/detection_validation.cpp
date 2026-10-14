@@ -26,7 +26,7 @@ bool hasValidMeasurement(
     const math::Distance& range,
     const math::Angle& azimuth,
     const math::Angle& elevation,
-    const math::Velocity& dopplerVelocity)
+    const math::LinearVelocity& dopplerVelocity)
 {
     return hasValidGeometry(range, azimuth, elevation)
         && std::isfinite(dopplerVelocity.mps());
@@ -47,9 +47,9 @@ bool isValidTrackingState(const TargetTrackingState& state)
         && std::isfinite(state.position.x().m())
         && std::isfinite(state.position.y().m())
         && std::isfinite(state.position.z().m())
-        && std::isfinite(state.velocity[0].mps())
-        && std::isfinite(state.velocity[1].mps())
-        && std::isfinite(state.velocity[2].mps())
+        && std::isfinite(state.velocity.x().mps())
+        && std::isfinite(state.velocity.y().mps())
+        && std::isfinite(state.velocity.z().mps())
         && std::isfinite(cartesian::toVector(state.velocity).norm());
 }
 

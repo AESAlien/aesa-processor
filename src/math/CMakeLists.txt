@@ -2,6 +2,7 @@ find_package(GTest REQUIRED)
 
 add_library(math STATIC
     src/geometry/cartesian_point.cpp
+    src/geometry/cartesian_velocity.cpp
     src/quantity/angle.cpp
     src/quantity/distance.cpp
     src/geometry/spherical_direction.cpp
@@ -11,7 +12,7 @@ add_library(math STATIC
     src/trigonometry.cpp
     src/tolerance.cpp
     src/linear_algebra/vector.cpp
-    src/quantity/velocity.cpp
+    src/quantity/linear_velocity.cpp
 )
 
 target_include_directories(math PUBLIC
@@ -36,9 +37,9 @@ add_executable(trigonometry_test test/trigonometry_test.cpp)
 target_link_libraries(trigonometry_test PRIVATE math GTest::gtest_main)
 gtest_discover_tests(trigonometry_test)
 
-add_executable(velocity_test test/velocity_test.cpp)
-target_link_libraries(velocity_test PRIVATE math GTest::gtest_main)
-gtest_discover_tests(velocity_test)
+add_executable(linear_velocity_test test/linear_velocity_test.cpp)
+target_link_libraries(linear_velocity_test PRIVATE math GTest::gtest_main)
+gtest_discover_tests(linear_velocity_test)
 
 add_executable(matrix_test test/matrix_test.cpp)
 target_link_libraries(matrix_test PRIVATE math GTest::gtest_main)

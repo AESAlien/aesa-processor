@@ -1,11 +1,11 @@
 #pragma once
 
 #include <math/geometry/cartesian_point.hpp>
+#include <math/geometry/cartesian_velocity.hpp>
 #include <math/quantity/angle.hpp>
 #include <math/quantity/distance.hpp>
-#include <math/quantity/velocity.hpp>
+#include <math/quantity/linear_velocity.hpp>
 
-#include <array>
 #include <chrono>
 
 namespace target
@@ -24,12 +24,12 @@ struct TargetTrackingState
     math::Distance slantRange;
     math::Angle azimuth;
     math::Angle elevation;
-    math::Velocity dopplerVelocity;
+    math::LinearVelocity dopplerVelocity;
     float power_db;
     std::chrono::milliseconds timestamp;
     // Antenna-local Cartesian axes: x at azimuth 0, y at azimuth +90, z upward.
     math::CartesianPoint position;
-    std::array<math::Velocity, 3> velocity;
+    math::CartesianVelocity velocity;
 };
 
 } // namespace target

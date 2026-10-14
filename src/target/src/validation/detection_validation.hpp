@@ -2,7 +2,7 @@
 
 #include <math/quantity/angle.hpp>
 #include <math/quantity/distance.hpp>
-#include <math/quantity/velocity.hpp>
+#include <math/quantity/linear_velocity.hpp>
 
 namespace target
 {
@@ -22,7 +22,7 @@ bool hasValidMeasurement(
     const math::Distance& range,
     const math::Angle& azimuth,
     const math::Angle& elevation,
-    const math::Velocity& dopplerVelocity);
+    const math::LinearVelocity& dopplerVelocity);
 bool isValidTarget(const Target& target);
 bool isValidTrackingState(const TargetTrackingState& state);
 bool isValidPrediction(const TargetPrediction& prediction);

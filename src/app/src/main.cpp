@@ -94,7 +94,7 @@ target::DetectionEvent makeStationaryDetection(
         math::Distance::fromMeters(12000),
         math::Angle::fromDegrees(0),
         math::Angle::fromDegrees(0),
-        math::Velocity::fromMetersPerSecond(0),
+        math::LinearVelocity::fromMetersPerSecond(0),
         30.0f);
 
     // 확인/추적 결과는 해당 빔 명령의 ID를 그대로 반환한다.
