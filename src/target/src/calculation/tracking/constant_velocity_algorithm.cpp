@@ -22,16 +22,30 @@ double elapsedSeconds(
     return std::chrono::duration<double>(current - previous).count();
 }
 
-bool isFinite(const std::array<math::Distance, 3>& position)
+std::optional<TargetTrackingState> estimateTrackingState(
+    const std::array<math::Distance, 3>& previousPosition,
+    std::chrono::milliseconds previousTime,
+    const Target& observation)
 {
-    return std::isfinite(position[0].m()) && std::isfinite(position[1].m())
-        && std::isfinite(position[2].m());
-}
+    const auto time = observation.lastObservationTime();
+    const auto position = cartesian::position(observation);
+    const auto previousPositionVector = cartesian::toVector(previousPosition);
+    const auto positionVector = cartesian::toVector(position);
+    if (!previousPositionVector.isFinite() || !positionVector.isFinite())
+    {
+        return std::nullopt;
+    }
 
-bool isFinite(const std::array<math::Velocity, 3>& velocity)
-{
-    return std::isfinite(velocity[0].mps()) && std::isfinite(velocity[1].mps())
-        && std::isfinite(velocity[2].mps());
+    const auto velocityVector = (positionVector - previousPositionVector)
+        / elapsedSeconds(previousTime, time);
+    if (!velocityVector.isFinite() || !std::isfinite(velocityVector.norm()))
+    {
+        return std::nullopt;
+    }
+
+    return TargetTrackingState{observation.slantRange(), observation.azimuth(), observation.elevation(),
+        observation.dopplerVelocity(), observation.power_db(), time, position,
+        cartesian::toVelocity(velocityVector)};
 }
 
 } // namespace
@@ -48,20 +62,7 @@ std::optional<TargetTrackingState> ConstantVelocityAlgorithm::initialize(
         return std::nullopt;
     }
 
-    const auto firstPosition = cartesian::position(first);
-    const auto secondPosition = cartesian::position(second);
-    const auto velocityVector = (cartesian::toVector(secondPosition)
-        - cartesian::toVector(firstPosition)) / elapsedSeconds(firstTime, secondTime);
-    const auto velocity = cartesian::toVelocity(velocityVector);
-
-    if (!isFinite(firstPosition) || !isFinite(secondPosition) || !isFinite(velocity)
-        || !std::isfinite(velocityVector.norm()))
-    {
-        return std::nullopt;
-    }
-
-    return TargetTrackingState{second.slantRange(), second.azimuth(), second.elevation(),
-        second.dopplerVelocity(), second.power_db(), secondTime, secondPosition, velocity};
+    return estimateTrackingState(cartesian::position(first), firstTime, second);
 }
 
 std::optional<TargetTrackingState> ConstantVelocityAlgorithm::update(
@@ -76,19 +77,7 @@ std::optional<TargetTrackingState> ConstantVelocityAlgorithm::update(
         return std::nullopt;
     }
 
-    const auto& state = *currentState;
-    const auto position = cartesian::position(observation);
-    const auto velocityVector = (cartesian::toVector(position)
-        - cartesian::toVector(state.position)) / elapsedSeconds(state.timestamp, time);
-    const auto velocity = cartesian::toVelocity(velocityVector);
-
-    if (!isFinite(position) || !isFinite(velocity) || !std::isfinite(velocityVector.norm()))
-    {
-        return std::nullopt;
-    }
-
-    return TargetTrackingState{observation.slantRange(), observation.azimuth(), observation.elevation(),
-        observation.dopplerVelocity(), observation.power_db(), time, position, velocity};
+    return estimateTrackingState(currentState->position, currentState->timestamp, observation);
 }
 
 std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
@@ -105,22 +94,23 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     const auto& state = *currentState;
     // Preserve a stationary measured position exactly while matching remains exact.
     const auto& velocity = state.velocity;
-    if (velocity[0].equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
-        && velocity[1].equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
-        && velocity[2].equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0}))
+    if (velocity[0].equals(0.0_mps, math::Velocity::NONE_TOLERANCE)
+        && velocity[1].equals(0.0_mps, math::Velocity::NONE_TOLERANCE)
+        && velocity[2].equals(0.0_mps, math::Velocity::NONE_TOLERANCE))
     {
         return TargetPrediction{time, state.slantRange, state.azimuth, state.elevation};
     }
 
     const auto positionVector = cartesian::toVector(state.position)
         + cartesian::toVector(velocity) * elapsedSeconds(state.timestamp, time);
-    const auto position = cartesian::toPosition(positionVector);
     const auto range = math::Distance::fromMeters(positionVector.norm());
-    if (!isFinite(position) || !std::isfinite(range.m()) || range <= 0.0_m)
+    if (!positionVector.isFinite() || !range.isFinite()
+        || range.lessThanOrEqual(0.0_m, math::Distance::NONE_TOLERANCE))
     {
         return std::nullopt;
     }
 
+    const auto position = cartesian::toPosition(positionVector);
     const auto horizontalRange = math::Distance::fromMeters(
         math::Vector{position[0].m(), position[1].m()}.norm());
     return TargetPrediction{

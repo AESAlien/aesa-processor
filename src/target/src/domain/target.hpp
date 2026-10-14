@@ -54,6 +54,9 @@ private:
     friend class TargetRepository;
 
     void registerAs(std::uint32_t id);
+    bool applyTrackingState(
+        const std::optional<TargetTrackingState>& state,
+        std::chrono::milliseconds time);
     bool markResultProcessed(std::chrono::milliseconds time);
 
     std::uint32_t _id = 0;

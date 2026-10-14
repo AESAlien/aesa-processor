@@ -73,13 +73,15 @@ std::vector<Target> toTargets(
     return targets;
 }
 
-std::optional<beam::BeamRequest> trackingRequest(
+std::optional<beam::BeamRequest> trackingRequestOrRemove(
+    TargetRepository& repository,
     const Target& target,
     std::chrono::milliseconds transmitTime)
 {
     const auto prediction = target.predict(transmitTime);
     if (!prediction)
     {
+        repository.remove(target.id());
         return std::nullopt;
     }
 
@@ -111,10 +113,10 @@ TrackEvent trackEvent(const Target& target)
     // Report position and motion in the same fixed radar frame as the detections.
     // Latitude/longitude are unavailable; a stationary target has no motion angle.
     const double unavailable = std::numeric_limits<double>::quiet_NaN();
-    const auto heading = horizontalSpeed > 0.0_mps
+    const auto heading = horizontalSpeed.greaterThan(0.0_mps, math::Velocity::NONE_TOLERANCE)
         ? math::Angle::fromRadians(std::atan2(velocity[1].mps(), velocity[0].mps()))
         : math::Angle::fromDegrees(unavailable);
-    const auto flightPathAngle = speed > 0.0_mps
+    const auto flightPathAngle = speed.greaterThan(0.0_mps, math::Velocity::NONE_TOLERANCE)
         ? math::Angle::fromRadians(std::atan2(velocity[2].mps(), horizontalSpeed.mps()))
         : math::Angle::fromDegrees(unavailable);
     return TrackEvent(
@@ -207,12 +209,7 @@ std::optional<beam::BeamRequest> TargetController::handleDetection(DetectionEven
             _targetRepository->remove(requestId);
             return std::nullopt;
         }
-        const auto request = trackingRequest(*target, transmitTime);
-        if (!request)
-        {
-            _targetRepository->remove(requestId);
-        }
-        return request;
+        return trackingRequestOrRemove(*_targetRepository, *target, transmitTime);
     }
 
     if (!selected
@@ -235,12 +232,7 @@ std::optional<beam::BeamRequest> TargetController::handleDetection(DetectionEven
         }
     }
     // Predict again at the next transmit time, even when no measurement matched.
-    const auto request = trackingRequest(*target, transmitTime);
-    if (!request)
-    {
-        _targetRepository->remove(requestId);
-    }
-    return request;
+    return trackingRequestOrRemove(*_targetRepository, *target, transmitTime);
 }
 
 std::vector<TrackEvent> TargetController::nextTrackEvents() const

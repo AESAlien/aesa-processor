@@ -17,9 +17,10 @@ bool hasValidGeometry(
     const math::Angle& elevation)
 {
     using namespace math::literals;
-    return std::isfinite(range.m()) && range > 0.0_m
-        && std::isfinite(azimuth.deg()) && std::isfinite(elevation.deg())
-        && elevation >= -90.0_deg && elevation <= 90.0_deg;
+    return range.isFinite() && range.greaterThan(0.0_m, math::Distance::NONE_TOLERANCE)
+        && azimuth.isFinite() && elevation.isFinite()
+        && elevation.greaterThanOrEqual(-90.0_deg, math::Angle::NONE_TOLERANCE)
+        && elevation.lessThanOrEqual(90.0_deg, math::Angle::NONE_TOLERANCE);
 }
 
 bool hasValidMeasurement(
@@ -29,7 +30,7 @@ bool hasValidMeasurement(
     const math::Velocity& dopplerVelocity)
 {
     return hasValidGeometry(range, azimuth, elevation)
-        && std::isfinite(dopplerVelocity.mps());
+        && dopplerVelocity.isFinite();
 }
 
 bool isValidTarget(const Target& target)
@@ -41,16 +42,16 @@ bool isValidTarget(const Target& target)
 
 bool isValidTrackingState(const TargetTrackingState& state)
 {
-    return state.timestamp.count() >= 0
-        && hasValidMeasurement(state.slantRange, state.azimuth, state.elevation,
-            state.dopplerVelocity)
-        && std::isfinite(state.position[0].m())
-        && std::isfinite(state.position[1].m())
-        && std::isfinite(state.position[2].m())
-        && std::isfinite(state.velocity[0].mps())
-        && std::isfinite(state.velocity[1].mps())
-        && std::isfinite(state.velocity[2].mps())
-        && std::isfinite(cartesian::toVector(state.velocity).norm());
+    if (state.timestamp.count() < 0
+        || !hasValidMeasurement(state.slantRange, state.azimuth, state.elevation,
+            state.dopplerVelocity))
+    {
+        return false;
+    }
+
+    const auto position = cartesian::toVector(state.position);
+    const auto velocity = cartesian::toVector(state.velocity);
+    return position.isFinite() && velocity.isFinite() && std::isfinite(velocity.norm());
 }
 
 bool isValidPrediction(const TargetPrediction& prediction)

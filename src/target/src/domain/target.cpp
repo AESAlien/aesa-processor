@@ -123,17 +123,7 @@ bool Target::confirm(const Target& observation)
         return false;
     }
 
-    const auto initialized = _trackingAlgorithm->initialize(*this, observation);
-    if (!initialized || initialized->timestamp != time
-        || !validation::isValidTrackingState(*initialized))
-    {
-        return false;
-    }
-
-    _trackingState = *initialized;
-    _lastResultTime = time;
-    _consecutiveMissCount = 0;
-    return true;
+    return applyTrackingState(_trackingAlgorithm->initialize(*this, observation), time);
 }
 
 bool Target::update(const Target& observation)
@@ -147,14 +137,19 @@ bool Target::update(const Target& observation)
         return false;
     }
 
-    const auto updated = _trackingAlgorithm->update(*this, observation);
-    if (!updated || updated->timestamp != time
-        || !validation::isValidTrackingState(*updated))
+    return applyTrackingState(_trackingAlgorithm->update(*this, observation), time);
+}
+
+bool Target::applyTrackingState(
+    const std::optional<TargetTrackingState>& state,
+    std::chrono::milliseconds time)
+{
+    if (!state || state->timestamp != time || !validation::isValidTrackingState(*state))
     {
         return false;
     }
 
-    _trackingState = *updated;
+    _trackingState = *state;
     _lastResultTime = time;
     _consecutiveMissCount = 0;
     return true;

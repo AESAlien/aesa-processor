@@ -29,7 +29,8 @@ std::optional<std::size_t> TentativeSelector::selectNewCandidate(
         bool associated = false;
         for (const Target& target : _targetRepository.targets())
         {
-            if (_matcher.matchesPosition(observation, target))
+            const auto score = _matcher.matchesPosition(observation, target);
+            if (score)
             {
                 associated = true;
                 break;
