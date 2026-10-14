@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstring>
 #include <limits>
+#include <optional>
 #include <type_traits>
 #include <utility>
 
@@ -49,12 +50,11 @@ protocol::ST_MsgHeader makeHeader(
 }
 
 // Converts a DTO value to the protocol float representation.
-bool convertFloat(double value, float& converted)
+std::optional<float> convertFloat(double value)
 {
     if (std::isnan(value))
     {
-        converted = static_cast<float>(value);
-        return true;
+        return static_cast<float>(value);
     }
 
     constexpr double MAXIMUM_FLOAT =
@@ -64,17 +64,15 @@ bool convertFloat(double value, float& converted)
         value < -MAXIMUM_FLOAT ||
         value > MAXIMUM_FLOAT)
     {
-        return false;
+        return std::nullopt;
     }
 
-    converted = static_cast<float>(value);
-    return true;
+    return static_cast<float>(value);
 }
 
 // Converts a DTO timestamp to the protocol uint32 representation.
-bool convertTimestamp(
-    std::chrono::milliseconds timestamp,
-    uint32_t& converted
+std::optional<uint32_t> convertTimestamp(
+    std::chrono::milliseconds timestamp
 )
 {
     const std::chrono::milliseconds::rep count = timestamp.count();
@@ -82,83 +80,111 @@ bool convertTimestamp(
         static_cast<uint64_t>(count) >
             std::numeric_limits<uint32_t>::max())
     {
-        return false;
+        return std::nullopt;
     }
 
-    converted = static_cast<uint32_t>(count);
-    return true;
+    return static_cast<uint32_t>(count);
 }
 
-bool encodeBeam(
-    const beam::BeamCommand& command,
-    protocol::ST_BeamTx& encodedBeam
+std::optional<protocol::ST_BeamTx> encodeBeam(
+    const beam::BeamCommand& command
 )
 {
+    const std::optional<uint32_t> timestamp =
+        convertTimestamp(command.transmitTime);
+    const std::optional<float> azimuth =
+        convertFloat(command.azimuth_ant.deg());
+    const std::optional<float> elevation =
+        convertFloat(command.elevation_ant.deg());
+    const std::optional<float> azimuthBeamWidth =
+        convertFloat(command.azimuthBeamWidth.deg());
+    const std::optional<float> elevationBeamWidth =
+        convertFloat(command.elevationBeamWidth.deg());
+
+    if (!timestamp ||
+        !azimuth ||
+        !elevation ||
+        !azimuthBeamWidth ||
+        !elevationBeamWidth)
+    {
+        return std::nullopt;
+    }
+
+    protocol::ST_BeamTx encodedBeam{};
     encodedBeam.beamType = static_cast<uint8_t>(command.beamType);
     encodedBeam.beamID = command.beamId;
     encodedBeam.commandCount = command.commandCount;
+    encodedBeam.timestamp = *timestamp;
+    encodedBeam.beam_az_deg = *azimuth;
+    encodedBeam.beam_el_deg = *elevation;
+    encodedBeam.az_width_deg = *azimuthBeamWidth;
+    encodedBeam.el_width_deg = *elevationBeamWidth;
 
-    return convertTimestamp(
-            command.transmitTime,
-            encodedBeam.timestamp) &&
-        convertFloat(
-            command.azimuth_ant.deg(),
-            encodedBeam.beam_az_deg) &&
-        convertFloat(
-            command.elevation_ant.deg(),
-            encodedBeam.beam_el_deg) &&
-        convertFloat(
-            command.azimuthBeamWidth.deg(),
-            encodedBeam.az_width_deg) &&
-        convertFloat(
-            command.elevationBeamWidth.deg(),
-            encodedBeam.el_width_deg);
+    return encodedBeam;
 }
 
-bool encodeTrack(
-    const target::TrackEvent& event,
-    protocol::ST_Trk& encodedTrack
+std::optional<protocol::ST_Trk> encodeTrack(
+    const target::TrackEvent& event
 )
 {
+    const std::optional<float> slantRange =
+        convertFloat(event.slantRange.km());
+    const std::optional<float> groundRange =
+        convertFloat(event.groundRange.km());
+    const std::optional<float> azimuth =
+        convertFloat(event.azimuth.deg());
+    const std::optional<float> elevation =
+        convertFloat(event.elevation.deg());
+    const std::optional<float> dopplerVelocity =
+        convertFloat(event.dopplerVelocity.mps());
+    const std::optional<float> latitude =
+        convertFloat(event.latitude.deg());
+    const std::optional<float> longitude =
+        convertFloat(event.longitude.deg());
+    const std::optional<float> altitude =
+        convertFloat(event.altitude.km());
+    const std::optional<float> velocity =
+        convertFloat(event.velocity.mps());
+    const std::optional<float> heading =
+        convertFloat(event.heading.deg());
+    const std::optional<float> flightPathAngle =
+        convertFloat(event.flightPathAngle.deg());
+    const std::optional<uint32_t> timestamp =
+        convertTimestamp(event.timestamp);
+
+    if (!slantRange ||
+        !groundRange ||
+        !azimuth ||
+        !elevation ||
+        !dopplerVelocity ||
+        !latitude ||
+        !longitude ||
+        !altitude ||
+        !velocity ||
+        !heading ||
+        !flightPathAngle ||
+        !timestamp)
+    {
+        return std::nullopt;
+    }
+
+    protocol::ST_Trk encodedTrack{};
     encodedTrack.ID = event.id;
     encodedTrack.type = static_cast<uint8_t>(event.state);
+    encodedTrack.slantR_km = *slantRange;
+    encodedTrack.groundR_km = *groundRange;
+    encodedTrack.azi_deg = *azimuth;
+    encodedTrack.elv_deg = *elevation;
+    encodedTrack.doppler_mps = *dopplerVelocity;
+    encodedTrack.lat_deg = *latitude;
+    encodedTrack.lon_deg = *longitude;
+    encodedTrack.alt_km = *altitude;
+    encodedTrack.velocity_mps = *velocity;
+    encodedTrack.heading_deg = *heading;
+    encodedTrack.fpa_deg = *flightPathAngle;
+    encodedTrack.timeStamp = *timestamp;
 
-    return convertFloat(
-            event.slantRange.km(),
-            encodedTrack.slantR_km) &&
-        convertFloat(
-            event.groundRange.km(),
-            encodedTrack.groundR_km) &&
-        convertFloat(
-            event.azimuth.deg(),
-            encodedTrack.azi_deg) &&
-        convertFloat(
-            event.elevation.deg(),
-            encodedTrack.elv_deg) &&
-        convertFloat(
-            event.dopplerVelocity.mps(),
-            encodedTrack.doppler_mps) &&
-        convertFloat(
-            event.latitude.deg(),
-            encodedTrack.lat_deg) &&
-        convertFloat(
-            event.longitude.deg(),
-            encodedTrack.lon_deg) &&
-        convertFloat(
-            event.altitude.km(),
-            encodedTrack.alt_km) &&
-        convertFloat(
-            event.velocity.mps(),
-            encodedTrack.velocity_mps) &&
-        convertFloat(
-            event.heading.deg(),
-            encodedTrack.heading_deg) &&
-        convertFloat(
-            event.flightPathAngle.deg(),
-            encodedTrack.fpa_deg) &&
-        convertTimestamp(
-            event.timestamp,
-            encodedTrack.timeStamp);
+    return encodedTrack;
 }
 
 // Serializes a protocol message for TCP transmission.
@@ -180,15 +206,18 @@ EncodeResult encodeBeamCommand(
     const beam::BeamCommand& command
 )
 {
+    const std::optional<protocol::ST_BeamTx> encodedBeam =
+        encodeBeam(command);
+    if (!encodedBeam)
+    {
+        return failed(EncodingError::TYPE_CONVERSION_ERROR);
+    }
+
     protocol::ST_BeamTxMsg message{};
     message.msgHeader = makeHeader(
         protocol::MessageId::BeamTransmit,
         sizeof(message));
-
-    if (!encodeBeam(command, message.beam_cmd))
-    {
-        return failed(EncodingError::TYPE_CONVERSION_ERROR);
-    }
+    message.beam_cmd = *encodedBeam;
 
     return encoded(toBytes(message));
 }
@@ -202,13 +231,18 @@ EncodeResult encodeTrackEvents(
         return failed(EncodingError::TOO_MANY_TRACKS);
     }
 
-    std::vector<protocol::ST_Trk> encodedTracks(trackEvents.size());
-    for (std::size_t index = 0; index < trackEvents.size(); ++index)
+    std::vector<protocol::ST_Trk> encodedTracks;
+    encodedTracks.reserve(trackEvents.size());
+    for (const target::TrackEvent& trackEvent : trackEvents)
     {
-        if (!encodeTrack(trackEvents[index], encodedTracks[index]))
+        std::optional<protocol::ST_Trk> encodedTrack =
+            encodeTrack(trackEvent);
+        if (!encodedTrack)
         {
             return failed(EncodingError::TYPE_CONVERSION_ERROR);
         }
+
+        encodedTracks.push_back(std::move(*encodedTrack));
     }
 
     const std::size_t blockSize =
