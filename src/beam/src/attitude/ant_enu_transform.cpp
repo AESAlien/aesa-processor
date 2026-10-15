@@ -56,7 +56,7 @@ const math::SquareMatrix& AntEnuTransform::rotationMatrix() const
 math::SphericalDirection AntEnuTransform::enuToAnt(const math::SphericalDirection& direction_enu) const
 {
     const math::Vector vector_enu = direction_enu.toCartesianUnitVector();
-    const math::Vector vector_ant = _rotationMatrix.transpose() * vector_enu;
+    const math::Vector vector_ant = math::transpose(_rotationMatrix) * vector_enu;
     return math::SphericalDirection::fromCartesianUnitVector(vector_ant);
 }
 

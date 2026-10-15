@@ -75,8 +75,8 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchBeamTable)
         const auto command = controller.nextBeamCommand(std::chrono::milliseconds(10 * index));
 
         ASSERT_TRUE(command.has_value());
-        EXPECT_EQ(command->azimuth_ant, expectedTable.get(index).direction_ant.azimuth()) << "index=" << index;
-        EXPECT_EQ(command->elevation_ant, expectedTable.get(index).direction_ant.elevation())
+        EXPECT_EQ(command->azimuth_ant, expectedTable.get(index).direction_ant.azimuth) << "index=" << index;
+        EXPECT_EQ(command->elevation_ant, expectedTable.get(index).direction_ant.elevation)
             << "index=" << index;
     }
 }

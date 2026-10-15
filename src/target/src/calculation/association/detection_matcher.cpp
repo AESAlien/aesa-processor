@@ -1,11 +1,10 @@
-﻿#include "detection_matcher.hpp"
+#include "detection_matcher.hpp"
 
 #include "calculation/tracking/cartesian_math.hpp"
 #include "domain/target.hpp"
 #include "validation/detection_validation.hpp"
 
 #include <chrono>
-#include <cmath>
 
 namespace target
 {
@@ -14,12 +13,12 @@ namespace
 
 using namespace math::literals;
 
-const math::Velocity MAX_INITIAL_SPEED = 1000.0_mps;
-const math::Velocity MAX_INITIAL_DOPPLER_DIFFERENCE = 30.0_mps;
+const math::LinearVelocity MAX_INITIAL_SPEED = 1000.0_mps;
+const math::LinearVelocity MAX_INITIAL_DOPPLER_DIFFERENCE = 30.0_mps;
 
 bool positionsEqual(
     const Target& observation,
-    const math::Distance& range,
+    const math::Length& range,
     const math::Angle& azimuth,
     const math::Angle& elevation)
 {
@@ -60,8 +59,8 @@ bool DetectionMatcher::matchesConfirmation(
         - cartesian::toVector(cartesian::position(tentative));
     // Ordered nonnegative times keep this integer subtraction within its range.
     const double seconds = std::chrono::duration<double>(time - tentative.initialTime()).count();
-    const auto speed = math::Velocity::fromMetersPerSecond((displacement / seconds).norm());
-    return std::isfinite(speed.mps()) && speed <= MAX_INITIAL_SPEED
+    const auto speed = math::LinearVelocity::fromMetersPerSecond((displacement / seconds).norm());
+    return speed <= MAX_INITIAL_SPEED
         && observation.dopplerVelocity().equals(
             tentative.dopplerVelocity(), math::QuantityTolerance{MAX_INITIAL_DOPPLER_DIFFERENCE, 0.0});
 }

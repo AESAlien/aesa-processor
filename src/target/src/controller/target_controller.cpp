@@ -1,15 +1,14 @@
 #include <target/controller/target_controller.hpp>
 
 #include "calculation/association/detection_matcher.hpp"
-#include "calculation/tracking/cartesian_math.hpp"
 #include "calculation/tracking/constant_velocity_algorithm.hpp"
 #include "domain/target.hpp"
 #include "repository/target_repository.hpp"
 #include "selector/tentative_selector.hpp"
 #include "selector/track_selector.hpp"
 #include "validation/detection_validation.hpp"
+#include "math/trigonometry.hpp"
 
-#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -51,8 +50,8 @@ void validateDetection(const DetectionEvent& detection)
     // Validate the entire external message before converting or storing any target.
     for (const auto& plot : detection.plots)
     {
-        if (!validation::hasValidMeasurement(
-                plot.slantRange, plot.azimuth, plot.elevation, plot.dopplerVelocity))
+        if (!validation::hasValidGeometry(
+                plot.slantRange, plot.elevation))
         {
             throw std::invalid_argument("Invalid beam detection plot");
         }
@@ -103,20 +102,15 @@ TrackEvent trackEvent(const Target& target)
 
     const auto& position = state.position;
     const auto& velocity = state.velocity;
-    const auto horizontalRange = math::Distance::fromMeters(
-        math::Vector{position[0].m(), position[1].m()}.norm());
-    const auto horizontalSpeed = math::Velocity::fromMetersPerSecond(
-        math::Vector{velocity[0].mps(), velocity[1].mps()}.norm());
-    const auto speed = math::Velocity::fromMetersPerSecond(cartesian::toVector(velocity).norm());
-    // Report position and motion in the same fixed radar frame as the detections.
-    // Latitude/longitude are unavailable; a stationary target has no motion angle.
-    const double unavailable = std::numeric_limits<double>::quiet_NaN();
-    const auto heading = horizontalSpeed > 0.0_mps
-        ? math::Angle::fromRadians(std::atan2(velocity[1].mps(), velocity[0].mps()))
-        : math::Angle::fromDegrees(unavailable);
-    const auto flightPathAngle = speed > 0.0_mps
-        ? math::Angle::fromRadians(std::atan2(velocity[2].mps(), horizontalSpeed.mps()))
-        : math::Angle::fromDegrees(unavailable);
+    const auto horizontalRange = position.horizontalDistance();
+    const auto horizontalSpeed = velocity.horizontalSpeed();
+    const auto speed = velocity.speed();
+    const math::Angle heading = horizontalSpeed > 0.0_mps
+        ? math::atan2(velocity.y, velocity.x)
+        : 0_deg;
+    const math::Angle flightPathAngle = speed > 0.0_mps
+        ? math::atan2(velocity.z, horizontalSpeed)
+        : 0_deg;
     return TrackEvent(
         static_cast<std::uint16_t>(target.id()),
         TrackEvent::TrackState::TRACKING,
@@ -125,9 +119,9 @@ TrackEvent trackEvent(const Target& target)
         target.azimuth(),
         target.elevation(),
         target.dopplerVelocity(),
-        math::Angle::fromDegrees(unavailable),
-        math::Angle::fromDegrees(unavailable),
-        position[2],
+        0_deg,
+        0_deg,
+        position.z,
         speed,
         heading,
         flightPathAngle,

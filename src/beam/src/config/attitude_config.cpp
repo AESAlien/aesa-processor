@@ -23,12 +23,6 @@ void validate(
         throw std::invalid_argument("AttitudeConfig: mountOrthogonalTolerance must be finite and non-negative");
     }
 
-    // NaN은 크기 비교가 모두 false이므로 유한성을 먼저 확인한다.
-    if (!maxAbsPitch.isFinite())
-    {
-        throw std::invalid_argument("AttitudeConfig: maxAbsPitch must be finite");
-    }
-
     if (maxAbsPitch <= 0_deg || maxAbsPitch > 90_deg)
     {
         throw std::invalid_argument("AttitudeConfig: maxAbsPitch must be in (0, 90] degrees");

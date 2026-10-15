@@ -14,7 +14,7 @@ SearchBeamTable::SearchBeamTable(const AntEnuTransform& transform, const SearchG
         for (std::size_t a = 0; a < config.azimuthCount(); ++a)
         {
             const math::SphericalDirection direction_ant = transform.enuToAnt(math::SphericalDirection(
-                (config.azimuthStart() + config.azimuthStep() * static_cast<double>(a)).wrap180(),
+                math::wrap180(config.azimuthStart() + config.azimuthStep() * static_cast<double>(a)),
                 config.elevationStart() + config.elevationStep() * static_cast<double>(e)));
 
             _beams.push_back(SearchBeam{

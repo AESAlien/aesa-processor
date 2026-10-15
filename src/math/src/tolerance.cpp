@@ -25,24 +25,14 @@ const Tolerance DEFAULT_TOLERANCE{
 const Tolerance NONE_TOLERANCE{0.0, 0.0};
 
 Tolerance::Tolerance(double absoluteTolerance, double relativeTolerance)
-    : _absoluteTolerance(absoluteTolerance),
-      _relativeTolerance(relativeTolerance)
+    : absolute(absoluteTolerance),
+      relative(relativeTolerance)
 {
-    if (!isFiniteAndNonnegative(_absoluteTolerance) ||
-        !isFiniteAndNonnegative(_relativeTolerance)
+    if (!isFiniteAndNonnegative(this->absolute) ||
+        !isFiniteAndNonnegative(this->relative)
     ) {
         throw std::invalid_argument("Tolerance values must be finite and non-negative");
     }
-}
-
-double Tolerance::absolute() const noexcept
-{
-    return _absoluteTolerance;
-}
-
-double Tolerance::relative() const noexcept
-{
-    return _relativeTolerance;
 }
 
 bool Tolerance::isWithin(double left, double right) const noexcept
@@ -57,7 +47,7 @@ bool Tolerance::isWithin(double left, double right) const noexcept
 
 bool Tolerance::isWithinAbsoluteTolerance(double left, double right) const noexcept
 {
-    return std::abs(left - right) <= _absoluteTolerance;
+    return std::abs(left - right) <= absolute;
 }
 
 bool Tolerance::isWithinRelativeTolerance(double left, double right) const noexcept
@@ -72,7 +62,7 @@ bool Tolerance::isWithinRelativeTolerance(double left, double right) const noexc
     const double relativeDifference = std::isfinite(difference)
         ? difference / scale
         : std::abs(left / scale - right / scale);
-    return relativeDifference <= _relativeTolerance;
+    return relativeDifference <= relative;
 }
 
 }

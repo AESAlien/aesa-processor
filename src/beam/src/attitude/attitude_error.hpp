@@ -9,7 +9,6 @@ namespace beam
 
 enum class AttitudeErrorCode : uint8_t
 {
-    NOT_FINITE,
     OUT_OF_RANGE,
     GIMBAL_LOCK
 };

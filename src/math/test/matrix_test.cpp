@@ -227,7 +227,7 @@ TEST(MatrixTest, RejectsDivisionByZero)
 TEST(MatrixTest, TransposesRectangularMatrices)
 {
     math::Matrix matrix{{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}};
-    math::Matrix transposed = matrix.transpose();
+    math::Matrix transposed = math::transpose(matrix);
 
     ASSERT_EQ(transposed.rows(), 3);
     ASSERT_EQ(transposed.columns(), 2);

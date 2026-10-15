@@ -24,20 +24,20 @@ class Target
 {
 public:
     Target(
-        math::Distance slantRange,
+        math::Length slantRange,
         math::Angle azimuth,
         math::Angle elevation,
-        math::Velocity dopplerVelocity,
+        math::LinearVelocity dopplerVelocity,
         float power_db,
         std::chrono::milliseconds time,
         std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm);
 
     std::uint32_t id() const;
     TargetState state() const;
-    math::Distance slantRange() const;
+    math::Length slantRange() const;
     math::Angle azimuth() const;
     math::Angle elevation() const;
-    math::Velocity dopplerVelocity() const;
+    math::LinearVelocity dopplerVelocity() const;
     float power_db() const;
     std::chrono::milliseconds initialTime() const;
     std::chrono::milliseconds lastObservationTime() const;
@@ -59,10 +59,10 @@ private:
     std::uint32_t _id = 0;
     // A received Target has no repository identity until a new candidate is selected.
     // Preserve the first observation independently from subsequent tracking updates.
-    math::Distance _initialSlantRange;
+    math::Length _initialSlantRange;
     math::Angle _initialAzimuth;
     math::Angle _initialElevation;
-    math::Velocity _initialDopplerVelocity;
+    math::LinearVelocity _initialDopplerVelocity;
     float _initialPower_db;
     std::chrono::milliseconds _initialTime;
     std::chrono::milliseconds _lastResultTime;

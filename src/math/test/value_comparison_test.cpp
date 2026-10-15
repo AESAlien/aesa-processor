@@ -1,7 +1,8 @@
-﻿#include "math/linear_algebra/square_matrix.hpp"
+#include "math/linear_algebra/square_matrix.hpp"
 #include "math/linear_algebra/vector.hpp"
 #include "math/quantity/angle.hpp"
-#include "math/quantity/velocity.hpp"
+#include "math/quantity/length.hpp"
+#include "math/quantity/linear_velocity.hpp"
 
 #include <gtest/gtest.h>
 
@@ -153,8 +154,8 @@ TEST(ToleranceTest, ComparesFiniteNumbersUsingItsPolicy)
 
 TEST(ToleranceTest, NoneToleranceRequiresExactFiniteEquality)
 {
-    EXPECT_DOUBLE_EQ(math::NONE_TOLERANCE.absolute(), 0.0);
-    EXPECT_DOUBLE_EQ(math::NONE_TOLERANCE.relative(), 0.0);
+    EXPECT_DOUBLE_EQ(math::NONE_TOLERANCE.absolute, 0.0);
+    EXPECT_DOUBLE_EQ(math::NONE_TOLERANCE.relative, 0.0);
     EXPECT_TRUE(math::NONE_TOLERANCE.isWithin(1.0, 1.0));
     EXPECT_TRUE(math::NONE_TOLERANCE.isWithin(0.0, -0.0));
     EXPECT_FALSE(math::NONE_TOLERANCE.isWithin(0.1 + 0.2, 0.3));
@@ -187,9 +188,11 @@ TEST(ToleranceTest, ValidatesScalarPolicyAtConstruction)
 TEST(ToleranceTest, PreservesUnitsAndSupportsConstantPolicies)
 {
     const math::Tolerance exact{0.0, 0.0};
-    EXPECT_DOUBLE_EQ(exact.absolute(), 0.0);
-    EXPECT_DOUBLE_EQ(exact.relative(), 0.0);
-    static_assert(!std::is_constructible_v<math::QuantityTolerance<math::Angle>, math::Distance, double>);
+    EXPECT_DOUBLE_EQ(exact.absolute, 0.0);
+    EXPECT_DOUBLE_EQ(exact.relative, 0.0);
+    static_assert(std::is_const_v<decltype(exact.absolute)>);
+    static_assert(std::is_const_v<decltype(exact.relative)>);
+    static_assert(!std::is_constructible_v<math::QuantityTolerance<math::Angle>, math::Length, double>);
     static_assert(!std::is_assignable_v<math::Tolerance&, math::Tolerance>);
     EXPECT_FALSE((math::Matrix{{0.1 + 0.2}}).equals(math::Matrix{{0.3}}, exact));
     EXPECT_TRUE((math::Matrix{{0.1 + 0.2}}).equals(math::Matrix{{0.3}}, math::DEFAULT_TOLERANCE));
@@ -217,34 +220,33 @@ T makeQuantity(double value)
     {
         return math::Angle::fromDegrees(value);
     }
-    else if constexpr (std::is_same_v<T, math::Distance>)
+    else if constexpr (std::is_same_v<T, math::Length>)
     {
-        return math::Distance::fromMeters(value);
+        return math::Length::fromMeters(value);
     }
     else
     {
-        return math::Velocity::fromMetersPerSecond(value);
+        return math::LinearVelocity::fromMetersPerSecond(value);
     }
 }
 
 TEST(QuantityTest, SharesStorageAndChecksWithoutLosingUnitSafety)
 {
     static_assert(std::is_base_of_v<math::Quantity<math::Angle>, math::Angle>);
-    static_assert(std::is_base_of_v<math::Quantity<math::Distance>, math::Distance>);
-    static_assert(std::is_base_of_v<math::Quantity<math::Velocity>, math::Velocity>);
+    static_assert(std::is_base_of_v<math::Quantity<math::Length>, math::Length>);
+    static_assert(std::is_base_of_v<math::Quantity<math::LinearVelocity>, math::LinearVelocity>);
     static_assert(sizeof(math::Angle) == sizeof(double));
-    static_assert(sizeof(math::Distance) == sizeof(double));
-    static_assert(sizeof(math::Velocity) == sizeof(double));
-    static_assert(!std::is_assignable_v<math::Quantity<math::Distance>&, math::Distance>);
-    static_assert(!std::is_constructible_v<math::Angle, math::Distance>);
+    static_assert(sizeof(math::Length) == sizeof(double));
+    static_assert(sizeof(math::LinearVelocity) == sizeof(double));
+    static_assert(!std::is_assignable_v<math::Quantity<math::Length>&, math::Length>);
+    static_assert(!std::is_constructible_v<math::Angle, math::Length>);
 
     const auto angle = math::Angle::fromDegrees(-90.0);
     const math::Quantity<math::Angle>& quantity = angle;
     EXPECT_DOUBLE_EQ(quantity.value(), angle.deg());
-    EXPECT_TRUE(quantity.isFinite());
     EXPECT_FALSE(quantity.isNonnegative());
-    EXPECT_DOUBLE_EQ(math::Distance::fromKilometers(2.0).value(), 2000.0);
-    EXPECT_DOUBLE_EQ(math::Velocity::fromMetersPerSecond(3.0).value(), 3.0);
+    EXPECT_DOUBLE_EQ(math::Length::fromKilometers(2.0).value(), 2000.0);
+    EXPECT_DOUBLE_EQ(math::LinearVelocity::fromMetersPerSecond(3.0).value(), 3.0);
 }
 
 // 새 물리량도 단위별 분기 없이 공통 정책을 사용할 수 있다.
@@ -253,7 +255,7 @@ class TestQuantity : public math::Quantity<TestQuantity>
 public:
     static const math::QuantityTolerance<TestQuantity> DEFAULT_TOLERANCE;
 
-    explicit TestQuantity(double value) noexcept
+    explicit TestQuantity(double value)
         : Quantity<TestQuantity>(value)
     {
     }
@@ -262,6 +264,25 @@ public:
 const math::QuantityTolerance<TestQuantity> TestQuantity::DEFAULT_TOLERANCE{
     TestQuantity(0.5), 0.0
 };
+
+TEST(QuantityTest, NewQuantityInheritsFiniteStorageValidation)
+{
+    const double INVALID_VALUES[] =
+    {
+        std::numeric_limits<double>::infinity(),
+        -std::numeric_limits<double>::infinity(),
+        std::numeric_limits<double>::quiet_NaN()
+    };
+    for (double value : INVALID_VALUES)
+    {
+        EXPECT_THROW(TestQuantity{value}, std::invalid_argument);
+    }
+    const double MAX_VALUE = std::numeric_limits<double>::max();
+    EXPECT_DOUBLE_EQ(TestQuantity(MAX_VALUE).value(), MAX_VALUE);
+    EXPECT_DOUBLE_EQ(TestQuantity(-MAX_VALUE).value(), -MAX_VALUE);
+    EXPECT_TRUE(TestQuantity(-0.0).isNonnegative());
+    EXPECT_FALSE(TestQuantity(-std::numeric_limits<double>::denorm_min()).isNonnegative());
+}
 
 TEST(QuantityTest, NewQuantityInheritsComparisonsAndUsesItsOwnDefaultTolerance)
 {
@@ -318,15 +339,13 @@ TEST(QuantityToleranceTest, SupportsNewQuantitiesAndRestrictsComparisonTypes)
 {
     using AnglePolicy = math::QuantityTolerance<math::Angle>;
     static_assert(!std::is_invocable_v<decltype(&AnglePolicy::isWithin),
-        const AnglePolicy&, math::Distance, math::Distance>);
+        const AnglePolicy&, math::Length, math::Length>);
     static_assert(!std::is_assignable_v<AnglePolicy&, AnglePolicy>);
     const math::QuantityTolerance policy{TestQuantity(0.25), 0.125};
     EXPECT_TRUE(policy.isWithin(TestQuantity(0.0), TestQuantity(0.25)));
     EXPECT_FALSE(policy.isWithin(TestQuantity(0.0), TestQuantity(0.5)));
     EXPECT_TRUE(policy.isWithin(TestQuantity(7.0), TestQuantity(8.0)));
     EXPECT_FALSE(policy.isWithin(TestQuantity(6.0), TestQuantity(8.0)));
-    EXPECT_FALSE(policy.isWithin(TestQuantity(0.0),
-        TestQuantity(std::numeric_limits<double>::infinity())));
     EXPECT_THROW((math::QuantityTolerance{TestQuantity(-1e-20), 0.0}), std::invalid_argument);
 }
 
@@ -335,7 +354,7 @@ class QuantityComparisonTest : public testing::Test
 {
 };
 
-using QuantityTypes = testing::Types<math::Angle, math::Distance, math::Velocity>;
+using QuantityTypes = testing::Types<math::Angle, math::Length, math::LinearVelocity>;
 TYPED_TEST_SUITE(QuantityComparisonTest, QuantityTypes);
 
 TYPED_TEST(QuantityComparisonTest, NoneToleranceDisablesAbsoluteAndRelativeTolerance)
@@ -359,24 +378,16 @@ TYPED_TEST(QuantityComparisonTest, NoneToleranceDisablesAbsoluteAndRelativeToler
         EXPECT_FALSE(LOW.greaterThanOrEqual(HIGH, NONE));
         EXPECT_FALSE(HIGH.lessThanOrEqual(LOW, NONE));
     }
-    for (double nonfinite : {std::numeric_limits<double>::infinity(),
-                             -std::numeric_limits<double>::infinity(),
-                             std::numeric_limits<double>::quiet_NaN()})
-    {
-        const auto VALUE = makeQuantity<TypeParam>(nonfinite);
-        EXPECT_FALSE(VALUE.equals(VALUE, NONE));
-        EXPECT_TRUE(VALUE.notEquals(VALUE, NONE));
-    }
 }
 
 TYPED_TEST(QuantityComparisonTest, RestrictsComparisonsToMatchingQuantityTypes)
 {
     checkComparisonTypes<TypeParam, math::Angle>();
-    checkComparisonTypes<TypeParam, math::Distance>();
-    checkComparisonTypes<TypeParam, math::Velocity>();
+    checkComparisonTypes<TypeParam, math::Length>();
+    checkComparisonTypes<TypeParam, math::LinearVelocity>();
 }
 
-TYPED_TEST(QuantityComparisonTest, NamedInequalitySupportsExplicitTolerancesAndNonfiniteValues)
+TYPED_TEST(QuantityComparisonTest, NamedInequalitySupportsExplicitTolerances)
 {
     const auto ZERO = makeQuantity<TypeParam>(0.0);
     const auto BOUNDARY = makeQuantity<TypeParam>(0.25);
@@ -401,17 +412,6 @@ TYPED_TEST(QuantityComparisonTest, NamedInequalitySupportsExplicitTolerancesAndN
     EXPECT_TRUE(ZERO.notEquals(HIGH));
     EXPECT_EQ(ZERO.notEquals(NEARBY), ZERO != NEARBY);
     EXPECT_EQ(ZERO.notEquals(HIGH), ZERO != HIGH);
-    for (double nonfinite : {std::numeric_limits<double>::infinity(),
-                             -std::numeric_limits<double>::infinity(),
-                             std::numeric_limits<double>::quiet_NaN()})
-    {
-        const auto VALUE = makeQuantity<TypeParam>(nonfinite);
-        EXPECT_TRUE(VALUE.notEquals(VALUE));
-        EXPECT_TRUE(VALUE.notEquals(VALUE, EXACT));
-        EXPECT_TRUE(VALUE.notEquals(ZERO, ABSOLUTE));
-        EXPECT_TRUE(ZERO.notEquals(VALUE, ABSOLUTE));
-        EXPECT_EQ(VALUE.notEquals(VALUE), VALUE != VALUE);
-    }
 }
 
 TYPED_TEST(QuantityComparisonTest, NamedOrderingUsesExplicitToleranceBoundaries)
@@ -455,17 +455,14 @@ TYPED_TEST(QuantityComparisonTest, NamedOrderingUsesExplicitToleranceBoundaries)
     EXPECT_TRUE(ZERO.greaterThanOrEqual(ZERO, EXACT));
 }
 
-TYPED_TEST(QuantityComparisonTest, NamedOrderingMatchesDefaultOperatorsAndNonfiniteRules)
+TYPED_TEST(QuantityComparisonTest, NamedOrderingMatchesDefaultOperators)
 {
     const double VALUES[] =
     {
-        -std::numeric_limits<double>::infinity(),
         -1.0,
         0.0,
         0.5 * math::DEFAULT_ABSOLUTE_TOLERANCE,
         1.0,
-        std::numeric_limits<double>::infinity(),
-        std::numeric_limits<double>::quiet_NaN()
     };
     const math::QuantityTolerance EXACT{makeQuantity<TypeParam>(0.0), 0.0};
     for (double left : VALUES)
@@ -518,14 +515,6 @@ TYPED_TEST(QuantityComparisonTest, InequalityComplementsDefaultEquality)
     EXPECT_TRUE(calculated != outside);
     EXPECT_TRUE(outside != calculated);
     EXPECT_TRUE(makeQuantity<TypeParam>(0.0) == makeQuantity<TypeParam>(-0.0));
-    const auto nan = makeQuantity<TypeParam>(std::numeric_limits<double>::quiet_NaN());
-    EXPECT_FALSE(nan.equals(nan));
-    EXPECT_FALSE(nan == nan);
-    EXPECT_TRUE(nan != nan);
-    const auto infinity = makeQuantity<TypeParam>(std::numeric_limits<double>::infinity());
-    EXPECT_FALSE(infinity.equals(infinity));
-    EXPECT_FALSE(infinity == infinity);
-    EXPECT_TRUE(infinity != infinity);
 }
 
 // 단위가 있는 절대오차와 상대오차 중 하나를 만족하면 차이를 허용한다.
@@ -547,11 +536,6 @@ TYPED_TEST(QuantityComparisonTest, SupportsCombinedAbsoluteAndRelativeTolerance)
     {
         EXPECT_THROW(zero.equals(zero, math::QuantityTolerance{makeQuantity<TypeParam>(invalid), math::DEFAULT_RELATIVE_TOLERANCE}), std::invalid_argument);
         EXPECT_THROW(zero.equals(boundary, math::QuantityTolerance{tolerance, invalid}), std::invalid_argument);
-        const auto nonfinite = makeQuantity<TypeParam>(invalid);
-        if (!std::isfinite(invalid))
-        {
-            EXPECT_FALSE(nonfinite.equals(nonfinite, math::QuantityTolerance{tolerance, math::DEFAULT_RELATIVE_TOLERANCE}));
-        }
     }
 }
 
@@ -565,8 +549,8 @@ TYPED_TEST(QuantityComparisonTest, AcceptsUnitPreservingTolerancePolicy)
     const auto value = makeQuantity<TypeParam>(1e6);
     const auto nearby = makeQuantity<TypeParam>(1e6 + 0.0005);
     const math::QuantityTolerance<TypeParam> defaults{
-        makeQuantity<TypeParam>(math::DEFAULT_TOLERANCE.absolute()),
-        math::DEFAULT_TOLERANCE.relative()};
+        makeQuantity<TypeParam>(math::DEFAULT_TOLERANCE.absolute),
+        math::DEFAULT_TOLERANCE.relative};
     EXPECT_EQ(value == nearby, value.equals(nearby, defaults));
     EXPECT_TRUE(value.equals(nearby, defaults));
     EXPECT_FALSE(value.equals(nearby, math::QuantityTolerance<TypeParam>{zero, 0.0}));
@@ -577,8 +561,6 @@ TYPED_TEST(QuantityComparisonTest, AcceptsUnitPreservingTolerancePolicy)
             math::QuantityTolerance<TypeParam>{makeQuantity<TypeParam>(invalid), 0.0}), std::invalid_argument);
         EXPECT_THROW(zero.equals(boundary, math::QuantityTolerance<TypeParam>{boundary, invalid}), std::invalid_argument);
     }
-    const auto nonfinite = makeQuantity<TypeParam>(std::numeric_limits<double>::infinity());
-    EXPECT_FALSE(nonfinite.equals(nonfinite, defaults));
 }
 
 TYPED_TEST(QuantityComparisonTest, PolicyValidatesStoredUnitsExactly)
@@ -593,19 +575,12 @@ TYPED_TEST(QuantityComparisonTest, PolicyValidatesStoredUnitsExactly)
     }
 }
 
-TYPED_TEST(QuantityComparisonTest, ChecksNonnegativityIndependentlyFromFiniteness)
+TYPED_TEST(QuantityComparisonTest, ChecksNonnegativity)
 {
     EXPECT_TRUE(makeQuantity<TypeParam>(-0.0).isNonnegative());
     EXPECT_TRUE(makeQuantity<TypeParam>(std::numeric_limits<double>::max()).isNonnegative());
     const auto negative = makeQuantity<TypeParam>(-0.5 * math::DEFAULT_ABSOLUTE_TOLERANCE);
-    EXPECT_TRUE(negative.isFinite());
     EXPECT_FALSE(negative.isNonnegative());
-    const auto positiveInfinity = makeQuantity<TypeParam>(std::numeric_limits<double>::infinity());
-    EXPECT_TRUE(positiveInfinity.isNonnegative());
-    EXPECT_FALSE(positiveInfinity.isFinite());
-    EXPECT_FALSE(makeQuantity<TypeParam>(-std::numeric_limits<double>::infinity()).isNonnegative());
-    EXPECT_FALSE(makeQuantity<TypeParam>(std::numeric_limits<double>::quiet_NaN())
-        .isNonnegative());
 }
 
 // 절대오차 경계는 포함하고 바로 밖에서는 원래 순서를 유지한다.
@@ -669,27 +644,12 @@ TYPED_TEST(QuantityComparisonTest, ExplicitTolerancesRemainIndependentAndRejectT
     EXPECT_THROW(zero.equals(zero, math::QuantityTolerance{negativeTolerance, 0.0}), std::invalid_argument);
 }
 
-// 기본 비교의 비유한 값 정책과 기존 double의 순서 비교 규칙을 유지한다.
-TYPED_TEST(QuantityComparisonTest, NonfiniteValuesFollowDocumentedPolicy)
+// 모든 구체 수량 타입은 생성 시 비유한 값을 거부한다.
+TYPED_TEST(QuantityComparisonTest, RejectsNonfiniteValuesAtConstruction)
 {
-    const auto zero = makeQuantity<TypeParam>(0.0);
-    const auto positive = makeQuantity<TypeParam>(std::numeric_limits<double>::infinity());
-    const auto negative = -positive;
-    const auto nan = makeQuantity<TypeParam>(std::numeric_limits<double>::quiet_NaN());
-    EXPECT_FALSE(positive == positive);
-    EXPECT_FALSE(nan == nan);
-    EXPECT_TRUE(negative < zero);
-    EXPECT_TRUE(positive > zero);
-    EXPECT_TRUE(positive <= positive);
-    EXPECT_TRUE(positive >= positive);
-    EXPECT_FALSE(nan < zero);
-    EXPECT_FALSE(nan <= zero);
-    EXPECT_FALSE(nan > zero);
-    EXPECT_FALSE(nan >= zero);
-    EXPECT_FALSE(zero < nan);
-    EXPECT_FALSE(zero <= nan);
-    EXPECT_FALSE(zero > nan);
-    EXPECT_FALSE(zero >= nan);
+    EXPECT_THROW(makeQuantity<TypeParam>(std::numeric_limits<double>::infinity()), std::invalid_argument);
+    EXPECT_THROW(makeQuantity<TypeParam>(-std::numeric_limits<double>::infinity()), std::invalid_argument);
+    EXPECT_THROW(makeQuantity<TypeParam>(std::numeric_limits<double>::quiet_NaN()), std::invalid_argument);
 }
 
 TYPED_TEST(EqualsTest, DefaultsHandleExtremeFiniteValuesAndDimensions)
@@ -712,7 +672,7 @@ TEST(MatrixEqualsTest, SupportsRectangularAndZeroDimensionShapes)
         math::Tolerance{std::nextafter(0.25, 0.0), 0.0}));
     EXPECT_TRUE(value.equals(nearby, math::Tolerance{0.0, 0.04}));
     EXPECT_FALSE(value.equals(nearby, math::Tolerance{0.0, 0.02}));
-    EXPECT_FALSE(value.equals(value.transpose(), math::Tolerance{0.0, 1.0}));
+    EXPECT_FALSE(value.equals(math::transpose(value), math::Tolerance{0.0, 1.0}));
     EXPECT_TRUE(math::Matrix(0, 3) == math::Matrix(0, 3));
     EXPECT_TRUE(math::Matrix(3, 0).equals(math::Matrix(3, 0), math::Tolerance{0.0, 0.0}));
     EXPECT_FALSE(math::Matrix(0, 3) == math::Matrix(3, 0));

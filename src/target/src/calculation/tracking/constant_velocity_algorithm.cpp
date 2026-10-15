@@ -1,7 +1,9 @@
-﻿#include "constant_velocity_algorithm.hpp"
+#include "constant_velocity_algorithm.hpp"
 
 #include "cartesian_math.hpp"
 #include "validation/detection_validation.hpp"
+
+#include <math/trigonometry.hpp>
 
 #include <array>
 #include <cmath>
@@ -20,18 +22,6 @@ double elapsedSeconds(
     // Validated nonnegative, ordered times keep the integer difference in range.
     // Subtract before conversion to preserve short intervals at large timestamps.
     return std::chrono::duration<double>(current - previous).count();
-}
-
-bool isFinite(const std::array<math::Distance, 3>& position)
-{
-    return std::isfinite(position[0].m()) && std::isfinite(position[1].m())
-        && std::isfinite(position[2].m());
-}
-
-bool isFinite(const std::array<math::Velocity, 3>& velocity)
-{
-    return std::isfinite(velocity[0].mps()) && std::isfinite(velocity[1].mps())
-        && std::isfinite(velocity[2].mps());
 }
 
 } // namespace
@@ -54,8 +44,7 @@ std::optional<TargetTrackingState> ConstantVelocityAlgorithm::initialize(
         - cartesian::toVector(firstPosition)) / elapsedSeconds(firstTime, secondTime);
     const auto velocity = cartesian::toVelocity(velocityVector);
 
-    if (!isFinite(firstPosition) || !isFinite(secondPosition) || !isFinite(velocity)
-        || !std::isfinite(velocityVector.norm()))
+    if (!std::isfinite(velocityVector.norm()))
     {
         return std::nullopt;
     }
@@ -82,7 +71,7 @@ std::optional<TargetTrackingState> ConstantVelocityAlgorithm::update(
         - cartesian::toVector(state.position)) / elapsedSeconds(state.timestamp, time);
     const auto velocity = cartesian::toVelocity(velocityVector);
 
-    if (!isFinite(position) || !isFinite(velocity) || !std::isfinite(velocityVector.norm()))
+    if (!std::isfinite(velocityVector.norm()))
     {
         return std::nullopt;
     }
@@ -105,9 +94,9 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     const auto& state = *currentState;
     // Preserve a stationary measured position exactly while matching remains exact.
     const auto& velocity = state.velocity;
-    if (velocity[0].equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
-        && velocity[1].equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
-        && velocity[2].equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0}))
+    if (velocity.x.equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
+        && velocity.y.equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
+        && velocity.z.equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0}))
     {
         return TargetPrediction{time, state.slantRange, state.azimuth, state.elevation};
     }
@@ -115,19 +104,18 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     const auto positionVector = cartesian::toVector(state.position)
         + cartesian::toVector(velocity) * elapsedSeconds(state.timestamp, time);
     const auto position = cartesian::toPosition(positionVector);
-    const auto range = math::Distance::fromMeters(positionVector.norm());
-    if (!isFinite(position) || !std::isfinite(range.m()) || range <= 0.0_m)
+    const auto range = position.distance();
+    if (range <= 0.0_m)
     {
         return std::nullopt;
     }
 
-    const auto horizontalRange = math::Distance::fromMeters(
-        math::Vector{position[0].m(), position[1].m()}.norm());
+    const auto horizontalRange = position.horizontalDistance();
     return TargetPrediction{
         time,
         range,
-        math::Angle::fromRadians(std::atan2(position[1].m(), position[0].m())),
-        math::Angle::fromRadians(std::atan2(position[2].m(), horizontalRange.m()))
+        math::atan2(position.y, position.x),
+        math::atan2(position.z, horizontalRange)
     };
 }
 

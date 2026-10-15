@@ -10,12 +10,6 @@ using namespace math::literals;
 
 void validate(math::Angle confirmationBeamWidth, math::Angle trackingBeamWidth)
 {
-    // NaN은 크기 비교가 모두 false이므로 유한성을 먼저 확인한다.
-    if (!confirmationBeamWidth.isFinite() || !trackingBeamWidth.isFinite())
-    {
-        throw std::invalid_argument("RequestBeamConfig: beam width must be finite");
-    }
-
     if (confirmationBeamWidth <= 0_deg || trackingBeamWidth <= 0_deg)
     {
         throw std::invalid_argument("RequestBeamConfig: beam width must be greater than 0");

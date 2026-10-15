@@ -43,15 +43,15 @@ target::TrackEvent makeTrackEvent(
     return target::TrackEvent(
         42,
         target::TrackEvent::TrackState::TRACKING,
-        math::Distance::fromKilometers(slantRangeKilometers),
-        math::Distance::fromKilometers(10.25),
+        math::Length::fromKilometers(slantRangeKilometers),
+        math::Length::fromKilometers(10.25),
         math::Angle::fromDegrees(15.5),
         math::Angle::fromDegrees(6.25),
-        math::Velocity::fromMetersPerSecond(-120.5),
+        math::LinearVelocity::fromMetersPerSecond(-120.5),
         math::Angle::fromDegrees(37.5),
         math::Angle::fromDegrees(127.25),
-        math::Distance::fromKilometers(2.5),
-        math::Velocity::fromMetersPerSecond(250.75),
+        math::Length::fromKilometers(2.5),
+        math::LinearVelocity::fromMetersPerSecond(250.75),
         math::Angle::fromDegrees(45.5),
         math::Angle::fromDegrees(-2.25),
         timestamp);
@@ -251,43 +251,4 @@ TEST(MessageEncoderTest, RejectsValueOutsideFloatRange)
         trackResult.error,
         comm::EncodingError::TYPE_CONVERSION_ERROR);
     EXPECT_FALSE(trackResult.bytes.has_value());
-}
-
-TEST(MessageEncoderTest, PreservesNotANumberDuringFloatConversion)
-{
-    const double notANumber = std::numeric_limits<double>::quiet_NaN();
-    const std::vector<target::TrackEvent> events
-    {
-        target::TrackEvent(
-            42,
-            target::TrackEvent::TrackState::TRACKING,
-            math::Distance::fromKilometers(12.5),
-            math::Distance::fromKilometers(10.25),
-            math::Angle::fromDegrees(15.5),
-            math::Angle::fromDegrees(6.25),
-            math::Velocity::fromMetersPerSecond(-120.5),
-            math::Angle::fromDegrees(notANumber),
-            math::Angle::fromDegrees(notANumber),
-            math::Distance::fromKilometers(2.5),
-            math::Velocity::fromMetersPerSecond(250.75),
-            math::Angle::fromDegrees(notANumber),
-            math::Angle::fromDegrees(notANumber),
-            5678ms)
-    };
-
-    const comm::EncodeResult result = comm::encodeTrackEvents(events);
-
-    ASSERT_EQ(result.error, comm::EncodingError::NONE);
-    ASSERT_TRUE(result.bytes.has_value());
-
-    const std::size_t trackOffset =
-        sizeof(comm::protocol::ST_MsgHeader) +
-        sizeof(comm::protocol::ST_TrkHeader);
-    const comm::protocol::ST_Trk track =
-        readValue<comm::protocol::ST_Trk>(*result.bytes, trackOffset);
-
-    EXPECT_TRUE(std::isnan(track.lat_deg));
-    EXPECT_TRUE(std::isnan(track.lon_deg));
-    EXPECT_TRUE(std::isnan(track.heading_deg));
-    EXPECT_TRUE(std::isnan(track.fpa_deg));
 }

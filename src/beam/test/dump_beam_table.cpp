@@ -75,7 +75,7 @@ int main(int argc, char** argv)
         {
             const beam::SearchBeam& b = table.get(i);
             std::printf("%zu,%u,%.6f,%.6f,%.2f,%.2f\n",
-                        i, b.beamId, b.direction_ant.azimuth().deg(), b.direction_ant.elevation().deg(),
+                        i, b.beamId, b.direction_ant.azimuth.deg(), b.direction_ant.elevation.deg(),
                         b.azimuthBeamWidth.deg(), b.elevationBeamWidth.deg());
         }
     }

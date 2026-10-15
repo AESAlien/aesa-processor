@@ -1,4 +1,4 @@
-﻿#include "attitude/ant_enu_transform.hpp"
+#include "attitude/ant_enu_transform.hpp"
 #include "attitude/attitude_error.hpp"
 
 #include <gtest/gtest.h>
@@ -15,7 +15,7 @@ namespace
 beam::RadarAttitude makeAttitude(
     math::Angle latitude,
     math::Angle longitude,
-    math::Distance altitude,
+    math::Length altitude,
     math::Angle roll,
     math::Angle pitch,
     math::Angle yaw
@@ -58,8 +58,8 @@ TEST(AttitudeTransformTest, ZeroAttitudeKeepsAngles)
 
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(-30.0_deg, 10.0_deg));
 
-    EXPECT_EQ(direction_enu.azimuth(), -30_deg);
-    EXPECT_EQ(direction_enu.elevation(), 10_deg);
+    EXPECT_DOUBLE_EQ(direction_enu.azimuth.deg(), 330.0);
+    EXPECT_EQ(direction_enu.elevation, 10_deg);
 }
 
 TEST(AttitudeTransformTest, AcceptsAnglesCreatedFromRadians)
@@ -68,8 +68,8 @@ TEST(AttitudeTransformTest, AcceptsAnglesCreatedFromRadians)
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(
         math::Angle::fromRadians(-math::PI / 6.0), math::Angle::fromRadians(math::PI / 18.0)));
 
-    EXPECT_EQ(direction_enu.azimuth(), 60_deg);
-    EXPECT_EQ(direction_enu.elevation(), 10_deg);
+    EXPECT_EQ(direction_enu.azimuth, 60_deg);
+    EXPECT_EQ(direction_enu.elevation, 10_deg);
 }
 
 // ---------------------------------------------------------------- RadarAttitude 검증
@@ -86,27 +86,6 @@ TEST(RadarAttitudeTest, StoresGivenValues)
     EXPECT_EQ(attitude.yaw(), 6_deg);
 }
 
-TEST(RadarAttitudeTest, ThrowsOnNonFiniteValues)
-{
-    const auto nan = math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN());
-    const auto inf = math::Distance::fromKilometers(std::numeric_limits<double>::infinity());
-
-    EXPECT_ATTITUDE_ERROR(makeAttitude(nan, 0_deg, 0_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::NOT_FINITE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, nan, 0_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::NOT_FINITE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, inf, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::NOT_FINITE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, 0_km, nan, 0_deg, 0_deg), beam::AttitudeErrorCode::NOT_FINITE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, 0_km, 0_deg, nan, 0_deg), beam::AttitudeErrorCode::NOT_FINITE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, 0_km, 0_deg, 0_deg, nan), beam::AttitudeErrorCode::NOT_FINITE);
-}
-
-TEST(RadarAttitudeTest, NonFiniteIsReportedBeforeOutOfRange)
-{
-    const auto nan = math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN());
-
-    // 위도는 범위를 벗어났지만 roll이 NaN이므로 NOT_FINITE가 먼저 보고된다.
-    EXPECT_ATTITUDE_ERROR(makeAttitude(91_deg, 0_deg, 0_km, nan, 0_deg, 0_deg), beam::AttitudeErrorCode::NOT_FINITE);
-}
-
 TEST(RadarAttitudeTest, ThrowsOnOutOfRangeValues)
 {
     EXPECT_ATTITUDE_ERROR(makeAttitude(91_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
@@ -116,7 +95,7 @@ TEST(RadarAttitudeTest, ThrowsOnOutOfRangeValues)
     EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, 361_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
 }
 
-TEST(RadarAttitudeTest, ValidatesAltitudeBoundariesWithDistanceLiterals)
+TEST(RadarAttitudeTest, ValidatesAltitudeBoundariesWithLengthLiterals)
 {
     EXPECT_NO_THROW(makeAttitude(37_deg, 127_deg, -0.5_km, 0_deg, 0_deg, 0_deg));
     EXPECT_NO_THROW(makeAttitude(37_deg, 127_deg, 100_km, 0_deg, 0_deg, 0_deg));
@@ -131,7 +110,7 @@ TEST(RadarAttitudeTest, AcceptsBoundaryAnglesIncludingEndpoints)
     EXPECT_NO_THROW(makeAttitude(-90_deg, -180_deg, 0_km, -180_deg, 0_deg, -360_deg));
 }
 
-TEST(RadarAttitudeTest, PitchIsOnlyCheckedForFiniteness)
+TEST(RadarAttitudeTest, PitchRangeIsNotCheckedByRadarAttitude)
 {
     // 짐벌락 판정은 AttitudeConfig에 의존하므로 AntEnuTransform의 책임이다.
     EXPECT_NO_THROW(makeAttitude(0_deg, 90_deg, 0_deg));
@@ -172,8 +151,8 @@ TEST(AttitudeTransformTest, MountRotationIsAppliedToAntDirection)
 
     // 안테나 정면(방위각 0도)이 몸체 기준 -90도(서쪽)로 장착되어 있다.
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
-    EXPECT_EQ(direction_enu.azimuth(), -90_deg);
-    EXPECT_EQ(direction_enu.elevation(), 0_deg);
+    EXPECT_EQ(direction_enu.azimuth, -90_deg);
+    EXPECT_EQ(direction_enu.elevation, 0_deg);
 }
 
 TEST(AttitudeTransformTest, MaxAbsPitchFromConfigIsUsedForGimbalLock)
@@ -195,24 +174,24 @@ TEST(AttitudeTransformTest, IdentityKeepsAngles)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 0_deg);
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(-30_deg, 10_deg));
-    EXPECT_EQ(direction_enu.azimuth(), -30_deg); // 음수 방위각이 0~360으로 바뀌지 않아야 함
-    EXPECT_EQ(direction_enu.elevation(), 10_deg);
+    EXPECT_DOUBLE_EQ(direction_enu.azimuth.deg(), 330.0);
+    EXPECT_EQ(direction_enu.elevation, 10_deg);
 }
 
 TEST(AttitudeTransformTest, YawRotatesAzimuthClockwise)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 90_deg); // 정면이 동쪽
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
-    EXPECT_EQ(direction_enu.azimuth(), 90_deg);
-    EXPECT_EQ(direction_enu.elevation(), 0_deg);
+    EXPECT_EQ(direction_enu.azimuth, 90_deg);
+    EXPECT_EQ(direction_enu.elevation, 0_deg);
 }
 
 TEST(AttitudeTransformTest, PitchRaisesBoresight)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 10_deg, 0_deg);
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
-    EXPECT_EQ(direction_enu.azimuth(), 0_deg);
-    EXPECT_EQ(direction_enu.elevation(), 10_deg);
+    EXPECT_EQ(direction_enu.azimuth, 0_deg);
+    EXPECT_EQ(direction_enu.elevation, 10_deg);
 }
 
 TEST(AttitudeTransformTest, AntToEnuAndBackRestoresAngles)
@@ -225,15 +204,15 @@ TEST(AttitudeTransformTest, AntToEnuAndBackRestoresAngles)
         {
             const auto direction_enu = transform.antToEnu(math::SphericalDirection(azimuth_ant, elevation_ant));
             const auto directionRestored_ant = transform.enuToAnt(direction_enu);
-            EXPECT_EQ(directionRestored_ant.azimuth(), azimuth_ant);
-            EXPECT_EQ(directionRestored_ant.elevation(), elevation_ant);
+            EXPECT_EQ(directionRestored_ant.azimuth, math::wrap360(azimuth_ant));
+            EXPECT_EQ(directionRestored_ant.elevation, elevation_ant);
         }
     }
 }
 
-TEST(AttitudeTransformTest, AzimuthKeepsSignedRangeEndpoints)
+TEST(AttitudeTransformTest, AzimuthUsesUnsignedRangeEndpoint)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 0_deg);
     const auto directionAt180_enu = transform.antToEnu(math::SphericalDirection(-180_deg, 0_deg));
-    EXPECT_EQ(math::abs(directionAt180_enu.azimuth()), 180_deg);
+    EXPECT_DOUBLE_EQ(directionAt180_enu.azimuth.deg(), 180.0);
 }

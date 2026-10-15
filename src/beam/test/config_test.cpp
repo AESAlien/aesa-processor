@@ -18,8 +18,7 @@ const double NAN_VALUE = std::numeric_limits<double>::quiet_NaN();
 const double INF_VALUE = std::numeric_limits<double>::infinity();
 const double MAX_VALUE = std::numeric_limits<double>::max();
 
-const math::Angle NAN_ANGLE = math::Angle::fromDegrees(NAN_VALUE);
-const math::Angle INF_ANGLE = math::Angle::fromDegrees(INF_VALUE);
+// NaN·Inf Angle은 math::Angle 생성 단계에서 std::invalid_argument로 거부되므로 설정 검증 대상이 아니다.
 const math::Angle MAX_ANGLE = math::Angle::fromDegrees(MAX_VALUE);
 
 beam::AttitudeConfig::Builder attitudeBuilder()
@@ -123,16 +122,6 @@ TEST(SearchGridConfigTest, NonPositiveBeamWidthThrows)
 {
     EXPECT_THROW(gridBuilder().beamWidth(0_deg).build(), std::invalid_argument);
     EXPECT_THROW(gridBuilder().beamWidth(-1_deg).build(), std::invalid_argument);
-}
-
-TEST(SearchGridConfigTest, NonFiniteAngleThrows)
-{
-    EXPECT_THROW(gridBuilder().azimuthStart(NAN_ANGLE).build(), std::invalid_argument);
-    EXPECT_THROW(gridBuilder().azimuthStep(INF_ANGLE).build(), std::invalid_argument);
-    EXPECT_THROW(gridBuilder().elevationStart(NAN_ANGLE).build(), std::invalid_argument);
-    EXPECT_THROW(gridBuilder().elevationStep(INF_ANGLE).build(), std::invalid_argument);
-    EXPECT_THROW(gridBuilder().beamWidth(NAN_ANGLE).build(), std::invalid_argument);
-    EXPECT_THROW(gridBuilder().beamWidth(INF_ANGLE).build(), std::invalid_argument);
 }
 
 TEST(SearchGridConfigTest, GridAngleOverflowThrows)
@@ -284,7 +273,7 @@ TEST(AttitudeConfigTest, InvalidMountOrthogonalToleranceThrows)
     }
 }
 
-TEST(AttitudeConfigTest, MaxAbsPitchMustBeFiniteAndInZeroToNinetyDegrees)
+TEST(AttitudeConfigTest, MaxAbsPitchMustBeInZeroToNinetyDegrees)
 {
     EXPECT_NO_THROW(attitudeBuilder().maxAbsPitch(90_deg).build());
     EXPECT_NO_THROW(attitudeBuilder().maxAbsPitch(0.1_deg).build());
@@ -292,8 +281,6 @@ TEST(AttitudeConfigTest, MaxAbsPitchMustBeFiniteAndInZeroToNinetyDegrees)
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(0_deg).build(), std::invalid_argument);
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(-1_deg).build(), std::invalid_argument);
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(91_deg).build(), std::invalid_argument);
-    EXPECT_THROW(attitudeBuilder().maxAbsPitch(NAN_ANGLE).build(), std::invalid_argument);
-    EXPECT_THROW(attitudeBuilder().maxAbsPitch(INF_ANGLE).build(), std::invalid_argument);
 }
 
 TEST(AttitudeConfigTest, ConstructorValidatesLikeBuilder)
@@ -329,14 +316,6 @@ TEST(RequestBeamConfigTest, NonPositiveBeamWidthThrows)
     EXPECT_THROW(requestBuilder().confirmationBeamWidth(-1_deg).build(), std::invalid_argument);
     EXPECT_THROW(requestBuilder().trackingBeamWidth(0_deg).build(), std::invalid_argument);
     EXPECT_THROW(requestBuilder().trackingBeamWidth(-1_deg).build(), std::invalid_argument);
-}
-
-TEST(RequestBeamConfigTest, NonFiniteBeamWidthThrows)
-{
-    EXPECT_THROW(requestBuilder().confirmationBeamWidth(NAN_ANGLE).build(), std::invalid_argument);
-    EXPECT_THROW(requestBuilder().confirmationBeamWidth(INF_ANGLE).build(), std::invalid_argument);
-    EXPECT_THROW(requestBuilder().trackingBeamWidth(NAN_ANGLE).build(), std::invalid_argument);
-    EXPECT_THROW(requestBuilder().trackingBeamWidth(INF_ANGLE).build(), std::invalid_argument);
 }
 
 TEST(RequestBeamConfigTest, ConstructorValidatesLikeBuilder)

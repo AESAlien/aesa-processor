@@ -2,8 +2,8 @@
 
 #include <beam/dto/beam_command.hpp>
 #include <math/quantity/angle.hpp>
-#include <math/quantity/distance.hpp>
-#include <math/quantity/velocity.hpp>
+#include <math/quantity/length.hpp>
+#include <math/quantity/linear_velocity.hpp>
 
 #include <chrono>
 #include <cstdint>
@@ -25,17 +25,17 @@ struct DetectionEvent
 
     struct Plot
     {
-        const math::Distance slantRange;
+        const math::Length slantRange;
         const math::Angle azimuth;
         const math::Angle elevation;
-        const math::Velocity dopplerVelocity;
+        const math::LinearVelocity dopplerVelocity;
         const float power_db;
 
         Plot(
-            math::Distance slantRange,
+            math::Length slantRange,
             math::Angle azimuth,
             math::Angle elevation,
-            math::Velocity dopplerVelocity,
+            math::LinearVelocity dopplerVelocity,
             float power_db
         ) : slantRange(slantRange),
             azimuth(azimuth),
@@ -48,10 +48,10 @@ struct DetectionEvent
         class Builder
         {
         public:
-            Builder& slantRange(math::Distance value) { _slantRange = value; return *this; }
+            Builder& slantRange(math::Length value) { _slantRange = value; return *this; }
             Builder& azimuth(math::Angle value) { _azimuth = value; return *this; }
             Builder& elevation(math::Angle value) { _elevation = value; return *this; }
-            Builder& dopplerVelocity(math::Velocity value) { _dopplerVelocity = value; return *this; }
+            Builder& dopplerVelocity(math::LinearVelocity value) { _dopplerVelocity = value; return *this; }
             Builder& power_db(float value) { _power_db = value; return *this; }
 
             Plot build() const
@@ -62,10 +62,10 @@ struct DetectionEvent
             }
 
         private:
-            std::optional<math::Distance> _slantRange;
+            std::optional<math::Length> _slantRange;
             std::optional<math::Angle> _azimuth;
             std::optional<math::Angle> _elevation;
-            std::optional<math::Velocity> _dopplerVelocity;
+            std::optional<math::LinearVelocity> _dopplerVelocity;
             std::optional<float> _power_db;
         };
     };

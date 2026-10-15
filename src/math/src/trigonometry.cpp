@@ -8,32 +8,17 @@ namespace math
 
 double sin(Angle angle)
 {
-    if (!angle.isFinite())
-    {
-        throw std::domain_error("Sine requires a finite angle");
-    }
-
-    return std::sin(angle.wrap180().rad());
+    return std::sin(wrap180(angle).rad());
 }
 
 double cos(Angle angle)
 {
-    if (!angle.isFinite())
-    {
-        throw std::domain_error("Cosine requires a finite angle");
-    }
-
-    return std::cos(angle.wrap180().rad());
+    return std::cos(wrap180(angle).rad());
 }
 
 double tan(Angle angle)
 {
-    if (!angle.isFinite())
-    {
-        throw std::domain_error("Tangent requires a finite angle");
-    }
-
-    return std::tan(angle.wrap180().rad());
+    return std::tan(wrap180(angle).rad());
 }
 
 Angle asin(double value)
@@ -64,6 +49,16 @@ Angle atan(double value)
     }
     
     return Angle::fromRadians(std::atan(value));
+}
+
+Angle atan2(Length y, Length x)
+{
+    return Angle::fromRadians(std::atan2(y.m(), x.m()));
+}
+
+Angle atan2(LinearVelocity y, LinearVelocity x)
+{
+    return Angle::fromRadians(std::atan2(y.mps(), x.mps()));
 }
 
 }

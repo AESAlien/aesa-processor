@@ -514,7 +514,7 @@ TEST(SchedulerTest, TurningOffWhileAlreadyOffDoesNothing)
 }
 
 // ---------- 요청 빔 설정 반영 ----------
-// 설정 값 검증(빔폭 0 이하, NaN, Inf)은 config_test.cpp 에서 확인한다.
+// 설정 값 검증(빔폭 0 이하)은 config_test.cpp 에서 확인한다.
 
 namespace
 {

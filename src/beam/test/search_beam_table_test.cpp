@@ -73,8 +73,8 @@ TEST(SearchBeamTableTest, ZeroAttitudeKeepsFixedGrid)
 
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
-        EXPECT_EQ(table.get(beamIndex).direction_ant.azimuth(), gridAzimuth(beamIndex)) << "beamIndex=" << beamIndex;
-        EXPECT_EQ(table.get(beamIndex).direction_ant.elevation(), gridElevation(beamIndex))
+        EXPECT_EQ(table.get(beamIndex).direction_ant.azimuth, gridAzimuth(beamIndex)) << "beamIndex=" << beamIndex;
+        EXPECT_EQ(table.get(beamIndex).direction_ant.elevation, gridElevation(beamIndex))
             << "beamIndex=" << beamIndex;
     }
 }
@@ -84,17 +84,17 @@ TEST(SearchBeamTableTest, GridOrderStartsLowElevationLeftAzimuth)
     const beam::SearchBeamTable table(makeValidTransform(0_deg, 0_deg, 0_deg), DEFAULT_GRID_CONFIG);
 
     // 첫 빔: 가장 낮은 고각, 가장 왼쪽 방위각
-    EXPECT_EQ(table.get(0).direction_ant.azimuth(), -42_deg);
-    EXPECT_EQ(table.get(0).direction_ant.elevation(), 3_deg);
+    EXPECT_EQ(table.get(0).direction_ant.azimuth, -42_deg);
+    EXPECT_EQ(table.get(0).direction_ant.elevation, 3_deg);
     // 같은 고각의 마지막 빔: 가장 오른쪽 방위각
-    EXPECT_EQ(table.get(20).direction_ant.azimuth(), 42_deg);
-    EXPECT_EQ(table.get(20).direction_ant.elevation(), 3_deg);
+    EXPECT_EQ(table.get(20).direction_ant.azimuth, 42_deg);
+    EXPECT_EQ(table.get(20).direction_ant.elevation, 3_deg);
     // 다음 고각 줄의 첫 빔
-    EXPECT_EQ(table.get(21).direction_ant.azimuth(), -42_deg);
-    EXPECT_EQ(table.get(21).direction_ant.elevation(), 7.4_deg);
+    EXPECT_EQ(table.get(21).direction_ant.azimuth, -42_deg);
+    EXPECT_EQ(table.get(21).direction_ant.elevation, 7.4_deg);
     // 마지막 빔: 가장 높은 고각, 가장 오른쪽 방위각
-    EXPECT_EQ(table.get(188).direction_ant.azimuth(), 42_deg);
-    EXPECT_EQ(table.get(188).direction_ant.elevation(), 38.2_deg);
+    EXPECT_EQ(table.get(188).direction_ant.azimuth, 42_deg);
+    EXPECT_EQ(table.get(188).direction_ant.elevation, 38.2_deg);
 }
 
 TEST(SearchBeamTableTest, YawShiftsAzimuthsByOppositeAngle)
@@ -104,9 +104,9 @@ TEST(SearchBeamTableTest, YawShiftsAzimuthsByOppositeAngle)
 
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
-        EXPECT_EQ(table.get(beamIndex).direction_ant.azimuth(), gridAzimuth(beamIndex) - 10_deg)
+        EXPECT_EQ(table.get(beamIndex).direction_ant.azimuth, gridAzimuth(beamIndex) - 10_deg)
             << "beamIndex=" << beamIndex;
-        EXPECT_EQ(table.get(beamIndex).direction_ant.elevation(), gridElevation(beamIndex))
+        EXPECT_EQ(table.get(beamIndex).direction_ant.elevation, gridElevation(beamIndex))
             << "beamIndex=" << beamIndex;
     }
 }
@@ -119,9 +119,9 @@ TEST(SearchBeamTableTest, TableMatchesAnglesConvertedToAntFrame)
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
         const math::SphericalDirection direction_ant = transform.enuToAnt(
-            math::SphericalDirection(gridAzimuth(beamIndex).wrap180(), gridElevation(beamIndex)));
-        EXPECT_EQ(table.get(beamIndex).direction_ant.azimuth(), direction_ant.azimuth()) << "beamIndex=" << beamIndex;
-        EXPECT_EQ(table.get(beamIndex).direction_ant.elevation(), direction_ant.elevation()) << "beamIndex=" << beamIndex;
+            math::SphericalDirection(math::wrap180(gridAzimuth(beamIndex)), gridElevation(beamIndex)));
+        EXPECT_EQ(table.get(beamIndex).direction_ant.azimuth, direction_ant.azimuth) << "beamIndex=" << beamIndex;
+        EXPECT_EQ(table.get(beamIndex).direction_ant.elevation, direction_ant.elevation) << "beamIndex=" << beamIndex;
     }
 }
 
@@ -133,8 +133,8 @@ TEST(SearchBeamTableTest, TableConvertedBackToFixedFrameRestoresGrid)
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
         const math::SphericalDirection direction_enu = transform.antToEnu(table.get(beamIndex).direction_ant);
-        EXPECT_EQ(direction_enu.azimuth(), gridAzimuth(beamIndex).wrap180()) << "beamIndex=" << beamIndex;
-        EXPECT_EQ(direction_enu.elevation(), gridElevation(beamIndex)) << "beamIndex=" << beamIndex;
+        EXPECT_EQ(direction_enu.azimuth, math::wrap360(gridAzimuth(beamIndex))) << "beamIndex=" << beamIndex;
+        EXPECT_EQ(direction_enu.elevation, gridElevation(beamIndex)) << "beamIndex=" << beamIndex;
     }
 }
 
@@ -146,7 +146,7 @@ TEST(SearchBeamTableTest, DifferentAttitudeProducesDifferentTable)
     bool anyDifferent = false;
     for (std::size_t beamIndex = 0; beamIndex < zeroAttitudeTable.size(); ++beamIndex)
     {
-        if (!zeroAttitudeTable.get(beamIndex).direction_ant.azimuth().equals(yawRotatedTable.get(beamIndex).direction_ant.azimuth()))
+        if (!zeroAttitudeTable.get(beamIndex).direction_ant.azimuth.equals(yawRotatedTable.get(beamIndex).direction_ant.azimuth))
         {
             anyDifferent = true;
             break;
@@ -203,9 +203,9 @@ TEST(SearchBeamTableTest, CustomGridUsesConfiguredStartStepAndWidth)
     ASSERT_EQ(table.size(), 6u);
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
-        EXPECT_EQ(table.get(beamIndex).direction_ant.azimuth(), expectedAzimuth[beamIndex])
+        EXPECT_EQ(table.get(beamIndex).direction_ant.azimuth, expectedAzimuth[beamIndex])
             << "beamIndex=" << beamIndex;
-        EXPECT_EQ(table.get(beamIndex).direction_ant.elevation(), expectedElevation[beamIndex])
+        EXPECT_EQ(table.get(beamIndex).direction_ant.elevation, expectedElevation[beamIndex])
             << "beamIndex=" << beamIndex;
         EXPECT_EQ(table.get(beamIndex).azimuthBeamWidth, 4_deg);
         EXPECT_EQ(table.get(beamIndex).elevationBeamWidth, 4_deg);
@@ -229,8 +229,6 @@ TEST(SearchBeamTableTest, LargeStepWithSingleBeamPerAxisIsAccepted)
     const beam::SearchBeamTable table(makeValidTransform(0_deg, 0_deg, 0_deg), config);
 
     ASSERT_EQ(table.size(), 1u);
-    EXPECT_TRUE(table.get(0).direction_ant.azimuth().isFinite());
-    EXPECT_TRUE(table.get(0).direction_ant.elevation().isFinite());
 }
 
 TEST(SearchBeamTableTest, LargeAzimuthStartWithSingleBeamPreservesWrappedDirection)
@@ -244,7 +242,7 @@ TEST(SearchBeamTableTest, LargeAzimuthStartWithSingleBeamPreservesWrappedDirecti
     const beam::SearchBeamTable table(makeValidTransform(0_deg, 0_deg, 0_deg), config);
 
     ASSERT_EQ(table.size(), 1u);
-    EXPECT_EQ(table.get(0).direction_ant.azimuth(), -80_deg);
+    EXPECT_EQ(table.get(0).direction_ant.azimuth, -80_deg);
 }
 
 // ---------- 탐색 커서 ----------
@@ -258,8 +256,8 @@ TEST(SearchBeamTableTest, NextBeamFollowsTableOrderFromTheFirstBeam)
         const beam::SearchBeam& beam = table.nextBeam();
 
         EXPECT_EQ(beam.beamId, table.get(beamIndex).beamId) << "beamIndex=" << beamIndex;
-        EXPECT_EQ(beam.direction_ant.azimuth(), table.get(beamIndex).direction_ant.azimuth());
-        EXPECT_EQ(beam.direction_ant.elevation(), table.get(beamIndex).direction_ant.elevation());
+        EXPECT_EQ(beam.direction_ant.azimuth, table.get(beamIndex).direction_ant.azimuth);
+        EXPECT_EQ(beam.direction_ant.elevation, table.get(beamIndex).direction_ant.elevation);
     }
 }
 

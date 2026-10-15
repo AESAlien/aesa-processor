@@ -164,7 +164,7 @@ int main(int argc, char** argv)
         for (std::size_t index = 0; index < table.size(); ++index)
         {
             const beam::SearchBeam& info = table.get(index);
-            std::printf("%zu,%u,%.6f,%.6f\n", index, info.beamId, info.direction_ant.azimuth().deg(), info.direction_ant.elevation().deg());
+            std::printf("%zu,%u,%.6f,%.6f\n", index, info.beamId, info.direction_ant.azimuth.deg(), info.direction_ant.elevation.deg());
         }
     }
     catch (const beam::AttitudeError& e)

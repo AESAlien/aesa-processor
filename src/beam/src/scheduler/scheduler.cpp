@@ -54,8 +54,8 @@ BeamCommand makeSearchCommand(
         .transmitTime(currentTime)
         .beamId(searchBeam.beamId)
         .commandCount(commandCount)
-        .azimuth_ant(searchBeam.direction_ant.azimuth())
-        .elevation_ant(searchBeam.direction_ant.elevation())
+        .azimuth_ant(searchBeam.direction_ant.azimuth)
+        .elevation_ant(searchBeam.direction_ant.elevation)
         .azimuthBeamWidth(searchBeam.azimuthBeamWidth)
         .elevationBeamWidth(searchBeam.elevationBeamWidth)
         .build();
