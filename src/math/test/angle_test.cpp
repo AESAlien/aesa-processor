@@ -66,46 +66,45 @@ TEST(AngleTest, WrapsToSignedDegreeRange)
 {
     using namespace math::literals;
 
-    EXPECT_TRUE(((0_deg).wrap180()).equals(0_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(((179.5_deg).wrap180()).equals(179.5_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(((-179.5_deg).wrap180()).equals(-179.5_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(((180_deg).wrap180()).equals(-180_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(((-180_deg).wrap180()).equals(-180_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(((181_deg).wrap180()).equals(-179_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(((-181_deg).wrap180()).equals(179_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(((540_deg).wrap180()).equals(-180_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(((-540_deg).wrap180()).equals(-180_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(((1080_deg).wrap180()).equals(0_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(((-1080_deg).wrap180()).equals(0_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(1e18).wrap180().deg(), -80.0);
+    EXPECT_TRUE(math::wrap180(0_deg).equals(0_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(math::wrap180(179.5_deg).equals(179.5_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(math::wrap180(-179.5_deg).equals(-179.5_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(math::wrap180(180_deg).equals(-180_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(math::wrap180(-180_deg).equals(-180_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(math::wrap180(181_deg).equals(-179_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(math::wrap180(-181_deg).equals(179_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(math::wrap180(540_deg).equals(-180_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(math::wrap180(-540_deg).equals(-180_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(math::wrap180(1080_deg).equals(0_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(math::wrap180(-1080_deg).equals(0_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_DOUBLE_EQ(math::wrap180(math::Angle::fromDegrees(1e18)).deg(), -80.0);
 
     // 정규화는 새 각도를 반환하며 원본 값은 유지한다.
     const auto angle = 450_deg;
-    EXPECT_TRUE((angle.wrap180()).equals(90_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(math::wrap180(angle).equals(90_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
     EXPECT_TRUE((angle).equals(450_deg, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
 }
 
-// 범위 안의 값, ±90도 경계와 여러 회전 값을 [-90, 90) 범위로 정규화한다.
-TEST(AngleTest, WrapsToSignedNinetyDegreeRange)
+// 범위 안의 값, 0·360도 경계와 여러 회전 값을 [0, 360) 범위로 정규화한다.
+TEST(AngleTest, WrapsToUnsignedDegreeRange)
 {
     using namespace math::literals;
 
-    EXPECT_DOUBLE_EQ((0_deg).wrap90().deg(), 0.0);
-    EXPECT_DOUBLE_EQ((89.5_deg).wrap90().deg(), 89.5);
-    EXPECT_DOUBLE_EQ((-89.5_deg).wrap90().deg(), -89.5);
-    EXPECT_DOUBLE_EQ((90_deg).wrap90().deg(), -90.0);
-    EXPECT_DOUBLE_EQ((-90_deg).wrap90().deg(), -90.0);
-    EXPECT_DOUBLE_EQ((91_deg).wrap90().deg(), -89.0);
-    EXPECT_DOUBLE_EQ((-91_deg).wrap90().deg(), 89.0);
-    EXPECT_DOUBLE_EQ((180_deg).wrap90().deg(), 0.0);
-    EXPECT_DOUBLE_EQ((270_deg).wrap90().deg(), -90.0);
-    EXPECT_DOUBLE_EQ((-270_deg).wrap90().deg(), -90.0);
-    EXPECT_DOUBLE_EQ((450_deg).wrap90().deg(), -90.0);
-    EXPECT_DOUBLE_EQ((-450_deg).wrap90().deg(), -90.0);
-    EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(1e18).wrap90().deg(), -80.0);
+    EXPECT_DOUBLE_EQ(math::wrap360(0_deg).deg(), 0.0);
+    EXPECT_DOUBLE_EQ(math::wrap360(359.5_deg).deg(), 359.5);
+    EXPECT_DOUBLE_EQ(math::wrap360(-0.5_deg).deg(), 359.5);
+    EXPECT_DOUBLE_EQ(math::wrap360(360_deg).deg(), 0.0);
+    EXPECT_DOUBLE_EQ(math::wrap360(-360_deg).deg(), 0.0);
+    EXPECT_DOUBLE_EQ(math::wrap360(361_deg).deg(), 1.0);
+    EXPECT_DOUBLE_EQ(math::wrap360(-361_deg).deg(), 359.0);
+    EXPECT_DOUBLE_EQ(math::wrap360(720_deg).deg(), 0.0);
+    EXPECT_DOUBLE_EQ(math::wrap360(-720_deg).deg(), 0.0);
+    EXPECT_DOUBLE_EQ(math::wrap360(450_deg).deg(), 90.0);
+    EXPECT_DOUBLE_EQ(math::wrap360(-450_deg).deg(), 270.0);
+    EXPECT_DOUBLE_EQ(math::wrap360(math::Angle::fromDegrees(1e18)).deg(), 280.0);
 
     const auto angle = 450_deg;
-    EXPECT_DOUBLE_EQ(angle.wrap90().deg(), -90.0);
+    EXPECT_DOUBLE_EQ(math::wrap360(angle).deg(), 90.0);
     EXPECT_DOUBLE_EQ(angle.deg(), 450.0);
 }
 
@@ -170,14 +169,28 @@ TEST(AngleTest, RejectsDivisionByZeroWithoutChangingValue)
     EXPECT_DOUBLE_EQ(angle.deg(), 45.0);
 }
 
-// 각도는 회전 수를 포함한 저장값으로 비교하며, 대소 비교에서 같은 값의 경계를 구분한다.
-TEST(AngleTest, ComparesStoredDegreesWithoutWrapping)
+// 동등 비교는 완전한 회전을 같은 각도로 취급하지만 대소 비교는 저장값을 그대로 사용한다.
+TEST(AngleTest, EqualityWrapsFullTurnsWhileOrderingUsesStoredDegrees)
 {
     const auto zero = math::Angle::fromDegrees(0.0);
     const auto negative = math::Angle::fromDegrees(-10.0);
     const auto fullTurn = math::Angle::fromDegrees(360.0);
+    const auto negativeFullTurn = math::Angle::fromDegrees(-360.0);
+    const auto calculated = math::Angle::fromDegrees(0.1 + 0.2);
+    const auto expected = math::Angle::fromDegrees(0.3);
 
-    EXPECT_FALSE(zero.equals(fullTurn, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(zero.equals(fullTurn, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(zero == fullTurn);
+    EXPECT_TRUE(zero == negativeFullTurn);
+    EXPECT_FALSE(zero.notEquals(fullTurn, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_FALSE(zero != fullTurn);
+    EXPECT_TRUE(zero.notEquals(negative, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(zero != negative);
+    EXPECT_TRUE(math::Angle::fromDegrees(359.75).equals(
+        math::Angle::fromDegrees(0.25),
+        math::QuantityTolerance{math::Angle::fromDegrees(0.5), 0.0}));
+    EXPECT_TRUE(calculated.equals(expected));
+    EXPECT_TRUE(calculated == expected);
     EXPECT_TRUE(negative < zero);
     EXPECT_TRUE(negative <= zero);
     EXPECT_TRUE(fullTurn > zero);

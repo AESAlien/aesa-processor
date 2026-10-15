@@ -125,7 +125,7 @@ TEST(BeamTableTest, TableMatchesAnglesConvertedToAntFrame)
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
         const math::SphericalDirection direction_ant = transform.enuToAnt(
-            math::SphericalDirection(gridAzimuth(beamIndex).wrap180(), gridElevation(beamIndex)));
+            math::SphericalDirection(math::wrap180(gridAzimuth(beamIndex)), gridElevation(beamIndex)));
         EXPECT_EQ(table.get(beamIndex).azimuth_ant, direction_ant.azimuth) << "beamIndex=" << beamIndex;
         EXPECT_EQ(table.get(beamIndex).elevation_ant, direction_ant.elevation) << "beamIndex=" << beamIndex;
     }
@@ -140,7 +140,7 @@ TEST(BeamTableTest, TableConvertedBackToFixedFrameRestoresGrid)
     {
         const math::SphericalDirection direction_enu = transform.antToEnu(math::SphericalDirection(
             table.get(beamIndex).azimuth_ant, table.get(beamIndex).elevation_ant));
-        EXPECT_EQ(direction_enu.azimuth, gridAzimuth(beamIndex).wrap180()) << "beamIndex=" << beamIndex;
+        EXPECT_EQ(direction_enu.azimuth, math::wrap180(gridAzimuth(beamIndex))) << "beamIndex=" << beamIndex;
         EXPECT_EQ(direction_enu.elevation, gridElevation(beamIndex)) << "beamIndex=" << beamIndex;
     }
 }

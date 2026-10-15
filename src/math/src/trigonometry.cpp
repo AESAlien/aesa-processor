@@ -8,17 +8,17 @@ namespace math
 
 double sin(Angle angle)
 {
-    return std::sin(angle.wrap180().rad());
+    return std::sin(wrap180(angle).rad());
 }
 
 double cos(Angle angle)
 {
-    return std::cos(angle.wrap180().rad());
+    return std::cos(wrap180(angle).rad());
 }
 
 double tan(Angle angle)
 {
-    return std::tan(angle.wrap180().rad());
+    return std::tan(wrap180(angle).rad());
 }
 
 Angle asin(double value)

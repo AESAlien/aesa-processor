@@ -39,10 +39,40 @@ double Angle::rad() const noexcept
     return value() * (PI / 180.0);
 }
 
-Angle Angle::wrap180() const noexcept
+bool Angle::equals(
+    const Angle& other,
+    const QuantityTolerance<Angle>& tolerance
+) const noexcept {
+    if (tolerance.isWithin(*this, other))
+    {
+        return true;
+    }
+
+    const Angle wrappedDifference = wrap180(wrap180(*this) - wrap180(other));
+    return tolerance.isWithin(wrappedDifference, Angle(0.0));
+}
+
+bool Angle::notEquals(
+    const Angle& other,
+    const QuantityTolerance<Angle>& tolerance
+) const noexcept {
+    return !equals(other, tolerance);
+}
+
+bool Angle::operator==(const Angle& other) const noexcept
+{
+    return equals(other);
+}
+
+bool Angle::operator!=(const Angle& other) const noexcept
+{
+    return notEquals(other);
+}
+
+Angle wrap180(Angle angle) noexcept
 {
     // 먼저 360도 주기의 나머지를 구해 큰 각도에서 오프셋 정밀도 손실을 피한다.
-    double degrees = std::fmod(value(), 360.0);
+    double degrees = std::fmod(angle.deg(), 360.0);
     if (degrees < 0.0)
     {
         degrees += 360.0;
@@ -53,24 +83,23 @@ Angle Angle::wrap180() const noexcept
         degrees -= 360.0;
     }
 
-    return Angle(degrees);
+    return Angle::fromDegrees(degrees);
 }
 
-Angle Angle::wrap90() const noexcept
+Angle wrap360(Angle angle) noexcept
 {
-    // 먼저 180도 주기의 나머지를 구해 큰 각도에서 오프셋 정밀도 손실을 피한다.
-    double degrees = std::fmod(value(), 180.0);
+    double degrees = std::fmod(angle.deg(), 360.0);
     if (degrees < 0.0)
     {
-        degrees += 180.0;
+        degrees += 360.0;
     }
 
-    if (degrees >= 90.0)
+    if (degrees == 0.0)
     {
-        degrees -= 180.0;
+        degrees = 0.0;
     }
 
-    return Angle(degrees);
+    return Angle::fromDegrees(degrees);
 }
 
 Angle Angle::operator+() const noexcept

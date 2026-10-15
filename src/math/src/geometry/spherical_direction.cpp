@@ -57,7 +57,7 @@ SphericalDirection SphericalDirection::fromCartesianUnitVector(const Vector& vec
     const double z = vector(2) / maxComponent;
     const double horizontalNorm = std::hypot(x, y);
 
-    const Angle azimuth = Angle::fromRadians(std::atan2(x, y)).wrap180();
+    const Angle azimuth = wrap180(Angle::fromRadians(std::atan2(x, y)));
     const Angle elevation = Angle::fromRadians(std::atan2(z, horizontalNorm));
     return SphericalDirection(azimuth, elevation);
 }
