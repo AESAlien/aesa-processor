@@ -15,6 +15,15 @@ using namespace math::literals;
 static_assert(std::is_const_v<decltype(math::CartesianPoint::x)>);
 static_assert(std::is_const_v<decltype(math::CartesianPoint::y)>);
 static_assert(std::is_const_v<decltype(math::CartesianPoint::z)>);
+static_assert(std::is_same_v<
+    std::remove_const_t<decltype(math::CartesianPoint::x)>,
+    math::Length>);
+static_assert(std::is_same_v<
+    std::remove_const_t<decltype(math::CartesianPoint::y)>,
+    math::Length>);
+static_assert(std::is_same_v<
+    std::remove_const_t<decltype(math::CartesianPoint::z)>,
+    math::Length>);
 static_assert(std::is_copy_constructible_v<math::CartesianPoint>);
 static_assert(!std::is_copy_assignable_v<math::CartesianPoint>);
 static_assert(!std::is_move_assignable_v<math::CartesianPoint>);
@@ -56,7 +65,7 @@ TEST(SphericalPointTest, RejectsNegativeRadius)
 {
     EXPECT_THROW((math::SphericalPoint(-1_m, math::SphericalDirection(0_deg, 0_deg))), std::invalid_argument);
     EXPECT_THROW((math::SphericalPoint(
-        math::Distance::fromMeters(-std::numeric_limits<double>::denorm_min()),
+        math::Length::fromMeters(-std::numeric_limits<double>::denorm_min()),
         math::SphericalDirection(0_deg, 0_deg))), std::invalid_argument);
 }
 
@@ -136,9 +145,9 @@ TEST(CartesianGeometryTest, StoresFiniteBoundaryValues)
 {
     const double MAX_VALUE = std::numeric_limits<double>::max();
     const math::CartesianPoint point(
-        math::Distance::fromMeters(-MAX_VALUE),
+        math::Length::fromMeters(-MAX_VALUE),
         0_m,
-        math::Distance::fromMeters(MAX_VALUE));
+        math::Length::fromMeters(MAX_VALUE));
     EXPECT_DOUBLE_EQ(point.x.m(), -MAX_VALUE);
     EXPECT_DOUBLE_EQ(point.y.m(), 0.0);
     EXPECT_DOUBLE_EQ(point.z.m(), MAX_VALUE);

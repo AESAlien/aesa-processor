@@ -12,7 +12,7 @@ namespace validation
 {
 
 bool hasValidGeometry(
-    const math::Distance& range,
+    const math::Length& range,
     const math::Angle& azimuth,
     const math::Angle& elevation)
 {
@@ -23,7 +23,7 @@ bool hasValidGeometry(
 }
 
 bool hasValidMeasurement(
-    const math::Distance& range,
+    const math::Length& range,
     const math::Angle& azimuth,
     const math::Angle& elevation,
     const math::LinearVelocity& dopplerVelocity)

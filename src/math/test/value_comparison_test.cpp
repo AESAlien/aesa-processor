@@ -1,6 +1,7 @@
-﻿#include "math/linear_algebra/square_matrix.hpp"
+#include "math/linear_algebra/square_matrix.hpp"
 #include "math/linear_algebra/vector.hpp"
 #include "math/quantity/angle.hpp"
+#include "math/quantity/length.hpp"
 #include "math/quantity/linear_velocity.hpp"
 
 #include <gtest/gtest.h>
@@ -191,7 +192,7 @@ TEST(ToleranceTest, PreservesUnitsAndSupportsConstantPolicies)
     EXPECT_DOUBLE_EQ(exact.relative, 0.0);
     static_assert(std::is_const_v<decltype(exact.absolute)>);
     static_assert(std::is_const_v<decltype(exact.relative)>);
-    static_assert(!std::is_constructible_v<math::QuantityTolerance<math::Angle>, math::Distance, double>);
+    static_assert(!std::is_constructible_v<math::QuantityTolerance<math::Angle>, math::Length, double>);
     static_assert(!std::is_assignable_v<math::Tolerance&, math::Tolerance>);
     EXPECT_FALSE((math::Matrix{{0.1 + 0.2}}).equals(math::Matrix{{0.3}}, exact));
     EXPECT_TRUE((math::Matrix{{0.1 + 0.2}}).equals(math::Matrix{{0.3}}, math::DEFAULT_TOLERANCE));
@@ -219,9 +220,9 @@ T makeQuantity(double value)
     {
         return math::Angle::fromDegrees(value);
     }
-    else if constexpr (std::is_same_v<T, math::Distance>)
+    else if constexpr (std::is_same_v<T, math::Length>)
     {
-        return math::Distance::fromMeters(value);
+        return math::Length::fromMeters(value);
     }
     else
     {
@@ -232,19 +233,19 @@ T makeQuantity(double value)
 TEST(QuantityTest, SharesStorageAndChecksWithoutLosingUnitSafety)
 {
     static_assert(std::is_base_of_v<math::Quantity<math::Angle>, math::Angle>);
-    static_assert(std::is_base_of_v<math::Quantity<math::Distance>, math::Distance>);
+    static_assert(std::is_base_of_v<math::Quantity<math::Length>, math::Length>);
     static_assert(std::is_base_of_v<math::Quantity<math::LinearVelocity>, math::LinearVelocity>);
     static_assert(sizeof(math::Angle) == sizeof(double));
-    static_assert(sizeof(math::Distance) == sizeof(double));
+    static_assert(sizeof(math::Length) == sizeof(double));
     static_assert(sizeof(math::LinearVelocity) == sizeof(double));
-    static_assert(!std::is_assignable_v<math::Quantity<math::Distance>&, math::Distance>);
-    static_assert(!std::is_constructible_v<math::Angle, math::Distance>);
+    static_assert(!std::is_assignable_v<math::Quantity<math::Length>&, math::Length>);
+    static_assert(!std::is_constructible_v<math::Angle, math::Length>);
 
     const auto angle = math::Angle::fromDegrees(-90.0);
     const math::Quantity<math::Angle>& quantity = angle;
     EXPECT_DOUBLE_EQ(quantity.value(), angle.deg());
     EXPECT_FALSE(quantity.isNonnegative());
-    EXPECT_DOUBLE_EQ(math::Distance::fromKilometers(2.0).value(), 2000.0);
+    EXPECT_DOUBLE_EQ(math::Length::fromKilometers(2.0).value(), 2000.0);
     EXPECT_DOUBLE_EQ(math::LinearVelocity::fromMetersPerSecond(3.0).value(), 3.0);
 }
 
@@ -338,7 +339,7 @@ TEST(QuantityToleranceTest, SupportsNewQuantitiesAndRestrictsComparisonTypes)
 {
     using AnglePolicy = math::QuantityTolerance<math::Angle>;
     static_assert(!std::is_invocable_v<decltype(&AnglePolicy::isWithin),
-        const AnglePolicy&, math::Distance, math::Distance>);
+        const AnglePolicy&, math::Length, math::Length>);
     static_assert(!std::is_assignable_v<AnglePolicy&, AnglePolicy>);
     const math::QuantityTolerance policy{TestQuantity(0.25), 0.125};
     EXPECT_TRUE(policy.isWithin(TestQuantity(0.0), TestQuantity(0.25)));
@@ -353,7 +354,7 @@ class QuantityComparisonTest : public testing::Test
 {
 };
 
-using QuantityTypes = testing::Types<math::Angle, math::Distance, math::LinearVelocity>;
+using QuantityTypes = testing::Types<math::Angle, math::Length, math::LinearVelocity>;
 TYPED_TEST_SUITE(QuantityComparisonTest, QuantityTypes);
 
 TYPED_TEST(QuantityComparisonTest, NoneToleranceDisablesAbsoluteAndRelativeTolerance)
@@ -382,7 +383,7 @@ TYPED_TEST(QuantityComparisonTest, NoneToleranceDisablesAbsoluteAndRelativeToler
 TYPED_TEST(QuantityComparisonTest, RestrictsComparisonsToMatchingQuantityTypes)
 {
     checkComparisonTypes<TypeParam, math::Angle>();
-    checkComparisonTypes<TypeParam, math::Distance>();
+    checkComparisonTypes<TypeParam, math::Length>();
     checkComparisonTypes<TypeParam, math::LinearVelocity>();
 }
 

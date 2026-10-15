@@ -4,7 +4,7 @@ add_library(math STATIC
     src/geometry/cartesian_point.cpp
     src/geometry/cartesian_velocity.cpp
     src/quantity/angle.cpp
-    src/quantity/distance.cpp
+    src/quantity/length.cpp
     src/geometry/spherical_direction.cpp
     src/linear_algebra/matrix.cpp
     src/linear_algebra/square_matrix.cpp
@@ -25,9 +25,9 @@ add_executable(angle_test test/angle_test.cpp)
 target_link_libraries(angle_test PRIVATE math GTest::gtest_main)
 gtest_discover_tests(angle_test)
 
-add_executable(distance_test test/distance_test.cpp)
-target_link_libraries(distance_test PRIVATE math GTest::gtest_main)
-gtest_discover_tests(distance_test)
+add_executable(length_test test/length_test.cpp)
+target_link_libraries(length_test PRIVATE math GTest::gtest_main)
+gtest_discover_tests(length_test)
 
 add_executable(spherical_point_test test/spherical_point_test.cpp)
 target_link_libraries(spherical_point_test PRIVATE math GTest::gtest_main)

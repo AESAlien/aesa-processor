@@ -55,7 +55,7 @@ TEST(ImmutableGeometryTest, ReportsMissingLocationAndStationaryMotionAngles)
             BeamType::CONFIRMATION,
             confirmation->requestId,
             1000ms,
-            {{math::Distance::fromMeters(100.0 + displacement), 0_deg, 0_deg, 0_mps, 1.0f}}));
+            {{math::Length::fromMeters(100.0 + displacement), 0_deg, 0_deg, 0_mps, 1.0f}}));
         ASSERT_TRUE(tracking.has_value());
         const auto events = controller.nextTrackEvents();
         ASSERT_EQ(events.size(), 1u);

@@ -1,4 +1,4 @@
-﻿#include "constant_velocity_algorithm.hpp"
+#include "constant_velocity_algorithm.hpp"
 
 #include "cartesian_math.hpp"
 #include "validation/detection_validation.hpp"
@@ -117,13 +117,13 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     const auto positionVector = cartesian::toVector(state.position)
         + cartesian::toVector(velocity) * elapsedSeconds(state.timestamp, time);
     const auto position = cartesian::toPosition(positionVector);
-    const auto range = math::Distance::fromMeters(positionVector.norm());
+    const auto range = math::Length::fromMeters(positionVector.norm());
     if (!isFinite(position) || !std::isfinite(range.m()) || range <= 0.0_m)
     {
         return std::nullopt;
     }
 
-    const auto horizontalRange = math::Distance::fromMeters(
+    const auto horizontalRange = math::Length::fromMeters(
         math::Vector{position.x.m(), position.y.m()}.norm());
     return TargetPrediction{
         time,

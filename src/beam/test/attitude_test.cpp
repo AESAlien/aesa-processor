@@ -1,4 +1,4 @@
-﻿#include "attitude/ant_enu_transform.hpp"
+#include "attitude/ant_enu_transform.hpp"
 #include "attitude/attitude_error.hpp"
 
 #include <gtest/gtest.h>
@@ -77,7 +77,7 @@ TEST(AttitudeTransformTest, ThrowsOnNonFiniteValues)
 
     attitude = makeAttitude(0_deg, 0_deg, 0_deg);
     EXPECT_THROW(
-        attitude.altitude = math::Distance::fromKilometers(std::numeric_limits<double>::infinity()),
+        attitude.altitude = math::Length::fromKilometers(std::numeric_limits<double>::infinity()),
         std::invalid_argument);
 }
 
@@ -105,7 +105,7 @@ TEST(AttitudeTransformTest, ThrowsOnOutOfRangeValues)
     EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(attitude, config), beam::AttitudeErrorCode::OUT_OF_RANGE);
 }
 
-TEST(AttitudeTransformTest, ValidatesAltitudeBoundariesWithDistanceLiterals)
+TEST(AttitudeTransformTest, ValidatesLengthAltitudeBoundaries)
 {
     const beam::AttitudeConfig config;
     auto attitude = makeAttitude(0_deg, 0_deg, 0_deg);

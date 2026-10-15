@@ -4,7 +4,7 @@
 
 namespace math
 {
-SphericalPoint::SphericalPoint(Distance radius, SphericalDirection direction)
+SphericalPoint::SphericalPoint(Length radius, SphericalDirection direction)
     : radius(radius),
       direction(direction)
 {

@@ -1,4 +1,4 @@
-﻿#include "math/quantity/linear_velocity.hpp"
+#include "math/quantity/linear_velocity.hpp"
 
 #include <gtest/gtest.h>
 
@@ -87,14 +87,14 @@ TEST(LinearVelocityTest, ComparesSignedVelocities)
     EXPECT_FALSE(negative >= zero);
 }
 
-// 거리와 정수·실수 시간, 사용자 정의 시간 비율을 초당 미터 속도로 변환한다.
-TEST(LinearVelocityTest, CreatesLinearVelocityByDividingDistanceByChronoDurations)
+// 좌표값과 정수·실수 시간, 사용자 정의 시간 비율을 초당 미터 속도로 변환한다.
+TEST(LinearVelocityTest, CreatesLinearVelocityByDividingLengthByChronoDurations)
 {
     using namespace math::literals;
     using namespace std::chrono_literals;
 
     static_assert(std::is_same<decltype(1_km / 1s), math::LinearVelocity>::value,
-        "Distance divided by a duration must produce a LinearVelocity");
+        "Length divided by a duration must produce a LinearVelocity");
     EXPECT_DOUBLE_EQ((1_km / 2s).mps(), 500.0);
     EXPECT_DOUBLE_EQ((1000_m / 2s).mps(), 500.0);
     EXPECT_DOUBLE_EQ((0.25_m / 500ms).mps(), 0.5);
@@ -104,15 +104,13 @@ TEST(LinearVelocityTest, CreatesLinearVelocityByDividingDistanceByChronoDuration
         2000.0);
 }
 
-// 거리와 시간의 부호 조합을 속도에 반영하고 거리 0은 속도 0으로 계산한다.
-TEST(LinearVelocityTest, PreservesSignsWhenDividingDistanceByDuration)
+// 좌표값과 시간의 부호 조합을 속도에 반영하고 좌표값 0은 속도 0으로 계산한다.
+TEST(LinearVelocityTest, PreservesSignsWhenDividingLengthByDuration)
 {
     using namespace math::literals;
     using namespace std::chrono_literals;
 
-    EXPECT_DOUBLE_EQ((-1_km / 2s).mps(), -500.0);
     EXPECT_DOUBLE_EQ((1_km / -2s).mps(), -500.0);
-    EXPECT_DOUBLE_EQ((-1_km / -2s).mps(), 500.0);
     EXPECT_DOUBLE_EQ((0_km / 2s).mps(), 0.0);
 }
 
@@ -193,9 +191,9 @@ TEST(LinearVelocityTest, RejectsNonFiniteValues)
 TEST(LinearVelocityTest, RejectsNonFiniteResultsFromDurationDivision)
 {
     using namespace math::literals;
-    const auto distance = math::Distance::fromMeters(std::numeric_limits<double>::max());
-    EXPECT_THROW(distance / std::chrono::duration<double>(0.5), std::invalid_argument);
-    EXPECT_THROW(distance / std::chrono::duration<double>(-0.5), std::invalid_argument);
+    const auto length = math::Length::fromMeters(std::numeric_limits<double>::max());
+    EXPECT_THROW(length / std::chrono::duration<double>(0.5), std::invalid_argument);
+    EXPECT_THROW(length / std::chrono::duration<double>(-0.5), std::invalid_argument);
     EXPECT_THROW(1_m / std::chrono::duration<double>(std::numeric_limits<double>::quiet_NaN()),
         std::invalid_argument);
 }

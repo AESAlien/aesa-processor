@@ -5,7 +5,7 @@
 #include <math/geometry/cartesian_point.hpp>
 #include <math/geometry/cartesian_velocity.hpp>
 #include <math/linear_algebra/vector.hpp>
-#include <math/quantity/distance.hpp>
+#include <math/quantity/length.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
 #include <cmath>
@@ -28,9 +28,9 @@ inline math::Vector toVector(const math::CartesianVelocity& velocity)
 
 inline math::CartesianPoint toPosition(const math::Vector& position)
 {
-    return {math::Distance::fromMeters(position[0]),
-        math::Distance::fromMeters(position[1]),
-        math::Distance::fromMeters(position[2])};
+    return {math::Length::fromMeters(position[0]),
+        math::Length::fromMeters(position[1]),
+        math::Length::fromMeters(position[2])};
 }
 
 inline math::CartesianVelocity toVelocity(const math::Vector& velocity)

@@ -82,7 +82,7 @@ target::DetectionEvent makeStationaryDetection(
     //
     // 실제 빔 범위나 모의기의 탐지 과정은 구현하지 않는다.
     plots.emplace_back(
-        math::Distance::fromMeters(12000),
+        math::Length::fromMeters(12000),
         math::Angle::fromDegrees(0),
         math::Angle::fromDegrees(0),
         math::LinearVelocity::fromMetersPerSecond(0),
@@ -168,7 +168,7 @@ int main()
             beam::SetAttitudeCommand(
                 math::Angle::fromDegrees(37),
                 math::Angle::fromDegrees(127),
-                math::Distance::fromMeters(100),
+                math::Length::fromMeters(100),
                 math::Angle::fromDegrees(0),
                 math::Angle::fromDegrees(0),
                 math::Angle::fromDegrees(0)));

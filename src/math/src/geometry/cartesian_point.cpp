@@ -3,7 +3,7 @@
 namespace math
 {
 
-CartesianPoint::CartesianPoint(Distance x, Distance y, Distance z) noexcept
+CartesianPoint::CartesianPoint(Length x, Length y, Length z) noexcept
     : x(x),
       y(y),
       z(z)

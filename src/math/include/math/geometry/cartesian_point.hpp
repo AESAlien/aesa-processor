@@ -1,17 +1,17 @@
 #pragma once
 
-#include "math/quantity/distance.hpp"
+#include "math/quantity/length.hpp"
 
 namespace math
 {
 
 struct CartesianPoint
 {
-    CartesianPoint(Distance x, Distance y, Distance z) noexcept;
+    CartesianPoint(Length x, Length y, Length z) noexcept;
 
-    const Distance x;
-    const Distance y;
-    const Distance z;
+    const Length x;
+    const Length y;
+    const Length z;
 };
 
 }

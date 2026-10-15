@@ -1,7 +1,7 @@
 #pragma once
 
 #include "math/quantity/angle.hpp"
-#include "math/quantity/distance.hpp"
+#include "math/quantity/length.hpp"
 
 namespace math
 {
@@ -13,6 +13,6 @@ double tan(Angle angle);
 Angle asin(double value);
 Angle acos(double value);
 Angle atan(double value);
-Angle atan2(Distance y, Distance x);
+Angle atan2(Length y, Length x);
 
 }

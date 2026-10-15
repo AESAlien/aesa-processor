@@ -3,7 +3,7 @@
 #include <math/geometry/cartesian_point.hpp>
 #include <math/geometry/cartesian_velocity.hpp>
 #include <math/quantity/angle.hpp>
-#include <math/quantity/distance.hpp>
+#include <math/quantity/length.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
 #include <chrono>
@@ -14,14 +14,14 @@ namespace target
 struct TargetPrediction
 {
     std::chrono::milliseconds timestamp;
-    math::Distance slantRange;
+    math::Length slantRange;
     math::Angle azimuth;
     math::Angle elevation;
 };
 
 struct TargetTrackingState
 {
-    math::Distance slantRange;
+    math::Length slantRange;
     math::Angle azimuth;
     math::Angle elevation;
     math::LinearVelocity dopplerVelocity;

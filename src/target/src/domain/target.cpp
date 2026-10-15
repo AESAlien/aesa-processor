@@ -11,7 +11,7 @@ namespace target
 {
 
 Target::Target(
-    math::Distance slantRange,
+    math::Length slantRange,
     math::Angle azimuth,
     math::Angle elevation,
     math::LinearVelocity dopplerVelocity,
@@ -53,7 +53,7 @@ TargetState Target::state() const
     return _trackingState ? TargetState::TRACKING : TargetState::TENTATIVE;
 }
 
-math::Distance Target::slantRange() const
+math::Length Target::slantRange() const
 {
     return _trackingState ? _trackingState->slantRange : _initialSlantRange;
 }

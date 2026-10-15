@@ -1,7 +1,7 @@
-﻿#pragma once
+#pragma once
 
 #include "math/quantity/quantity_tolerance.hpp"
-#include "math/quantity/distance.hpp"
+#include "math/quantity/length.hpp"
 
 #include <chrono>
 #include <stdexcept>
@@ -30,21 +30,21 @@ private:
 
 LinearVelocity abs(LinearVelocity velocity) noexcept;
 
-// 거리를 chrono 시간으로 나눠 초당 미터 속도를 계산한다.
+// 길이를 chrono 시간으로 나눠 초당 미터 속도를 계산한다.
 // 시간이 0이면 std::domain_error를 던진다.
 template <typename Rep, typename Period>
 LinearVelocity operator/(
-    const Distance& distance,
+    const Length& length,
     const std::chrono::duration<Rep, Period>& duration
 ) {
     const auto seconds = std::chrono::duration<long double>(duration).count();
     if (seconds == 0.0L)
     {
-        throw std::domain_error("Cannot divide a distance by zero duration");
+        throw std::domain_error("Cannot divide a length by zero duration");
     }
 
     return LinearVelocity::fromMetersPerSecond(
-        static_cast<double>(static_cast<long double>(distance.m()) / seconds));
+        static_cast<double>(static_cast<long double>(length.m()) / seconds));
 }
 
 namespace literals

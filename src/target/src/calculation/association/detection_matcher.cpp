@@ -1,4 +1,4 @@
-﻿#include "detection_matcher.hpp"
+#include "detection_matcher.hpp"
 
 #include "calculation/tracking/cartesian_math.hpp"
 #include "domain/target.hpp"
@@ -19,7 +19,7 @@ const math::LinearVelocity MAX_INITIAL_DOPPLER_DIFFERENCE = 30.0_mps;
 
 bool positionsEqual(
     const Target& observation,
-    const math::Distance& range,
+    const math::Length& range,
     const math::Angle& azimuth,
     const math::Angle& elevation)
 {

@@ -103,7 +103,7 @@ TrackEvent trackEvent(const Target& target)
 
     const auto& position = state.position;
     const auto& velocity = state.velocity;
-    const auto horizontalRange = math::Distance::fromMeters(
+    const auto horizontalRange = math::Length::fromMeters(
         math::Vector{position.x.m(), position.y.m()}.norm());
     const auto horizontalSpeed = math::LinearVelocity::fromMetersPerSecond(
         math::Vector{velocity.x.mps(), velocity.y.mps()}.norm());

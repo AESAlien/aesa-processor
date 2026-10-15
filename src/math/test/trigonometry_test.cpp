@@ -38,7 +38,7 @@ TEST(TrigonometryTest, ComputesInverseSineCosineAndTangent)
     EXPECT_NEAR(math::atan(-1.0).deg(), -45.0, 1e-12);
 }
 
-TEST(TrigonometryTest, ComputesInverseTangentFromDistances)
+TEST(TrigonometryTest, ComputesInverseTangentFromCoordinates)
 {
     EXPECT_NEAR(math::atan2(1_m, 1_m).deg(), 45.0, 1e-12);
     EXPECT_NEAR(math::atan2(1_m, -1_m).deg(), 135.0, 1e-12);
