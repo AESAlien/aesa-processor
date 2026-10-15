@@ -90,8 +90,26 @@ public:
 
     void sendBeamCommand(const beam::BeamCommand& command)
     {
-        const NetworkPeer peer = NetworkPeer::SCENARIO_SIMULATOR;
-        const EncodeResult encodeResult = encodeBeamCommand(command);
+        sendEncodedMessage(
+            NetworkPeer::SCENARIO_SIMULATOR,
+            encodeBeamCommand(command));
+    }
+
+    void sendTrackEvents(
+        const std::vector<target::TrackEvent>& trackEvents
+    )
+    {
+        sendEncodedMessage(
+            NetworkPeer::OPERATOR_CONSOLE,
+            encodeTrackEvents(trackEvents));
+    }
+
+private:
+    void sendEncodedMessage(
+        NetworkPeer peer,
+        const EncodeResult& encodeResult
+    )
+    {
         if (!encodeResult.bytes.has_value())
         {
             controller_error::throwEncodingFailure(
@@ -112,7 +130,6 @@ public:
         controller_error::throwSendFailure(peer, sendResult);
     }
 
-private:
     std::optional<IncomingDto> takePendingMessage()
     {
         IncomingDto message = std::move(_pendingMessages.front());
@@ -242,6 +259,13 @@ void CommController::sendBeamCommand(
 )
 {
     _impl->sendBeamCommand(command);
+}
+
+void CommController::sendTrackEvents(
+    const std::vector<target::TrackEvent>& trackEvents
+)
+{
+    _impl->sendTrackEvents(trackEvents);
 }
 
 } // namespace comm
