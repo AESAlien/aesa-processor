@@ -205,6 +205,7 @@ TEST(SquareMatrixTest, ComputesDeterminantsOfSquareMatrices)
 // 허용오차 내에서 열벡터가 단위 직교인지 확인하고 잘못된 허용오차를 거부한다.
 TEST(SquareMatrixTest, ChecksOrthogonality)
 {
+    EXPECT_TRUE(math::SquareMatrix::identity(3).isOrthogonal());
     EXPECT_TRUE(math::SquareMatrix::identity(3).isOrthogonal(math::Tolerance{0.0, 0.0}));
     EXPECT_TRUE((math::SquareMatrix{{1.0, 1e-4}, {0.0, 1.0}}).isOrthogonal(math::Tolerance{1e-3, 0.0}));
     EXPECT_FALSE((math::SquareMatrix{{1.0, 1.0}, {0.0, 1.0}}).isOrthogonal(math::Tolerance{1e-6, 0.0}));
@@ -223,6 +224,7 @@ TEST(SquareMatrixTest, ChecksRotationMatrices)
     const math::SquareMatrix rotation{{0.0, -1.0, 0.0},
                                       {1.0, 0.0, 0.0},
                                       {0.0, 0.0, 1.0}};
+    EXPECT_TRUE(rotation.isRotation());
     EXPECT_TRUE(rotation.isRotation(math::Tolerance{1e-12, 0.0}));
     EXPECT_FALSE((math::SquareMatrix{{1.0, 0.0, 0.0},
                                      {0.0, 1.0, 0.0},

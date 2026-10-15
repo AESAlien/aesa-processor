@@ -43,9 +43,9 @@ public:
     bool operator!=(const SquareMatrix& other) const noexcept;
 
     // 열벡터의 내적에 지정한 절대·상대오차를 적용해 직교행렬이면 true를 반환한다.
-    bool isOrthogonal(const Tolerance& tolerance) const;
+    bool isOrthogonal(const Tolerance& tolerance = DEFAULT_TOLERANCE) const;
     // 직교성과 행렬식 1에 지정한 절대·상대오차를 적용해 회전행렬이면 true를 반환한다.
-    bool isRotation(const Tolerance& tolerance) const;
+    bool isRotation(const Tolerance& tolerance = DEFAULT_TOLERANCE) const;
 
     // 원소 접근 시 범위를 검사한다. 범위 밖이면 std::out_of_range를 던진다.
     double& at(std::size_t row, std::size_t column);
