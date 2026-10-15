@@ -42,7 +42,7 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     EXPECT_FALSE(repository.remove(lastId));
 }
 
-TEST(ImmutableGeometryTest, ReportsMissingLocationAndStationaryMotionAngles)
+TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
 {
     using BeamType = beam::BeamCommand::BeamType;
     for (double displacement : {0.0, 1.0})
@@ -59,14 +59,10 @@ TEST(ImmutableGeometryTest, ReportsMissingLocationAndStationaryMotionAngles)
         ASSERT_TRUE(tracking.has_value());
         const auto events = controller.nextTrackEvents();
         ASSERT_EQ(events.size(), 1u);
-        EXPECT_FALSE(events[0].latitude.has_value());
-        EXPECT_FALSE(events[0].longitude.has_value());
-        EXPECT_EQ(events[0].heading.has_value(), displacement > 0.0);
-        EXPECT_EQ(events[0].flightPathAngle.has_value(), displacement > 0.0);
-        if (displacement > 0.0)
-        {
-            EXPECT_DOUBLE_EQ(events[0].heading->deg(), 0.0);
-            EXPECT_DOUBLE_EQ(events[0].flightPathAngle->deg(), 0.0);
-        }
+        EXPECT_DOUBLE_EQ(events[0].velocity.mps(), displacement);
+        EXPECT_DOUBLE_EQ(events[0].latitude.deg(), 0.0);
+        EXPECT_DOUBLE_EQ(events[0].longitude.deg(), 0.0);
+        EXPECT_DOUBLE_EQ(events[0].heading.deg(), 0.0);
+        EXPECT_DOUBLE_EQ(events[0].flightPathAngle.deg(), 0.0);
     }
 }

@@ -108,14 +108,12 @@ TrackEvent trackEvent(const Target& target)
     const auto horizontalSpeed = math::LinearVelocity::fromMetersPerSecond(
         math::Vector{velocity.x.mps(), velocity.y.mps()}.norm());
     const auto speed = math::LinearVelocity::fromMetersPerSecond(cartesian::toVector(velocity).norm());
-    // Report position and motion in the same fixed radar frame as the detections.
-    // Latitude/longitude are unavailable; a stationary target has no motion angle.
-    const std::optional<math::Angle> heading = horizontalSpeed > 0.0_mps
-        ? std::optional{math::Angle::fromRadians(std::atan2(velocity.y.mps(), velocity.x.mps()))}
-        : std::nullopt;
-    const std::optional<math::Angle> flightPathAngle = speed > 0.0_mps
-        ? std::optional{math::Angle::fromRadians(std::atan2(velocity.z.mps(), horizontalSpeed.mps()))}
-        : std::nullopt;
+    const math::Angle heading = horizontalSpeed > 0.0_mps
+        ? math::Angle::fromRadians(std::atan2(velocity.y.mps(), velocity.x.mps()))
+        : 0_deg;
+    const math::Angle flightPathAngle = speed > 0.0_mps
+        ? math::Angle::fromRadians(std::atan2(velocity.z.mps(), horizontalSpeed.mps()))
+        : 0_deg;
     return TrackEvent(
         static_cast<std::uint16_t>(target.id()),
         TrackEvent::TrackState::TRACKING,
@@ -124,8 +122,8 @@ TrackEvent trackEvent(const Target& target)
         target.azimuth(),
         target.elevation(),
         target.dopplerVelocity(),
-        std::nullopt,
-        std::nullopt,
+        0_deg,
+        0_deg,
         position.z,
         speed,
         heading,

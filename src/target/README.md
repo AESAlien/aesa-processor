@@ -155,10 +155,9 @@ nextTrackEvents()는 현재 Tracking만 복사하여 반환하며 조회로 표�
 - groundRange: 레이더 기준 수평 투영 거리.
 - altitude: 레이더 기준 상대 높이 z.
 - velocity: 속도 벡터 크기.
-- heading / flightPathAngle: 레이더 기준 수평 진행각 / 속도 상승각.
-- latitude / longitude: 기준 위치가 없어 NaN. 속력 0의 운동 각도도 정의되지 않아 NaN.
+- heading / flightPathAngle: 레이더 기준 수평 진행각 / 속도 상승각. 정지 표적은 0도.
+- latitude / longitude: 기준 위치가 없어 현재 0도로 보고한다.
 
-Comm 및 콘솔의 NaN 수용과 실제 전송은 아직 통합 검증하지 않았다.
 NDS·공분산·칼만필터/CA·플랫폼 자세 보정은 미구현이다.
 연관 조건은 Matcher에서, 추적 알고리즘은 ITrackingAlgorithm 구현체에서 교체한다.
 현재 Beam Scheduler의 확인·추적 beamId 연결은 담당 모듈의 별도 수정이 필요하다.
