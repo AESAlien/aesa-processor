@@ -18,7 +18,9 @@ public:
     explicit DetectionMatcher(double positionNdsThreshold = DEFAULT_POSITION_NDS_THRESHOLD);
 
     bool isValidPosition(const Target& observation) const;
-    // Return a score inside the search duplicate gate; nullopt means unassociated.
+    // Return an NDS score inside the search duplicate gate; nullopt means unassociated.
+    // Tentative scores use the residual beyond 1000m/s * absolute elapsed time.
+    // Tracking scores use the predicted position without that motion allowance.
     std::optional<double> matchesPosition(const Target& observation, const Target& other) const;
     // Return an NDS rank after the speed/Doppler checks; nullopt means ineligible.
     // Confirmation ranking has no additional NDS threshold.

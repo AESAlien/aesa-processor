@@ -1,9 +1,12 @@
 #include "constant_velocity_algorithm.hpp"
 
-#include "cartesian_math.hpp"
+#include "domain/target.hpp"
 #include "validation/detection_validation.hpp"
 
-#include <math/trigonometry.hpp>
+#include <math/geometry/cartesian_position.hpp>
+#include <math/geometry/cartesian_velocity.hpp>
+#include <math/geometry/spherical_position.hpp>
+#include <math/linear_algebra/vector.hpp>
 
 #include <cmath>
 
@@ -29,9 +32,10 @@ std::optional<TargetTrackingState> estimateTrackingState(
     const Target& observation)
 {
     const auto time = observation.lastObservationTime();
-    const auto position = cartesian::position(observation);
-    const auto previousPositionVector = cartesian::toVector(previousPosition);
-    const auto positionVector = cartesian::toVector(position);
+    const auto position = observation.sphericalPosition().toCartesian();
+    const math::Vector previousPositionVector{
+        previousPosition.x.m(), previousPosition.y.m(), previousPosition.z.m()};
+    const math::Vector positionVector{position.x.m(), position.y.m(), position.z.m()};
     if (!previousPositionVector.isFinite() || !positionVector.isFinite())
     {
         return std::nullopt;
@@ -44,9 +48,12 @@ std::optional<TargetTrackingState> estimateTrackingState(
         return std::nullopt;
     }
 
+    const math::CartesianVelocity velocity{
+        math::LinearVelocity::fromMetersPerSecond(velocityVector[0]),
+        math::LinearVelocity::fromMetersPerSecond(velocityVector[1]),
+        math::LinearVelocity::fromMetersPerSecond(velocityVector[2])};
     return TargetTrackingState{observation.slantRange(), observation.azimuth(), observation.elevation(),
-        observation.dopplerVelocity(), observation.power_db(), time, position,
-        cartesian::toVelocity(velocityVector)};
+        observation.dopplerVelocity(), observation.power_db(), time, position, velocity};
 }
 
 } // namespace
@@ -63,7 +70,7 @@ std::optional<TargetTrackingState> ConstantVelocityAlgorithm::initialize(
         return std::nullopt;
     }
 
-    return estimateTrackingState(cartesian::position(first), firstTime, second);
+    return estimateTrackingState(first.sphericalPosition().toCartesian(), firstTime, second);
 }
 
 std::optional<TargetTrackingState> ConstantVelocityAlgorithm::update(
@@ -102,22 +109,26 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
         return TargetPrediction{time, state.slantRange, state.azimuth, state.elevation};
     }
 
-    const auto positionVector = cartesian::toVector(state.position)
-        + cartesian::toVector(velocity) * elapsedSeconds(state.timestamp, time);
+    const math::Vector velocityVector{velocity.x.mps(), velocity.y.mps(), velocity.z.mps()};
+    const auto positionVector = math::Vector{
+        state.position.x.m(), state.position.y.m(), state.position.z.m()}
+        + velocityVector * elapsedSeconds(state.timestamp, time);
     const double rangeMeters = positionVector.norm();
     if (!positionVector.isFinite() || !std::isfinite(rangeMeters) || rangeMeters <= 0.0)
     {
         return std::nullopt;
     }
 
-    const auto range = math::Length::fromMeters(rangeMeters);
-    const auto position = cartesian::toPosition(positionVector);
-    const auto horizontalRange = position.horizontalDistance();
+    const math::CartesianPosition predictedPosition{
+        math::Length::fromMeters(positionVector[0]),
+        math::Length::fromMeters(positionVector[1]),
+        math::Length::fromMeters(positionVector[2])};
+    const auto position = predictedPosition.toSpherical();
     return TargetPrediction{
         time,
-        range,
-        math::atan2(position.y, position.x),
-        math::atan2(position.z, horizontalRange)
+        position.radius,
+        position.direction.azimuth,
+        position.direction.elevation
     };
 }
 

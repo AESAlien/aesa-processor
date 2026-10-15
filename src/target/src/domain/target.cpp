@@ -68,6 +68,12 @@ math::Angle Target::elevation() const
     return _trackingState ? _trackingState->elevation : _initialElevation;
 }
 
+math::SphericalPosition Target::sphericalPosition() const
+{
+    return math::SphericalPosition(
+        slantRange(), math::SphericalDirection(azimuth(), elevation()));
+}
+
 math::LinearVelocity Target::dopplerVelocity() const
 {
     return _trackingState ? _trackingState->dopplerVelocity : _initialDopplerVelocity;

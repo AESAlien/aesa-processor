@@ -27,7 +27,7 @@ struct TargetTrackingState
     math::LinearVelocity dopplerVelocity;
     float power_db;
     std::chrono::milliseconds timestamp;
-    // Antenna-local Cartesian axes: x at azimuth 0, y at azimuth +90, z upward.
+    // Match math geometry: y at azimuth 0, x at azimuth +90, z upward.
     math::CartesianPosition position;
     math::CartesianVelocity velocity;
 };

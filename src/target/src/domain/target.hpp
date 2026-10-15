@@ -2,6 +2,8 @@
 
 #include "tracking_state.hpp"
 
+#include <math/geometry/spherical_position.hpp>
+
 #include <chrono>
 #include <cstdint>
 #include <memory>
@@ -37,6 +39,7 @@ public:
     math::Length slantRange() const;
     math::Angle azimuth() const;
     math::Angle elevation() const;
+    math::SphericalPosition sphericalPosition() const;
     math::LinearVelocity dopplerVelocity() const;
     float power_db() const;
     std::chrono::milliseconds initialTime() const;

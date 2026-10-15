@@ -108,7 +108,7 @@ TrackEvent trackEvent(const Target& target)
     const auto horizontalSpeed = velocity.horizontalSpeed();
     const auto speed = velocity.speed();
     const math::Angle heading = horizontalSpeed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
-        ? math::atan2(velocity.y, velocity.x)
+        ? math::atan2(velocity.x, velocity.y)
         : 0_deg;
     const math::Angle flightPathAngle = speed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         ? math::atan2(velocity.z, horizontalSpeed)

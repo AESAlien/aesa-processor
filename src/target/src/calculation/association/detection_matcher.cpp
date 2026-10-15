@@ -1,9 +1,11 @@
 #include "detection_matcher.hpp"
 
-#include "calculation/tracking/cartesian_math.hpp"
 #include "domain/target.hpp"
 #include "validation/detection_validation.hpp"
 
+#include <math/geometry/cartesian_position.hpp>
+#include <math/geometry/spherical_direction.hpp>
+#include <math/geometry/spherical_position.hpp>
 #include <math/linear_algebra/square_matrix.hpp>
 #include <math/linear_algebra/vector.hpp>
 #include <math/quantity/quantity_tolerance.hpp>
@@ -22,7 +24,7 @@ namespace
 
 using namespace math::literals;
 
-const math::LinearVelocity MAX_INITIAL_SPEED = 1000.0_mps;
+const math::LinearVelocity MAX_ASSOCIATION_SPEED = 1000.0_mps;
 const math::LinearVelocity MAX_INITIAL_DOPPLER_DIFFERENCE = 30.0_mps;
 constexpr std::size_t NDS_DIMENSION = 3;
 
@@ -40,84 +42,44 @@ std::optional<double> calculateNds(
     const math::SquareMatrix& covariance)
 {
     if (residual.size() != NDS_DIMENSION || covariance.size() != NDS_DIMENSION
-        || !residual.isFinite() || !covariance.isFinite()
-        || !covariance.equals(math::transpose(covariance),
-            math::Tolerance{0.0, math::DEFAULT_RELATIVE_TOLERANCE}))
+        || !residual.isFinite()
+        || !covariance.isSymmetric(math::Tolerance{0.0, math::DEFAULT_RELATIVE_TOLERANCE}))
     {
         return std::nullopt;
     }
 
-    // Preserve the tolerance-aware factorization of S = L L^T without forming S^-1.
-    math::SquareMatrix lower(NDS_DIMENSION);
+    // Preserve the accepted roundoff tolerance before math's exact symmetry check.
+    auto symmetricCovariance = covariance;
     for (std::size_t row = 0; row < NDS_DIMENSION; ++row)
     {
-        for (std::size_t column = 0; column <= row; ++column)
+        for (std::size_t column = 0; column < row; ++column)
         {
             const double first = covariance(row, column);
             const double second = covariance(column, row);
-            // Symmetrize only differences already accepted by the numeric tolerance.
-            double entry = first + 0.5 * (second - first);
+            const double entry = first + 0.5 * (second - first);
             if (!std::isfinite(entry))
             {
                 return std::nullopt;
             }
-
-            for (std::size_t index = 0; index < column; ++index)
-            {
-                const double product = lower(row, index) * lower(column, index);
-                entry -= product;
-                if (!std::isfinite(product) || !std::isfinite(entry))
-                {
-                    return std::nullopt;
-                }
-            }
-
-            if (row == column)
-            {
-                if (entry <= 0.0)
-                {
-                    return std::nullopt;
-                }
-                // Positive diagonal entries determine the Cholesky factor.
-                lower(row, column) = std::sqrt(entry);
-            }
-            else
-            {
-                // Divide directly to handle very small nonzero pivots.
-                lower(row, column) = entry / lower(column, column);
-            }
-            if (!std::isfinite(lower(row, column)))
-            {
-                return std::nullopt;
-            }
+            symmetricCovariance(row, column) = entry;
+            symmetricCovariance(column, row) = entry;
         }
     }
 
-    // Solve L y = r. Its squared norm is r^T S^-1 r.
-    math::Vector transformed(NDS_DIMENSION);
-    for (std::size_t row = 0; row < NDS_DIMENSION; ++row)
+    try
     {
-        double value = residual[row];
-        for (std::size_t column = 0; column < row; ++column)
-        {
-            const double product = lower(row, column) * transformed[column];
-            value -= product;
-            if (!std::isfinite(product) || !std::isfinite(value))
-            {
-                return std::nullopt;
-            }
-        }
-        transformed[row] = value / lower(row, row);
-        if (!std::isfinite(transformed[row]))
-        {
-            return std::nullopt;
-        }
-    }
+        const auto lower = math::cholesky(symmetricCovariance);
+        const auto transformed = lower.solveLowerTriangular(residual);
 
-    // norm() avoids unnecessary underflow in individual squared components.
-    const double norm = transformed.norm();
-    const double score = norm * norm;
-    return std::isfinite(score) ? std::optional<double>{score} : std::nullopt;
+        // Solve L y = r: ||y||^2 = r^T S^-1 r. norm() preserves tiny components.
+        const double norm = transformed.norm();
+        const double score = norm * norm;
+        return std::isfinite(score) ? std::optional<double>{score} : std::nullopt;
+    }
+    catch (const std::domain_error&)
+    {
+        return std::nullopt;
+    }
 }
 
 bool positionsEqual(
@@ -166,11 +128,33 @@ std::optional<double> DetectionMatcher::matchesPosition(
         return std::nullopt;
     }
     const auto referencePosition = prediction
-        ? cartesian::position(prediction->slantRange, prediction->azimuth, prediction->elevation)
-        : cartesian::position(other);
+        ? math::SphericalPosition(prediction->slantRange,
+            math::SphericalDirection(prediction->azimuth, prediction->elevation)).toCartesian()
+        : other.sphericalPosition().toCartesian();
 
-    const auto residual = cartesian::toVector(cartesian::position(observation))
-        - cartesian::toVector(referencePosition);
+    const auto position = observation.sphericalPosition().toCartesian();
+    auto residual = math::Vector{position.x.m(), position.y.m(), position.z.m()}
+        - math::Vector{referencePosition.x.m(), referencePosition.y.m(), referencePosition.z.m()};
+    if (other.state() == TargetState::TENTATIVE)
+    {
+        const auto observationTime = observation.lastObservationTime();
+        const auto initialTime = other.initialTime();
+        const auto elapsed = observationTime >= initialTime
+            ? observationTime - initialTime : initialTime - observationTime;
+        const double seconds = std::chrono::duration<double>(elapsed).count();
+        const double distanceMeters = residual.norm();
+        const double maximumTravelMeters = MAX_ASSOCIATION_SPEED.mps() * seconds;
+        if (!std::isfinite(distanceMeters) || !std::isfinite(maximumTravelMeters))
+        {
+            return std::nullopt;
+        }
+
+        // With the isotropic 98I covariance, gate only the distance beyond reachable motion.
+        // This is equivalent to d <= maximumTravel + sqrt(98 * positionNdsThreshold).
+        residual = distanceMeters <= maximumTravelMeters
+            ? math::Vector(NDS_DIMENSION)
+            : residual * ((distanceMeters - maximumTravelMeters) / distanceMeters);
+    }
     const auto score = calculateNds(residual, MEASUREMENT_DIFFERENCE_COVARIANCE);
     if (!score || *score > _positionNdsThreshold)
     {
@@ -191,8 +175,10 @@ std::optional<double> DetectionMatcher::matchesConfirmation(
         return std::nullopt;
     }
 
-    const auto displacement = cartesian::toVector(cartesian::position(observation))
-        - cartesian::toVector(cartesian::position(tentative));
+    const auto position = observation.sphericalPosition().toCartesian();
+    const auto initialPosition = tentative.sphericalPosition().toCartesian();
+    const auto displacement = math::Vector{position.x.m(), position.y.m(), position.z.m()}
+        - math::Vector{initialPosition.x.m(), initialPosition.y.m(), initialPosition.z.m()};
     // Ordered nonnegative times keep this integer subtraction within its range.
     const double seconds = std::chrono::duration<double>(time - tentative.initialTime()).count();
     const double speedMagnitude = (displacement / seconds).norm();
@@ -201,7 +187,7 @@ std::optional<double> DetectionMatcher::matchesConfirmation(
         return std::nullopt;
     }
     const auto speed = math::LinearVelocity::fromMetersPerSecond(speedMagnitude);
-    if (speed.greaterThan(MAX_INITIAL_SPEED, math::LinearVelocity::NONE_TOLERANCE)
+    if (speed.greaterThan(MAX_ASSOCIATION_SPEED, math::LinearVelocity::NONE_TOLERANCE)
         || !observation.dopplerVelocity().equals(
             tentative.dopplerVelocity(),
             math::QuantityTolerance<math::LinearVelocity>{MAX_INITIAL_DOPPLER_DIFFERENCE, 0.0}))

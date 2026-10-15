@@ -19,7 +19,8 @@ DetectionEvent 하나는 완료된 빔 하나의 결과다.
 - plots: 해당 빔의 모든 탐지. 탐지가 없는 완료 결과는 빈 목록으로 전달한다.
 
 Controller의 입력 경계에서만 DetectionEvent와 Plot을 사용한다.
-validateDetection()이 메타데이터와 전체 Plot의 위치·도플러를 먼저 검사한다.
+validateDetection()이 메타데이터와 전체 Plot의 양수 거리·고각 범위를 먼저 검사한다.
+거리·각도·도플러의 NaN·무한대는 math 물리량 생성 단계에서 거부된다.
 toTargets()가 각 Plot의 측정값과 실제 시각을 Target으로 복사한다.
 이후 처리에는 빔 메타데이터 지역변수와 vector<Target>만 전달한다.
 Selector, Matcher, Repository, 도메인 및 추적 알고리즘은 DetectionEvent를 포함하거나 사용하지 않는다.
@@ -75,11 +76,14 @@ Controller 복사본은 Repository·Matcher·Selector·알고리즘 객체 구�
 모든 탐지 연관은 src/calculation/association/의 DetectionMatcher를 거친다.
 확인 분기에서도 Target.canConfirm()을 호출하지 않는다.
 
-- matchesPosition(observation, other): 거리·방위각·고각 완전 일치. NDS 도입 전 임시 탐색 중복 조건.
-- matchesConfirmation(observation, tentative): 두 점의 안테나 좌표계 Cartesian 거리 / 실제 시간 차이가 1000m/s 이하이고 측정 도플러 차이가 30m/s 이하인지 검사.
+- matchesPosition(observation, other): Tentative는 최초 위치에서 1000m/s × 두 탐지의 시간 차이만큼 이동할 수 있다고 보고, 그 범위를 벗어난 잔여 위치 차이의 NDS가 임시 99% 기준인 11.345 이하이면 탐색 중복으로 판단한다. Tracking은 기존대로 수신 시각의 예측 위치와 비교한다.
+- matchesConfirmation(observation, tentative): 두 점의 안테나 좌표계 Cartesian 거리 / 실제 시간 차이가 1000m/s 이하이고 측정 도플러 차이가 30m/s 이하인 탐지의 NDS 점수를 반환한다. TrackSelector가 가장 작은 점수 하나를 선택한다.
 - matchesTracking(observation, tracking): 수신 시각의 예측 위치와 완전 일치. NDS 도입 전 임시 추적 연관 조건.
 
 확인 연관의 속력은 레이더와 표적 사이의 거리 변화만 사용하지 않고, 방위각·고각을 포함한 두 위치의 3차원 차분으로 계산한다.
+Tentative 탐색 중복의 허용거리는 1000m/s × |현재 탐지 시각 − 최초 탐지 시각| + 측정오차 허용거리이다.
+현재 98I 공분산과 11.345 기준에서는 측정오차 허용거리가 약 33.34m이며, 이동 가능한 거리 안의 중복 점수는 0이다.
+최초 관측은 갱신하지 않는다. 이 이동 보정은 등방성 98I를 전제로 하므로 향후 축별 공분산 모델을 도입할 때 다시 검토한다.
 Matcher는 추적 상태를 초기화하거나 변경하지 않는다.
 TrackSelector가 연관에 성공한 Target 하나를 선택하면, 기존 Target.confirm()이 추적 알고리즘을 한 번 호출하여 초기화한다.
 연관 통과와 추적 초기화 성공은 별도 조건이며, 선택 후 초기화가 실패하면 확인 실패로 삭제한다.
@@ -103,10 +107,14 @@ Target은 알고리즘의 반환 시각과 좌표·각도·속도의 유효성�
 예측은 저장 상태와 관측 시각을 앞당기지 않는다.
 
 position은 math::CartesianPosition, velocity는 math::CartesianVelocity이다.
-안테나 고정 좌표계는 방위각 0도 방향 x, 방위각 +90도 방향 y, 위쪽 z를 사용한다.
-cartesian_math.hpp가 Target 극좌표의 Cartesian 변환과 단위 성분↔math::Vector 변환을 공유한다.
-차분·외삽·크기는 math::Vector로 계산하고, 단위 리터럴과 equals를 사용한다.
-math 모듈은 수정하지 않는다. cmath는 isfinite와 math API에 없는 sin/cos/atan2에만 사용한다.
+안테나 고정 좌표계는 math와 동일하게 방위각 0도 방향 y, 방위각 +90도 방향 x, 위쪽 z를 사용한다.
+Target.sphericalPosition()은 현재 거리·방위각·고각을 math::SphericalPosition으로 묶어 제공한다.
+구면·직교 위치 변환은 math::SphericalPosition::toCartesian()과 math::CartesianPosition::toSpherical()에 위임한다.
+이동 예측의 방위각은 math 변환의 [0, 360)도 범위를 사용하며, 정지 예측은 원래 측정 각도를 그대로 보존한다.
+Matcher는 위치 차분을 m 기준 Vector로 구성하고, 추적 알고리즘은 위치(m)·속도(m/s)의 숫자 벡터 구성을 내부에서 처리한다.
+별도의 좌표 변환 보조 헤더는 사용하지 않는다. cmath는 유한값 검사에만 사용한다.
+NDS는 math::cholesky()와 SquareMatrix::solveLowerTriangular()로 계산하며, math의 계산 실패 예외는 점수 없음으로 처리한다.
+기존 대칭 허용오차를 통과한 공분산의 비대각 원소는 같은 평균값으로 맞춘 뒤 분해한다.
 validation/detection_validation.hpp/.cpp는 DTO 의존성 없이 기하·Target·추적 상태·예측을 검증한다.
 
 ## 빔 타입별 처리
@@ -145,7 +153,8 @@ validation/detection_validation.hpp/.cpp는 DTO 의존성 없이 기하·Target�
 실제 대기나 타이머 실행은 하지 않는다.
 
 빈 plots는 탐지 없는 완료 결과이며, 좌표가 0인 가짜 탐지로 변환하지 않는다.
-결과 메시지 자체의 미수신이나 Beam 큐의 요청 폐기는 별도의 통지·시간 제한 계약이 필요하다.
+현재 구현은 탐지가 없는 경우에도 완료 결과 메시지가 항상 도착한다고 가정한다.
+결과 메시지 미수신이나 Beam 큐의 요청 폐기에 대한 시간 제한 처리는 구현하지 않는다.
 
 ## 추적 정보 보고와 미구현 범위
 
@@ -158,13 +167,18 @@ nextTrackEvents()는 현재 Tracking만 복사하여 반환하며 조회로 표�
 - heading / flightPathAngle: 레이더 기준 수평 진행각 / 속도 상승각. 정지 표적은 0도.
 - latitude / longitude: 기준 위치가 없어 현재 0도로 보고한다.
 
-NDS·공분산·칼만필터/CA·플랫폼 자세 보정은 미구현이다.
+NDS는 두 독립 관측의 축별 7m 표준편차로 구성한 98I 공분산을 임시로 사용한다.
+Tracking 결과 연관은 아직 완전 위치 일치와 첫 통과 탐지 선택을 사용한다. NDS 점수와 최소 점수 선택은 미구현이다.
+추적 공분산·칼만필터/CA·플랫폼 자세 보정은 미구현이다. 칼만필터 연결 시 표적별 가속도·공분산 저장 및 예측 공분산 전달 구조도 함께 확장해야 한다.
 연관 조건은 Matcher에서, 추적 알고리즘은 ITrackingAlgorithm 구현체에서 교체한다.
-현재 Beam Scheduler의 확인·추적 beamId 연결은 담당 모듈의 별도 수정이 필요하다.
+Beam Scheduler는 확인·추적 요청의 requestId를 BeamCommand.beamId로 전달한다. Comm은 수신 beamID를 DetectionEvent.requestId로 전달한다.
+실제 장비의 추적 조향 범위 검증은 요청을 생성하는 쪽의 책임이다. 현재는 기하 유효성만 검사하며, 조향 범위 밖의 요청 중단·표적 정리 정책은 미구현이다.
+추적 알고리즘 완료 후에는 구면·직교 위치 중 기준 표현을 정하거나 두 표현의 일관성 계약을 확정한다.
 
 ## 검증
 
-test/는 요청대로 비워 둔다. Target 테스트·데모 및 GTest 대상은 모듈 CMake에 추가하지 않는다.
+test/의 기존 immutable_geometry_test.cpp는 추적 상태 교체·표적 삭제·보고와 math 좌표축 기준을 확인한다.
 전체 프로젝트 빌드·기존 프로젝트 테스트와 저장소 밖의 Target 회귀 검증으로 변경을 확인한다.
 외부 회귀 검증은 MSVC C++17 /W4 /WX로 실제 Target 소스를 컴파일한다.
+이번 변경은 전체 프로젝트 빌드와 프로젝트 테스트 308개, 외부 Target 회귀 검사 206개를 통과했다.
 실제 모의기·Comm·운용 콘솔의 통합 실행은 이번 변경 범위에 포함하지 않는다.
