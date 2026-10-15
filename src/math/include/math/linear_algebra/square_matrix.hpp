@@ -59,6 +59,11 @@ public:
     // 현재 행렬이 하삼각행렬이 아니거나 대각 원소가 0이거나 입력 또는 해에 비유한 값이 있으면 std::domain_error를 던진다.
     Vector solveLowerTriangular(const Vector& rhs) const;
 
+    // 현재 행렬을 상삼각행렬 U로 보고 U * x = rhs를 만족하는 x를 반환한다.
+    // 크기가 다르면 std::invalid_argument를 던진다.
+    // 현재 행렬이 상삼각행렬이 아니거나 대각 원소가 0이거나 입력 또는 해에 비유한 값이 있으면 std::domain_error를 던진다.
+    Vector solveUpperTriangular(const Vector& rhs) const;
+
     // 두 행렬의 크기가 다르면 std::invalid_argument를 던진다.
     SquareMatrix operator+(const SquareMatrix& other) const;
     // 두 행렬의 크기가 다르면 std::invalid_argument를 던진다.

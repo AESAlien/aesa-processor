@@ -412,3 +412,55 @@ TEST(SquareMatrixTest, RejectsNonfiniteLowerTriangularSolutions)
         lower.solveLowerTriangular(math::Vector{maximum, 0.0}),
         std::domain_error);
 }
+
+TEST(SquareMatrixTest, SolvesUpperTriangularSystems)
+{
+    const math::SquareMatrix upper{{2.0, 3.0, 1.0},
+                                   {0.0, 1.0, -1.0},
+                                   {0.0, 0.0, 2.0}};
+    const math::Vector rhs{11.0, -1.0, 6.0};
+
+    const math::Vector solution = upper.solveUpperTriangular(rhs);
+
+    EXPECT_TRUE(solution.equals(math::Vector{1.0, 2.0, 3.0}, math::Tolerance{1e-12, 1e-12}));
+    EXPECT_TRUE((upper * solution).equals(rhs, math::Tolerance{1e-12, 1e-12}));
+}
+
+TEST(SquareMatrixTest, SolvesSmallAndEmptyUpperTriangularSystems)
+{
+    const math::Vector single = math::SquareMatrix{{4.0}}.solveUpperTriangular(math::Vector{10.0});
+
+    EXPECT_DOUBLE_EQ(single(0), 2.5);
+    EXPECT_TRUE(math::SquareMatrix().solveUpperTriangular(math::Vector()).empty());
+}
+
+TEST(SquareMatrixTest, RejectsInvalidUpperTriangularSystems)
+{
+    EXPECT_THROW(
+        math::SquareMatrix::identity(2).solveUpperTriangular(math::Vector{1.0}),
+        std::invalid_argument);
+    EXPECT_THROW(
+        (math::SquareMatrix{{1.0, 0.0}, {2.0, 1.0}}).solveUpperTriangular(math::Vector{1.0, 2.0}),
+        std::domain_error);
+    EXPECT_THROW(
+        (math::SquareMatrix{{0.0, 2.0}, {0.0, 1.0}}).solveUpperTriangular(math::Vector{1.0, 2.0}),
+        std::domain_error);
+    EXPECT_THROW(
+        (math::SquareMatrix{{std::numeric_limits<double>::infinity(), 2.0}, {0.0, 1.0}})
+            .solveUpperTriangular(math::Vector{1.0, 2.0}),
+        std::domain_error);
+    EXPECT_THROW(
+        math::SquareMatrix::identity(2).solveUpperTriangular(
+            math::Vector{1.0, std::numeric_limits<double>::quiet_NaN()}),
+        std::domain_error);
+}
+
+TEST(SquareMatrixTest, RejectsNonfiniteUpperTriangularSolutions)
+{
+    const double maximum = std::numeric_limits<double>::max();
+    const math::SquareMatrix upper{{1.0, maximum}, {0.0, 1.0}};
+
+    EXPECT_THROW(
+        upper.solveUpperTriangular(math::Vector{0.0, maximum}),
+        std::domain_error);
+}

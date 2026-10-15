@@ -216,6 +216,52 @@ Vector SquareMatrix::solveLowerTriangular(const Vector& rhs) const
     return solution;
 }
 
+Vector SquareMatrix::solveUpperTriangular(const Vector& rhs) const
+{
+    if (size() != rhs.size())
+    {
+        throw std::invalid_argument("Upper triangular matrix and right-hand side dimensions must match");
+    }
+    if (!isFinite() || !rhs.isFinite())
+    {
+        throw std::domain_error("Upper triangular solve requires finite values");
+    }
+
+    for (std::size_t row = 0; row < size(); ++row)
+    {
+        if (at(row, row) == 0.0)
+        {
+            throw std::domain_error("Upper triangular matrix must have nonzero diagonal values");
+        }
+        for (std::size_t column = 0; column < row; ++column)
+        {
+            if (at(row, column) != 0.0)
+            {
+                throw std::domain_error("Upper triangular matrix must be zero below the diagonal");
+            }
+        }
+    }
+
+    Vector solution(rhs.size());
+    for (std::size_t row = size(); row-- > 0;)
+    {
+        double value = rhs(row);
+        for (std::size_t column = row + 1; column < size(); ++column)
+        {
+            value -= at(row, column) * solution(column);
+        }
+
+        value /= at(row, row);
+        if (!std::isfinite(value))
+        {
+            throw std::domain_error("Upper triangular solve failed to produce finite values");
+        }
+        solution(row) = value;
+    }
+
+    return solution;
+}
+
 SquareMatrix SquareMatrix::operator+(const SquareMatrix& other) const
 {
     return SquareMatrix(_matrix + other._matrix);
