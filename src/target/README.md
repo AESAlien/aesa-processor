@@ -76,12 +76,14 @@ Controller 복사본은 Repository·Matcher·Selector·알고리즘 객체 구�
 모든 탐지 연관은 src/calculation/association/의 DetectionMatcher를 거친다.
 확인 분기에서도 Target.canConfirm()을 호출하지 않는다.
 
-- matchesPosition(observation, other): Tentative는 최초 위치에서 1000m/s × 두 탐지의 시간 차이만큼 이동할 수 있다고 보고, 그 범위를 벗어난 잔여 위치 차이의 NDS가 임시 99% 기준인 11.345 이하이면 탐색 중복으로 판단한다. Tracking은 기존대로 수신 시각의 예측 위치와 비교한다.
+- matchesPosition(observation, other): Tentative는 최초 위치에서 1000m/s × 두 탐지의 시간 차이만큼 이동할 수 있다고 보고, 그 범위를 벗어난 잔여 위치 차이의 NDS가 임시 99% 기준인 11.345 이하이면 탐색 중복으로 판단한다. Tracking은 수신 시각의 예측 위치와 비교하되, 최근 관측보다 과거인 탐색 결과는 최신 저장 위치와 시간 차이로 같은 이동 범위 보정을 적용한다.
 - matchesConfirmation(observation, tentative): 두 점의 안테나 좌표계 Cartesian 거리 / 실제 시간 차이가 1000m/s 이하이고 측정 도플러 차이가 30m/s 이하인 탐지의 NDS 점수를 반환한다. TrackSelector가 가장 작은 점수 하나를 선택한다.
 - matchesTracking(observation, tracking): 수신 시각의 예측 위치와 완전 일치. NDS 도입 전 임시 추적 연관 조건.
 
 확인 연관의 속력은 레이더와 표적 사이의 거리 변화만 사용하지 않고, 방위각·고각을 포함한 두 위치의 3차원 차분으로 계산한다.
 Tentative 탐색 중복의 허용거리는 1000m/s × |현재 탐지 시각 − 최초 탐지 시각| + 측정오차 허용거리이다.
+다른 그리드에서 늦게 도착한 과거 탐색 결과도 Tracking과 중복 비교한다. 이때 기준은 최초 시각이나 최근 미탐 시각이 아닌 최근 관측 시각이며, 추적 상태를 과거로 갱신하거나 역방향 예측을 수행하지 않는다.
+동일 시각·미래 시각의 Tracking 예측이 실패하면 기존대로 점수를 반환하지 않으며, 저장 위치 비교로 우회하지 않는다.
 현재 98I 공분산과 11.345 기준에서는 측정오차 허용거리가 약 33.34m이며, 이동 가능한 거리 안의 중복 점수는 0이다.
 최초 관측은 갱신하지 않는다. 이 이동 보정은 등방성 98I를 전제로 하므로 향후 축별 공분산 모델을 도입할 때 다시 검토한다.
 Matcher는 추적 상태를 초기화하거나 변경하지 않는다.
@@ -180,5 +182,5 @@ Beam Scheduler는 확인·추적 요청의 requestId를 BeamCommand.beamId로 �
 test/의 기존 immutable_geometry_test.cpp는 추적 상태 교체·표적 삭제·보고와 math 좌표축 기준을 확인한다.
 전체 프로젝트 빌드·기존 프로젝트 테스트와 저장소 밖의 Target 회귀 검증으로 변경을 확인한다.
 외부 회귀 검증은 MSVC C++17 /W4 /WX로 실제 Target 소스를 컴파일한다.
-이번 변경은 전체 프로젝트 빌드와 프로젝트 테스트 308개, 외부 Target 회귀 검사 206개를 통과했다.
+이번 변경은 전체 프로젝트 빌드와 프로젝트 테스트 308개, 외부 Target 회귀 검사 220개를 통과했다.
 실제 모의기·Comm·운용 콘솔의 통합 실행은 이번 변경 범위에 포함하지 않는다.

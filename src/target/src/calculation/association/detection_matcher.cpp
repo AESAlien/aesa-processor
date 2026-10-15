@@ -119,11 +119,15 @@ std::optional<double> DetectionMatcher::matchesPosition(
         return std::nullopt;
     }
 
+    const auto observationTime = observation.lastObservationTime();
+    const auto referenceTime = other.lastObservationTime();
     const bool tracking = other.state() == TargetState::TRACKING;
-    const auto prediction = tracking
-        ? other.predict(observation.lastObservationTime())
+    const bool pastTracking = tracking && observationTime < referenceTime;
+    const bool predictTracking = tracking && !pastTracking;
+    const auto prediction = predictTracking
+        ? other.predict(observationTime)
         : std::optional<TargetPrediction>{};
-    if (tracking && !prediction)
+    if (predictTracking && !prediction)
     {
         return std::nullopt;
     }
@@ -135,12 +139,11 @@ std::optional<double> DetectionMatcher::matchesPosition(
     const auto position = observation.sphericalPosition().toCartesian();
     auto residual = math::Vector{position.x.m(), position.y.m(), position.z.m()}
         - math::Vector{referencePosition.x.m(), referencePosition.y.m(), referencePosition.z.m()};
-    if (other.state() == TargetState::TENTATIVE)
+    if (other.state() == TargetState::TENTATIVE || pastTracking)
     {
-        const auto observationTime = observation.lastObservationTime();
-        const auto initialTime = other.initialTime();
-        const auto elapsed = observationTime >= initialTime
-            ? observationTime - initialTime : initialTime - observationTime;
+        // Older search results use the latest stored position without rewinding the filter.
+        const auto elapsed = observationTime >= referenceTime
+            ? observationTime - referenceTime : referenceTime - observationTime;
         const double seconds = std::chrono::duration<double>(elapsed).count();
         const double distanceMeters = residual.norm();
         const double maximumTravelMeters = MAX_ASSOCIATION_SPEED.mps() * seconds;
