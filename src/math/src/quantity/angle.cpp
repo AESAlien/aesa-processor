@@ -48,8 +48,7 @@ bool Angle::equals(
         return true;
     }
 
-    const Angle wrappedDifference = wrap180(wrap180(*this) - wrap180(other));
-    return tolerance.isWithin(wrappedDifference, Angle(0.0));
+    return tolerance.isWithin(wrap180(*this), wrap180(other));
 }
 
 bool Angle::notEquals(
