@@ -1,6 +1,7 @@
 #pragma once
 
 #include <network/message_decoder/message_decoder.hpp>
+#include <network/message_encoder/message_encoder.hpp>
 #include <network/message_framer/message_framer.hpp>
 #include <network/network_manager/network_types.hpp>
 
@@ -30,6 +31,16 @@ namespace controller_error
 [[noreturn]] void throwDecodingFailure(
     NetworkPeer peer,
     DecodingError error
+);
+
+[[noreturn]] void throwEncodingFailure(
+    NetworkPeer peer,
+    EncodingError error
+);
+
+[[noreturn]] void throwSendFailure(
+    NetworkPeer peer,
+    const SendResult& result
 );
 
 void reportRejectedConnection(

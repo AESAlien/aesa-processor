@@ -121,6 +121,52 @@ const char* decodingErrorName(DecodingError error)
     return "unknown";
 }
 
+const char* encodingErrorName(EncodingError error)
+{
+    switch (error)
+    {
+    case EncodingError::NONE:
+        return "missing-bytes";
+
+    case EncodingError::TOO_MANY_TRACKS:
+        return "too-many-tracks";
+
+    case EncodingError::TYPE_CONVERSION_ERROR:
+        return "type-conversion-error";
+    }
+
+    return "unknown";
+}
+
+const char* sendStatusName(SendStatus status)
+{
+    switch (status)
+    {
+    case SendStatus::SUCCESS:
+        return "success";
+
+    case SendStatus::TIMEOUT:
+        return "timeout";
+
+    case SendStatus::NOT_STARTED:
+        return "not-started";
+
+    case SendStatus::NOT_CONNECTED:
+        return "not-connected";
+
+    case SendStatus::INVALID_ARGUMENT:
+        return "invalid-argument";
+
+    case SendStatus::CONNECTION_LOST:
+        return "connection-lost";
+
+    case SendStatus::ERROR:
+        return "error";
+    }
+
+    return "unknown";
+}
+
 std::mutex& logMutex()
 {
     static std::mutex mutex;
@@ -159,6 +205,27 @@ std::string makeProtocolFailureMessage(
         << peerName(peer)
         << ", error="
         << error;
+    return stream.str();
+}
+
+std::string makeSendFailureMessage(
+    NetworkPeer peer,
+    const SendResult& result
+)
+{
+    std::ostringstream stream;
+    stream
+        << "Communication data could not be sent"
+        << ": peer="
+        << peerName(peer)
+        << ", status="
+        << sendStatusName(result.status)
+        << ", operation="
+        << operationName(result.failedOperation)
+        << ", systemError="
+        << result.errorCode
+        << ", bytesSent="
+        << result.bytesSent;
     return stream.str();
 }
 
@@ -232,6 +299,27 @@ void throwDecodingFailure(
             "decoding",
             peer,
             decodingErrorName(error)));
+}
+
+void throwEncodingFailure(
+    NetworkPeer peer,
+    EncodingError error
+)
+{
+    throw SendError(
+        makeProtocolFailureMessage(
+            "Communication data could not be sent",
+            "encoding",
+            peer,
+            encodingErrorName(error)));
+}
+
+void throwSendFailure(
+    NetworkPeer peer,
+    const SendResult& result
+)
+{
+    throw SendError(makeSendFailureMessage(peer, result));
 }
 
 void reportRejectedConnection(
