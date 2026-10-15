@@ -570,6 +570,10 @@ SendResult NetworkManager::send(
         std::chrono::microseconds remaining = remainingTime(deadline);
         if (remaining.count() == 0)
         {
+            if (result.bytesSent > 0)
+            {
+                synchro.closeRequested.store(true);
+            }
             result.status = SendStatus::TIMEOUT;
             return result;
         }
@@ -592,6 +596,10 @@ SendResult NetworkManager::send(
 
         if (selectedCount == 0)
         {
+            if (result.bytesSent > 0)
+            {
+                synchro.closeRequested.store(true);
+            }
             result.status = SendStatus::TIMEOUT;
             return result;
         }
@@ -602,6 +610,10 @@ SendResult NetworkManager::send(
             continue;
         }
 
+        if (result.bytesSent > 0)
+        {
+            synchro.closeRequested.store(true);
+        }
         result.status = SendStatus::ERROR;
         result.failedOperation = NetworkOperation::SELECT;
         result.errorCode = errorCode;
