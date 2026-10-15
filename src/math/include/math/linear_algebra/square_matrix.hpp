@@ -54,9 +54,6 @@ public:
     double& operator()(std::size_t row, std::size_t column);
     const double& operator()(std::size_t row, std::size_t column) const;
 
-    SquareMatrix transpose() const;
-    // 0×0 행렬의 행렬식은 1이다.
-    double det() const;
     // 현재 행렬을 하삼각행렬 L로 보고 L * y = rhs를 만족하는 y를 반환한다.
     // 크기가 다르면 std::invalid_argument를 던진다.
     // 현재 행렬이 하삼각행렬이 아니거나 대각 원소가 0이거나 입력 또는 해에 비유한 값이 있으면 std::domain_error를 던진다.
@@ -79,6 +76,9 @@ private:
 };
 
 SquareMatrix operator*(double scalar, const SquareMatrix& matrix);
+SquareMatrix transpose(const SquareMatrix& matrix);
+// 0×0 행렬의 행렬식은 1이다.
+double det(const SquareMatrix& matrix);
 // 대칭 양의 정부호 행렬을 L * L^T로 분해한 하삼각행렬 L을 반환한다.
 // 행렬이 대칭 양의 정부호가 아니거나 비유한 원소가 있으면 std::domain_error를 던진다.
 SquareMatrix cholesky(const SquareMatrix& matrix);

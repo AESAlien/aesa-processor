@@ -671,7 +671,7 @@ TEST(MatrixEqualsTest, SupportsRectangularAndZeroDimensionShapes)
         math::Tolerance{std::nextafter(0.25, 0.0), 0.0}));
     EXPECT_TRUE(value.equals(nearby, math::Tolerance{0.0, 0.04}));
     EXPECT_FALSE(value.equals(nearby, math::Tolerance{0.0, 0.02}));
-    EXPECT_FALSE(value.equals(value.transpose(), math::Tolerance{0.0, 1.0}));
+    EXPECT_FALSE(value.equals(math::transpose(value), math::Tolerance{0.0, 1.0}));
     EXPECT_TRUE(math::Matrix(0, 3) == math::Matrix(0, 3));
     EXPECT_TRUE(math::Matrix(3, 0).equals(math::Matrix(3, 0), math::Tolerance{0.0, 0.0}));
     EXPECT_FALSE(math::Matrix(0, 3) == math::Matrix(3, 0));

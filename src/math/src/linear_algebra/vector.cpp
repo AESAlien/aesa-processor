@@ -116,11 +116,6 @@ const double& Vector::operator[](std::size_t index) const
     return at(index);
 }
 
-Matrix Vector::transpose() const
-{
-    return _matrix.transpose();
-}
-
 double Vector::dot(const Vector& other) const
 {
     if (size() != other.size())
@@ -184,6 +179,11 @@ Vector operator*(const Matrix& matrix, const Vector& vector)
 Vector operator*(const SquareMatrix& matrix, const Vector& vector)
 {
     return matrix.asMatrix() * vector;
+}
+
+Matrix transpose(const Vector& vector)
+{
+    return transpose(vector.asMatrix());
 }
 
 }

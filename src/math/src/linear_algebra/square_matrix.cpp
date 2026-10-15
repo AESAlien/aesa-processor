@@ -147,7 +147,7 @@ bool SquareMatrix::isOrthogonal(const Tolerance& tolerance) const
 
 bool SquareMatrix::isRotation(const Tolerance& tolerance) const
 {
-    return isOrthogonal(tolerance) && tolerance.isWithin(det(), 1.0);
+    return isOrthogonal(tolerance) && tolerance.isWithin(det(*this), 1.0);
 }
 
 double& SquareMatrix::at(std::size_t row, std::size_t column)
@@ -168,63 +168,6 @@ double& SquareMatrix::operator()(std::size_t row, std::size_t column)
 const double& SquareMatrix::operator()(std::size_t row, std::size_t column) const
 {
     return at(row, column);
-}
-
-SquareMatrix SquareMatrix::transpose() const
-{
-    return SquareMatrix(_matrix.transpose());
-}
-
-double SquareMatrix::det() const
-{
-    // 원본을 보존하기 위해 복사본을 소거하고 대각 피벗의 곱을 누적한다.
-    Matrix upper = _matrix;
-    double determinant = 1.0;
-    for (std::size_t column = 0; column < size(); ++column)
-    {
-        // 남은 행 중 절댓값이 가장 큰 피벗을 선택해 나눗셈 오차를 줄인다.
-        std::size_t pivotRow = column;
-        for (std::size_t row = column + 1; row < size(); ++row)
-        {
-            if (std::abs(upper(row, column)) > std::abs(upper(pivotRow, column)))
-            {
-                pivotRow = row;
-            }
-        }
-
-        // 피벗이 정확히 0이면 특이행렬이다. 작은 0이 아닌 값은 유지한다.
-        if (upper(pivotRow, column) == 0.0)
-        {
-            return 0.0;
-        }
-
-        // 행을 교환할 때마다 행렬식의 부호를 반전한다.
-        if (pivotRow != column)
-        {
-            for (std::size_t entry = column; entry < size(); ++entry)
-            {
-                std::swap(upper(column, entry), upper(pivotRow, entry));
-            }
-
-            determinant = -determinant;
-        }
-
-        const double pivot = upper(column, column);
-        determinant *= pivot;
-
-        for (std::size_t row = column + 1; row < size(); ++row)
-        {
-            const double factor = upper(row, column) / pivot;
-            upper(row, column) = 0.0;
-
-            for (std::size_t entry = column + 1; entry < size(); ++entry)
-            {
-                upper(row, entry) -= factor * upper(column, entry);
-            }
-        }
-    }
-
-    return determinant;
 }
 
 Vector SquareMatrix::solveLowerTriangular(const Vector& rhs) const
@@ -306,6 +249,63 @@ const Matrix& SquareMatrix::asMatrix() const noexcept
 SquareMatrix operator*(double scalar, const SquareMatrix& matrix)
 {
     return matrix * scalar;
+}
+
+SquareMatrix transpose(const SquareMatrix& matrix)
+{
+    return SquareMatrix(transpose(matrix.asMatrix()));
+}
+
+double det(const SquareMatrix& matrix)
+{
+    // 원본을 보존하기 위해 복사본을 소거하고 대각 피벗의 곱을 누적한다.
+    Matrix upper = matrix.asMatrix();
+    double determinant = 1.0;
+    for (std::size_t column = 0; column < matrix.size(); ++column)
+    {
+        // 남은 행 중 절댓값이 가장 큰 피벗을 선택해 나눗셈 오차를 줄인다.
+        std::size_t pivotRow = column;
+        for (std::size_t row = column + 1; row < matrix.size(); ++row)
+        {
+            if (std::abs(upper(row, column)) > std::abs(upper(pivotRow, column)))
+            {
+                pivotRow = row;
+            }
+        }
+
+        // 피벗이 정확히 0이면 특이행렬이다. 작은 0이 아닌 값은 유지한다.
+        if (upper(pivotRow, column) == 0.0)
+        {
+            return 0.0;
+        }
+
+        // 행을 교환할 때마다 행렬식의 부호를 반전한다.
+        if (pivotRow != column)
+        {
+            for (std::size_t entry = column; entry < matrix.size(); ++entry)
+            {
+                std::swap(upper(column, entry), upper(pivotRow, entry));
+            }
+
+            determinant = -determinant;
+        }
+
+        const double pivot = upper(column, column);
+        determinant *= pivot;
+
+        for (std::size_t row = column + 1; row < matrix.size(); ++row)
+        {
+            const double factor = upper(row, column) / pivot;
+            upper(row, column) = 0.0;
+
+            for (std::size_t entry = column + 1; entry < matrix.size(); ++entry)
+            {
+                upper(row, entry) -= factor * upper(column, entry);
+            }
+        }
+    }
+
+    return determinant;
 }
 
 SquareMatrix cholesky(const SquareMatrix& matrix)

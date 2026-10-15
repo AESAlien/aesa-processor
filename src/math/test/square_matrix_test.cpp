@@ -110,7 +110,7 @@ TEST(SquareMatrixTest, ArithmeticPreservesTypeAndValues)
     auto sum = left + right;
     auto difference = left - right;
     auto product = left * right;
-    auto transposed = left.transpose();
+    auto transposed = math::transpose(left);
     static_assert(std::is_same_v<decltype(sum), math::SquareMatrix>);
     static_assert(std::is_same_v<decltype(product), math::SquareMatrix>);
     static_assert(std::is_same_v<decltype(transposed), math::SquareMatrix>);
@@ -134,7 +134,7 @@ TEST(SquareMatrixTest, ArithmeticPreservesTypeAndValues)
     EXPECT_TRUE((empty + empty).empty());
     EXPECT_TRUE((empty - empty).empty());
     EXPECT_TRUE((empty * empty).empty());
-    EXPECT_TRUE(empty.transpose().empty());
+    EXPECT_TRUE(math::transpose(empty).empty());
 }
 
 // 복사는 독립적이며 이동한 원본도 유효한 빈 정방행렬로 사용할 수 있다.
@@ -155,7 +155,7 @@ TEST(SquareMatrixTest, CopyAndMovePreserveInvariants)
     EXPECT_DOUBLE_EQ(moved(1, 0), 3.0);
     EXPECT_EQ(original.size(), 0);
     EXPECT_EQ(original.columns(), 0);
-    EXPECT_DOUBLE_EQ(original.det(), 1.0);
+    EXPECT_DOUBLE_EQ(math::det(original), 1.0);
     EXPECT_THROW(original(0, 0), std::out_of_range);
     assigned = std::move(moved);
     EXPECT_DOUBLE_EQ(assigned(1, 1), 4.0);
@@ -196,10 +196,10 @@ TEST(SquareMatrixTest, CreatesIdentityMatrices)
 // 크기가 다른 정방행렬과 단위행렬의 행렬식을 알려진 결과와 비교한다.
 TEST(SquareMatrixTest, ComputesDeterminantsOfSquareMatrices)
 {
-    EXPECT_DOUBLE_EQ((math::SquareMatrix{{-3.5}}).det(), -3.5);
-    EXPECT_DOUBLE_EQ((math::SquareMatrix{{1.0, 2.0}, {3.0, 4.0}}).det(), -2.0);
-    EXPECT_NEAR((math::SquareMatrix{{6.0, 1.0, 1.0}, {4.0, -2.0, 5.0}, {2.0, 8.0, 7.0}}).det(), -306.0, 1e-12);
-    EXPECT_DOUBLE_EQ(math::SquareMatrix::identity(4).det(), 1.0);
+    EXPECT_DOUBLE_EQ(math::det(math::SquareMatrix{{-3.5}}), -3.5);
+    EXPECT_DOUBLE_EQ(math::det(math::SquareMatrix{{1.0, 2.0}, {3.0, 4.0}}), -2.0);
+    EXPECT_NEAR(math::det(math::SquareMatrix{{6.0, 1.0, 1.0}, {4.0, -2.0, 5.0}, {2.0, 8.0, 7.0}}), -306.0, 1e-12);
+    EXPECT_DOUBLE_EQ(math::det(math::SquareMatrix::identity(4)), 1.0);
 }
 
 // 허용오차 내에서 열벡터가 단위 직교인지 확인하고 잘못된 허용오차를 거부한다.
@@ -272,13 +272,13 @@ TEST(SquareMatrixTest, RejectsInvalidPolicyBeforeInspectingValues)
 // 행 교환 횟수에 따라 행렬식 부호를 계산하며 원본 행렬은 보존한다.
 TEST(SquareMatrixTest, DeterminantAccountsForRowSwaps)
 {
-    EXPECT_DOUBLE_EQ((math::SquareMatrix{{0.0, 1.0}, {2.0, 3.0}}).det(), -2.0);
-    EXPECT_DOUBLE_EQ((math::SquareMatrix{{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {1.0, 0.0, 0.0}}).det(), 1.0);
+    EXPECT_DOUBLE_EQ(math::det(math::SquareMatrix{{0.0, 1.0}, {2.0, 3.0}}), -2.0);
+    EXPECT_DOUBLE_EQ(math::det(math::SquareMatrix{{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {1.0, 0.0, 0.0}}), 1.0);
 
     // 행 교환과 소거를 수행해도 원본 행렬의 원소는 유지한다.
     math::SquareMatrix matrix{{0.0, 2.0}, {3.0, 4.0}};
 
-    EXPECT_DOUBLE_EQ(matrix.det(), -6.0);
+    EXPECT_DOUBLE_EQ(math::det(matrix), -6.0);
     EXPECT_DOUBLE_EQ(matrix(0, 0), 0.0);
     EXPECT_DOUBLE_EQ(matrix(0, 1), 2.0);
     EXPECT_DOUBLE_EQ(matrix(1, 0), 3.0);
@@ -288,22 +288,22 @@ TEST(SquareMatrixTest, DeterminantAccountsForRowSwaps)
 // 소거 후 또는 처음부터 피벗이 0인 특이행렬의 행렬식은 0이다.
 TEST(SquareMatrixTest, SingularMatricesHaveZeroDeterminant)
 {
-    EXPECT_DOUBLE_EQ((math::SquareMatrix{{1.0, 2.0}, {2.0, 4.0}}).det(), 0.0);
-    EXPECT_DOUBLE_EQ((math::SquareMatrix{{0.0, 1.0}, {0.0, 2.0}}).det(), 0.0);
-    EXPECT_DOUBLE_EQ(math::SquareMatrix(3).det(), 0.0);
+    EXPECT_DOUBLE_EQ(math::det(math::SquareMatrix{{1.0, 2.0}, {2.0, 4.0}}), 0.0);
+    EXPECT_DOUBLE_EQ(math::det(math::SquareMatrix{{0.0, 1.0}, {0.0, 2.0}}), 0.0);
+    EXPECT_DOUBLE_EQ(math::det(math::SquareMatrix(3)), 0.0);
 }
 
 // 매우 작은 피벗도 0으로 간주하지 않고 0이 아닌 행렬식을 보존한다.
 TEST(SquareMatrixTest, DeterminantPreservesSmallNonzeroPivots)
 {
-    EXPECT_DOUBLE_EQ((math::SquareMatrix{{1e-20, 0.0}, {0.0, 2.0}}).det(), 2e-20);
+    EXPECT_DOUBLE_EQ(math::det(math::SquareMatrix{{1e-20, 0.0}, {0.0, 2.0}}), 2e-20);
 }
 
 // 0×0 행렬의 행렬식은 생성 방법에 관계없이 정의에 따라 1이다.
 TEST(SquareMatrixTest, EmptySquareMatrixHasUnitDeterminant)
 {
-    EXPECT_DOUBLE_EQ(math::SquareMatrix().det(), 1.0);
-    EXPECT_DOUBLE_EQ(math::SquareMatrix::identity(0).det(), 1.0);
+    EXPECT_DOUBLE_EQ(math::det(math::SquareMatrix()), 1.0);
+    EXPECT_DOUBLE_EQ(math::det(math::SquareMatrix::identity(0)), 1.0);
 }
 
 TEST(SquareMatrixTest, ComputesCholeskyDecomposition)
@@ -318,7 +318,7 @@ TEST(SquareMatrixTest, ComputesCholeskyDecomposition)
     const math::SquareMatrix lower = math::cholesky(matrix);
 
     EXPECT_TRUE(lower.equals(expected, math::Tolerance{1e-12, 1e-12}));
-    EXPECT_TRUE((lower * lower.transpose()).equals(matrix, math::Tolerance{1e-12, 1e-12}));
+    EXPECT_TRUE((lower * math::transpose(lower)).equals(matrix, math::Tolerance{1e-12, 1e-12}));
 }
 
 TEST(SquareMatrixTest, ComputesCholeskyDecompositionForArbitrarySize)
@@ -327,7 +327,7 @@ TEST(SquareMatrixTest, ComputesCholeskyDecompositionForArbitrarySize)
                                       {1.0, 3.0, 0.0, 0.0},
                                       {-1.0, 2.0, 4.0, 0.0},
                                       {3.0, 0.5, -2.0, 5.0}};
-    const math::SquareMatrix matrix = expected * expected.transpose();
+    const math::SquareMatrix matrix = expected * math::transpose(expected);
 
     const math::SquareMatrix lower = math::cholesky(matrix);
 
