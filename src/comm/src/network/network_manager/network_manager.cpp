@@ -368,6 +368,16 @@ PollResult NetworkManager::poll(std::chrono::milliseconds timeout)
 
     while (true)
     {
+        int closeError = closeRequestedSockets();
+        if (closeError != 0)
+        {
+            PollResult result;
+            result.status = PollStatus::ERROR;
+            result.failedOperation = NetworkOperation::CLOSE;
+            result.errorCode = closeError;
+            return result;
+        }
+
         fd_set readSockets;
         FD_ZERO(&readSockets);
         FD_SET(_listenSocket, &readSockets);
@@ -400,6 +410,16 @@ PollResult NetworkManager::poll(std::chrono::milliseconds timeout)
             &readSockets,
             nullptr,
             &selectTimeout);
+
+        closeError = closeRequestedSockets();
+        if (closeError != 0)
+        {
+            PollResult result;
+            result.status = PollStatus::ERROR;
+            result.failedOperation = NetworkOperation::CLOSE;
+            result.errorCode = closeError;
+            return result;
+        }
 
         if (selectedCount == 0)
         {
@@ -480,20 +500,24 @@ SendResult NetworkManager::send(
 {
     SendResult result;
 
-    if (_listenSocket == INVALID_SOCKET_HANDLE)
-    {
-        result.status = SendStatus::NOT_STARTED;
-        return result;
-    }
-
     if (data.empty() || timeout.count() < 0)
     {
         result.status = SendStatus::INVALID_ARGUMENT;
         return result;
     }
 
+    PeerSynchro& synchro = getPeerSynchro(peer);
+    std::lock_guard<std::mutex> lock(synchro.sendCloseMutex);
+
+    if (_listenSocket == INVALID_SOCKET_HANDLE)
+    {
+        result.status = SendStatus::NOT_STARTED;
+        return result;
+    }
+
     SocketHandle socket = getSocket(peer);
-    if (socket == INVALID_SOCKET_HANDLE)
+    if (synchro.closeRequested.load() ||
+        socket == INVALID_SOCKET_HANDLE)
     {
         result.status = SendStatus::NOT_CONNECTED;
         return result;
@@ -522,8 +546,7 @@ SendResult NetworkManager::send(
 
         if (sentSize == 0)
         {
-            closeSocket(socket);
-            setSocket(peer, INVALID_SOCKET_HANDLE);
+            synchro.closeRequested.store(true);
             result.status = SendStatus::CONNECTION_LOST;
             result.failedOperation = NetworkOperation::SEND;
             return result;
@@ -537,8 +560,7 @@ SendResult NetworkManager::send(
 
         if (!isWouldBlock(errorCode))
         {
-            closeSocket(socket);
-            setSocket(peer, INVALID_SOCKET_HANDLE);
+            synchro.closeRequested.store(true);
             result.status = SendStatus::CONNECTION_LOST;
             result.failedOperation = NetworkOperation::SEND;
             result.errorCode = errorCode;
@@ -592,7 +614,10 @@ SendResult NetworkManager::send(
 
 bool NetworkManager::isConnected(NetworkPeer peer) const
 {
-    return getSocket(peer) != INVALID_SOCKET_HANDLE;
+    PeerSynchro& synchro = getPeerSynchro(peer);
+    std::lock_guard<std::mutex> lock(synchro.sendCloseMutex);
+    return !synchro.closeRequested.load() &&
+        getSocket(peer) != INVALID_SOCKET_HANDLE;
 }
 
 OperationResult NetworkManager::disconnect(NetworkPeer peer)
@@ -607,8 +632,7 @@ OperationResult NetworkManager::disconnect(NetworkPeer peer)
         };
     }
 
-    SocketHandle socket = getSocket(peer);
-    if (socket == INVALID_SOCKET_HANDLE)
+    if (getSocket(peer) == INVALID_SOCKET_HANDLE)
     {
         return
         {
@@ -618,8 +642,7 @@ OperationResult NetworkManager::disconnect(NetworkPeer peer)
         };
     }
 
-    int errorCode = closeSocket(socket);
-    setSocket(peer, INVALID_SOCKET_HANDLE);
+    int errorCode = closeSocket(peer);
     if (errorCode != 0)
     {
         return
@@ -635,6 +658,12 @@ OperationResult NetworkManager::disconnect(NetworkPeer peer)
 
 OperationResult NetworkManager::stop()
 {
+    _operatorConsoleSynchro.closeRequested.store(true);
+    _scenarioSimulatorSynchro.closeRequested.store(true);
+    std::scoped_lock lock(
+        _operatorConsoleSynchro.sendCloseMutex,
+        _scenarioSimulatorSynchro.sendCloseMutex);
+
     int firstError = 0;
 
     int operatorError = closeSocket(_operatorConsoleSocket);
@@ -654,6 +683,9 @@ OperationResult NetworkManager::stop()
     {
         firstError = listenerError;
     }
+
+    _operatorConsoleSynchro.closeRequested.store(false);
+    _scenarioSimulatorSynchro.closeRequested.store(false);
 
     int cleanupError = 0;
     if (_socketApiStarted)
@@ -765,10 +797,15 @@ bool NetworkManager::acceptConnection(
         return true;
     }
 
+    PeerSynchro& synchro = getPeerSynchro(*peer);
+    synchro.closeRequested.store(true);
+    std::lock_guard<std::mutex> lock(synchro.sendCloseMutex);
+
     SocketHandle previousSocket = getSocket(*peer);
     bool reconnected = previousSocket != INVALID_SOCKET_HANDLE;
     closeSocket(previousSocket);
     setSocket(*peer, clientSocket);
+    synchro.closeRequested.store(false);
 
     ConnectionEvent event;
     event.peer = *peer;
@@ -815,9 +852,7 @@ void NetworkManager::receiveFromSocket(
         event.disconnectReason = DisconnectReason::RECEIVE_ERROR;
     }
 
-    SocketHandle currentSocket = getSocket(peer);
-    closeSocket(currentSocket);
-    setSocket(peer, INVALID_SOCKET_HANDLE);
+    closeSocket(peer);
     events.emplace_back(event);
 }
 
@@ -847,6 +882,52 @@ void NetworkManager::setSocket(NetworkPeer peer, SocketHandle socket)
         _scenarioSimulatorSocket = socket;
         return;
     }
+}
+
+NetworkManager::PeerSynchro& NetworkManager::getPeerSynchro(
+    NetworkPeer peer
+) const
+{
+    switch (peer)
+    {
+    case NetworkPeer::OPERATOR_CONSOLE:
+        return _operatorConsoleSynchro;
+
+    case NetworkPeer::SCENARIO_SIMULATOR:
+        return _scenarioSimulatorSynchro;
+    }
+
+    return _operatorConsoleSynchro;
+}
+
+int NetworkManager::closeRequestedSockets()
+{
+    int operatorError = 0;
+    if (_operatorConsoleSynchro.closeRequested.load())
+    {
+        operatorError = closeSocket(NetworkPeer::OPERATOR_CONSOLE);
+    }
+
+    int simulatorError = 0;
+    if (_scenarioSimulatorSynchro.closeRequested.load())
+    {
+        simulatorError = closeSocket(NetworkPeer::SCENARIO_SIMULATOR);
+    }
+
+    return operatorError != 0 ? operatorError : simulatorError;
+}
+
+int NetworkManager::closeSocket(NetworkPeer peer)
+{
+    PeerSynchro& synchro = getPeerSynchro(peer);
+    synchro.closeRequested.store(true);
+    std::lock_guard<std::mutex> lock(synchro.sendCloseMutex);
+
+    SocketHandle socket = getSocket(peer);
+    int errorCode = closeSocket(socket);
+    setSocket(peer, socket);
+    synchro.closeRequested.store(false);
+    return errorCode;
 }
 
 int NetworkManager::closeSocket(SocketHandle& socket)

@@ -2,8 +2,10 @@
 
 #include <network/network_manager/network_types.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <mutex>
 #include <optional>
 #include <vector>
 
@@ -24,7 +26,8 @@ using SocketHandle = int;
 #define NOMINMAX
 #endif
 
-// IPv4 TCP server. Call every method from the same owning thread.
+// IPv4 TCP server. Call every method except send() from the receive thread.
+// send() may run concurrently with poll().
 // An empty peer endpoint disables that peer. No message framing is performed.
 class NetworkManager
 {
@@ -59,6 +62,12 @@ public:
 private:
     using Clock = std::chrono::steady_clock;
 
+    struct PeerSynchro
+    {
+        std::atomic<bool> closeRequested{false};
+        std::mutex sendCloseMutex;
+    };
+
     OperationResult validateConfiguration();
     bool acceptConnection(
         std::vector<NetworkEvent>& events,
@@ -73,6 +82,9 @@ private:
 
     SocketHandle getSocket(NetworkPeer peer) const;
     void setSocket(NetworkPeer peer, SocketHandle socket);
+    PeerSynchro& getPeerSynchro(NetworkPeer peer) const;
+    int closeRequestedSockets();
+    int closeSocket(NetworkPeer peer);
     int closeSocket(SocketHandle& socket);
 
     NetworkEndpoint _serverEndpoint;
@@ -86,6 +98,8 @@ private:
     SocketHandle _listenSocket;
     SocketHandle _operatorConsoleSocket;
     SocketHandle _scenarioSimulatorSocket;
+    mutable PeerSynchro _operatorConsoleSynchro;
+    mutable PeerSynchro _scenarioSimulatorSynchro;
 };
 
 } // namespace comm
