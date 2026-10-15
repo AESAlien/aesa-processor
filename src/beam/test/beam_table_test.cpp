@@ -79,7 +79,8 @@ TEST(BeamTableTest, ZeroAttitudeKeepsFixedGrid)
 
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
-        EXPECT_EQ(table.get(beamIndex).azimuth_ant, gridAzimuth(beamIndex)) << "beamIndex=" << beamIndex;
+        EXPECT_EQ(table.get(beamIndex).azimuth_ant, math::wrap360(gridAzimuth(beamIndex)))
+            << "beamIndex=" << beamIndex;
         EXPECT_EQ(table.get(beamIndex).elevation_ant, gridElevation(beamIndex))
             << "beamIndex=" << beamIndex;
     }
@@ -90,13 +91,13 @@ TEST(BeamTableTest, GridOrderStartsLowElevationLeftAzimuth)
     const beam::BeamTable table(makeValidTransform(0_deg, 0_deg, 0_deg), DEFAULT_GRID_CONFIG);
 
     // 첫 빔: 가장 낮은 고각, 가장 왼쪽 방위각
-    EXPECT_EQ(table.get(0).azimuth_ant, -42_deg);
+    EXPECT_EQ(table.get(0).azimuth_ant, 318_deg);
     EXPECT_EQ(table.get(0).elevation_ant, 3_deg);
     // 같은 고각의 마지막 빔: 가장 오른쪽 방위각
     EXPECT_EQ(table.get(20).azimuth_ant, 42_deg);
     EXPECT_EQ(table.get(20).elevation_ant, 3_deg);
     // 다음 고각 줄의 첫 빔
-    EXPECT_EQ(table.get(21).azimuth_ant, -42_deg);
+    EXPECT_EQ(table.get(21).azimuth_ant, 318_deg);
     EXPECT_EQ(table.get(21).elevation_ant, 7.4_deg);
     // 마지막 빔: 가장 높은 고각, 가장 오른쪽 방위각
     EXPECT_EQ(table.get(188).azimuth_ant, 42_deg);
@@ -110,7 +111,7 @@ TEST(BeamTableTest, YawShiftsAzimuthsByOppositeAngle)
 
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
-        EXPECT_EQ(table.get(beamIndex).azimuth_ant, gridAzimuth(beamIndex) - 10_deg)
+        EXPECT_EQ(table.get(beamIndex).azimuth_ant, math::wrap360(gridAzimuth(beamIndex) - 10_deg))
             << "beamIndex=" << beamIndex;
         EXPECT_EQ(table.get(beamIndex).elevation_ant, gridElevation(beamIndex))
             << "beamIndex=" << beamIndex;
@@ -140,7 +141,7 @@ TEST(BeamTableTest, TableConvertedBackToFixedFrameRestoresGrid)
     {
         const math::SphericalDirection direction_enu = transform.antToEnu(math::SphericalDirection(
             table.get(beamIndex).azimuth_ant, table.get(beamIndex).elevation_ant));
-        EXPECT_EQ(direction_enu.azimuth, math::wrap180(gridAzimuth(beamIndex))) << "beamIndex=" << beamIndex;
+        EXPECT_EQ(direction_enu.azimuth, math::wrap360(gridAzimuth(beamIndex))) << "beamIndex=" << beamIndex;
         EXPECT_EQ(direction_enu.elevation, gridElevation(beamIndex)) << "beamIndex=" << beamIndex;
     }
 }

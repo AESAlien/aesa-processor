@@ -54,7 +54,7 @@ TEST(AttitudeTransformTest, ZeroAttitudeKeepsAngles)
 
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(-30.0_deg, 10.0_deg));
 
-    EXPECT_EQ(direction_enu.azimuth, -30_deg);
+    EXPECT_DOUBLE_EQ(direction_enu.azimuth.deg(), 330.0);
     EXPECT_EQ(direction_enu.elevation, 10_deg);
 }
 
@@ -222,7 +222,7 @@ TEST(AttitudeTransformTest, IdentityKeepsAngles)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 0_deg);
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(-30_deg, 10_deg));
-    EXPECT_EQ(direction_enu.azimuth, -30_deg); // 음수 방위각이 0~360으로 바뀌지 않아야 함
+    EXPECT_DOUBLE_EQ(direction_enu.azimuth.deg(), 330.0);
     EXPECT_EQ(direction_enu.elevation, 10_deg);
 }
 
@@ -252,15 +252,15 @@ TEST(AttitudeTransformTest, AntToEnuAndBackRestoresAngles)
         {
             const auto direction_enu = transform.antToEnu(math::SphericalDirection(azimuth_ant, elevation_ant));
             const auto directionRestored_ant = transform.enuToAnt(direction_enu);
-            EXPECT_EQ(directionRestored_ant.azimuth, azimuth_ant);
+            EXPECT_EQ(directionRestored_ant.azimuth, math::wrap360(azimuth_ant));
             EXPECT_EQ(directionRestored_ant.elevation, elevation_ant);
         }
     }
 }
 
-TEST(AttitudeTransformTest, AzimuthKeepsSignedRangeEndpoints)
+TEST(AttitudeTransformTest, AzimuthUsesUnsignedRangeEndpoint)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 0_deg);
     const auto directionAt180_enu = transform.antToEnu(math::SphericalDirection(-180_deg, 0_deg));
-    EXPECT_EQ(math::abs(directionAt180_enu.azimuth), 180_deg);
+    EXPECT_DOUBLE_EQ(directionAt180_enu.azimuth.deg(), 180.0);
 }
