@@ -238,6 +238,24 @@ TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
     EXPECT_TRUE(controller.nextBeamCommand(10ms).has_value());
 }
 
+TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
+{
+    const beam::BeamConfig config = beam::BeamConfig::Builder()
+        .attitudeConfig(beam::AttitudeConfig::Builder().maxAbsPitch(60_deg).build())
+        .build();
+    beam::BeamController controller(config);
+
+    // OFF 상태에서도 설정 기준의 짐벌락 자세는 거부한다.
+    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), beam::AttitudeError);
+
+    // 탐색 빔 테이블이 만들어진 뒤에도 마찬가지이며, 기존 상태는 유지된다.
+    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    ASSERT_EQ(controller.nextBeamCommand(0ms)->beamId, 1u);
+    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), beam::AttitudeError);
+    EXPECT_EQ(controller.nextBeamCommand(10ms)->beamId, 2u);
+}
+
 TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
 {
     beam::BeamController controller;

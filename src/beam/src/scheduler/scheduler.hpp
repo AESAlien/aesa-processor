@@ -35,8 +35,8 @@ public:
 
     void setOperationState(OperationState state);
 
-    // ON이고 SearchBeamTable이 아직 없을 때만 받아들이고, 그 외에는 무시한다.
-    // 잘못된 자세정보면 AttitudeError를 던지며, 이때 상태는 변하지 않는다.
+    // 잘못된 자세정보(짐벌락 포함)면 운용 상태와 관계없이 AttitudeError를 던지며, 이때 상태는 변하지 않는다.
+    // 올바른 자세정보는 ON이고 SearchBeamTable이 아직 없을 때만 받아들이고, 그 외에는 무시한다.
     void setAttitude(const RadarAttitude& attitude);
 
     // 준비 상태(ON이고 SearchBeamTable이 있음)가 아니면 무시한다.

@@ -127,6 +127,54 @@ TEST(SchedulerTest, InvalidAttitudeThrowsAndLeavesSchedulerNotReady)
     EXPECT_TRUE(scheduler.next(10ms).has_value());
 }
 
+TEST(SchedulerTest, GimbalLockAttitudeThrowsEvenWhileOff)
+{
+    beam::Scheduler scheduler;
+
+    try
+    {
+        scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg));
+        ADD_FAILURE() << "AttitudeError not thrown";
+    }
+    catch (const beam::AttitudeError& error)
+    {
+        EXPECT_EQ(error.code(), beam::AttitudeErrorCode::GIMBAL_LOCK);
+    }
+
+    // 예외 이후에도 상태가 변하지 않아, ON 뒤 올바른 자세정보를 받으면 정상 동작한다.
+    scheduler.setOperationState(beam::OperationState::ON);
+    EXPECT_FALSE(scheduler.next(0ms).has_value());
+    scheduler.setAttitude(makeZeroAttitude());
+    EXPECT_TRUE(scheduler.next(10ms).has_value());
+}
+
+TEST(SchedulerTest, GimbalLockAttitudeThrowsAfterSearchBeamTableIsCreated)
+{
+    beam::Scheduler scheduler;
+    makeReady(scheduler, makeZeroAttitude());
+    ASSERT_TRUE(scheduler.next(0ms).has_value());
+
+    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg)), beam::AttitudeError);
+
+    // 기존 SearchBeamTable과 탐색 순서는 그대로 유지된다.
+    const auto command = scheduler.next(10ms);
+    ASSERT_TRUE(command.has_value());
+    EXPECT_EQ(command->beamId, 2u);
+    EXPECT_EQ(command->azimuth_ant, gridAzimuth(1));
+}
+
+TEST(SchedulerTest, GimbalLockUsesPitchLimitFromConfig)
+{
+    const beam::BeamConfig config = beam::BeamConfig::Builder()
+        .attitudeConfig(beam::AttitudeConfig::Builder().maxAbsPitch(60_deg).build())
+        .build();
+    beam::Scheduler scheduler(config);
+
+    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 60_deg, 0_deg)), beam::AttitudeError);
+    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, -70_deg, 0_deg)), beam::AttitudeError);
+    EXPECT_NO_THROW(scheduler.setAttitude(makeAttitude(0_deg, 59_deg, 0_deg)));
+}
+
 TEST(SchedulerTest, SecondAttitudeIsIgnored)
 {
     beam::Scheduler scheduler;
