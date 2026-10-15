@@ -1,7 +1,7 @@
 #pragma once
 
 #include <math/quantity/angle.hpp>
-#include <math/quantity/distance.hpp>
+#include <math/quantity/length.hpp>
 #include <cstdint>
 
 namespace beam
@@ -14,7 +14,7 @@ struct RadarAttitude
 {
     math::Angle latitude = 0_deg;
     math::Angle longitude = 0_deg;
-    math::Distance altitude = 0_km;
+    math::Length altitude = 0_km;
     math::Angle roll = 0_deg;
     math::Angle pitch = 0_deg;
     math::Angle yaw = 0_deg;

@@ -66,7 +66,17 @@ bool TargetRepository::remove(std::uint32_t id)
         return false;
     }
 
-    _targets.erase(existing);
+    // Geometry values are immutable, so Target cannot be move-assigned by vector::erase.
+    std::vector<Target> remainingTargets;
+    remainingTargets.reserve(_targets.size() - 1);
+    for (auto current = _targets.begin(); current != _targets.end(); ++current)
+    {
+        if (current != existing)
+        {
+            remainingTargets.push_back(std::move(*current));
+        }
+    }
+    _targets.swap(remainingTargets);
     return true;
 }
 

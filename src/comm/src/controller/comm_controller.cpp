@@ -1,9 +1,9 @@
 #include <comm/controller/comm_controller.hpp>
 
 #include <controller/comm_error_handler.hpp>
-#include <network/message_decoder.hpp>
-#include <network/message_framer.hpp>
-#include <network/network_manager.hpp>
+#include <network/message_decoder/message_decoder.hpp>
+#include <network/message_framer/message_framer.hpp>
+#include <network/network_manager/network_manager.hpp>
 
 #include <chrono>
 #include <deque>

@@ -1,4 +1,4 @@
-﻿#include "detection_matcher.hpp"
+#include "detection_matcher.hpp"
 
 #include "calculation/tracking/cartesian_math.hpp"
 #include "domain/target.hpp"
@@ -22,11 +22,11 @@ namespace
 
 using namespace math::literals;
 
-const math::Velocity MAX_INITIAL_SPEED = 1000.0_mps;
-const math::Velocity MAX_INITIAL_DOPPLER_DIFFERENCE = 30.0_mps;
+const math::LinearVelocity MAX_INITIAL_SPEED = 1000.0_mps;
+const math::LinearVelocity MAX_INITIAL_DOPPLER_DIFFERENCE = 30.0_mps;
 constexpr std::size_t NDS_DIMENSION = 3;
 
-const math::Distance MEASUREMENT_STANDARD_DEVIATION = 7.0_m;
+const math::Length MEASUREMENT_STANDARD_DEVIATION = 7.0_m;
 // Measurement-only approximation: two independent measurements, each axis sigma=7m.
 // Search gating should use predicted covariance once the tracking strategy provides it.
 const math::SquareMatrix MEASUREMENT_DIFFERENCE_COVARIANCE =
@@ -41,13 +41,13 @@ std::optional<double> calculateNds(
 {
     if (residual.size() != NDS_DIMENSION || covariance.size() != NDS_DIMENSION
         || !residual.isFinite() || !covariance.isFinite()
-        || !covariance.equals(covariance.transpose(),
+        || !covariance.equals(math::transpose(covariance),
             math::Tolerance{0.0, math::DEFAULT_RELATIVE_TOLERANCE}))
     {
         return std::nullopt;
     }
 
-    // The math API has no SPD solve yet. Factor S = L L^T without forming S^-1.
+    // Preserve the tolerance-aware factorization of S = L L^T without forming S^-1.
     math::SquareMatrix lower(NDS_DIMENSION);
     for (std::size_t row = 0; row < NDS_DIMENSION; ++row)
     {
@@ -78,12 +78,12 @@ std::optional<double> calculateNds(
                 {
                     return std::nullopt;
                 }
-                // Temporary std fallback until the math module provides an SPD solve.
+                // Positive diagonal entries determine the Cholesky factor.
                 lower(row, column) = std::sqrt(entry);
             }
             else
             {
-                // Direct division avoids the math Matrix scalar reciprocal overflow.
+                // Divide directly to handle very small nonzero pivots.
                 lower(row, column) = entry / lower(column, column);
             }
             if (!std::isfinite(lower(row, column)))
@@ -122,12 +122,12 @@ std::optional<double> calculateNds(
 
 bool positionsEqual(
     const Target& observation,
-    const math::Distance& range,
+    const math::Length& range,
     const math::Angle& azimuth,
     const math::Angle& elevation)
 {
     // Preserve the current exact antenna-position policy until NDS is specified.
-    return observation.slantRange().equals(range, math::Distance::NONE_TOLERANCE)
+    return observation.slantRange().equals(range, math::Length::NONE_TOLERANCE)
         && observation.azimuth().equals(azimuth, math::Angle::NONE_TOLERANCE)
         && observation.elevation().equals(elevation, math::Angle::NONE_TOLERANCE);
 }
@@ -157,17 +157,17 @@ std::optional<double> DetectionMatcher::matchesPosition(
         return std::nullopt;
     }
 
-    auto referencePosition = cartesian::position(other);
-    if (other.state() == TargetState::TRACKING)
+    const bool tracking = other.state() == TargetState::TRACKING;
+    const auto prediction = tracking
+        ? other.predict(observation.lastObservationTime())
+        : std::optional<TargetPrediction>{};
+    if (tracking && !prediction)
     {
-        const auto prediction = other.predict(observation.lastObservationTime());
-        if (!prediction)
-        {
-            return std::nullopt;
-        }
-        referencePosition = cartesian::position(
-            prediction->slantRange, prediction->azimuth, prediction->elevation);
+        return std::nullopt;
     }
+    const auto referencePosition = prediction
+        ? cartesian::position(prediction->slantRange, prediction->azimuth, prediction->elevation)
+        : cartesian::position(other);
 
     const auto residual = cartesian::toVector(cartesian::position(observation))
         - cartesian::toVector(referencePosition);
@@ -195,12 +195,16 @@ std::optional<double> DetectionMatcher::matchesConfirmation(
         - cartesian::toVector(cartesian::position(tentative));
     // Ordered nonnegative times keep this integer subtraction within its range.
     const double seconds = std::chrono::duration<double>(time - tentative.initialTime()).count();
-    const auto speed = math::Velocity::fromMetersPerSecond((displacement / seconds).norm());
-    if (!speed.isFinite()
-        || speed.greaterThan(MAX_INITIAL_SPEED, math::Velocity::NONE_TOLERANCE)
+    const double speedMagnitude = (displacement / seconds).norm();
+    if (!std::isfinite(speedMagnitude))
+    {
+        return std::nullopt;
+    }
+    const auto speed = math::LinearVelocity::fromMetersPerSecond(speedMagnitude);
+    if (speed.greaterThan(MAX_INITIAL_SPEED, math::LinearVelocity::NONE_TOLERANCE)
         || !observation.dopplerVelocity().equals(
             tentative.dopplerVelocity(),
-            math::QuantityTolerance<math::Velocity>{MAX_INITIAL_DOPPLER_DIFFERENCE, 0.0}))
+            math::QuantityTolerance<math::LinearVelocity>{MAX_INITIAL_DOPPLER_DIFFERENCE, 0.0}))
     {
         return std::nullopt;
     }

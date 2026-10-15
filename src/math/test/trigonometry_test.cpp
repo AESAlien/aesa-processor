@@ -28,16 +28,6 @@ TEST(TrigonometryTest, ReducesLargeAnglesBeforeConvertingToRadians)
     EXPECT_NEAR(math::tan(largeAngle), math::tan(equivalentAngle), 1e-15);
 }
 
-TEST(TrigonometryTest, RejectsNonfiniteAngles)
-{
-    const auto infinity = math::Angle::fromDegrees(std::numeric_limits<double>::infinity());
-    const auto nan = math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN());
-
-    EXPECT_THROW(math::sin(infinity), std::domain_error);
-    EXPECT_THROW(math::cos(nan), std::domain_error);
-    EXPECT_THROW(math::tan(infinity), std::domain_error);
-}
-
 TEST(TrigonometryTest, ComputesInverseSineCosineAndTangent)
 {
     EXPECT_NEAR(math::asin(0.5).deg(), 30.0, 1e-12);
@@ -46,6 +36,26 @@ TEST(TrigonometryTest, ComputesInverseSineCosineAndTangent)
     EXPECT_NEAR(math::acos(-1.0).deg(), 180.0, 1e-12);
     EXPECT_NEAR(math::atan(1.0).deg(), 45.0, 1e-12);
     EXPECT_NEAR(math::atan(-1.0).deg(), -45.0, 1e-12);
+}
+
+TEST(TrigonometryTest, ComputesInverseTangentFromCoordinates)
+{
+    EXPECT_NEAR(math::atan2(1_m, 1_m).deg(), 45.0, 1e-12);
+    EXPECT_NEAR(math::atan2(1_m, -1_m).deg(), 135.0, 1e-12);
+    EXPECT_NEAR(math::atan2(-1_m, -1_m).deg(), -135.0, 1e-12);
+    EXPECT_NEAR(math::atan2(-1_m, 1_m).deg(), -45.0, 1e-12);
+    EXPECT_NEAR(math::atan2(1_m, 0_m).deg(), 90.0, 1e-12);
+    EXPECT_NEAR(math::atan2(0_m, -1_m).deg(), 180.0, 1e-12);
+}
+
+TEST(TrigonometryTest, ComputesInverseTangentFromVelocityComponents)
+{
+    EXPECT_NEAR(math::atan2(1_mps, 1_mps).deg(), 45.0, 1e-12);
+    EXPECT_NEAR(math::atan2(1_mps, -1_mps).deg(), 135.0, 1e-12);
+    EXPECT_NEAR(math::atan2(-1_mps, -1_mps).deg(), -135.0, 1e-12);
+    EXPECT_NEAR(math::atan2(-1_mps, 1_mps).deg(), -45.0, 1e-12);
+    EXPECT_NEAR(math::atan2(1_mps, 0_mps).deg(), 90.0, 1e-12);
+    EXPECT_NEAR(math::atan2(0_mps, -1_mps).deg(), 180.0, 1e-12);
 }
 
 TEST(TrigonometryTest, RejectsInvalidInverseFunctionInputs)

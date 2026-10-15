@@ -1,9 +1,10 @@
-﻿#include "constant_velocity_algorithm.hpp"
+#include "constant_velocity_algorithm.hpp"
 
 #include "cartesian_math.hpp"
 #include "validation/detection_validation.hpp"
 
-#include <array>
+#include <math/trigonometry.hpp>
+
 #include <cmath>
 
 namespace target
@@ -23,7 +24,7 @@ double elapsedSeconds(
 }
 
 std::optional<TargetTrackingState> estimateTrackingState(
-    const std::array<math::Distance, 3>& previousPosition,
+    const math::CartesianPosition& previousPosition,
     std::chrono::milliseconds previousTime,
     const Target& observation)
 {
@@ -94,30 +95,29 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     const auto& state = *currentState;
     // Preserve a stationary measured position exactly while matching remains exact.
     const auto& velocity = state.velocity;
-    if (velocity[0].equals(0.0_mps, math::Velocity::NONE_TOLERANCE)
-        && velocity[1].equals(0.0_mps, math::Velocity::NONE_TOLERANCE)
-        && velocity[2].equals(0.0_mps, math::Velocity::NONE_TOLERANCE))
+    if (velocity.x.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+        && velocity.y.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+        && velocity.z.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE))
     {
         return TargetPrediction{time, state.slantRange, state.azimuth, state.elevation};
     }
 
     const auto positionVector = cartesian::toVector(state.position)
         + cartesian::toVector(velocity) * elapsedSeconds(state.timestamp, time);
-    const auto range = math::Distance::fromMeters(positionVector.norm());
-    if (!positionVector.isFinite() || !range.isFinite()
-        || range.lessThanOrEqual(0.0_m, math::Distance::NONE_TOLERANCE))
+    const double rangeMeters = positionVector.norm();
+    if (!positionVector.isFinite() || !std::isfinite(rangeMeters) || rangeMeters <= 0.0)
     {
         return std::nullopt;
     }
 
+    const auto range = math::Length::fromMeters(rangeMeters);
     const auto position = cartesian::toPosition(positionVector);
-    const auto horizontalRange = math::Distance::fromMeters(
-        math::Vector{position[0].m(), position[1].m()}.norm());
+    const auto horizontalRange = position.horizontalDistance();
     return TargetPrediction{
         time,
         range,
-        math::Angle::fromRadians(std::atan2(position[1].m(), position[0].m())),
-        math::Angle::fromRadians(std::atan2(position[2].m(), horizontalRange.m()))
+        math::atan2(position.y, position.x),
+        math::atan2(position.z, horizontalRange)
     };
 }
 

@@ -125,14 +125,14 @@ const double& Matrix::operator()(std::size_t row, std::size_t column) const
     return at(row, column);
 }
 
-Matrix Matrix::transpose() const
+Matrix transpose(const Matrix& matrix)
 {
-    Matrix result(_columns, _rows);
-    for (std::size_t row = 0; row < _rows; ++row)
+    Matrix result(matrix.columns(), matrix.rows());
+    for (std::size_t row = 0; row < matrix.rows(); ++row)
     {
-        for (std::size_t column = 0; column < _columns; ++column)
+        for (std::size_t column = 0; column < matrix.columns(); ++column)
         {
-            result(column, row) = _values[row * _columns + column];
+            result(column, row) = matrix(row, column);
         }
     }
 

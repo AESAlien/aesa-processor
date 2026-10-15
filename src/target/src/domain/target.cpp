@@ -11,10 +11,10 @@ namespace target
 {
 
 Target::Target(
-    math::Distance slantRange,
+    math::Length slantRange,
     math::Angle azimuth,
     math::Angle elevation,
-    math::Velocity dopplerVelocity,
+    math::LinearVelocity dopplerVelocity,
     float power_db,
     std::chrono::milliseconds time,
     std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm)
@@ -33,7 +33,7 @@ Target::Target(
     }
 
     if (time.count() < 0
-        || !validation::hasValidMeasurement(slantRange, azimuth, elevation, dopplerVelocity))
+        || !validation::hasValidGeometry(slantRange, elevation))
     {
         throw std::invalid_argument("Target requires a valid observation and time");
     }
@@ -53,7 +53,7 @@ TargetState Target::state() const
     return _trackingState ? TargetState::TRACKING : TargetState::TENTATIVE;
 }
 
-math::Distance Target::slantRange() const
+math::Length Target::slantRange() const
 {
     return _trackingState ? _trackingState->slantRange : _initialSlantRange;
 }
@@ -68,7 +68,7 @@ math::Angle Target::elevation() const
     return _trackingState ? _trackingState->elevation : _initialElevation;
 }
 
-math::Velocity Target::dopplerVelocity() const
+math::LinearVelocity Target::dopplerVelocity() const
 {
     return _trackingState ? _trackingState->dopplerVelocity : _initialDopplerVelocity;
 }
@@ -149,7 +149,7 @@ bool Target::applyTrackingState(
         return false;
     }
 
-    _trackingState = *state;
+    _trackingState.emplace(*state);
     _lastResultTime = time;
     _consecutiveMissCount = 0;
     return true;

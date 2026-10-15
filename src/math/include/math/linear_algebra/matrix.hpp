@@ -42,8 +42,6 @@ public:
     double& operator()(std::size_t row, std::size_t column);
     const double& operator()(std::size_t row, std::size_t column) const;
 
-    Matrix transpose() const;
-
     // 두 행렬의 크기가 다르면 std::invalid_argument를 던진다.
     Matrix operator+(const Matrix& other) const;
     // 두 행렬의 크기가 다르면 std::invalid_argument를 던진다.
@@ -62,5 +60,6 @@ private:
 };
 
 Matrix operator*(double scalar, const Matrix& matrix);
+Matrix transpose(const Matrix& matrix);
 
 }

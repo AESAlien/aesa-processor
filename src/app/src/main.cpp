@@ -4,12 +4,13 @@
 #include <target/controller/target_controller.hpp>
 
 #include <chrono>
-#include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <thread>
 #include <utility>
 #include <vector>
+
+using namespace math::literals;
 
 namespace demo
 {
@@ -38,15 +39,7 @@ void printAngle(
     const math::Angle& angle)
 {
     std::cout << ", " << name << '=';
-
-    if (std::isfinite(angle.deg()))
-    {
-        std::cout << angle.deg();
-    }
-    else
-    {
-        std::cout << "N/A";
-    }
+    std::cout << angle.deg();
 }
 
 void printTracks(
@@ -91,10 +84,10 @@ target::DetectionEvent makeStationaryDetection(
     //
     // 실제 빔 범위나 모의기의 탐지 과정은 구현하지 않는다.
     plots.emplace_back(
-        math::Distance::fromMeters(12000),
-        math::Angle::fromDegrees(0),
-        math::Angle::fromDegrees(0),
-        math::Velocity::fromMetersPerSecond(0),
+        12000_m,
+        0_deg,
+        0_deg,
+        0_mps,
         30.0f);
 
     // 확인/추적 결과는 해당 빔 명령의 ID를 그대로 반환한다.
@@ -175,12 +168,12 @@ int main()
 
         beamController.setAttitude(
             beam::SetAttitudeCommand(
-                math::Angle::fromDegrees(37),
-                math::Angle::fromDegrees(127),
-                math::Distance::fromMeters(100),
-                math::Angle::fromDegrees(0),
-                math::Angle::fromDegrees(0),
-                math::Angle::fromDegrees(0)));
+                37_deg,
+                127_deg,
+                100_m,
+                0_deg,
+                0_deg,
+                0_deg));
 
         const auto start =
             std::chrono::steady_clock::now();
