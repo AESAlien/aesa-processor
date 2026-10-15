@@ -48,6 +48,16 @@ TEST(TrigonometryTest, ComputesInverseTangentFromCoordinates)
     EXPECT_NEAR(math::atan2(0_m, -1_m).deg(), 180.0, 1e-12);
 }
 
+TEST(TrigonometryTest, ComputesInverseTangentFromVelocityComponents)
+{
+    EXPECT_NEAR(math::atan2(1_mps, 1_mps).deg(), 45.0, 1e-12);
+    EXPECT_NEAR(math::atan2(1_mps, -1_mps).deg(), 135.0, 1e-12);
+    EXPECT_NEAR(math::atan2(-1_mps, -1_mps).deg(), -135.0, 1e-12);
+    EXPECT_NEAR(math::atan2(-1_mps, 1_mps).deg(), -45.0, 1e-12);
+    EXPECT_NEAR(math::atan2(1_mps, 0_mps).deg(), 90.0, 1e-12);
+    EXPECT_NEAR(math::atan2(0_mps, -1_mps).deg(), 180.0, 1e-12);
+}
+
 TEST(TrigonometryTest, RejectsInvalidInverseFunctionInputs)
 {
     const double infinity = std::numeric_limits<double>::infinity();

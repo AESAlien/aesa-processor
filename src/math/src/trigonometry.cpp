@@ -56,4 +56,9 @@ Angle atan2(Length y, Length x)
     return Angle::fromRadians(std::atan2(y.m(), x.m()));
 }
 
+Angle atan2(LinearVelocity y, LinearVelocity x)
+{
+    return Angle::fromRadians(std::atan2(y.mps(), x.mps()));
+}
+
 }

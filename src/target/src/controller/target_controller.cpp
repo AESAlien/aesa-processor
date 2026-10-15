@@ -8,8 +8,8 @@
 #include "selector/tentative_selector.hpp"
 #include "selector/track_selector.hpp"
 #include "validation/detection_validation.hpp"
+#include "math/trigonometry.hpp"
 
-#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -109,10 +109,10 @@ TrackEvent trackEvent(const Target& target)
         math::Vector{velocity.x.mps(), velocity.y.mps()}.norm());
     const auto speed = math::LinearVelocity::fromMetersPerSecond(cartesian::toVector(velocity).norm());
     const math::Angle heading = horizontalSpeed > 0.0_mps
-        ? math::Angle::fromRadians(std::atan2(velocity.y.mps(), velocity.x.mps()))
+        ? math::atan2(velocity.y, velocity.x)
         : 0_deg;
     const math::Angle flightPathAngle = speed > 0.0_mps
-        ? math::Angle::fromRadians(std::atan2(velocity.z.mps(), horizontalSpeed.mps()))
+        ? math::atan2(velocity.z, horizontalSpeed)
         : 0_deg;
     return TrackEvent(
         static_cast<std::uint16_t>(target.id()),
