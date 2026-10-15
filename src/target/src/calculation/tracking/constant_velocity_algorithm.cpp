@@ -24,18 +24,6 @@ double elapsedSeconds(
     return std::chrono::duration<double>(current - previous).count();
 }
 
-bool isFinite(const math::CartesianPoint& position)
-{
-    return std::isfinite(position.x.m()) && std::isfinite(position.y.m())
-        && std::isfinite(position.z.m());
-}
-
-bool isFinite(const math::CartesianVelocity& velocity)
-{
-    return std::isfinite(velocity.x.mps()) && std::isfinite(velocity.y.mps())
-        && std::isfinite(velocity.z.mps());
-}
-
 } // namespace
 
 std::optional<TargetTrackingState> ConstantVelocityAlgorithm::initialize(
@@ -56,8 +44,7 @@ std::optional<TargetTrackingState> ConstantVelocityAlgorithm::initialize(
         - cartesian::toVector(firstPosition)) / elapsedSeconds(firstTime, secondTime);
     const auto velocity = cartesian::toVelocity(velocityVector);
 
-    if (!isFinite(firstPosition) || !isFinite(secondPosition) || !isFinite(velocity)
-        || !std::isfinite(velocityVector.norm()))
+    if (!std::isfinite(velocityVector.norm()))
     {
         return std::nullopt;
     }
@@ -84,7 +71,7 @@ std::optional<TargetTrackingState> ConstantVelocityAlgorithm::update(
         - cartesian::toVector(state.position)) / elapsedSeconds(state.timestamp, time);
     const auto velocity = cartesian::toVelocity(velocityVector);
 
-    if (!isFinite(position) || !isFinite(velocity) || !std::isfinite(velocityVector.norm()))
+    if (!std::isfinite(velocityVector.norm()))
     {
         return std::nullopt;
     }
@@ -117,14 +104,13 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     const auto positionVector = cartesian::toVector(state.position)
         + cartesian::toVector(velocity) * elapsedSeconds(state.timestamp, time);
     const auto position = cartesian::toPosition(positionVector);
-    const auto range = math::Length::fromMeters(positionVector.norm());
-    if (!isFinite(position) || !std::isfinite(range.m()) || range <= 0.0_m)
+    const auto range = position.distance();
+    if (range <= 0.0_m)
     {
         return std::nullopt;
     }
 
-    const auto horizontalRange = math::Length::fromMeters(
-        math::Vector{position.x.m(), position.y.m()}.norm());
+    const auto horizontalRange = position.horizontalDistance();
     return TargetPrediction{
         time,
         range,

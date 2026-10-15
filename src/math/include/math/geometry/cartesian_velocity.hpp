@@ -9,6 +9,9 @@ struct CartesianVelocity
 {
     CartesianVelocity(LinearVelocity x, LinearVelocity y, LinearVelocity z) noexcept;
 
+    LinearVelocity horizontalSpeed() const;
+    LinearVelocity speed() const;
+
     const LinearVelocity x;
     const LinearVelocity y;
     const LinearVelocity z;

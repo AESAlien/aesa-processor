@@ -1,7 +1,6 @@
 #include <target/controller/target_controller.hpp>
 
 #include "calculation/association/detection_matcher.hpp"
-#include "calculation/tracking/cartesian_math.hpp"
 #include "calculation/tracking/constant_velocity_algorithm.hpp"
 #include "domain/target.hpp"
 #include "repository/target_repository.hpp"
@@ -51,8 +50,8 @@ void validateDetection(const DetectionEvent& detection)
     // Validate the entire external message before converting or storing any target.
     for (const auto& plot : detection.plots)
     {
-        if (!validation::hasValidMeasurement(
-                plot.slantRange, plot.azimuth, plot.elevation, plot.dopplerVelocity))
+        if (!validation::hasValidGeometry(
+                plot.slantRange, plot.elevation))
         {
             throw std::invalid_argument("Invalid beam detection plot");
         }
@@ -103,11 +102,9 @@ TrackEvent trackEvent(const Target& target)
 
     const auto& position = state.position;
     const auto& velocity = state.velocity;
-    const auto horizontalRange = math::Length::fromMeters(
-        math::Vector{position.x.m(), position.y.m()}.norm());
-    const auto horizontalSpeed = math::LinearVelocity::fromMetersPerSecond(
-        math::Vector{velocity.x.mps(), velocity.y.mps()}.norm());
-    const auto speed = math::LinearVelocity::fromMetersPerSecond(cartesian::toVector(velocity).norm());
+    const auto horizontalRange = position.horizontalDistance();
+    const auto horizontalSpeed = velocity.horizontalSpeed();
+    const auto speed = velocity.speed();
     const math::Angle heading = horizontalSpeed > 0.0_mps
         ? math::atan2(velocity.y, velocity.x)
         : 0_deg;

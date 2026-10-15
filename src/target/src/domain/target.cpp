@@ -33,7 +33,7 @@ Target::Target(
     }
 
     if (time.count() < 0
-        || !validation::hasValidMeasurement(slantRange, azimuth, elevation, dopplerVelocity))
+        || !validation::hasValidGeometry(slantRange, elevation))
     {
         throw std::invalid_argument("Target requires a valid observation and time");
     }

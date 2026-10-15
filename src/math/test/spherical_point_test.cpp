@@ -161,3 +161,19 @@ TEST(CartesianGeometryTest, StoresFiniteBoundaryValues)
     EXPECT_DOUBLE_EQ(velocity.y.mps(), 0.0);
     EXPECT_DOUBLE_EQ(velocity.z.mps(), MAX_VALUE);
 }
+
+TEST(CartesianGeometryTest, CalculatesHorizontalAndThreeDimensionalDistance)
+{
+    const math::CartesianPoint point(3_m, 4_m, 12_m);
+
+    EXPECT_EQ(point.horizontalDistance(), 5_m);
+    EXPECT_EQ(point.distance(), 13_m);
+}
+
+TEST(CartesianGeometryTest, CalculatesHorizontalAndThreeDimensionalSpeed)
+{
+    const math::CartesianVelocity velocity(3_mps, 4_mps, 12_mps);
+
+    EXPECT_EQ(velocity.horizontalSpeed(), 5_mps);
+    EXPECT_EQ(velocity.speed(), 13_mps);
+}

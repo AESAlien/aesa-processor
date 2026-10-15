@@ -5,7 +5,6 @@
 #include "validation/detection_validation.hpp"
 
 #include <chrono>
-#include <cmath>
 
 namespace target
 {
@@ -61,7 +60,7 @@ bool DetectionMatcher::matchesConfirmation(
     // Ordered nonnegative times keep this integer subtraction within its range.
     const double seconds = std::chrono::duration<double>(time - tentative.initialTime()).count();
     const auto speed = math::LinearVelocity::fromMetersPerSecond((displacement / seconds).norm());
-    return std::isfinite(speed.mps()) && speed <= MAX_INITIAL_SPEED
+    return speed <= MAX_INITIAL_SPEED
         && observation.dopplerVelocity().equals(
             tentative.dopplerVelocity(), math::QuantityTolerance{MAX_INITIAL_DOPPLER_DIFFERENCE, 0.0});
 }
