@@ -122,3 +122,44 @@ TEST(CommErrorHandlerTest, IncludesDecodingFailureDetailsInExceptionMessage)
         "Communication data could not be received: stage=decoding, "
         "peer=scenario-simulator, error=unsupported-version");
 }
+
+TEST(CommErrorHandlerTest, IncludesEncodingFailureDetailsInExceptionMessage)
+{
+    const std::string message = getErrorMessage<comm::SendError>(
+        []()
+        {
+            comm::controller_error::throwEncodingFailure(
+                comm::NetworkPeer::SCENARIO_SIMULATOR,
+                comm::EncodingError::TYPE_CONVERSION_ERROR);
+        });
+
+    EXPECT_EQ(
+        message,
+        "Communication data could not be sent: stage=encoding, "
+        "peer=scenario-simulator, error=type-conversion-error");
+}
+
+TEST(CommErrorHandlerTest, IncludesSendFailureDetailsInExceptionMessage)
+{
+    const comm::SendResult result
+    {
+        comm::SendStatus::CONNECTION_LOST,
+        128,
+        comm::NetworkOperation::SEND,
+        10054
+    };
+
+    const std::string message = getErrorMessage<comm::SendError>(
+        [&result]()
+        {
+            comm::controller_error::throwSendFailure(
+                comm::NetworkPeer::SCENARIO_SIMULATOR,
+                result);
+        });
+
+    EXPECT_EQ(
+        message,
+        "Communication data could not be sent: peer=scenario-simulator, "
+        "status=connection-lost, operation=send, systemError=10054, "
+        "bytesSent=128");
+}
