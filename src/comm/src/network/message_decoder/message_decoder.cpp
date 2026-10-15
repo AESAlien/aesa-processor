@@ -1,4 +1,4 @@
-#include <network/message_decoder.hpp>
+#include <network/message_decoder/message_decoder.hpp>
 
 #include <protocol/ST_OperatorMsg.hpp>
 #include <protocol/ST_PlotMsg.hpp>
