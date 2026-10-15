@@ -14,8 +14,9 @@ public:
     // 절대·상대 허용오차 없이 비교한다.
     static const QuantityTolerance<Angle> NONE_TOLERANCE;
 
-    // Rejects non-finite stored values with std::invalid_argument.
+    // 저장할 값이 유한하지 않으면 std::invalid_argument를 던진다.
     static Angle fromDegrees(double degrees);
+    // 저장할 값이 유한하지 않으면 std::invalid_argument를 던진다.
     static Angle fromRadians(double radians);
 
     double deg() const noexcept;
@@ -42,9 +43,11 @@ public:
     // 0으로 나누면 std::domain_error를 던진다.
     Angle operator/(double scalar) const;
 
-    // Non-finite results throw std::invalid_argument without changing the value.
+    // 결과가 유한하지 않으면 원본을 변경하지 않고 std::invalid_argument를 던진다.
     Angle& operator+=(const Angle& other);
+    // 결과가 유한하지 않으면 원본을 변경하지 않고 std::invalid_argument를 던진다.
     Angle& operator-=(const Angle& other);
+    // 결과가 유한하지 않으면 원본을 변경하지 않고 std::invalid_argument를 던진다.
     Angle& operator*=(double scalar);
     // 0으로 나누면 원본을 유지하고 std::domain_error를 던진다.
     Angle& operator/=(double scalar);

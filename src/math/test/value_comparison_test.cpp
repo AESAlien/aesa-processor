@@ -644,7 +644,7 @@ TYPED_TEST(QuantityComparisonTest, ExplicitTolerancesRemainIndependentAndRejectT
     EXPECT_THROW(zero.equals(zero, math::QuantityTolerance{negativeTolerance, 0.0}), std::invalid_argument);
 }
 
-// All concrete quantities reject non-finite values at construction.
+// 모든 구체 수량 타입은 생성 시 비유한 값을 거부한다.
 TYPED_TEST(QuantityComparisonTest, RejectsNonfiniteValuesAtConstruction)
 {
     EXPECT_THROW(makeQuantity<TypeParam>(std::numeric_limits<double>::infinity()), std::invalid_argument);

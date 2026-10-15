@@ -9,11 +9,12 @@ class Length : public Quantity<Length>
 {
 public:
     static const QuantityTolerance<Length> DEFAULT_TOLERANCE;
-    // Compares without absolute or relative tolerance.
+    // 절대·상대 허용오차 없이 비교한다.
     static const QuantityTolerance<Length> NONE_TOLERANCE;
 
-    // Rejects non-finite stored values with std::invalid_argument.
+    // 저장된 값이 유한하지 않으면 std::invalid_argument를 던진다.
     static Length fromMeters(double meters);
+    // 저장된 값이 유한하지 않으면 std::invalid_argument를 던진다.
     static Length fromKilometers(double kilometers);
 
     double m() const noexcept;

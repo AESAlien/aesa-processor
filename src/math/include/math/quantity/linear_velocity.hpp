@@ -9,7 +9,7 @@
 namespace math
 {
 
-// Signed meters-per-second quantity, also used for Cartesian components and Doppler measurements.
+// 부호를 갖는 초당 미터 단위 속도량으로, 직교 좌표계의 성분과 도플러 측정에도 사용한다.
 class LinearVelocity : public Quantity<LinearVelocity>
 {
 public:
@@ -17,7 +17,7 @@ public:
     // 절대·상대 허용오차 없이 비교한다.
     static const QuantityTolerance<LinearVelocity> NONE_TOLERANCE;
 
-    // Rejects non-finite stored values with std::invalid_argument.
+    // 저장할 값이 유한하지 않으면 std::invalid_argument를 던진다.
     static LinearVelocity fromMetersPerSecond(double metersPerSecond);
 
     double mps() const noexcept;
