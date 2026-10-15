@@ -304,7 +304,7 @@ TEST(BeamTableTest, LargeAzimuthStartWithSingleBeamPreservesWrappedDirection)
     beam::SearchGridConfig config;
     config.azimuthCount = 1;
     config.elevationCount = 1;
-    config.azimuthStart = math::Angle::fromDegrees(1e18);
+    config.azimuthStart = 1e18_deg;
 
     const beam::BeamTable table(makeValidTransform(0_deg, 0_deg, 0_deg), config);
 

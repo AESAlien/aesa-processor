@@ -10,6 +10,8 @@
 #include <utility>
 #include <vector>
 
+using namespace math::literals;
+
 namespace demo
 {
 
@@ -82,10 +84,10 @@ target::DetectionEvent makeStationaryDetection(
     //
     // 실제 빔 범위나 모의기의 탐지 과정은 구현하지 않는다.
     plots.emplace_back(
-        math::Length::fromMeters(12000),
-        math::Angle::fromDegrees(0),
-        math::Angle::fromDegrees(0),
-        math::LinearVelocity::fromMetersPerSecond(0),
+        12000_m,
+        0_deg,
+        0_deg,
+        0_mps,
         30.0f);
 
     // 확인/추적 결과는 해당 빔 명령의 ID를 그대로 반환한다.
@@ -166,12 +168,12 @@ int main()
 
         beamController.setAttitude(
             beam::SetAttitudeCommand(
-                math::Angle::fromDegrees(37),
-                math::Angle::fromDegrees(127),
-                math::Length::fromMeters(100),
-                math::Angle::fromDegrees(0),
-                math::Angle::fromDegrees(0),
-                math::Angle::fromDegrees(0)));
+                37_deg,
+                127_deg,
+                100_m,
+                0_deg,
+                0_deg,
+                0_deg));
 
         const auto start =
             std::chrono::steady_clock::now();
