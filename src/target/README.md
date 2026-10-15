@@ -102,7 +102,7 @@ Target은 알고리즘의 반환 시각과 좌표·각도·속도의 유효성�
 최초 측정값은 별도 필드에 보존하고 현재 값 getter는 Tracking일 때 최근 추적 상태를 반환한다.
 예측은 저장 상태와 관측 시각을 앞당기지 않는다.
 
-position은 array<math::Distance, 3>, velocity는 array<math::Velocity, 3>이다.
+position은 math::CartesianPosition, velocity는 math::CartesianVelocity이다.
 안테나 고정 좌표계는 방위각 0도 방향 x, 방위각 +90도 방향 y, 위쪽 z를 사용한다.
 cartesian_math.hpp가 Target 극좌표의 Cartesian 변환과 단위 성분↔math::Vector 변환을 공유한다.
 차분·외삽·크기는 math::Vector로 계산하고, 단위 리터럴과 equals를 사용한다.
@@ -155,10 +155,9 @@ nextTrackEvents()는 현재 Tracking만 복사하여 반환하며 조회로 표�
 - groundRange: 레이더 기준 수평 투영 거리.
 - altitude: 레이더 기준 상대 높이 z.
 - velocity: 속도 벡터 크기.
-- heading / flightPathAngle: 레이더 기준 수평 진행각 / 속도 상승각.
-- latitude / longitude: 기준 위치가 없어 NaN. 속력 0의 운동 각도도 정의되지 않아 NaN.
+- heading / flightPathAngle: 레이더 기준 수평 진행각 / 속도 상승각. 정지 표적은 0도.
+- latitude / longitude: 기준 위치가 없어 현재 0도로 보고한다.
 
-Comm 및 콘솔의 NaN 수용과 실제 전송은 아직 통합 검증하지 않았다.
 NDS·공분산·칼만필터/CA·플랫폼 자세 보정은 미구현이다.
 연관 조건은 Matcher에서, 추적 알고리즘은 ITrackingAlgorithm 구현체에서 교체한다.
 현재 Beam Scheduler의 확인·추적 beamId 연결은 담당 모듈의 별도 수정이 필요하다.

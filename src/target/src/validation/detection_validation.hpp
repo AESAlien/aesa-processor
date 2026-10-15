@@ -1,8 +1,7 @@
 #pragma once
 
+#include <math/quantity/length.hpp>
 #include <math/quantity/angle.hpp>
-#include <math/quantity/distance.hpp>
-#include <math/quantity/velocity.hpp>
 
 namespace target
 {
@@ -15,14 +14,8 @@ namespace validation
 {
 
 bool hasValidGeometry(
-    const math::Distance& range,
-    const math::Angle& azimuth,
+    const math::Length& range,
     const math::Angle& elevation);
-bool hasValidMeasurement(
-    const math::Distance& range,
-    const math::Angle& azimuth,
-    const math::Angle& elevation,
-    const math::Velocity& dopplerVelocity);
 bool isValidTarget(const Target& target);
 bool isValidTrackingState(const TargetTrackingState& state);
 bool isValidPrediction(const TargetPrediction& prediction);

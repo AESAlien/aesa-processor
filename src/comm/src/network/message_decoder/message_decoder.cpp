@@ -89,11 +89,11 @@ target::DetectionEvent::Plot decodePlot(
 )
 {
     return target::DetectionEvent::Plot::Builder()
-        .slantRange(math::Distance::fromKilometers(plot.slantR_km))
+        .slantRange(math::Length::fromKilometers(plot.slantR_km))
         .azimuth(math::Angle::fromDegrees(plot.azi_deg))
         .elevation(math::Angle::fromDegrees(plot.elv_deg))
         .dopplerVelocity(
-            math::Velocity::fromMetersPerSecond(plot.doppler_mps))
+            math::LinearVelocity::fromMetersPerSecond(plot.doppler_mps))
         .power_db(plot.pwr_DB)
         .build();
 }
@@ -191,7 +191,7 @@ DecodeResult MessageDecoder::decodeRadarAttitude(
         beam::SetAttitudeCommand::Builder()
             .latitude(math::Angle::fromDegrees(message.radar_lat_deg))
             .longitude(math::Angle::fromDegrees(message.radar_lon_deg))
-            .altitude(math::Distance::fromKilometers(message.radar_alt_km))
+            .altitude(math::Length::fromKilometers(message.radar_alt_km))
             .roll(math::Angle::fromDegrees(message.roll_deg))
             .pitch(math::Angle::fromDegrees(message.pitch_deg))
             .yaw(math::Angle::fromDegrees(message.yaw_deg))

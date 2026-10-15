@@ -14,3 +14,13 @@ target_include_directories(target PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
+
+find_package(GTest REQUIRED)
+include(GoogleTest)
+
+add_executable(target_immutable_geometry_test test/immutable_geometry_test.cpp)
+target_include_directories(target_immutable_geometry_test PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+target_link_libraries(target_immutable_geometry_test PRIVATE target GTest::gtest_main)
+gtest_discover_tests(target_immutable_geometry_test)

@@ -45,8 +45,6 @@ public:
     double& operator[](std::size_t index);
     const double& operator[](std::size_t index) const;
 
-    // 전치 결과는 1×N 일반 행렬이다.
-    Matrix transpose() const;
     // 두 벡터의 길이가 다르면 std::invalid_argument를 던진다. 빈 벡터의 내적은 0이다.
     double dot(const Vector& other) const;
     double norm() const;
@@ -69,5 +67,7 @@ Vector operator*(double scalar, const Vector& vector);
 // 행렬 열 수와 벡터 길이가 다르면 std::invalid_argument를 던진다.
 Vector operator*(const Matrix& matrix, const Vector& vector);
 Vector operator*(const SquareMatrix& matrix, const Vector& vector);
+// 전치 결과는 1×N 일반 행렬이다.
+Matrix transpose(const Vector& vector);
 
 }

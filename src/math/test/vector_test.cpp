@@ -140,12 +140,12 @@ TEST(VectorTest, ComputesDotProductAndStableNorm)
 // 벡터 전치는 행벡터 형태의 일반 행렬을 반환한다.
 TEST(VectorTest, TransposesToRowMatrix)
 {
-    auto transposed = math::Vector{1.0, 2.0, 3.0}.transpose();
+    auto transposed = math::transpose(math::Vector{1.0, 2.0, 3.0});
     static_assert(std::is_same_v<decltype(transposed), math::Matrix>);
     EXPECT_EQ(transposed.rows(), 1);
     ASSERT_EQ(transposed.columns(), 3);
     EXPECT_DOUBLE_EQ(transposed(0, 2), 3.0);
-    auto empty = math::Vector().transpose();
+    auto empty = math::transpose(math::Vector());
     EXPECT_EQ(empty.rows(), 1);
     EXPECT_EQ(empty.columns(), 0);
 }

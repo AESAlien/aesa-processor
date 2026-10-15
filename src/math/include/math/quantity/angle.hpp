@@ -11,51 +11,63 @@ class Angle : public Quantity<Angle>
 {
 public:
     static const QuantityTolerance<Angle> DEFAULT_TOLERANCE;
-    // 절대·상대 허용오차 없이 비교한다. 무한대·NaN 값은 같다고 판단하지 않는다.
+    // 절대·상대 허용오차 없이 비교한다.
     static const QuantityTolerance<Angle> NONE_TOLERANCE;
 
-    static Angle fromDegrees(double degrees) noexcept;
-    static Angle fromRadians(double radians) noexcept;
+    // 저장할 값이 유한하지 않으면 std::invalid_argument를 던진다.
+    static Angle fromDegrees(double degrees);
+    // 저장할 값이 유한하지 않으면 std::invalid_argument를 던진다.
+    static Angle fromRadians(double radians);
 
     double deg() const noexcept;
     double rad() const noexcept;
 
-    // 원본을 유지하며 [-180, 180)도 범위로 정규화한 새 각도를 반환한다.
-    Angle wrap180() const noexcept;
-
-    // 원본을 유지하며 [-90, 90)도 범위로 정규화한 새 각도를 반환한다.
-    Angle wrap90() const noexcept;
+    bool equals(
+        const Angle& other,
+        const QuantityTolerance<Angle>& tolerance = DEFAULT_TOLERANCE
+    ) const noexcept;
+    bool notEquals(
+        const Angle& other,
+        const QuantityTolerance<Angle>& tolerance = DEFAULT_TOLERANCE
+    ) const noexcept;
+    bool operator==(const Angle& other) const noexcept;
+    bool operator!=(const Angle& other) const noexcept;
 
     Angle operator+() const noexcept;
     Angle operator-() const noexcept;
 
-    Angle operator+(const Angle& other) const noexcept;
-    Angle operator-(const Angle& other) const noexcept;
+    Angle operator+(const Angle& other) const;
+    Angle operator-(const Angle& other) const;
 
-    Angle operator*(double scalar) const noexcept;
+    Angle operator*(double scalar) const;
     // 0으로 나누면 std::domain_error를 던진다.
     Angle operator/(double scalar) const;
 
-    Angle& operator+=(const Angle& other) noexcept;
-    Angle& operator-=(const Angle& other) noexcept;
-    Angle& operator*=(double scalar) noexcept;
+    // 결과가 유한하지 않으면 원본을 변경하지 않고 std::invalid_argument를 던진다.
+    Angle& operator+=(const Angle& other);
+    // 결과가 유한하지 않으면 원본을 변경하지 않고 std::invalid_argument를 던진다.
+    Angle& operator-=(const Angle& other);
+    // 결과가 유한하지 않으면 원본을 변경하지 않고 std::invalid_argument를 던진다.
+    Angle& operator*=(double scalar);
     // 0으로 나누면 원본을 유지하고 std::domain_error를 던진다.
     Angle& operator/=(double scalar);
 
 private:
-    explicit Angle(double degrees) noexcept;
+    explicit Angle(double degrees);
 };
 
 Angle abs(Angle angle) noexcept;
-Angle operator*(double scalar, const Angle& angle) noexcept;
+Angle wrap180(Angle angle) noexcept;
+Angle wrap360(Angle angle) noexcept;
+Angle operator*(double scalar, const Angle& angle);
 
 namespace literals
 {
 
 Angle operator""_deg(unsigned long long degrees) noexcept;
-Angle operator""_deg(long double degrees) noexcept;
+Angle operator""_deg(long double degrees);
 Angle operator""_rad(unsigned long long radians) noexcept;
-Angle operator""_rad(long double radians) noexcept;
+Angle operator""_rad(long double radians);
 
 }
 

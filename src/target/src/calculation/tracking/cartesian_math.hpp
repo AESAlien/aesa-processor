@@ -2,11 +2,12 @@
 
 #include "domain/target.hpp"
 
+#include <math/geometry/cartesian_position.hpp>
+#include <math/geometry/cartesian_velocity.hpp>
 #include <math/linear_algebra/vector.hpp>
-#include <math/quantity/distance.hpp>
-#include <math/quantity/velocity.hpp>
+#include <math/quantity/length.hpp>
+#include <math/quantity/linear_velocity.hpp>
 
-#include <array>
 #include <cmath>
 
 namespace target
@@ -15,31 +16,31 @@ namespace cartesian
 {
 
 // Convert typed components only at the boundary of dimensionless vector arithmetic.
-inline math::Vector toVector(const std::array<math::Distance, 3>& position)
+inline math::Vector toVector(const math::CartesianPosition& position)
 {
-    return {position[0].m(), position[1].m(), position[2].m()};
+    return {position.x.m(), position.y.m(), position.z.m()};
 }
 
-inline math::Vector toVector(const std::array<math::Velocity, 3>& velocity)
+inline math::Vector toVector(const math::CartesianVelocity& velocity)
 {
-    return {velocity[0].mps(), velocity[1].mps(), velocity[2].mps()};
+    return {velocity.x.mps(), velocity.y.mps(), velocity.z.mps()};
 }
 
-inline std::array<math::Distance, 3> toPosition(const math::Vector& position)
+inline math::CartesianPosition toPosition(const math::Vector& position)
 {
-    return {math::Distance::fromMeters(position[0]),
-        math::Distance::fromMeters(position[1]),
-        math::Distance::fromMeters(position[2])};
+    return {math::Length::fromMeters(position[0]),
+        math::Length::fromMeters(position[1]),
+        math::Length::fromMeters(position[2])};
 }
 
-inline std::array<math::Velocity, 3> toVelocity(const math::Vector& velocity)
+inline math::CartesianVelocity toVelocity(const math::Vector& velocity)
 {
-    return {math::Velocity::fromMetersPerSecond(velocity[0]),
-        math::Velocity::fromMetersPerSecond(velocity[1]),
-        math::Velocity::fromMetersPerSecond(velocity[2])};
+    return {math::LinearVelocity::fromMetersPerSecond(velocity[0]),
+        math::LinearVelocity::fromMetersPerSecond(velocity[1]),
+        math::LinearVelocity::fromMetersPerSecond(velocity[2])};
 }
 
-inline std::array<math::Distance, 3> position(const Target& target)
+inline math::CartesianPosition position(const Target& target)
 {
     // The current math API has no trigonometric functions.
     const auto horizontalRange = math::Vector{target.slantRange().m()}

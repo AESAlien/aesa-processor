@@ -1,16 +1,18 @@
 find_package(GTest REQUIRED)
 
 add_library(math STATIC
+    src/geometry/cartesian_position.cpp
+    src/geometry/cartesian_velocity.cpp
     src/quantity/angle.cpp
-    src/quantity/distance.cpp
+    src/quantity/length.cpp
     src/geometry/spherical_direction.cpp
     src/linear_algebra/matrix.cpp
     src/linear_algebra/square_matrix.cpp
-    src/geometry/spherical_point.cpp
+    src/geometry/spherical_position.cpp
     src/trigonometry.cpp
     src/tolerance.cpp
     src/linear_algebra/vector.cpp
-    src/quantity/velocity.cpp
+    src/quantity/linear_velocity.cpp
 )
 
 target_include_directories(math PUBLIC
@@ -23,21 +25,21 @@ add_executable(angle_test test/angle_test.cpp)
 target_link_libraries(angle_test PRIVATE math GTest::gtest_main)
 gtest_discover_tests(angle_test)
 
-add_executable(distance_test test/distance_test.cpp)
-target_link_libraries(distance_test PRIVATE math GTest::gtest_main)
-gtest_discover_tests(distance_test)
+add_executable(length_test test/length_test.cpp)
+target_link_libraries(length_test PRIVATE math GTest::gtest_main)
+gtest_discover_tests(length_test)
 
-add_executable(spherical_point_test test/spherical_point_test.cpp)
-target_link_libraries(spherical_point_test PRIVATE math GTest::gtest_main)
-gtest_discover_tests(spherical_point_test)
+add_executable(spherical_position_test test/spherical_position_test.cpp)
+target_link_libraries(spherical_position_test PRIVATE math GTest::gtest_main)
+gtest_discover_tests(spherical_position_test)
 
 add_executable(trigonometry_test test/trigonometry_test.cpp)
 target_link_libraries(trigonometry_test PRIVATE math GTest::gtest_main)
 gtest_discover_tests(trigonometry_test)
 
-add_executable(velocity_test test/velocity_test.cpp)
-target_link_libraries(velocity_test PRIVATE math GTest::gtest_main)
-gtest_discover_tests(velocity_test)
+add_executable(linear_velocity_test test/linear_velocity_test.cpp)
+target_link_libraries(linear_velocity_test PRIVATE math GTest::gtest_main)
+gtest_discover_tests(linear_velocity_test)
 
 add_executable(matrix_test test/matrix_test.cpp)
 target_link_libraries(matrix_test PRIVATE math GTest::gtest_main)

@@ -31,22 +31,10 @@ math::SquareMatrix bodyToEnu(math::Angle roll, math::Angle pitch, math::Angle ya
     return Rz * (Rx * Ry);
 }
 
-bool allFinite(const RadarAttitude& attitude)
-{
-    return attitude.latitude.isFinite() && attitude.longitude.isFinite() &&
-           attitude.altitude.isFinite() && attitude.roll.isFinite() &&
-           attitude.pitch.isFinite() && attitude.yaw.isFinite();
-}
-
 } // namespace
 
 AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeConfig& config) : _attitude(attitude)
 {
-    if (!allFinite(attitude))
-    {
-        throw AttitudeError(AttitudeErrorCode::NOT_FINITE, "RadarAttitude contains NaN or Inf");
-    }
-
     if (attitude.latitude  < -90_deg  || attitude.latitude  > 90_deg ||
         attitude.longitude < -180_deg || attitude.longitude > 180_deg ||
         attitude.altitude  < -0.5_km  || attitude.altitude  > 100_km ||
@@ -97,7 +85,7 @@ const math::SquareMatrix& AntEnuTransform::rotationMatrix() const
 math::SphericalDirection AntEnuTransform::enuToAnt(const math::SphericalDirection& direction_enu) const
 {
     const math::Vector vector_enu = direction_enu.toCartesianUnitVector();
-    const math::Vector vector_ant = _rotationMatrix.transpose() * vector_enu;
+    const math::Vector vector_ant = math::transpose(_rotationMatrix) * vector_enu;
     return math::SphericalDirection::fromCartesianUnitVector(vector_ant);
 }
 

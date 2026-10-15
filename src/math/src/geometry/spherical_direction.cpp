@@ -12,36 +12,22 @@ namespace math
 using namespace literals;
 
 SphericalDirection::SphericalDirection(Angle azimuth, Angle elevation)
-    : _azimuth(azimuth),
-      _elevation(elevation)
+    : azimuth(wrap360(azimuth)),
+      elevation(elevation)
 {
-    if (!azimuth.isFinite() || azimuth < -180_deg || azimuth >= 180_deg)
-    {
-        throw std::invalid_argument("SphericalDirection azimuth must be in [-180, 180) degrees");
-    }
-    if (!elevation.isFinite() || elevation < -90_deg || elevation > 90_deg)
+    if (elevation < -90_deg || elevation > 90_deg)
     {
         throw std::invalid_argument("SphericalDirection elevation must be in [-90, 90] degrees");
     }
 }
 
-Angle SphericalDirection::azimuth() const noexcept
-{
-    return _azimuth;
-}
-
-Angle SphericalDirection::elevation() const noexcept
-{
-    return _elevation;
-}
-
 Vector SphericalDirection::toCartesianUnitVector() const
 {
-    const double cosElevation = cos(_elevation);
+    const double cosElevation = cos(elevation);
     return Vector{
-        cosElevation * sin(_azimuth),
-        cosElevation * cos(_azimuth),
-        sin(_elevation)
+        cosElevation * sin(azimuth),
+        cosElevation * cos(azimuth),
+        sin(elevation)
     };
 }
 
@@ -67,7 +53,7 @@ SphericalDirection SphericalDirection::fromCartesianUnitVector(const Vector& vec
     const double z = vector(2) / maxComponent;
     const double horizontalNorm = std::hypot(x, y);
 
-    const Angle azimuth = Angle::fromRadians(std::atan2(x, y)).wrap180();
+    const Angle azimuth = Angle::fromRadians(std::atan2(x, y));
     const Angle elevation = Angle::fromRadians(std::atan2(z, horizontalNorm));
     return SphericalDirection(azimuth, elevation);
 }
