@@ -5,9 +5,9 @@
 namespace math
 {
 
-struct CartesianPoint
+struct CartesianPosition
 {
-    CartesianPoint(Length x, Length y, Length z) noexcept;
+    CartesianPosition(Length x, Length y, Length z) noexcept;
 
     Length horizontalDistance() const;
     Length distance() const;

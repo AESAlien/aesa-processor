@@ -1,14 +1,14 @@
 find_package(GTest REQUIRED)
 
 add_library(math STATIC
-    src/geometry/cartesian_point.cpp
+    src/geometry/cartesian_position.cpp
     src/geometry/cartesian_velocity.cpp
     src/quantity/angle.cpp
     src/quantity/length.cpp
     src/geometry/spherical_direction.cpp
     src/linear_algebra/matrix.cpp
     src/linear_algebra/square_matrix.cpp
-    src/geometry/spherical_point.cpp
+    src/geometry/spherical_position.cpp
     src/trigonometry.cpp
     src/tolerance.cpp
     src/linear_algebra/vector.cpp
@@ -29,9 +29,9 @@ add_executable(length_test test/length_test.cpp)
 target_link_libraries(length_test PRIVATE math GTest::gtest_main)
 gtest_discover_tests(length_test)
 
-add_executable(spherical_point_test test/spherical_point_test.cpp)
-target_link_libraries(spherical_point_test PRIVATE math GTest::gtest_main)
-gtest_discover_tests(spherical_point_test)
+add_executable(spherical_position_test test/spherical_position_test.cpp)
+target_link_libraries(spherical_position_test PRIVATE math GTest::gtest_main)
+gtest_discover_tests(spherical_position_test)
 
 add_executable(trigonometry_test test/trigonometry_test.cpp)
 target_link_libraries(trigonometry_test PRIVATE math GTest::gtest_main)

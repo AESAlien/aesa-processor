@@ -1,6 +1,6 @@
 #pragma once
 
-#include <math/geometry/cartesian_point.hpp>
+#include <math/geometry/cartesian_position.hpp>
 #include <math/geometry/cartesian_velocity.hpp>
 #include <math/quantity/angle.hpp>
 #include <math/quantity/length.hpp>
@@ -28,7 +28,7 @@ struct TargetTrackingState
     float power_db;
     std::chrono::milliseconds timestamp;
     // Antenna-local Cartesian axes: x at azimuth 0, y at azimuth +90, z upward.
-    math::CartesianPoint position;
+    math::CartesianPosition position;
     math::CartesianVelocity velocity;
 };
 

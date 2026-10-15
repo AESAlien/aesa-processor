@@ -2,7 +2,7 @@
 
 #include "domain/target.hpp"
 
-#include <math/geometry/cartesian_point.hpp>
+#include <math/geometry/cartesian_position.hpp>
 #include <math/geometry/cartesian_velocity.hpp>
 #include <math/linear_algebra/vector.hpp>
 #include <math/quantity/length.hpp>
@@ -16,7 +16,7 @@ namespace cartesian
 {
 
 // Convert typed components only at the boundary of dimensionless vector arithmetic.
-inline math::Vector toVector(const math::CartesianPoint& position)
+inline math::Vector toVector(const math::CartesianPosition& position)
 {
     return {position.x.m(), position.y.m(), position.z.m()};
 }
@@ -26,7 +26,7 @@ inline math::Vector toVector(const math::CartesianVelocity& velocity)
     return {velocity.x.mps(), velocity.y.mps(), velocity.z.mps()};
 }
 
-inline math::CartesianPoint toPosition(const math::Vector& position)
+inline math::CartesianPosition toPosition(const math::Vector& position)
 {
     return {math::Length::fromMeters(position[0]),
         math::Length::fromMeters(position[1]),
@@ -40,7 +40,7 @@ inline math::CartesianVelocity toVelocity(const math::Vector& velocity)
         math::LinearVelocity::fromMetersPerSecond(velocity[2])};
 }
 
-inline math::CartesianPoint position(const Target& target)
+inline math::CartesianPosition position(const Target& target)
 {
     // The current math API has no trigonometric functions.
     const auto horizontalRange = math::Vector{target.slantRange().m()}

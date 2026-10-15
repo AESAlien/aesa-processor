@@ -1,6 +1,6 @@
-#include "math/geometry/cartesian_point.hpp"
+#include "math/geometry/cartesian_position.hpp"
 #include "math/geometry/cartesian_velocity.hpp"
-#include "math/geometry/spherical_point.hpp"
+#include "math/geometry/spherical_position.hpp"
 #include "math/trigonometry.hpp"
 #include "math/linear_algebra/vector.hpp"
 
@@ -12,22 +12,22 @@
 
 using namespace math::literals;
 
-static_assert(std::is_const_v<decltype(math::CartesianPoint::x)>);
-static_assert(std::is_const_v<decltype(math::CartesianPoint::y)>);
-static_assert(std::is_const_v<decltype(math::CartesianPoint::z)>);
+static_assert(std::is_const_v<decltype(math::CartesianPosition::x)>);
+static_assert(std::is_const_v<decltype(math::CartesianPosition::y)>);
+static_assert(std::is_const_v<decltype(math::CartesianPosition::z)>);
 static_assert(std::is_same_v<
-    std::remove_const_t<decltype(math::CartesianPoint::x)>,
+    std::remove_const_t<decltype(math::CartesianPosition::x)>,
     math::Length>);
 static_assert(std::is_same_v<
-    std::remove_const_t<decltype(math::CartesianPoint::y)>,
+    std::remove_const_t<decltype(math::CartesianPosition::y)>,
     math::Length>);
 static_assert(std::is_same_v<
-    std::remove_const_t<decltype(math::CartesianPoint::z)>,
+    std::remove_const_t<decltype(math::CartesianPosition::z)>,
     math::Length>);
-static_assert(std::is_copy_constructible_v<math::CartesianPoint>);
-static_assert(!std::is_copy_assignable_v<math::CartesianPoint>);
-static_assert(!std::is_move_assignable_v<math::CartesianPoint>);
-static_assert(!std::is_aggregate_v<math::CartesianPoint>);
+static_assert(std::is_copy_constructible_v<math::CartesianPosition>);
+static_assert(!std::is_copy_assignable_v<math::CartesianPosition>);
+static_assert(!std::is_move_assignable_v<math::CartesianPosition>);
+static_assert(!std::is_aggregate_v<math::CartesianPosition>);
 static_assert(std::is_const_v<decltype(math::CartesianVelocity::x)>);
 static_assert(std::is_const_v<decltype(math::CartesianVelocity::y)>);
 static_assert(std::is_const_v<decltype(math::CartesianVelocity::z)>);
@@ -41,30 +41,30 @@ static_assert(std::is_copy_constructible_v<math::SphericalDirection>);
 static_assert(!std::is_copy_assignable_v<math::SphericalDirection>);
 static_assert(!std::is_move_assignable_v<math::SphericalDirection>);
 static_assert(!std::is_aggregate_v<math::SphericalDirection>);
-static_assert(std::is_const_v<decltype(math::SphericalPoint::radius)>);
-static_assert(std::is_const_v<decltype(math::SphericalPoint::direction)>);
-static_assert(std::is_copy_constructible_v<math::SphericalPoint>);
-static_assert(!std::is_copy_assignable_v<math::SphericalPoint>);
-static_assert(!std::is_move_assignable_v<math::SphericalPoint>);
-static_assert(!std::is_aggregate_v<math::SphericalPoint>);
+static_assert(std::is_const_v<decltype(math::SphericalPosition::radius)>);
+static_assert(std::is_const_v<decltype(math::SphericalPosition::direction)>);
+static_assert(std::is_copy_constructible_v<math::SphericalPosition>);
+static_assert(!std::is_copy_assignable_v<math::SphericalPosition>);
+static_assert(!std::is_move_assignable_v<math::SphericalPosition>);
+static_assert(!std::is_aggregate_v<math::SphericalPosition>);
 
-TEST(SphericalPointTest, StoresValidCoordinates)
+TEST(SphericalPositionTest, StoresValidCoordinates)
 {
     const math::SphericalDirection direction(-180_deg, 90_deg);
-    const math::SphericalPoint point(2_km, direction);
+    const math::SphericalPosition point(2_km, direction);
 
     EXPECT_DOUBLE_EQ(point.radius.km(), 2.0);
     EXPECT_DOUBLE_EQ(point.direction.azimuth.deg(), 180.0);
     EXPECT_DOUBLE_EQ(point.direction.elevation.deg(), 90.0);
 
-    const math::SphericalPoint origin(0_m, math::SphericalDirection(-180_deg, -90_deg));
+    const math::SphericalPosition origin(0_m, math::SphericalDirection(-180_deg, -90_deg));
     EXPECT_DOUBLE_EQ(origin.radius.m(), 0.0);
 }
 
-TEST(SphericalPointTest, RejectsNegativeRadius)
+TEST(SphericalPositionTest, RejectsNegativeRadius)
 {
-    EXPECT_THROW((math::SphericalPoint(-1_m, math::SphericalDirection(0_deg, 0_deg))), std::invalid_argument);
-    EXPECT_THROW((math::SphericalPoint(
+    EXPECT_THROW((math::SphericalPosition(-1_m, math::SphericalDirection(0_deg, 0_deg))), std::invalid_argument);
+    EXPECT_THROW((math::SphericalPosition(
         math::Length::fromMeters(-std::numeric_limits<double>::denorm_min()),
         math::SphericalDirection(0_deg, 0_deg))), std::invalid_argument);
 }
@@ -129,8 +129,8 @@ TEST(SphericalDirectionTest, RejectsInvalidCartesianVectors)
 
 TEST(CartesianGeometryTest, StoresCoordinatesAndSupportsCopyConstruction)
 {
-    const math::CartesianPoint point(-1_m, 2_m, 3_m);
-    const math::CartesianPoint pointCopy(point);
+    const math::CartesianPosition point(-1_m, 2_m, 3_m);
+    const math::CartesianPosition pointCopy(point);
     EXPECT_EQ(pointCopy.x, -1_m);
     EXPECT_EQ(pointCopy.y, 2_m);
     EXPECT_EQ(pointCopy.z, 3_m);
@@ -145,7 +145,7 @@ TEST(CartesianGeometryTest, StoresCoordinatesAndSupportsCopyConstruction)
 TEST(CartesianGeometryTest, StoresFiniteBoundaryValues)
 {
     const double MAX_VALUE = std::numeric_limits<double>::max();
-    const math::CartesianPoint point(
+    const math::CartesianPosition point(
         math::Length::fromMeters(-MAX_VALUE),
         0_m,
         math::Length::fromMeters(MAX_VALUE));
@@ -164,7 +164,7 @@ TEST(CartesianGeometryTest, StoresFiniteBoundaryValues)
 
 TEST(CartesianGeometryTest, CalculatesHorizontalAndThreeDimensionalDistance)
 {
-    const math::CartesianPoint point(3_m, 4_m, 12_m);
+    const math::CartesianPosition point(3_m, 4_m, 12_m);
 
     EXPECT_EQ(point.horizontalDistance(), 5_m);
     EXPECT_EQ(point.distance(), 13_m);
