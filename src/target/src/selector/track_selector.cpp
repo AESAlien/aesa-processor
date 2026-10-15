@@ -31,6 +31,8 @@ std::optional<std::size_t> TrackSelector::selectObservation(
         return std::nullopt;
     }
 
+    std::optional<std::size_t> bestIndex;
+    double bestScore = 0.0;
     for (std::size_t index = 0; index < observations.size(); ++index)
     {
         const Target& observation = observations[index];
@@ -40,16 +42,23 @@ std::optional<std::size_t> TrackSelector::selectObservation(
             continue;
         }
 
-        const bool associated = target.state() == TargetState::TENTATIVE
-            ? _matcher.matchesConfirmation(observation, target)
-            : _matcher.matchesTracking(observation, target);
-        if (associated)
+        if (target.state() == TargetState::TENTATIVE)
+        {
+            const auto score = _matcher.matchesConfirmation(observation, target);
+            // Keep the first observation when two eligible scores are equal.
+            if (score && (!bestIndex || *score < bestScore))
+            {
+                bestIndex = index;
+                bestScore = *score;
+            }
+        }
+        else if (_matcher.matchesTracking(observation, target))
         {
             return index;
         }
     }
 
-    return std::nullopt;
+    return bestIndex;
 }
 
 } // namespace target

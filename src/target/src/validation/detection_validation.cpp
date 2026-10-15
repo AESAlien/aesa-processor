@@ -32,8 +32,9 @@ bool hasValidGeometry(
     const math::Angle& elevation)
 {
     using namespace math::literals;
-    return range > 0.0_m
-        && elevation >= -90.0_deg && elevation <= 90.0_deg;
+    return range.greaterThan(0.0_m, math::Length::NONE_TOLERANCE)
+        && elevation.greaterThanOrEqual(-90.0_deg, math::Angle::NONE_TOLERANCE)
+        && elevation.lessThanOrEqual(90.0_deg, math::Angle::NONE_TOLERANCE);
 }
 
 bool isValidTarget(const Target& target)

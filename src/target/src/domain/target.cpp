@@ -68,6 +68,12 @@ math::Angle Target::elevation() const
     return _trackingState ? _trackingState->elevation : _initialElevation;
 }
 
+math::SphericalPosition Target::sphericalPosition() const
+{
+    return math::SphericalPosition(
+        slantRange(), math::SphericalDirection(azimuth(), elevation()));
+}
+
 math::LinearVelocity Target::dopplerVelocity() const
 {
     return _trackingState ? _trackingState->dopplerVelocity : _initialDopplerVelocity;
@@ -123,17 +129,7 @@ bool Target::confirm(const Target& observation)
         return false;
     }
 
-    const auto initialized = _trackingAlgorithm->initialize(*this, observation);
-    if (!initialized || initialized->timestamp != time
-        || !validation::isValidTrackingState(*initialized))
-    {
-        return false;
-    }
-
-    _trackingState.emplace(*initialized);
-    _lastResultTime = time;
-    _consecutiveMissCount = 0;
-    return true;
+    return applyTrackingState(_trackingAlgorithm->initialize(*this, observation), time);
 }
 
 bool Target::update(const Target& observation)
@@ -147,14 +143,19 @@ bool Target::update(const Target& observation)
         return false;
     }
 
-    const auto updated = _trackingAlgorithm->update(*this, observation);
-    if (!updated || updated->timestamp != time
-        || !validation::isValidTrackingState(*updated))
+    return applyTrackingState(_trackingAlgorithm->update(*this, observation), time);
+}
+
+bool Target::applyTrackingState(
+    const std::optional<TargetTrackingState>& state,
+    std::chrono::milliseconds time)
+{
+    if (!state || state->timestamp != time || !validation::isValidTrackingState(*state))
     {
         return false;
     }
 
-    _trackingState.emplace(*updated);
+    _trackingState.emplace(*state);
     _lastResultTime = time;
     _consecutiveMissCount = 0;
     return true;

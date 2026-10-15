@@ -69,6 +69,101 @@ TEST(SphericalPositionTest, RejectsNegativeRadius)
         math::SphericalDirection(0_deg, 0_deg))), std::invalid_argument);
 }
 
+TEST(SphericalPositionTest, ConvertsAzimuthUsingPositiveYAxisAsZero)
+{
+    const math::CartesianPosition forward =
+        math::SphericalPosition(10_m, math::SphericalDirection(0_deg, 0_deg)).toCartesian();
+    EXPECT_DOUBLE_EQ(forward.x.m(), 0.0);
+    EXPECT_DOUBLE_EQ(forward.y.m(), 10.0);
+    EXPECT_DOUBLE_EQ(forward.z.m(), 0.0);
+
+    const math::CartesianPosition right =
+        math::SphericalPosition(10_m, math::SphericalDirection(90_deg, 0_deg)).toCartesian();
+    EXPECT_NEAR(right.x.m(), 10.0, 1e-12);
+    EXPECT_NEAR(right.y.m(), 0.0, 1e-12);
+    EXPECT_DOUBLE_EQ(right.z.m(), 0.0);
+}
+
+TEST(SphericalPositionTest, ConvertsZeroRadiusToOrigin)
+{
+    const math::CartesianPosition origin =
+        math::SphericalPosition(0_m, math::SphericalDirection(123_deg, -45_deg)).toCartesian();
+
+    EXPECT_DOUBLE_EQ(origin.x.m(), 0.0);
+    EXPECT_DOUBLE_EQ(origin.y.m(), 0.0);
+    EXPECT_DOUBLE_EQ(origin.z.m(), 0.0);
+}
+
+TEST(SphericalPositionTest, RoundTripsPositionAcrossAzimuthQuadrants)
+{
+    for (double azimuthDegrees : {30.0, 120.0, 210.0, 300.0, -30.0})
+    {
+        const math::SphericalPosition original(
+            2_km, math::SphericalDirection(math::Angle::fromDegrees(azimuthDegrees), -20_deg));
+        const math::CartesianPosition cartesian = original.toCartesian();
+        const math::SphericalPosition restored = cartesian.toSpherical();
+
+        EXPECT_NEAR(restored.radius.m(), original.radius.m(), 1e-9);
+        EXPECT_NEAR(restored.direction.azimuth.deg(), original.direction.azimuth.deg(), 1e-12);
+        EXPECT_NEAR(restored.direction.elevation.deg(), original.direction.elevation.deg(), 1e-12);
+    }
+}
+
+TEST(CartesianGeometryTest, ConvertsKnownPositionToSphericalCoordinates)
+{
+    const math::SphericalPosition position = math::CartesianPosition(3_m, 4_m, 12_m).toSpherical();
+
+    EXPECT_DOUBLE_EQ(position.radius.m(), 13.0);
+    EXPECT_NEAR(position.direction.azimuth.deg(), 36.86989764584402, 1e-12);
+    EXPECT_NEAR(position.direction.elevation.deg(), 67.38013505195957, 1e-12);
+}
+
+TEST(CartesianGeometryTest, ConvertsVerticalPositionsToSphericalCoordinates)
+{
+    for (double heightMeters : {-2.0, 2.0})
+    {
+        const math::SphericalPosition position = math::CartesianPosition(
+            0_m, 0_m, math::Length::fromMeters(heightMeters)).toSpherical();
+
+        EXPECT_DOUBLE_EQ(position.radius.m(), 2.0);
+        EXPECT_DOUBLE_EQ(position.direction.azimuth.deg(), 0.0);
+        EXPECT_DOUBLE_EQ(position.direction.elevation.deg(), heightMeters > 0.0 ? 90.0 : -90.0);
+    }
+}
+
+TEST(CartesianGeometryTest, RejectsOriginWithoutSphericalDirection)
+{
+    const math::CartesianPosition origin(0_m, 0_m, 0_m);
+
+    EXPECT_THROW(origin.toSpherical(), std::invalid_argument);
+}
+
+TEST(CartesianGeometryTest, ConvertsExtremeFinitePositionScales)
+{
+    for (double scale : {1e-200, 1e200})
+    {
+        const math::CartesianPosition original(
+            math::Length::fromMeters(3.0 * scale),
+            math::Length::fromMeters(-4.0 * scale),
+            math::Length::fromMeters(12.0 * scale));
+        const math::SphericalPosition spherical = original.toSpherical();
+        const math::CartesianPosition restored = spherical.toCartesian();
+
+        EXPECT_NEAR(spherical.radius.m() / scale, 13.0, 1e-12);
+        EXPECT_NEAR(restored.x.m() / scale, 3.0, 1e-12);
+        EXPECT_NEAR(restored.y.m() / scale, -4.0, 1e-12);
+        EXPECT_NEAR(restored.z.m() / scale, 12.0, 1e-12);
+    }
+}
+
+TEST(CartesianGeometryTest, RejectsUnrepresentableSphericalRadius)
+{
+    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
+    const math::CartesianPosition position(maximum, maximum, maximum);
+
+    EXPECT_THROW(position.toSpherical(), std::overflow_error);
+}
+
 TEST(SphericalDirectionTest, NormalizesAzimuthToUnsignedRange)
 {
     EXPECT_DOUBLE_EQ(math::SphericalDirection(-30_deg, 0_deg).azimuth.deg(), 330.0);

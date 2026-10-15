@@ -72,13 +72,15 @@ std::vector<Target> toTargets(
     return targets;
 }
 
-std::optional<beam::BeamRequest> trackingRequest(
+std::optional<beam::BeamRequest> trackingRequestOrRemove(
+    TargetRepository& repository,
     const Target& target,
     std::chrono::milliseconds transmitTime)
 {
     const auto prediction = target.predict(transmitTime);
     if (!prediction)
     {
+        repository.remove(target.id());
         return std::nullopt;
     }
 
@@ -105,10 +107,10 @@ TrackEvent trackEvent(const Target& target)
     const auto horizontalRange = position.horizontalDistance();
     const auto horizontalSpeed = velocity.horizontalSpeed();
     const auto speed = velocity.speed();
-    const math::Angle heading = horizontalSpeed > 0.0_mps
-        ? math::atan2(velocity.y, velocity.x)
+    const math::Angle heading = horizontalSpeed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+        ? math::atan2(velocity.x, velocity.y)
         : 0_deg;
-    const math::Angle flightPathAngle = speed > 0.0_mps
+    const math::Angle flightPathAngle = speed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         ? math::atan2(velocity.z, horizontalSpeed)
         : 0_deg;
     return TrackEvent(
@@ -201,12 +203,7 @@ std::optional<beam::BeamRequest> TargetController::handleDetection(DetectionEven
             _targetRepository->remove(requestId);
             return std::nullopt;
         }
-        const auto request = trackingRequest(*target, transmitTime);
-        if (!request)
-        {
-            _targetRepository->remove(requestId);
-        }
-        return request;
+        return trackingRequestOrRemove(*_targetRepository, *target, transmitTime);
     }
 
     if (!selected
@@ -229,12 +226,7 @@ std::optional<beam::BeamRequest> TargetController::handleDetection(DetectionEven
         }
     }
     // Predict again at the next transmit time, even when no measurement matched.
-    const auto request = trackingRequest(*target, transmitTime);
-    if (!request)
-    {
-        _targetRepository->remove(requestId);
-    }
-    return request;
+    return trackingRequestOrRemove(*_targetRepository, *target, transmitTime);
 }
 
 std::vector<TrackEvent> TargetController::nextTrackEvents() const
