@@ -1,9 +1,14 @@
 add_library(beam STATIC
     src/controller/beam_controller.cpp
-    src/scheduler/beam_table.cpp
+    src/scheduler/search_beam_table.cpp
     src/scheduler/request_queue.cpp
     src/scheduler/scheduler.cpp
     src/attitude/ant_enu_transform.cpp
+    src/attitude/radar_attitude.cpp
+    src/config/attitude_config.cpp
+    src/config/search_grid_config.cpp
+    src/config/request_beam_config.cpp
+    src/config/beam_config.cpp
 )
 
 target_include_directories(beam
@@ -16,19 +21,23 @@ target_link_libraries(beam PUBLIC math)
 find_package(GTest REQUIRED)
 include(GoogleTest)
 
+add_executable(beam_config_test test/config_test.cpp)
+target_link_libraries(beam_config_test PRIVATE beam GTest::gtest_main)
+gtest_discover_tests(beam_config_test)
+
 add_executable(beam_attitude_test test/attitude_test.cpp)
 target_include_directories(beam_attitude_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(beam_attitude_test PRIVATE beam GTest::gtest_main)
 gtest_discover_tests(beam_attitude_test)
 
-# BeamTable은 beam 내부(private) 헤더이므로 테스트에서만 src/scheduler를 추가로 include
-add_executable(beam_table_test test/beam_table_test.cpp)
-target_include_directories(beam_table_test PRIVATE
+# SearchBeamTable은 beam 내부(private) 헤더이므로 테스트에서만 src/scheduler를 추가로 include
+add_executable(beam_search_beam_table_test test/search_beam_table_test.cpp)
+target_include_directories(beam_search_beam_table_test PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/scheduler"
 )
-target_link_libraries(beam_table_test PRIVATE beam GTest::gtest_main)
-gtest_discover_tests(beam_table_test)
+target_link_libraries(beam_search_beam_table_test PRIVATE beam GTest::gtest_main)
+gtest_discover_tests(beam_search_beam_table_test)
 
 add_executable(beam_request_queue_test test/request_queue_test.cpp)
 target_include_directories(beam_request_queue_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -51,7 +60,7 @@ target_include_directories(beam_scheduler_scenario_test PRIVATE "${CMAKE_CURRENT
 target_link_libraries(beam_scheduler_scenario_test PRIVATE beam GTest::gtest_main)
 gtest_discover_tests(beam_scheduler_scenario_test)
 
-# 시각화용 도구: test/visualize_beam_table.py 가 실행해서 BeamTable 값을 읽는다
+# 시각화용 도구: test/visualize_beam_table.py 가 실행해서 SearchBeamTable 값을 읽는다
 add_executable(beam_table_dump test/dump_beam_table.cpp)
 target_include_directories(beam_table_dump PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"

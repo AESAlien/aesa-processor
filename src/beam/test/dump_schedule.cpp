@@ -5,7 +5,7 @@
 //   # ticks    tick_ms,status,type,beamID,commandCount,az_deg,el_deg,az_width_deg,el_width_deg
 //              (송신할 빔이 없는 틱은 type 이 NONE 이고 나머지 칸이 비어 있다)
 //   # requests name,type,timestamp_ms,az_deg,el_deg,sent_tick_ms   (시나리오가 끝날 때까지 송신되지 못한 요청은 -1)
-//   # grid     idx,beamID,az_deg,el_deg   (BeamTable 189개, 안테나 기준 각도)
+//   # grid     idx,beamID,az_deg,el_deg   (SearchBeamTable 189개, 안테나 기준 각도)
 //
 // 시나리오 정의와 실행은 schedule_scenario.hpp 를 scheduler_scenario_test 와 함께 쓴다.
 // visualize_schedule.py 가 이 프로그램을 실행해서 결과를 그린다.
@@ -113,16 +113,11 @@ int main(int argc, char** argv)
         return usage(argv[0]);
     }
 
-    beam::RadarAttitude attitude{};
-    attitude.latitude = 37_deg;
-    attitude.longitude = 127_deg;
-    attitude.altitude = 0.1_km;
-    attitude.roll = roll;
-    attitude.pitch = pitch;
-    attitude.yaw = yaw;
-
     try
     {
+        // 잘못된 자세정보이면 RadarAttitude 생성자가 AttitudeError를 던진다.
+        const beam::RadarAttitude attitude(37_deg, 127_deg, 0.1_km, roll, pitch, yaw);
+
         const schedule_scenario::Result result = schedule_scenario::run(scenario, attitude);
 
         std::printf("# ticks\n");
@@ -165,11 +160,11 @@ int main(int argc, char** argv)
 
         std::printf("# grid\n");
         std::printf("idx,beamID,az_deg,el_deg\n");
-        const beam::BeamTable table(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}), beam::SearchGridConfig{});
+        const beam::SearchBeamTable table(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}), beam::SearchGridConfig{});
         for (std::size_t index = 0; index < table.size(); ++index)
         {
-            const beam::BeamInfo& info = table.get(index);
-            std::printf("%zu,%u,%.6f,%.6f\n", index, info.beamId, info.azimuth_ant.deg(), info.elevation_ant.deg());
+            const beam::SearchBeam& info = table.get(index);
+            std::printf("%zu,%u,%.6f,%.6f\n", index, info.beamId, info.direction_ant.azimuth.deg(), info.direction_ant.elevation.deg());
         }
     }
     catch (const beam::AttitudeError& e)

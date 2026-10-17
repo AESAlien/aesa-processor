@@ -1,5 +1,6 @@
 #pragma once
 
+#include <beam/config/beam_config.hpp>
 #include <beam/dto/beam_command.hpp>
 #include <beam/dto/beam_request.hpp>
 #include <beam/dto/set_attitude_command.hpp>
@@ -19,7 +20,10 @@ class Scheduler;
 class BeamController
 {
 public:
+    // 기본 설정(BeamConfig{})으로 만든다.
     BeamController();
+    // 주어진 설정으로 만든다. 설정은 BeamConfig 생성 시 이미 검증되어 있다.
+    explicit BeamController(const BeamConfig& config);
     ~BeamController();
 
     BeamController(BeamController&&) noexcept;
@@ -27,7 +31,7 @@ public:
 
     void setOperationState(SetOperationStateCommand command);
 
-    // 자세정보가 잘못되면 예외(AttitudeError)를 던진다.
+    // 자세정보가 잘못되면 운용 상태와 관계없이 예외(AttitudeError)를 던진다.
     void setAttitude(SetAttitudeCommand command);
 
     void requestBeam(BeamRequest beamRequest);

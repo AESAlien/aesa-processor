@@ -6,7 +6,11 @@
 namespace beam
 {
 
-BeamController::BeamController() : _scheduler(std::make_unique<Scheduler>())
+BeamController::BeamController() : BeamController(BeamConfig{})
+{
+}
+
+BeamController::BeamController(const BeamConfig& config) : _scheduler(std::make_unique<Scheduler>(config))
 {
 }
 
@@ -23,15 +27,14 @@ void BeamController::setOperationState(SetOperationStateCommand command)
 
 void BeamController::setAttitude(SetAttitudeCommand command)
 {
-    RadarAttitude attitude{};
-    attitude.latitude = command.latitude;
-    attitude.longitude = command.longitude;
-    attitude.altitude = command.altitude;
-    attitude.roll = command.roll;
-    attitude.pitch = command.pitch;
-    attitude.yaw = command.yaw;
-
-    _scheduler->setAttitude(attitude);
+    // 잘못된 자세정보이면 RadarAttitude 생성자가 AttitudeError를 던진다.
+    _scheduler->setAttitude(RadarAttitude(
+        command.latitude,
+        command.longitude,
+        command.altitude,
+        command.roll,
+        command.pitch,
+        command.yaw));
 }
 
 void BeamController::requestBeam(BeamRequest beamRequest)

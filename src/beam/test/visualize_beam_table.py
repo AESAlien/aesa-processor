@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-"""BeamTable 변환 시각화 / 검증 도구.
+"""SearchBeamTable 변환 시각화 / 검증 도구.
 
 처리부는 "고정좌표계로 정의된 탐색 그리드(189개)"를 안테나 자세정보로
-"안테나 좌표계 각도"로 바꿔서 BeamTable 에 보관한다. 이 도구는 그 과정을 3단계로 보여준다.
+"안테나 좌표계 각도"로 바꿔서 SearchBeamTable 에 보관한다. 이 도구는 그 과정을 3단계로 보여준다.
 
   (1) 왼쪽 그림  : 각도 값 비교. 점선 박스 = 처리부 고정좌표계로 정의된 탐색 영역
                    (방위각 +-45, 고각 0~41.2도), 주황 점 = 그 189개 빔을 안테나 좌표계로
-                   변환해 BeamTable 에 저장한 각도. 대표 빔은 회색 화살표로
+                   변환해 SearchBeamTable 에 저장한 각도. 대표 빔은 회색 화살표로
                    "고정 값 -> 안테나 값" 이동을 보여준다 (별 = 안테나 정면 (0, 0))
   (2) 가운데 3D  : (1)과 같은 비교를 3D 방향으로. 파란 점선 = 고정좌표계 탐색 영역의 윤곽,
-                   주황 점 = BeamTable 의 안테나 각도를 방향으로 그린 것, 회색 화살표 = 대표 빔의
+                   주황 점 = SearchBeamTable 의 안테나 각도를 방향으로 그린 것, 회색 화살표 = 대표 빔의
                    "고정 값 -> 안테나 값" 이동 (별 = 안테나 (0, 0) 방향)
   (3) 오른쪽 표  : 대표 빔(ID 1, 21, 95, 169, 189)의 "고정 (방위각, 고각) -> 안테나 (방위각, 고각)".
-                   안테나 각도가 BeamTable 에 저장되어 빔 명령으로 나간다.
+                   안테나 각도가 SearchBeamTable 에 저장되어 빔 명령으로 나간다.
                    표 아래에 C++ 가 계산한 회전 행렬 R 을 같이 표시한다.
                    (안테나 각도 = R^T x 고정 방향)
 
-값의 출처: BeamTable 각도(주황 점, 표의 antenna 열)와 회전 행렬 R 은 C++ 코드의 출력이다.
+값의 출처: SearchBeamTable 각도(주황 점, 표의 antenna 열)와 회전 행렬 R 은 C++ 코드의 출력이다.
 고정좌표계 값(점선 박스, 표의 fixed 열)은 문서의 그리드 규칙으로 이 스크립트가 만든 기준값이고,
 numpy 계산은 C++ 결과를 검증하기 위한 독립 구현이다.
 
@@ -163,7 +163,7 @@ def style_axis(ax, title):
 
 
 def draw_fixed_panel(ax, att, az_f, el_f, az_a, el_a, rt_err):
-    """(1) 각도 값 비교: 고정좌표계 탐색 영역(점선 박스) vs BeamTable 의 안테나 각도(점)."""
+    """(1) 각도 값 비교: 고정좌표계 탐색 영역(점선 박스) vs SearchBeamTable 의 안테나 각도(점)."""
     style_axis(ax, "(1) Angle values: fixed frame vs antenna frame\n"
                    f"round trip (antenna -> fixed) vs grid: {rt_err:.1e} deg")
     ax.set_xlabel("azimuth value (deg)", color=C_MUTED, fontsize=9)
@@ -203,7 +203,7 @@ def draw_fixed_panel(ax, att, az_f, el_f, az_a, el_a, rt_err):
     labels = [
         "fixed-frame values: search area (az +-45, el 0~41.2) processor wants to scan",
         "sample beams' fixed values  (gray arrow -> their antenna values)",
-        "antenna-frame values: 189 beams stored in BeamTable",
+        "antenna-frame values: 189 beams stored in SearchBeamTable",
         "antenna boresight = antenna (0, 0)",
     ]
     ax.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.0, -0.17), ncol=1,
@@ -216,7 +216,7 @@ def draw_fixed_panel(ax, att, az_f, el_f, az_a, el_a, rt_err):
 
 
 def draw_axes_panel(ax, att, az_f, el_f, az_a, el_a):
-    """(2) 3D: (1)과 같은 비교. 고정 영역 윤곽(점선) vs BeamTable 각도(점)."""
+    """(2) 3D: (1)과 같은 비교. 고정 영역 윤곽(점선) vs SearchBeamTable 각도(점)."""
     ax.set_title("(2) Same comparison in 3D (unit-sphere directions)", loc="left",
                  fontsize=10, color=C_TEXT)
 
@@ -237,7 +237,7 @@ def draw_axes_panel(ax, att, az_f, el_f, az_a, el_a):
     o = to_vec(ea, ee)
     ax.plot(o[0], o[1], o[2], color=C_FIXED, linewidth=1.6, linestyle=(0, (5, 3)))
 
-    # BeamTable 각도(안테나 값) 189개를 방향으로 표시
+    # SearchBeamTable 각도(안테나 값) 189개를 방향으로 표시
     v = to_vec(az_a, el_a)
     ax.plot(v[0], v[1], v[2], color=C_ANT, linewidth=0.5, alpha=0.35)
     ax.scatter(v[0], v[1], v[2], s=8, color=C_ANT, depthshade=False)
@@ -260,7 +260,7 @@ def draw_axes_panel(ax, att, az_f, el_f, az_a, el_a):
     ax.view_init(elev=24, azim=-58)
     ax.set_xticks([]); ax.set_yticks([]); ax.set_zticks([])
     ax.set_facecolor(C_SURFACE)
-    ax.text2D(0.0, -0.06, "blue dashed: fixed-frame search area   orange: BeamTable angles   "
+    ax.text2D(0.0, -0.06, "blue dashed: fixed-frame search area   orange: SearchBeamTable angles   "
                           "star: antenna (0, 0)", transform=ax.transAxes, fontsize=7, color=C_MUTED)
 
 
@@ -268,7 +268,7 @@ def draw_table_panel(ax, att, az_f, el_f, az_a, el_a, R):
     """(3) 대표 빔 변환 표 + 회전 행렬."""
     roll, pitch, yaw = att
     ax.axis("off")
-    ax.set_title("(3) Converted angles stored in BeamTable\n"
+    ax.set_title("(3) Converted angles stored in SearchBeamTable\n"
                  f"attitude: roll={roll:g}, pitch={pitch:g}, yaw={yaw:g}",
                  loc="left", fontsize=10, color=C_TEXT)
 
@@ -290,7 +290,7 @@ def draw_table_panel(ax, att, az_f, el_f, az_a, el_a, R):
         cell.set_facecolor(C_SURFACE)
         cell.get_text().set_color(C_TEXT if r else C_MUTED)
         if r and c == 3:
-            cell.get_text().set_fontweight("bold")   # BeamTable 에 저장되는 값
+            cell.get_text().set_fontweight("bold")   # SearchBeamTable 에 저장되는 값
 
     mat = "\n".join("[ " + "  ".join(f"{v:6.3f}" for v in row) + " ]" for row in R)
     ax.text(0.0, 0.34, "R (antenna -> fixed), computed by the C++ code:", transform=ax.transAxes,
@@ -298,7 +298,7 @@ def draw_table_panel(ax, att, az_f, el_f, az_a, el_a, R):
     ax.text(0.0, 0.29, mat, transform=ax.transAxes, fontsize=8, color=C_TEXT, va="top",
             family="monospace")
     ax.text(0.0, 0.13, "antenna angle = R^T x fixed direction\n"
-                       "(bold column = values stored in BeamTable)",
+                       "(bold column = values stored in SearchBeamTable)",
             transform=ax.transAxes, fontsize=8, color=C_MUTED, va="top")
 
 
@@ -382,7 +382,7 @@ def main():
         draw_axes_panel(fig.add_subplot(gs[row, 1], projection="3d"), att, az_f, el_f, az, el)
         draw_table_panel(fig.add_subplot(gs[row, 2]), att, az_f, el_f, az, el, R_cpp)
 
-    fig.suptitle("BeamTable: attitude -> rotation -> fixed-frame search grid converted to antenna angles",
+    fig.suptitle("SearchBeamTable: attitude -> rotation -> fixed-frame search grid converted to antenna angles",
                  x=0.01, ha="left", fontsize=12, color=C_TEXT)
     out_path = Path(args.out) if args.out else (args.out_dir or default_out_dir()) / "beam_table.png"
     out_path.parent.mkdir(parents=True, exist_ok=True)
