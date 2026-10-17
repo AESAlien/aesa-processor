@@ -2,6 +2,7 @@
 
 #include <controller/comm_error_handler.hpp>
 #include <network/message_decoder/message_decoder.hpp>
+#include <network/message_encoder/message_encoder.hpp>
 #include <network/message_framer/message_framer.hpp>
 #include <network/network_manager/network_manager.hpp>
 
@@ -87,7 +88,48 @@ public:
         }
     }
 
+    void sendBeamCommand(const beam::BeamCommand& command)
+    {
+        sendEncodedMessage(
+            NetworkPeer::SCENARIO_SIMULATOR,
+            encodeBeamCommand(command));
+    }
+
+    void sendTrackEvents(
+        const std::vector<target::TrackEvent>& trackEvents
+    )
+    {
+        sendEncodedMessage(
+            NetworkPeer::OPERATOR_CONSOLE,
+            encodeTrackEvents(trackEvents));
+    }
+
 private:
+    void sendEncodedMessage(
+        NetworkPeer peer,
+        const EncodeResult& encodeResult
+    )
+    {
+        if (!encodeResult.bytes.has_value())
+        {
+            controller_error::throwEncodingFailure(
+                peer,
+                encodeResult.error);
+        }
+
+        const SendResult sendResult = _networkManager.send(
+            peer,
+            *encodeResult.bytes);
+
+        if (sendResult.status == SendStatus::SUCCESS ||
+            sendResult.status == SendStatus::NOT_CONNECTED)
+        {
+            return;
+        }
+
+        controller_error::throwSendFailure(peer, sendResult);
+    }
+
     std::optional<IncomingDto> takePendingMessage()
     {
         IncomingDto message = std::move(_pendingMessages.front());
@@ -210,6 +252,20 @@ void CommController::openServer()
 std::optional<IncomingDto> CommController::receiveData()
 {
     return _impl->receiveData();
+}
+
+void CommController::sendBeamCommand(
+    const beam::BeamCommand& command
+)
+{
+    _impl->sendBeamCommand(command);
+}
+
+void CommController::sendTrackEvents(
+    const std::vector<target::TrackEvent>& trackEvents
+)
+{
+    _impl->sendTrackEvents(trackEvents);
 }
 
 } // namespace comm
