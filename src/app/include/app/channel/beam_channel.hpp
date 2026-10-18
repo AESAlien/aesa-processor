@@ -1,7 +1,7 @@
 #pragma once
 
 #include <app/queue/message_queue.hpp>
-#include <beam/dto/beam_request.hpp>
+#include <beam/dto/request_beam_command.hpp>
 #include <beam/dto/set_attitude_command.hpp>
 #include <beam/dto/set_operation_state_command.hpp>
 
@@ -19,7 +19,7 @@ struct NextBeamCommandEvent
 using BeamEvent = std::variant<
     beam::SetOperationStateCommand,
     beam::SetAttitudeCommand,
-    beam::BeamRequest,
+    beam::RequestBeamCommand,
     NextBeamCommandEvent>;
 
 class BeamChannel final

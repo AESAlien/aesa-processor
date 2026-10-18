@@ -1,13 +1,13 @@
 #pragma once
 
 #include "attitude/radar_attitude.hpp"
+#include "scheduler/beam_request.hpp"
 #include "scheduler/search_beam_table.hpp"
 #include "scheduler/request_queue.hpp"
 
 #include <beam/config/beam_config.hpp>
 #include <beam/domain/operation_state.hpp>
-#include <beam/dto/beam_command.hpp>
-#include <beam/dto/beam_request.hpp>
+#include <beam/dto/transmit_beam_command.hpp>
 
 #include <chrono>
 #include <cstdint>
@@ -40,13 +40,13 @@ public:
     void setAttitude(const RadarAttitude& attitude);
 
     // 준비 상태(ON이고 SearchBeamTable이 있음)가 아니면 무시한다.
-    // 알 수 없는 BeamType이면 std::invalid_argument를 던지며, 이때 요청은 큐에 들어가지 않는다.
-    // 요청의 각도는 안테나 좌표계로 간주하며, 범위(추적 영역) 검증은 하지 않는다.
+    // 요청 값의 검증은 BeamRequest 생성 시 끝나 있다.
+    // 요청의 방향은 안테나 좌표계로 간주하며, 범위(추적 영역) 검증은 하지 않는다.
     void addRequest(const BeamRequest& request);
 
     // 준비 상태가 아니면 std::nullopt를 반환한다.
     // 송신할 요청이 있으면 요청 빔을, 없으면 탐색 빔을 반환한다.
-    std::optional<BeamCommand> next(std::chrono::milliseconds currentTime);
+    std::optional<TransmitBeamCommand> next(std::chrono::milliseconds currentTime);
 
 private:
     bool isReady() const;

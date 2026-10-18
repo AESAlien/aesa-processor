@@ -12,6 +12,7 @@
 #include "scheduler/scheduler.hpp"
 
 #include <chrono>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <utility>
@@ -23,6 +24,8 @@ namespace schedule_scenario
 using namespace std::chrono_literals;
 
 constexpr std::chrono::milliseconds TICK_PERIOD = 10ms;
+// 시나리오의 요청은 서로 구별하지 않으므로 모두 같은 요청 ID(0이 아닌 값)를 쓴다.
+constexpr std::uint32_t REQUEST_ID = 1;
 
 enum class Status
 {
@@ -51,7 +54,7 @@ struct TickRecord
 {
     long long tick_ms = 0;
     Status status = Status::OFF;
-    std::optional<beam::BeamCommand> command;
+    std::optional<beam::TransmitBeamCommand> command;
 };
 
 struct Result
@@ -62,26 +65,24 @@ struct Result
 
 inline RequestSpec makeRequestSpec(
     const std::string& name,
-    beam::BeamRequest::BeamType beamType,
+    beam::RequestBeamType beamType,
     std::chrono::milliseconds transmitTime,
     double azimuth_deg,
     double elevation_deg
 ) {
     return RequestSpec{
         name,
-        beam::BeamRequest::Builder()
-            .beamType(beamType)
-            .transmitTime(transmitTime)
-            .requestId(0)
-            .azimuth_ant(math::Angle::fromDegrees(azimuth_deg))
-            .elevation_ant(math::Angle::fromDegrees(elevation_deg))
-            .build()
+        beam::BeamRequest(
+            beamType,
+            transmitTime,
+            REQUEST_ID,
+            math::SphericalDirection(math::Angle::fromDegrees(azimuth_deg), math::Angle::fromDegrees(elevation_deg)))
     };
 }
 
 inline Scenario makeMixedScenario()
 {
-    using Type = beam::BeamRequest::BeamType;
+    using Type = beam::RequestBeamType;
 
     Scenario scenario;
     scenario.duration = 400ms;
@@ -107,7 +108,7 @@ inline Scenario makeMixedScenario()
 
 inline Scenario makeTracksScenario()
 {
-    using Type = beam::BeamRequest::BeamType;
+    using Type = beam::RequestBeamType;
 
     constexpr int TRACK_COUNT = 20;
     constexpr int ROUND_COUNT = 3;
@@ -148,14 +149,15 @@ inline bool sameAngle(math::Angle left, math::Angle right)
 // 송신된 요청 빔을 보낸 요청과 짝짓는다(종류와 각도가 같은 아직 짝이 없는 요청).
 inline void markSent(
     std::vector<RequestSpec>& requests,
-    const beam::BeamCommand& command,
+    const beam::TransmitBeamCommand& command,
     long long tick_ms
 ) {
     for (RequestSpec& spec : requests)
     {
-        const bool sameType = static_cast<int>(spec.request.beamType) == static_cast<int>(command.beamType);
-        if (spec.sentTick_ms < 0 && sameType && sameAngle(spec.request.azimuth_ant, command.azimuth_ant) &&
-            sameAngle(spec.request.elevation_ant, command.elevation_ant))
+        const bool sameType = static_cast<int>(spec.request.beamType()) == static_cast<int>(command.beamType);
+        if (spec.sentTick_ms < 0 && sameType &&
+            sameAngle(spec.request.direction_ant().azimuth, command.direction_ant.azimuth) &&
+            sameAngle(spec.request.direction_ant().elevation, command.direction_ant.elevation))
         {
             spec.sentTick_ms = tick_ms;
             return;
@@ -194,7 +196,7 @@ inline Result run(Scenario scenario, const beam::RadarAttitude& attitude)
             status,
             scheduler.next(time)
         };
-        if (record.command.has_value() && record.command->beamType != beam::BeamCommand::BeamType::SEARCH)
+        if (record.command.has_value() && record.command->beamType != beam::BeamType::SEARCH)
         {
             detail::markSent(scenario.requests, *record.command, record.tick_ms);
         }

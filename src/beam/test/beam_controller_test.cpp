@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <stdexcept>
 #include <utility>
 
 using namespace std::chrono_literals;
@@ -34,6 +35,21 @@ beam::SetAttitudeCommand makeAttitudeCommand(math::Angle roll, math::Angle pitch
         .build();
 }
 
+beam::RequestBeamCommand makeRequestCommand(
+    beam::RequestBeamType beamType,
+    std::chrono::milliseconds transmitTime,
+    uint32_t requestId,
+    math::Angle azimuth,
+    math::Angle elevation
+) {
+    return beam::RequestBeamCommand::Builder()
+        .beamType(beamType)
+        .transmitTime(transmitTime)
+        .requestId(requestId)
+        .direction_ant(math::SphericalDirection(azimuth, elevation))
+        .build();
+}
+
 } // namespace
 
 TEST(BeamControllerTest, ReturnsNothingBeforeStart)
@@ -52,7 +68,7 @@ TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
     const auto command = controller.nextBeamCommand(0ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::SEARCH);
+    EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
     EXPECT_EQ(command->beamId, 1u);
     EXPECT_EQ(command->commandCount, 1u);
 }
@@ -75,8 +91,8 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchBeamTable)
         const auto command = controller.nextBeamCommand(std::chrono::milliseconds(10 * index));
 
         ASSERT_TRUE(command.has_value());
-        EXPECT_EQ(command->azimuth_ant, expectedTable.get(index).direction_ant.azimuth) << "index=" << index;
-        EXPECT_EQ(command->elevation_ant, expectedTable.get(index).direction_ant.elevation)
+        EXPECT_EQ(command->direction_ant.azimuth, expectedTable.get(index).direction_ant.azimuth) << "index=" << index;
+        EXPECT_EQ(command->direction_ant.elevation, expectedTable.get(index).direction_ant.elevation)
             << "index=" << index;
     }
 }
@@ -87,21 +103,58 @@ TEST(BeamControllerTest, RequestBeamIsDeliveredToScheduler)
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
-    const beam::BeamRequest request = beam::BeamRequest::Builder()
-        .beamType(beam::BeamRequest::BeamType::TRACKING)
-        .transmitTime(100ms)
-        .requestId(0)
-        .azimuth_ant(7.5_deg)
-        .elevation_ant(15.5_deg)
-        .build();
-    controller.requestBeam(request);
+    controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 100ms, 5, 7.5_deg, 15.5_deg));
 
     const auto command = controller.nextBeamCommand(100ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::TRACKING);
-    EXPECT_EQ(command->azimuth_ant, 7.5_deg);
-    EXPECT_EQ(command->elevation_ant, 15.5_deg);
+    EXPECT_EQ(command->beamType, beam::BeamType::TRACKING);
+    EXPECT_EQ(command->beamId, 5u);
+    EXPECT_EQ(command->transmitTime, 100ms);
+    EXPECT_EQ(command->direction_ant.azimuth, 7.5_deg);
+    EXPECT_EQ(command->direction_ant.elevation, 15.5_deg);
+}
+
+TEST(BeamControllerTest, RequestWhileOffIsIgnored)
+{
+    beam::BeamController controller;
+    controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg));
+    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+
+    EXPECT_EQ(controller.nextBeamCommand(0ms)->beamType, beam::BeamType::SEARCH);
+}
+
+TEST(BeamControllerTest, InvalidRequestThrowsEvenWhileOff)
+{
+    beam::BeamController controller;
+
+    EXPECT_THROW(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 7.5_deg, 15.5_deg)),
+        std::invalid_argument);
+    EXPECT_THROW(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, -1ms, 5, 7.5_deg, 15.5_deg)),
+        std::invalid_argument);
+    EXPECT_THROW(
+        controller.requestBeam(makeRequestCommand(static_cast<beam::RequestBeamType>(0), 0ms, 5, 7.5_deg, 15.5_deg)),
+        std::invalid_argument);
+}
+
+TEST(BeamControllerTest, InvalidRequestIsNotQueued)
+{
+    beam::BeamController controller;
+    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+
+    EXPECT_THROW(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 0, 7.5_deg, 15.5_deg)),
+        std::invalid_argument);
+
+    // 거부된 요청은 큐에 남지 않으므로 정상적으로 탐색 빔이 나간다.
+    const auto command = controller.nextBeamCommand(0ms);
+    ASSERT_TRUE(command.has_value());
+    EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
+    EXPECT_EQ(command->beamId, 1u);
 }
 
 TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
@@ -158,8 +211,8 @@ TEST(BeamControllerTest, DefaultConstructorUsesDefaultConfig)
         ASSERT_TRUE(actual.has_value());
         ASSERT_TRUE(expected.has_value());
         EXPECT_EQ(actual->beamId, expected->beamId);
-        EXPECT_EQ(actual->azimuth_ant, expected->azimuth_ant);
-        EXPECT_EQ(actual->elevation_ant, expected->elevation_ant);
+        EXPECT_EQ(actual->direction_ant.azimuth, expected->direction_ant.azimuth);
+        EXPECT_EQ(actual->direction_ant.elevation, expected->direction_ant.elevation);
     }
 }
 
@@ -199,17 +252,11 @@ TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
-    controller.requestBeam(beam::BeamRequest::Builder()
-        .beamType(beam::BeamRequest::BeamType::TRACKING)
-        .transmitTime(0ms)
-        .requestId(7)
-        .azimuth_ant(7.5_deg)
-        .elevation_ant(15.5_deg)
-        .build());
+    controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 7, 7.5_deg, 15.5_deg));
     const auto command = controller.nextBeamCommand(0ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamType, beam::BeamCommand::BeamType::TRACKING);
+    EXPECT_EQ(command->beamType, beam::BeamType::TRACKING);
     EXPECT_EQ(command->azimuthBeamWidth, 4_deg);
     EXPECT_EQ(command->elevationBeamWidth, 4_deg);
 }

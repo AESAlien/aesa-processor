@@ -8,73 +8,62 @@ namespace beam
 {
 namespace
 {
-void validate(const BeamRequest& request)
-{
-    if (request.beamType != BeamRequest::BeamType::CONFIRMATION &&
-        request.beamType != BeamRequest::BeamType::TRACKING)
-    {
-        throw std::invalid_argument("Unknown beam request type");
-    }
-}
-
-BeamCommand::BeamType toCommandBeamType(BeamRequest::BeamType beamType)
+BeamType toBeamType(RequestBeamType beamType)
 {
     switch (beamType)
     {
-    case BeamRequest::BeamType::CONFIRMATION:
-        return BeamCommand::BeamType::CONFIRMATION;
+    case RequestBeamType::CONFIRMATION:
+        return BeamType::CONFIRMATION;
 
-    case BeamRequest::BeamType::TRACKING:
-        return BeamCommand::BeamType::TRACKING;
+    case RequestBeamType::TRACKING:
+        return BeamType::TRACKING;
     }
 
     throw std::invalid_argument("Unknown beam request type");
 }
 
-math::Angle requestBeamWidth(const RequestBeamConfig& config, BeamRequest::BeamType beamType)
+math::Angle requestBeamWidth(const RequestBeamConfig& config, RequestBeamType beamType)
 {
     switch (beamType)
     {
-    case BeamRequest::BeamType::CONFIRMATION:
+    case RequestBeamType::CONFIRMATION:
         return config.confirmationBeamWidth();
-    case BeamRequest::BeamType::TRACKING:
+    case RequestBeamType::TRACKING:
         return config.trackingBeamWidth();
     }
 
     throw std::invalid_argument("Unkown beam request type");
 }
 
-BeamCommand makeSearchCommand(
+TransmitBeamCommand makeSearchCommand(
     const SearchBeam& searchBeam,
     std::chrono::milliseconds currentTime,
     std::uint32_t commandCount
 ) {
-    return BeamCommand::Builder()
-        .beamType(BeamCommand::BeamType::SEARCH)
+    return TransmitBeamCommand::Builder()
+        .beamType(BeamType::SEARCH)
         .transmitTime(currentTime)
         .beamId(searchBeam.beamId)
         .commandCount(commandCount)
-        .azimuth_ant(searchBeam.direction_ant.azimuth)
-        .elevation_ant(searchBeam.direction_ant.elevation)
+        .direction_ant(searchBeam.direction_ant)
         .azimuthBeamWidth(searchBeam.azimuthBeamWidth)
         .elevationBeamWidth(searchBeam.elevationBeamWidth)
         .build();
 }
 
-BeamCommand makeRequestCommand(
+TransmitBeamCommand makeRequestCommand(
     const BeamRequest& request,
     const RequestBeamConfig& config,
     std::chrono::milliseconds currentTime,
     std::uint32_t commandCount
 ) {
-    math::Angle width = requestBeamWidth(config, request.beamType);
-    return BeamCommand::Builder()
-        .beamType(toCommandBeamType(request.beamType))
+    math::Angle width = requestBeamWidth(config, request.beamType());
+    return TransmitBeamCommand::Builder()
+        .beamType(toBeamType(request.beamType()))
         .transmitTime(currentTime)
-        .beamId(request.requestId)
+        .beamId(request.requestId())
         .commandCount(commandCount)
-        .azimuth_ant(request.azimuth_ant)
-        .elevation_ant(request.elevation_ant)
+        .direction_ant(request.direction_ant())
         .azimuthBeamWidth(width)
         .elevationBeamWidth(width)
         .build();
@@ -120,11 +109,10 @@ void Scheduler::addRequest(const BeamRequest& request)
         return;
     }
 
-    validate(request);
     _requestQueue.add(request);
 }
 
-std::optional<BeamCommand> Scheduler::next(std::chrono::milliseconds currentTime)
+std::optional<TransmitBeamCommand> Scheduler::next(std::chrono::milliseconds currentTime)
 {
     if (!isReady())
     {

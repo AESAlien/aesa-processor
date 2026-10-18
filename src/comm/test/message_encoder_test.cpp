@@ -19,19 +19,20 @@ namespace
 
 using namespace std::chrono_literals;
 
-beam::BeamCommand makeBeamCommand(
+beam::TransmitBeamCommand makeBeamCommand(
     std::chrono::milliseconds transmitTime = 1234ms,
-    double azimuth = 10.5
+    double azimuthBeamWidth = 3.25
 )
 {
-    return beam::BeamCommand(
-        beam::BeamCommand::BeamType::TRACKING,
+    return beam::TransmitBeamCommand(
+        beam::BeamType::TRACKING,
         transmitTime,
         21,
         7,
-        math::Angle::fromDegrees(azimuth),
-        math::Angle::fromDegrees(-4.5),
-        math::Angle::fromDegrees(3.25),
+        math::SphericalDirection(
+            math::Angle::fromDegrees(10.5),
+            math::Angle::fromDegrees(-4.5)),
+        math::Angle::fromDegrees(azimuthBeamWidth),
         math::Angle::fromDegrees(2.75));
 }
 
@@ -98,7 +99,7 @@ TEST(MessageEncoderTest, EncodesBeamCommand)
 
     EXPECT_EQ(
         message.beam_cmd.beamType,
-        static_cast<uint8_t>(beam::BeamCommand::BeamType::TRACKING));
+        static_cast<uint8_t>(beam::BeamType::TRACKING));
     EXPECT_EQ(message.beam_cmd.timestamp, 1234u);
     EXPECT_EQ(message.beam_cmd.beamID, 21u);
     EXPECT_EQ(message.beam_cmd.commandCount, 7u);

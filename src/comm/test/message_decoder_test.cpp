@@ -131,17 +131,17 @@ const char* operationStateName(beam::OperationState state)
     return "unknown";
 }
 
-const char* beamTypeName(beam::BeamCommand::BeamType beamType)
+const char* beamTypeName(beam::BeamType beamType)
 {
     switch (beamType)
     {
-    case beam::BeamCommand::BeamType::SEARCH:
+    case beam::BeamType::SEARCH:
         return "search";
 
-    case beam::BeamCommand::BeamType::CONFIRMATION:
+    case beam::BeamType::CONFIRMATION:
         return "confirmation";
 
-    case beam::BeamCommand::BeamType::TRACKING:
+    case beam::BeamType::TRACKING:
         return "tracking";
     }
 

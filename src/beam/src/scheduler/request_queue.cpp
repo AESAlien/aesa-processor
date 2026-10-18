@@ -5,7 +5,7 @@ namespace beam
 
 void RequestQueue::add(const BeamRequest& request)
 {
-    _requests.emplace(request.transmitTime, request);
+    _requests.emplace(request.transmitTime(), request);
 }
 
 std::optional<BeamRequest> RequestQueue::popNextDue(std::chrono::milliseconds currentTime)
@@ -23,7 +23,7 @@ std::optional<BeamRequest> RequestQueue::popNextDue(std::chrono::milliseconds cu
     auto selected = first;
     for (auto it = first; it != last; ++it)
     {
-        if (it->second.beamType == BeamRequest::BeamType::CONFIRMATION)
+        if (it->second.beamType() == RequestBeamType::CONFIRMATION)
         {
             selected = it;
             break;

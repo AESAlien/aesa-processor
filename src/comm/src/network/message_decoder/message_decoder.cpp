@@ -69,16 +69,16 @@ bool isFinite(const protocol::ST_Plot& plot)
         std::isfinite(plot.pwr_DB);
 }
 
-std::optional<beam::BeamCommand::BeamType> decodeBeamType(
+std::optional<beam::BeamType> decodeBeamType(
     uint8_t beamType
 )
 {
-    switch (static_cast<beam::BeamCommand::BeamType>(beamType))
+    switch (static_cast<beam::BeamType>(beamType))
     {
-    case beam::BeamCommand::BeamType::SEARCH:
-    case beam::BeamCommand::BeamType::CONFIRMATION:
-    case beam::BeamCommand::BeamType::TRACKING:
-        return static_cast<beam::BeamCommand::BeamType>(beamType);
+    case beam::BeamType::SEARCH:
+    case beam::BeamType::CONFIRMATION:
+    case beam::BeamType::TRACKING:
+        return static_cast<beam::BeamType>(beamType);
     }
 
     return std::nullopt;
@@ -230,7 +230,7 @@ DecodeResult MessageDecoder::decodePlotInformation(
         return failed(DecodingError::INVALID_MESSAGE_SIZE);
     }
 
-    const std::optional<beam::BeamCommand::BeamType> beamType =
+    const std::optional<beam::BeamType> beamType =
         decodeBeamType(beamCommand.beamType);
     if (!beamType.has_value())
     {

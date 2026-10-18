@@ -15,7 +15,7 @@ using namespace math::literals;
 namespace demo
 {
 
-using BeamType = beam::BeamCommand::BeamType;
+using BeamType = beam::BeamType;
 
 struct Result
 {
@@ -75,7 +75,7 @@ void printTracks(
 }
 
 target::DetectionEvent makeStationaryDetection(
-    const beam::BeamCommand& command)
+    const beam::TransmitBeamCommand& command)
 {
     std::vector<target::DetectionEvent::Plot> plots;
 
@@ -102,7 +102,7 @@ target::DetectionEvent makeStationaryDetection(
 void handleResult(
     beam::BeamController& beamController,
     target::TargetController& targetController,
-    const beam::BeamCommand& command,
+    const beam::TransmitBeamCommand& command,
     Result& result)
 {
     std::cout

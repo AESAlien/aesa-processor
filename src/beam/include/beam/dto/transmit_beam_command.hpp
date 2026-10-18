@@ -1,5 +1,8 @@
 #pragma once
 
+#include <beam/dto/beam_type.hpp>
+
+#include <math/geometry/spherical_direction.hpp>
 #include <math/quantity/angle.hpp>
 #include <chrono>
 #include <cstdint>
@@ -8,41 +11,31 @@
 namespace beam
 {
 
-struct BeamCommand
+// 시나리오 모의기로 송신할 빔 명령.
+// direction_ant는 안테나 좌표계 빔 지향 방향이다.
+struct TransmitBeamCommand
 {
-    enum class BeamType : uint8_t;
-
     const BeamType beamType;
     const std::chrono::milliseconds transmitTime;
     const uint32_t beamId;
     const uint32_t commandCount;
-    const math::Angle azimuth_ant;
-    const math::Angle elevation_ant;
+    const math::SphericalDirection direction_ant;
     const math::Angle azimuthBeamWidth;
     const math::Angle elevationBeamWidth;
 
-    enum class BeamType : uint8_t
-    {
-        SEARCH = 1,
-        CONFIRMATION = 2,
-        TRACKING = 3
-    };
-
-    BeamCommand(
+    TransmitBeamCommand(
         BeamType beamType,
         std::chrono::milliseconds transmitTime,
         uint32_t beamId,
         uint32_t commandCount,
-        math::Angle azimuth_ant,
-        math::Angle elevation_ant,
+        math::SphericalDirection direction_ant,
         math::Angle azimuthBeamWidth,
         math::Angle elevationBeamWidth
     ) : beamType(beamType),
         transmitTime(transmitTime),
         beamId(beamId),
         commandCount(commandCount),
-        azimuth_ant(azimuth_ant),
-        elevation_ant(elevation_ant),
+        direction_ant(direction_ant),
         azimuthBeamWidth(azimuthBeamWidth),
         elevationBeamWidth(elevationBeamWidth)
     {
@@ -55,20 +48,19 @@ struct BeamCommand
         Builder& transmitTime(std::chrono::milliseconds value) { _transmitTime = value; return *this; }
         Builder& beamId(uint32_t value) { _beamId = value; return *this; }
         Builder& commandCount(uint32_t value) { _commandCount = value; return *this; }
-        Builder& azimuth_ant(math::Angle value) { _azimuth_ant = value; return *this; }
-        Builder& elevation_ant(math::Angle value) { _elevation_ant = value; return *this; }
+        // SphericalDirection은 대입할 수 없으므로 emplace로 다시 만든다.
+        Builder& direction_ant(math::SphericalDirection value) { _direction_ant.emplace(value); return *this; }
         Builder& azimuthBeamWidth(math::Angle value) { _azimuthBeamWidth = value; return *this; }
         Builder& elevationBeamWidth(math::Angle value) { _elevationBeamWidth = value; return *this; }
 
-        BeamCommand build() const
+        TransmitBeamCommand build() const
         {
-            return BeamCommand(
+            return TransmitBeamCommand(
                 _beamType.value(),
                 _transmitTime.value(),
                 _beamId.value(),
                 _commandCount.value(),
-                _azimuth_ant.value(),
-                _elevation_ant.value(),
+                _direction_ant.value(),
                 _azimuthBeamWidth.value(),
                 _elevationBeamWidth.value());
         }
@@ -78,8 +70,7 @@ struct BeamCommand
         std::optional<std::chrono::milliseconds> _transmitTime;
         std::optional<uint32_t> _beamId;
         std::optional<uint32_t> _commandCount;
-        std::optional<math::Angle> _azimuth_ant;
-        std::optional<math::Angle> _elevation_ant;
+        std::optional<math::SphericalDirection> _direction_ant;
         std::optional<math::Angle> _azimuthBeamWidth;
         std::optional<math::Angle> _elevationBeamWidth;
     };

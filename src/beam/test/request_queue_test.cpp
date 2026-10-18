@@ -11,27 +11,21 @@ namespace
 {
 
 beam::BeamRequest makeRequest(
-    beam::BeamRequest::BeamType beamType,
+    beam::RequestBeamType beamType,
     std::chrono::milliseconds transmitTime,
     math::Angle azimuth = 0_deg
 ) {
-    return beam::BeamRequest::Builder()
-        .beamType(beamType)
-        .transmitTime(transmitTime)
-        .requestId(0)
-        .azimuth_ant(azimuth)
-        .elevation_ant(0_deg)
-        .build();
+    return beam::BeamRequest(beamType, transmitTime, 1, math::SphericalDirection(azimuth, 0_deg));
 }
 
 beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)
 {
-    return makeRequest(beam::BeamRequest::BeamType::CONFIRMATION, transmitTime, azimuth);
+    return makeRequest(beam::RequestBeamType::CONFIRMATION, transmitTime, azimuth);
 }
 
 beam::BeamRequest makeTracking(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)
 {
-    return makeRequest(beam::BeamRequest::BeamType::TRACKING, transmitTime, azimuth);
+    return makeRequest(beam::RequestBeamType::TRACKING, transmitTime, azimuth);
 }
 
 } // namespace
@@ -61,7 +55,7 @@ TEST(RequestQueueTest, RequestExactlyAtCurrentTimeIsDue)
     const auto request = queue.popNextDue(1000ms);
 
     ASSERT_TRUE(request.has_value());
-    EXPECT_EQ(request->transmitTime, 1000ms);
+    EXPECT_EQ(request->transmitTime(), 1000ms);
 }
 
 TEST(RequestQueueTest, PoppedRequestIsRemovedFromQueue)
@@ -81,9 +75,9 @@ TEST(RequestQueueTest, EarliestDueRequestComesFirstRegardlessOfInsertionOrder)
     queue.add(makeTracking(1000ms, 1_deg));
     queue.add(makeTracking(1005ms, 2_deg));
 
-    EXPECT_EQ(queue.popNextDue(1010ms)->azimuth_ant, 1_deg);
-    EXPECT_EQ(queue.popNextDue(1010ms)->azimuth_ant, 2_deg);
-    EXPECT_EQ(queue.popNextDue(1010ms)->azimuth_ant, 3_deg);
+    EXPECT_EQ(queue.popNextDue(1010ms)->direction_ant().azimuth, 1_deg);
+    EXPECT_EQ(queue.popNextDue(1010ms)->direction_ant().azimuth, 2_deg);
+    EXPECT_EQ(queue.popNextDue(1010ms)->direction_ant().azimuth, 3_deg);
 }
 
 TEST(RequestQueueTest, SameTransmitTimeConfirmationComesBeforeTracking)
@@ -97,8 +91,8 @@ TEST(RequestQueueTest, SameTransmitTimeConfirmationComesBeforeTracking)
 
     ASSERT_TRUE(first.has_value());
     ASSERT_TRUE(second.has_value());
-    EXPECT_EQ(first->beamType, beam::BeamRequest::BeamType::CONFIRMATION);
-    EXPECT_EQ(second->beamType, beam::BeamRequest::BeamType::TRACKING);
+    EXPECT_EQ(first->beamType(), beam::RequestBeamType::CONFIRMATION);
+    EXPECT_EQ(second->beamType(), beam::RequestBeamType::TRACKING);
 }
 
 TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
@@ -108,9 +102,9 @@ TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
     queue.add(makeTracking(1000ms, 2_deg));
     queue.add(makeTracking(1000ms, 3_deg));
 
-    EXPECT_EQ(queue.popNextDue(1000ms)->azimuth_ant, 1_deg);
-    EXPECT_EQ(queue.popNextDue(1000ms)->azimuth_ant, 2_deg);
-    EXPECT_EQ(queue.popNextDue(1000ms)->azimuth_ant, 3_deg);
+    EXPECT_EQ(queue.popNextDue(1000ms)->direction_ant().azimuth, 1_deg);
+    EXPECT_EQ(queue.popNextDue(1000ms)->direction_ant().azimuth, 2_deg);
+    EXPECT_EQ(queue.popNextDue(1000ms)->direction_ant().azimuth, 3_deg);
 }
 
 TEST(RequestQueueTest, EarlierTrackingStillComesBeforeLaterConfirmation)
@@ -122,7 +116,7 @@ TEST(RequestQueueTest, EarlierTrackingStillComesBeforeLaterConfirmation)
     const auto request = queue.popNextDue(1010ms);
 
     ASSERT_TRUE(request.has_value());
-    EXPECT_EQ(request->beamType, beam::BeamRequest::BeamType::TRACKING);
+    EXPECT_EQ(request->beamType(), beam::RequestBeamType::TRACKING);
 }
 
 TEST(RequestQueueTest, VeryOldRequestIsStillPopped)
@@ -136,9 +130,9 @@ TEST(RequestQueueTest, VeryOldRequestIsStillPopped)
     const auto second = queue.popNextDue(100000ms);
 
     ASSERT_TRUE(first.has_value());
-    EXPECT_EQ(first->beamType, beam::BeamRequest::BeamType::CONFIRMATION);
+    EXPECT_EQ(first->beamType(), beam::RequestBeamType::CONFIRMATION);
     ASSERT_TRUE(second.has_value());
-    EXPECT_EQ(second->beamType, beam::BeamRequest::BeamType::TRACKING);
+    EXPECT_EQ(second->beamType(), beam::RequestBeamType::TRACKING);
     EXPECT_TRUE(queue.empty());
 }
 
@@ -157,7 +151,7 @@ TEST(RequestQueueTest, CrowdedRequestsAreAllPoppedInTimeOrderWithoutDrop)
     {
         const auto request = queue.popNextDue(5000ms);
         ASSERT_TRUE(request.has_value()) << "expected azimuth " << expectedAzimuth;
-        EXPECT_EQ(request->azimuth_ant, math::Angle::fromDegrees(expectedAzimuth));
+        EXPECT_EQ(request->direction_ant().azimuth, math::Angle::fromDegrees(expectedAzimuth));
     }
 
     EXPECT_FALSE(queue.popNextDue(5000ms).has_value());

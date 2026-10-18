@@ -26,25 +26,25 @@ namespace
 
 using namespace math::literals;
 
-const char* typeName(beam::BeamCommand::BeamType beamType)
+const char* typeName(beam::BeamType beamType)
 {
     switch (beamType)
     {
-    case beam::BeamCommand::BeamType::SEARCH:
+    case beam::BeamType::SEARCH:
         return "SEARCH";
 
-    case beam::BeamCommand::BeamType::CONFIRMATION:
+    case beam::BeamType::CONFIRMATION:
         return "CONFIRMATION";
 
-    case beam::BeamCommand::BeamType::TRACKING:
+    case beam::BeamType::TRACKING:
         return "TRACKING";
     }
     return "UNKNOWN";
 }
 
-const char* typeName(beam::BeamRequest::BeamType beamType)
+const char* typeName(beam::RequestBeamType beamType)
 {
-    return typeName(static_cast<beam::BeamCommand::BeamType>(beamType));
+    return typeName(static_cast<beam::BeamType>(beamType));
 }
 
 const char* statusName(schedule_scenario::Status status)
@@ -130,7 +130,7 @@ int main(int argc, char** argv)
                 continue;
             }
 
-            const beam::BeamCommand& command = *tick.command;
+            const beam::TransmitBeamCommand& command = *tick.command;
             std::printf(
                 "%lld,%s,%s,%u,%u,%.6f,%.6f,%.2f,%.2f\n",
                 tick.tick_ms,
@@ -138,8 +138,8 @@ int main(int argc, char** argv)
                 typeName(command.beamType),
                 command.beamId,
                 command.commandCount,
-                command.azimuth_ant.deg(),
-                command.elevation_ant.deg(),
+                command.direction_ant.azimuth.deg(),
+                command.direction_ant.elevation.deg(),
                 command.azimuthBeamWidth.deg(),
                 command.elevationBeamWidth.deg());
         }
@@ -151,10 +151,10 @@ int main(int argc, char** argv)
             std::printf(
                 "%s,%s,%lld,%.6f,%.6f,%lld\n",
                 spec.name.c_str(),
-                typeName(spec.request.beamType),
-                static_cast<long long>(spec.request.transmitTime.count()),
-                spec.request.azimuth_ant.deg(),
-                spec.request.elevation_ant.deg(),
+                typeName(spec.request.beamType()),
+                static_cast<long long>(spec.request.transmitTime().count()),
+                spec.request.direction_ant().azimuth.deg(),
+                spec.request.direction_ant().elevation.deg(),
                 spec.sentTick_ms);
         }
 
