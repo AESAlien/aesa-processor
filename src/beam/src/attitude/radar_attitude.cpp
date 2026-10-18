@@ -3,28 +3,6 @@
 
 namespace beam
 {
-namespace
-{
-using namespace math::literals;
-
-void validate(
-    math::Angle latitude,
-    math::Angle longitude,
-    math::Length altitude,
-    math::Angle roll,
-    math::Angle pitch,
-    math::Angle yaw
-) {
-    if (latitude  < -90_deg  || latitude  > 90_deg ||
-        longitude < -180_deg || longitude > 180_deg ||
-        altitude  < -0.5_km  || altitude  > 100_km ||
-        roll      < -180_deg || roll      > 180_deg ||
-        yaw       < -360_deg || yaw       > 360_deg
-    ) {
-        throw AttitudeError(AttitudeErrorCode::OUT_OF_RANGE, "RadarAttitude value is out of range");
-    }
-}
-} // namespace
 
 RadarAttitude::RadarAttitude(
     math::Angle latitude,
@@ -40,7 +18,7 @@ RadarAttitude::RadarAttitude(
     _pitch(pitch),
     _yaw(yaw)
 {
-    validate(_latitude, _longitude, _altitude, _roll, _pitch, _yaw);
+    validate();
 }
 
 math::Angle RadarAttitude::latitude() const noexcept
@@ -71,6 +49,20 @@ math::Angle RadarAttitude::pitch() const noexcept
 math::Angle RadarAttitude::yaw() const noexcept
 {
     return _yaw;
+}
+
+void RadarAttitude::validate() const
+{
+    using namespace math::literals;
+
+    if (_latitude  < -90_deg  || _latitude  > 90_deg ||
+        _longitude < -180_deg || _longitude > 180_deg ||
+        _altitude  < -0.5_km  || _altitude  > 100_km ||
+        _roll      < -180_deg || _roll      > 180_deg ||
+        _yaw       < -360_deg || _yaw       > 360_deg
+    ) {
+        throw AttitudeError(AttitudeErrorCode::OUT_OF_RANGE, "RadarAttitude value is out of range");
+    }
 }
 
 } // namespace beam

@@ -29,6 +29,8 @@ public:
     math::Angle yaw() const noexcept;
 
 private:
+    void validate() const;
+
     math::Angle _latitude;
     math::Angle _longitude;
     math::Length _altitude;

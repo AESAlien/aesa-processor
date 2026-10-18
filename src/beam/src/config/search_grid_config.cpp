@@ -23,43 +23,6 @@ bool isWithinElevationRange(math::Angle elevation)
 {
     return elevation >= -90_deg && elevation <= 90_deg;
 }
-
-void validate(
-    std::size_t azimuthCount,
-    std::size_t elevationCount,
-    math::Angle azimuthStart,
-    math::Angle azimuthStep,
-    math::Angle elevationStart,
-    math::Angle elevationStep,
-    math::Angle beamWidth
-) {
-    if (azimuthCount == 0 || elevationCount == 0)
-    {
-        throw std::invalid_argument("SearchGridConfig: count must be greater than 0");
-    }
-
-    // 개수가 0이 아님을 확인한 뒤에 나눗셈을 해야 한다.
-    if (azimuthCount > std::numeric_limits<std::uint32_t>::max() / elevationCount)
-    {
-        throw std::invalid_argument("SearchGridConfig: beam count exceeds uint32 range");
-    }
-
-    // 마지막 점 계산이 오버플로하면 Angle이 std::invalid_argument를 던진다.
-    (void)lastPoint(azimuthStart, azimuthStep, azimuthCount);
-    const math::Angle elevationLast = lastPoint(elevationStart, elevationStep, elevationCount);
-
-    // 고각 축은 단조 증가 또는 감소이므로 양 끝이 범위 안이면 중간 점도 범위 안이다.
-    // 방위각은 SphericalDirection에 넘기기 전에 wrap180()으로 정규화하므로 범위를 검사하지 않는다.
-    if (!isWithinElevationRange(elevationStart) || !isWithinElevationRange(elevationLast))
-    {
-        throw std::invalid_argument("SearchGridConfig: elevation must be in [-90, 90] degrees");
-    }
-
-    if (beamWidth <= 0_deg)
-    {
-        throw std::invalid_argument("SearchGridConfig: beamWidth must be greater than 0");
-    }
-}
 } // namespace
 
 SearchGridConfig::SearchGridConfig() : SearchGridConfig(Builder().build())
@@ -82,14 +45,7 @@ SearchGridConfig::SearchGridConfig(
     _elevationStep(elevationStep),
     _beamWidth(beamWidth)
 {
-    validate(
-        _azimuthCount,
-        _elevationCount,
-        _azimuthStart,
-        _azimuthStep,
-        _elevationStart,
-        _elevationStep,
-        _beamWidth);
+    validate();
 }
 
 std::size_t SearchGridConfig::azimuthCount() const noexcept
@@ -125,6 +81,36 @@ math::Angle SearchGridConfig::elevationStep() const noexcept
 math::Angle SearchGridConfig::beamWidth() const noexcept
 {
     return _beamWidth;
+}
+
+void SearchGridConfig::validate() const
+{
+    if (_azimuthCount == 0 || _elevationCount == 0)
+    {
+        throw std::invalid_argument("SearchGridConfig: count must be greater than 0");
+    }
+
+    // 개수가 0이 아님을 확인한 뒤에 나눗셈을 해야 한다.
+    if (_azimuthCount > std::numeric_limits<std::uint32_t>::max() / _elevationCount)
+    {
+        throw std::invalid_argument("SearchGridConfig: beam count exceeds uint32 range");
+    }
+
+    // 마지막 점 계산이 오버플로하면 Angle이 std::invalid_argument를 던진다.
+    (void)lastPoint(_azimuthStart, _azimuthStep, _azimuthCount);
+    const math::Angle elevationLast = lastPoint(_elevationStart, _elevationStep, _elevationCount);
+
+    // 고각 축은 단조 증가 또는 감소이므로 양 끝이 범위 안이면 중간 점도 범위 안이다.
+    // 방위각은 SphericalDirection에 넘기기 전에 wrap180()으로 정규화하므로 범위를 검사하지 않는다.
+    if (!isWithinElevationRange(_elevationStart) || !isWithinElevationRange(elevationLast))
+    {
+        throw std::invalid_argument("SearchGridConfig: elevation must be in [-90, 90] degrees");
+    }
+
+    if (_beamWidth <= 0_deg)
+    {
+        throw std::invalid_argument("SearchGridConfig: beamWidth must be greater than 0");
+    }
 }
 
 SearchGridConfig SearchGridConfig::Builder::build() const

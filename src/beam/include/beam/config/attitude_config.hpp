@@ -37,6 +37,8 @@ public:
     const math::SquareMatrix& mountAntToBodyRotation() const noexcept;
     double mountOrthogonalTolerance() const noexcept;
 private:
+    void validate() const;
+
     math::Angle _maxAbsPitch;
     math::SquareMatrix _mountAntToBodyRotation;
     double _mountOrthogonalTolerance;

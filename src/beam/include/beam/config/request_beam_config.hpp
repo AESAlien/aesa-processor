@@ -31,6 +31,8 @@ public:
     math::Angle confirmationBeamWidth() const noexcept;
     math::Angle trackingBeamWidth() const noexcept;
 private:
+    void validate() const;
+
     math::Angle _confirmationBeamWidth;
     math::Angle _trackingBeamWidth;
 };

@@ -4,31 +4,6 @@
 
 namespace beam
 {
-namespace
-{
-void validate(RequestBeamType beamType, std::chrono::milliseconds transmitTime, std::uint32_t requestId)
-{
-    switch (beamType)
-    {
-    case RequestBeamType::CONFIRMATION:
-    case RequestBeamType::TRACKING:
-        break;
-
-    default:
-        throw std::invalid_argument("BeamRequest: unknown beam request type");
-    }
-
-    if (transmitTime.count() < 0)
-    {
-        throw std::invalid_argument("BeamRequest: transmit time must not be negative");
-    }
-
-    if (requestId == 0)
-    {
-        throw std::invalid_argument("BeamRequest: request id must not be 0");
-    }
-}
-} // namespace
 
 BeamRequest::BeamRequest(
     RequestBeamType beamType,
@@ -40,7 +15,7 @@ BeamRequest::BeamRequest(
     _requestId(requestId),
     _direction_ant(direction_ant)
 {
-    validate(_beamType, _transmitTime, _requestId);
+    validate();
 }
 
 BeamRequest::BeamRequest(const RequestBeamCommand& command)
@@ -66,6 +41,29 @@ std::uint32_t BeamRequest::requestId() const noexcept
 const math::SphericalDirection& BeamRequest::direction_ant() const noexcept
 {
     return _direction_ant;
+}
+
+void BeamRequest::validate() const
+{
+    switch (_beamType)
+    {
+    case RequestBeamType::CONFIRMATION:
+    case RequestBeamType::TRACKING:
+        break;
+
+    default:
+        throw std::invalid_argument("BeamRequest: unknown beam request type");
+    }
+
+    if (_transmitTime.count() < 0)
+    {
+        throw std::invalid_argument("BeamRequest: transmit time must not be negative");
+    }
+
+    if (_requestId == 0)
+    {
+        throw std::invalid_argument("BeamRequest: request id must not be 0");
+    }
 }
 
 } // namespace beam

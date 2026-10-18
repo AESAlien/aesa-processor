@@ -48,6 +48,8 @@ public:
     math::Angle elevationStep() const noexcept;
     math::Angle beamWidth() const noexcept;
 private:
+    void validate() const;
+
     std::size_t _azimuthCount;
     std::size_t _elevationCount;
     math::Angle _azimuthStart;

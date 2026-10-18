@@ -34,6 +34,8 @@ public:
     const math::SphericalDirection& direction_ant() const noexcept;
 
 private:
+    void validate() const;
+
     RequestBeamType _beamType;
     std::chrono::milliseconds _transmitTime;
     std::uint32_t _requestId;
