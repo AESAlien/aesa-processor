@@ -67,12 +67,12 @@ void Scheduler::setAttitude(const RadarAttitude& attitude)
     // 예외가 발생해도 상태는 변하지 않는다.
     const AntEnuTransform transform(attitude, _config.attitude());
 
-    if (_operationState != OperationState::ON || _searchBeamTable.has_value())
+    if (_operationState != OperationState::ON || _searchGrid.has_value())
     {
         return;
     }
 
-    _searchBeamTable.emplace(transform, _config.searchGrid());
+    _searchGrid.emplace(transform, _config.searchGrid());
 }
 
 void Scheduler::addRequest(const BeamRequest& request)
@@ -99,17 +99,17 @@ std::optional<TransmitBeamCommand> Scheduler::next(std::chrono::milliseconds cur
         return makeRequestCommand(*request, _config.requestBeam(), currentTime, _commandCount);
     }
 
-    return makeSearchCommand(_searchBeamTable->nextBeam(), currentTime, _commandCount);
+    return makeSearchCommand(_searchGrid->nextBeam(), currentTime, _commandCount);
 }
 
 bool Scheduler::isReady() const
 {
-    return _operationState == OperationState::ON && _searchBeamTable.has_value();
+    return _operationState == OperationState::ON && _searchGrid.has_value();
 }
 
 void Scheduler::reset()
 {
-    _searchBeamTable.reset();
+    _searchGrid.reset();
     _requestQueue.clear();
     _commandCount = 0;
 }

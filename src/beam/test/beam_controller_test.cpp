@@ -2,7 +2,7 @@
 
 #include "attitude/ant_enu_transform.hpp"
 #include "attitude/attitude_error.hpp"
-#include "scheduler/search_beam_table.hpp"
+#include "scheduler/search_grid.hpp"
 
 #include <gtest/gtest.h>
 
@@ -73,7 +73,7 @@ TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
     EXPECT_EQ(command->commandCount, 1u);
 }
 
-TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchBeamTable)
+TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
 {
     const math::Angle roll = 10_deg;
     const math::Angle pitch = 20_deg;
@@ -84,16 +84,16 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchBeamTable)
     controller.setAttitude(makeAttitudeCommand(roll, pitch, yaw));
 
     const beam::RadarAttitude attitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
-    const beam::SearchBeamTable expectedTable(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}), beam::SearchGridConfig{});
+    beam::SearchGrid expectedGrid(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}), beam::SearchGridConfig{});
 
     for (std::size_t index = 0; index < 5; ++index)
     {
         const auto command = controller.nextBeamCommand(std::chrono::milliseconds(10 * index));
+        const beam::SearchBeam& expected = expectedGrid.nextBeam();
 
         ASSERT_TRUE(command.has_value());
-        EXPECT_EQ(command->direction_ant.azimuth, expectedTable.get(index).direction_ant.azimuth) << "index=" << index;
-        EXPECT_EQ(command->direction_ant.elevation, expectedTable.get(index).direction_ant.elevation)
-            << "index=" << index;
+        EXPECT_EQ(command->direction_ant.azimuth, expected.direction_ant.azimuth) << "index=" << index;
+        EXPECT_EQ(command->direction_ant.elevation, expected.direction_ant.elevation) << "index=" << index;
     }
 }
 

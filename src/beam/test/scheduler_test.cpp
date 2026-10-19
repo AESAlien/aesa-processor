@@ -141,7 +141,7 @@ TEST(SchedulerTest, GimbalLockAttitudeThrowsEvenWhileOff)
     EXPECT_TRUE(scheduler.next(10ms).has_value());
 }
 
-TEST(SchedulerTest, GimbalLockAttitudeThrowsAfterSearchBeamTableIsCreated)
+TEST(SchedulerTest, GimbalLockAttitudeThrowsAfterSearchGridIsCreated)
 {
     beam::Scheduler scheduler;
     makeReady(scheduler, makeZeroAttitude());
@@ -149,7 +149,7 @@ TEST(SchedulerTest, GimbalLockAttitudeThrowsAfterSearchBeamTableIsCreated)
 
     EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg)), beam::AttitudeError);
 
-    // 기존 SearchBeamTable과 탐색 순서는 그대로 유지된다.
+    // 기존 SearchGrid와 탐색 순서는 그대로 유지된다.
     const auto command = scheduler.next(10ms);
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamId, 2u);
@@ -206,13 +206,14 @@ TEST(SchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
     beam::Scheduler scheduler;
     makeReady(scheduler);
 
-    beam::SearchBeamTable table(beam::AntEnuTransform(makeZeroAttitude(), beam::AttitudeConfig{}), beam::SearchGridConfig{});
-    for (std::size_t index = 0; index < table.size(); ++index)
+    const beam::SearchGridConfig gridConfig{};
+    const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
+    for (std::size_t index = 0; index < beamCount; ++index)
     {
         ASSERT_TRUE(scheduler.next(std::chrono::milliseconds(10 * index)).has_value());
     }
 
-    const auto wrapped = scheduler.next(std::chrono::milliseconds(10 * table.size()));
+    const auto wrapped = scheduler.next(std::chrono::milliseconds(10 * beamCount));
 
     ASSERT_TRUE(wrapped.has_value());
     EXPECT_EQ(wrapped->beamId, 1u);

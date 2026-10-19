@@ -2,7 +2,7 @@
 
 #include "attitude/radar_attitude.hpp"
 #include "scheduler/beam_request.hpp"
-#include "scheduler/search_beam_table.hpp"
+#include "scheduler/search_grid.hpp"
 #include "scheduler/request_queue.hpp"
 
 #include <beam/config/beam_config.hpp>
@@ -27,7 +27,7 @@ namespace beam
 // 상태:
 // - OFF에서는 모든 입력을 무시하고 next()는 std::nullopt를 반환한다.
 // - OFF에서 ON으로 바뀌는 순간 모든 상태를 초기화한다.
-// - ON이고 자세정보를 받아 SearchBeamTable이 만들어진 상태에서만 빔을 송신한다.
+// - ON이고 자세정보를 받아 SearchGrid가 만들어진 상태에서만 빔을 송신한다.
 class Scheduler
 {
 public:
@@ -36,10 +36,10 @@ public:
     void setOperationState(OperationState state);
 
     // 잘못된 자세정보(짐벌락 포함)면 운용 상태와 관계없이 AttitudeError를 던지며, 이때 상태는 변하지 않는다.
-    // 올바른 자세정보는 ON이고 SearchBeamTable이 아직 없을 때만 받아들이고, 그 외에는 무시한다.
+    // 올바른 자세정보는 ON이고 SearchGrid가 아직 없을 때만 받아들이고, 그 외에는 무시한다.
     void setAttitude(const RadarAttitude& attitude);
 
-    // 준비 상태(ON이고 SearchBeamTable이 있음)가 아니면 무시한다.
+    // 준비 상태(ON이고 SearchGrid가 있음)가 아니면 무시한다.
     // 요청 값의 검증은 BeamRequest 생성 시 끝나 있다.
     // 요청의 방향은 안테나 좌표계로 간주하며, 범위(추적 영역) 검증은 하지 않는다.
     void addRequest(const BeamRequest& request);
@@ -55,7 +55,7 @@ private:
     BeamConfig _config;
 
     OperationState _operationState = OperationState::OFF;
-    std::optional<SearchBeamTable> _searchBeamTable;
+    std::optional<SearchGrid> _searchGrid;
     RequestQueue _requestQueue;
     std::uint32_t _commandCount = 0;
 };
