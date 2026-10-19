@@ -39,7 +39,7 @@ TEST(BeamRequestTest, KeepsGivenValues)
 
     EXPECT_EQ(request.transmitTime(), 1500ms);
     EXPECT_EQ(request.requestId(), 7u);
-    EXPECT_EQ(request.direction_ant().azimuth, 12.5_deg);
+    EXPECT_TRUE(request.direction_ant().azimuth.isEquivalentTo(12.5_deg));
     EXPECT_EQ(request.direction_ant().elevation, 20.5_deg);
 }
 

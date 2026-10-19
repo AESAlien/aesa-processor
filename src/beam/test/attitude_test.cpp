@@ -79,11 +79,11 @@ TEST(RadarAttitudeTest, StoresGivenValues)
     const beam::RadarAttitude attitude = makeAttitude(1_deg, 2_deg, 3_km, 4_deg, 5_deg, 6_deg);
 
     EXPECT_EQ(attitude.latitude(), 1_deg);
-    EXPECT_EQ(attitude.longitude(), 2_deg);
+    EXPECT_TRUE(attitude.longitude().isEquivalentTo(2_deg));
     EXPECT_EQ(attitude.altitude(), 3_km);
-    EXPECT_EQ(attitude.roll(), 4_deg);
+    EXPECT_TRUE(attitude.roll().isEquivalentTo(4_deg));
     EXPECT_EQ(attitude.pitch(), 5_deg);
-    EXPECT_EQ(attitude.yaw(), 6_deg);
+    EXPECT_TRUE(attitude.yaw().isEquivalentTo(6_deg));
 }
 
 TEST(RadarAttitudeTest, ThrowsOnOutOfRangeValues)

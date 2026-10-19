@@ -79,9 +79,9 @@ TEST(RequestQueueTest, EarliestDueRequestComesFirstRegardlessOfInsertionOrder)
     queue.add(makeTracking(1000ms, 1_deg));
     queue.add(makeTracking(1005ms, 2_deg));
 
-    EXPECT_EQ(queue.popNextDue(1010ms)->direction_ant().azimuth, 1_deg);
-    EXPECT_EQ(queue.popNextDue(1010ms)->direction_ant().azimuth, 2_deg);
-    EXPECT_EQ(queue.popNextDue(1010ms)->direction_ant().azimuth, 3_deg);
+    EXPECT_TRUE(queue.popNextDue(1010ms)->direction_ant().azimuth.isEquivalentTo(1_deg));
+    EXPECT_TRUE(queue.popNextDue(1010ms)->direction_ant().azimuth.isEquivalentTo(2_deg));
+    EXPECT_TRUE(queue.popNextDue(1010ms)->direction_ant().azimuth.isEquivalentTo(3_deg));
 }
 
 TEST(RequestQueueTest, SameTransmitTimeConfirmationComesBeforeTracking)
@@ -106,9 +106,9 @@ TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
     queue.add(makeTracking(1000ms, 2_deg));
     queue.add(makeTracking(1000ms, 3_deg));
 
-    EXPECT_EQ(queue.popNextDue(1000ms)->direction_ant().azimuth, 1_deg);
-    EXPECT_EQ(queue.popNextDue(1000ms)->direction_ant().azimuth, 2_deg);
-    EXPECT_EQ(queue.popNextDue(1000ms)->direction_ant().azimuth, 3_deg);
+    EXPECT_TRUE(queue.popNextDue(1000ms)->direction_ant().azimuth.isEquivalentTo(1_deg));
+    EXPECT_TRUE(queue.popNextDue(1000ms)->direction_ant().azimuth.isEquivalentTo(2_deg));
+    EXPECT_TRUE(queue.popNextDue(1000ms)->direction_ant().azimuth.isEquivalentTo(3_deg));
 }
 
 TEST(RequestQueueTest, EarlierTrackingStillComesBeforeLaterConfirmation)
@@ -155,7 +155,7 @@ TEST(RequestQueueTest, CrowdedRequestsAreAllPoppedInTimeOrderWithoutDrop)
     {
         const auto request = queue.popNextDue(5000ms);
         ASSERT_TRUE(request.has_value()) << "expected azimuth " << expectedAzimuth;
-        EXPECT_EQ(request->direction_ant().azimuth, math::Angle::fromDegrees(expectedAzimuth));
+        EXPECT_TRUE(request->direction_ant().azimuth.isEquivalentTo(math::Angle::fromDegrees(expectedAzimuth)));
     }
 
     EXPECT_FALSE(queue.popNextDue(5000ms).has_value());

@@ -322,7 +322,7 @@ TEST(SchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
         else
         {
             // 요청 빔의 각도는 요청 그대로 나가므로 자세와 무관하다.
-            EXPECT_EQ(left.command->direction_ant.azimuth, right.command->direction_ant.azimuth);
+            EXPECT_TRUE(left.command->direction_ant.azimuth.isEquivalentTo(right.command->direction_ant.azimuth));
             EXPECT_EQ(left.command->direction_ant.elevation, right.command->direction_ant.elevation);
         }
     }

@@ -92,7 +92,7 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
         const beam::SearchBeam& expected = expectedGrid.nextBeam();
 
         ASSERT_TRUE(command.has_value());
-        EXPECT_EQ(command->direction_ant.azimuth, expected.direction_ant.azimuth) << "index=" << index;
+        EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(expected.direction_ant.azimuth)) << "index=" << index;
         EXPECT_EQ(command->direction_ant.elevation, expected.direction_ant.elevation) << "index=" << index;
     }
 }
@@ -111,7 +111,7 @@ TEST(BeamControllerTest, RequestBeamIsDeliveredToScheduler)
     EXPECT_EQ(command->beamType, beam::BeamType::TRACKING);
     EXPECT_EQ(command->beamId, 5u);
     EXPECT_EQ(command->transmitTime, 100ms);
-    EXPECT_EQ(command->direction_ant.azimuth, 7.5_deg);
+    EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(7.5_deg));
     EXPECT_EQ(command->direction_ant.elevation, 15.5_deg);
 }
 
@@ -211,7 +211,7 @@ TEST(BeamControllerTest, DefaultConstructorUsesDefaultConfig)
         ASSERT_TRUE(actual.has_value());
         ASSERT_TRUE(expected.has_value());
         EXPECT_EQ(actual->beamId, expected->beamId);
-        EXPECT_EQ(actual->direction_ant.azimuth, expected->direction_ant.azimuth);
+        EXPECT_TRUE(actual->direction_ant.azimuth.isEquivalentTo(expected->direction_ant.azimuth));
         EXPECT_EQ(actual->direction_ant.elevation, expected->direction_ant.elevation);
     }
 }
