@@ -1,10 +1,9 @@
 #include "detection_matcher.hpp"
 
 #include "domain/target.hpp"
-#include "validation/detection_validation.hpp"
 
+#include <math/geometry/cartesian_displacement.hpp>
 #include <math/geometry/cartesian_position.hpp>
-#include <math/geometry/spherical_direction.hpp>
 #include <math/geometry/spherical_position.hpp>
 #include <math/linear_algebra/square_matrix.hpp>
 #include <math/linear_algebra/vector.hpp>
@@ -22,18 +21,15 @@ namespace target
 namespace
 {
 
-using namespace math::literals;
-
-const math::LinearVelocity MAX_ASSOCIATION_SPEED = 1000.0_mps;
-const math::LinearVelocity MAX_INITIAL_DOPPLER_DIFFERENCE = 30.0_mps;
 constexpr std::size_t NDS_DIMENSION = 3;
 
-const math::Length MEASUREMENT_STANDARD_DEVIATION = 7.0_m;
-// Measurement-only approximation: two independent measurements, each axis sigma=7m.
-// Search gating should use predicted covariance once the tracking strategy provides it.
-const math::SquareMatrix MEASUREMENT_DIFFERENCE_COVARIANCE =
-    math::SquareMatrix::identity(NDS_DIMENSION)
-    * (2.0 * MEASUREMENT_STANDARD_DEVIATION.m() * MEASUREMENT_STANDARD_DEVIATION.m());
+math::SquareMatrix measurementDifferenceCovariance(const TargetConfig& config)
+{
+    config.validate();
+    const double sigma = config.measurementStandardDeviation.m();
+    // Two independent measurements; use predicted covariance when available.
+    return math::SquareMatrix::identity(NDS_DIMENSION) * (2.0 * sigma * sigma);
+}
 
 // Cartesian residual components are metres; covariance entries are square metres.
 // Returns the dimensionless squared distance r^T S^-1 r, not a gated decision.
@@ -82,43 +78,18 @@ std::optional<double> calculateNds(
     }
 }
 
-bool positionsEqual(
-    const Target& observation,
-    const math::Length& range,
-    const math::Angle& azimuth,
-    const math::Angle& elevation)
-{
-    // Preserve the current exact antenna-position policy until NDS is specified.
-    return observation.slantRange().equals(range, math::Length::NONE_TOLERANCE)
-        && observation.azimuth().equals(azimuth, math::Angle::NONE_TOLERANCE)
-        && observation.elevation().equals(elevation, math::Angle::NONE_TOLERANCE);
-}
-
 } // namespace
 
-DetectionMatcher::DetectionMatcher(double positionNdsThreshold)
-    : _positionNdsThreshold(positionNdsThreshold)
+DetectionMatcher::DetectionMatcher(TargetConfig config)
+    : _config(config)
+    , _measurementDifferenceCovariance(measurementDifferenceCovariance(_config))
 {
-    if (!std::isfinite(_positionNdsThreshold) || _positionNdsThreshold < 0.0)
-    {
-        throw std::invalid_argument("Position NDS threshold must be finite and nonnegative");
-    }
-}
-
-bool DetectionMatcher::isValidPosition(const Target& observation) const
-{
-    return validation::isValidTarget(observation);
 }
 
 std::optional<double> DetectionMatcher::matchesPosition(
     const Target& observation,
     const Target& other) const
 {
-    if (!isValidPosition(observation) || !isValidPosition(other))
-    {
-        return std::nullopt;
-    }
-
     const auto observationTime = observation.lastObservationTime();
     const auto referenceTime = other.lastObservationTime();
     const bool tracking = other.state() == TargetState::TRACKING;
@@ -132,13 +103,20 @@ std::optional<double> DetectionMatcher::matchesPosition(
         return std::nullopt;
     }
     const auto referencePosition = prediction
-        ? math::SphericalPosition(prediction->slantRange,
-            math::SphericalDirection(prediction->azimuth, prediction->elevation)).toCartesian()
+        ? prediction->sphericalPosition.toCartesian()
         : other.sphericalPosition().toCartesian();
 
     const auto position = observation.sphericalPosition().toCartesian();
-    auto residual = math::Vector{position.x.m(), position.y.m(), position.z.m()}
-        - math::Vector{referencePosition.x.m(), referencePosition.y.m(), referencePosition.z.m()};
+    math::Vector residual(NDS_DIMENSION);
+    try
+    {
+        residual = (position - referencePosition).toVector();
+    }
+    catch (const std::invalid_argument&)
+    {
+        // Valid positions can still have an unrepresentable displacement.
+        return std::nullopt;
+    }
     if (other.state() == TargetState::TENTATIVE || pastTracking)
     {
         // Older search results use the latest stored position without rewinding the filter.
@@ -146,20 +124,19 @@ std::optional<double> DetectionMatcher::matchesPosition(
             ? observationTime - referenceTime : referenceTime - observationTime;
         const double seconds = std::chrono::duration<double>(elapsed).count();
         const double distanceMeters = residual.norm();
-        const double maximumTravelMeters = MAX_ASSOCIATION_SPEED.mps() * seconds;
+        const double maximumTravelMeters = _config.maxAssociationSpeed.mps() * seconds;
         if (!std::isfinite(distanceMeters) || !std::isfinite(maximumTravelMeters))
         {
             return std::nullopt;
         }
 
-        // With the isotropic 98I covariance, gate only the distance beyond reachable motion.
-        // This is equivalent to d <= maximumTravel + sqrt(98 * positionNdsThreshold).
+        // Gate the residual beyond reachable motion using the isotropic covariance.
         residual = distanceMeters <= maximumTravelMeters
             ? math::Vector(NDS_DIMENSION)
             : residual * ((distanceMeters - maximumTravelMeters) / distanceMeters);
     }
-    const auto score = calculateNds(residual, MEASUREMENT_DIFFERENCE_COVARIANCE);
-    if (!score || *score > _positionNdsThreshold)
+    const auto score = calculateNds(residual, _measurementDifferenceCovariance);
+    if (!score || *score > _config.positionNdsThreshold)
     {
         return std::nullopt;
     }
@@ -172,7 +149,6 @@ std::optional<double> DetectionMatcher::matchesConfirmation(
 {
     const auto time = observation.lastObservationTime();
     if (tentative.state() != TargetState::TENTATIVE
-        || !isValidPosition(observation) || !isValidPosition(tentative)
         || time <= tentative.lastResultTime() || time <= tentative.initialTime())
     {
         return std::nullopt;
@@ -180,25 +156,26 @@ std::optional<double> DetectionMatcher::matchesConfirmation(
 
     const auto position = observation.sphericalPosition().toCartesian();
     const auto initialPosition = tentative.sphericalPosition().toCartesian();
-    const auto displacement = math::Vector{position.x.m(), position.y.m(), position.z.m()}
-        - math::Vector{initialPosition.x.m(), initialPosition.y.m(), initialPosition.z.m()};
-    // Ordered nonnegative times keep this integer subtraction within its range.
-    const double seconds = std::chrono::duration<double>(time - tentative.initialTime()).count();
-    const double speedMagnitude = (displacement / seconds).norm();
-    if (!std::isfinite(speedMagnitude))
+    try
     {
-        return std::nullopt;
-    }
-    const auto speed = math::LinearVelocity::fromMetersPerSecond(speedMagnitude);
-    if (speed.greaterThan(MAX_ASSOCIATION_SPEED, math::LinearVelocity::NONE_TOLERANCE)
-        || !observation.dopplerVelocity().equals(
-            tentative.dopplerVelocity(),
-            math::QuantityTolerance<math::LinearVelocity>{MAX_INITIAL_DOPPLER_DIFFERENCE, 0.0}))
-    {
-        return std::nullopt;
-    }
+        const auto displacement = position - initialPosition;
+        // Ordered nonnegative times keep this integer subtraction within its range.
+        const auto elapsed = std::chrono::duration<double>(time - tentative.initialTime());
+        const auto speed = displacement.toVelocity(elapsed).speed();
+        if (speed.greaterThan(_config.maxAssociationSpeed, math::LinearVelocity::NONE_TOLERANCE)
+            || !observation.dopplerVelocity().equals(
+                tentative.dopplerVelocity(),
+                math::QuantityTolerance<math::LinearVelocity>{_config.maxInitialDopplerDifference, 0.0}))
+        {
+            return std::nullopt;
+        }
 
-    return calculateNds(displacement, MEASUREMENT_DIFFERENCE_COVARIANCE);
+        return calculateNds(displacement.toVector(), _measurementDifferenceCovariance);
+    }
+    catch (const std::invalid_argument&)
+    {
+        return std::nullopt;
+    }
 }
 
 bool DetectionMatcher::matchesTracking(
@@ -206,15 +183,15 @@ bool DetectionMatcher::matchesTracking(
     const Target& tracking) const
 {
     const auto time = observation.lastObservationTime();
-    if (tracking.state() != TargetState::TRACKING || !isValidPosition(observation)
+    if (tracking.state() != TargetState::TRACKING
         || time <= tracking.lastResultTime())
     {
         return false;
     }
 
     const auto prediction = tracking.predict(time);
-    return prediction && positionsEqual(observation, prediction->slantRange,
-        prediction->azimuth, prediction->elevation);
+    return prediction && observation.sphericalPosition().equals(prediction->sphericalPosition,
+        math::Length::NONE_TOLERANCE, math::Angle::NONE_TOLERANCE);
 }
 
 } // namespace target

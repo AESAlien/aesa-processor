@@ -1,5 +1,9 @@
 #pragma once
 
+#include "config/target_config.hpp"
+
+#include <math/linear_algebra/square_matrix.hpp>
+
 #include <optional>
 
 namespace target
@@ -11,15 +15,9 @@ class Target;
 class DetectionMatcher
 {
 public:
-    // Provisional search duplicate gate: chi-square with 3 dimensions, 99%.
-    // Tune this default or inject another threshold after checking simulator data.
-    static constexpr double DEFAULT_POSITION_NDS_THRESHOLD = 11.345;
-
-    explicit DetectionMatcher(double positionNdsThreshold = DEFAULT_POSITION_NDS_THRESHOLD);
-
-    bool isValidPosition(const Target& observation) const;
+    explicit DetectionMatcher(TargetConfig config = TargetConfig{});
     // Return an NDS score inside the search duplicate gate; nullopt means unassociated.
-    // Tentative scores use the residual beyond 1000m/s * absolute elapsed time.
+    // Tentative scores use the residual beyond maxAssociationSpeed * elapsed time.
     // Tracking scores use the predicted position at or after the latest observation.
     // Older searches use the latest stored position with the same motion allowance.
     std::optional<double> matchesPosition(const Target& observation, const Target& other) const;
@@ -29,7 +27,8 @@ public:
     bool matchesTracking(const Target& observation, const Target& tracking) const;
 
 private:
-    double _positionNdsThreshold;
+    const TargetConfig _config;
+    const math::SquareMatrix _measurementDifferenceCovariance;
 };
 
 } // namespace target

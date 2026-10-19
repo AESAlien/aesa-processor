@@ -26,9 +26,7 @@ class Target
 {
 public:
     Target(
-        math::Length slantRange,
-        math::Angle azimuth,
-        math::Angle elevation,
+        math::SphericalPosition position,
         math::LinearVelocity dopplerVelocity,
         float power_db,
         std::chrono::milliseconds time,
@@ -39,7 +37,7 @@ public:
     math::Length slantRange() const;
     math::Angle azimuth() const;
     math::Angle elevation() const;
-    math::SphericalPosition sphericalPosition() const;
+    const math::SphericalPosition& sphericalPosition() const;
     math::LinearVelocity dopplerVelocity() const;
     float power_db() const;
     std::chrono::milliseconds initialTime() const;
@@ -56,6 +54,7 @@ public:
 private:
     friend class TargetRepository;
 
+    void validate() const;
     void registerAs(std::uint32_t id);
     bool applyTrackingState(
         const std::optional<TargetTrackingState>& state,
@@ -65,9 +64,7 @@ private:
     std::uint32_t _id = 0;
     // A received Target has no repository identity until a new candidate is selected.
     // Preserve the first observation independently from subsequent tracking updates.
-    math::Length _initialSlantRange;
-    math::Angle _initialAzimuth;
-    math::Angle _initialElevation;
+    math::SphericalPosition _initialPosition;
     math::LinearVelocity _initialDopplerVelocity;
     float _initialPower_db;
     std::chrono::milliseconds _initialTime;

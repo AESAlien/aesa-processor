@@ -69,6 +69,49 @@ TEST(SphericalPositionTest, RejectsNegativeRadius)
         math::SphericalDirection(0_deg, 0_deg))), std::invalid_argument);
 }
 
+TEST(SphericalPositionTest, ComparesWithDefaultTolerance)
+{
+    const math::SphericalPosition point(10_m, math::SphericalDirection(20_deg, 30_deg));
+    const math::SphericalPosition nearby(
+        math::Length::fromMeters(10.0 + 1e-10),
+        math::SphericalDirection(math::Angle::fromDegrees(20.0 + 1e-10), 30_deg));
+
+    EXPECT_TRUE(point.equals(nearby));
+    EXPECT_TRUE(point == nearby);
+    EXPECT_FALSE(point != nearby);
+    EXPECT_FALSE(point.equals(nearby, math::Length::NONE_TOLERANCE, math::Angle::NONE_TOLERANCE));
+    EXPECT_TRUE(point.equals(point, math::Length::NONE_TOLERANCE, math::Angle::NONE_TOLERANCE));
+}
+
+TEST(SphericalPositionTest, ComparesEachCoordinateWithSeparateTolerance)
+{
+    const math::SphericalPosition point(10_m, math::SphericalDirection(20_deg, 30_deg));
+    const math::QuantityTolerance<math::Length> rangeTolerance{1_m, 0.0};
+    const math::QuantityTolerance<math::Angle> angleTolerance{0.1_deg, 0.0};
+    const math::SphericalPosition nearby(10.5_m, math::SphericalDirection(20.05_deg, 30.05_deg));
+
+    EXPECT_TRUE(point.equals(nearby, rangeTolerance, angleTolerance));
+    EXPECT_FALSE(point.equals(math::SphericalPosition(12_m, point.direction), rangeTolerance, angleTolerance));
+    EXPECT_FALSE(point.equals(math::SphericalPosition(10_m, math::SphericalDirection(21_deg, 30_deg)),
+        rangeTolerance, angleTolerance));
+    EXPECT_FALSE(point.equals(math::SphericalPosition(10_m, math::SphericalDirection(20_deg, 31_deg)),
+        rangeTolerance, angleTolerance));
+    EXPECT_TRUE(point != nearby);
+}
+
+TEST(SphericalPositionTest, ComparesAzimuthAcrossWrapBoundary)
+{
+    const math::SphericalPosition left(10_m, math::SphericalDirection(359.999_deg, 0_deg));
+    const math::SphericalPosition right(10_m, math::SphericalDirection(0.001_deg, 0_deg));
+    const math::QuantityTolerance<math::Angle> tolerance{0.003_deg, 0.0};
+
+    EXPECT_TRUE(left.equals(right, math::Length::NONE_TOLERANCE, tolerance));
+    EXPECT_TRUE(right.equals(left, math::Length::NONE_TOLERANCE, tolerance));
+    EXPECT_FALSE(left.equals(right, math::Length::NONE_TOLERANCE, math::Angle::NONE_TOLERANCE));
+    EXPECT_EQ(math::SphericalPosition(10_m, math::SphericalDirection(-1_deg, 0_deg)),
+        math::SphericalPosition(10_m, math::SphericalDirection(359_deg, 0_deg)));
+}
+
 TEST(SphericalPositionTest, ConvertsAzimuthUsingPositiveYAxisAsZero)
 {
     const math::CartesianPosition forward =

@@ -11,6 +11,7 @@
 namespace target
 {
 
+struct TargetConfig;
 class TargetRepository;
 class ITrackingAlgorithm;
 class DetectionMatcher;
@@ -26,6 +27,7 @@ public:
     std::vector<TrackEvent> nextTrackEvents() const;
 
 private:
+    std::shared_ptr<const TargetConfig> _config;
     std::shared_ptr<const ITrackingAlgorithm> _trackingAlgorithm;
     std::shared_ptr<TargetRepository> _targetRepository;
     std::shared_ptr<const DetectionMatcher> _matcher;

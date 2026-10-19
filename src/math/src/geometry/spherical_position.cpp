@@ -26,4 +26,24 @@ CartesianPosition SphericalPosition::toCartesian() const
         Length::fromMeters(position[2]));
 }
 
+bool SphericalPosition::equals(
+    const SphericalPosition& other,
+    const QuantityTolerance<Length>& rangeTolerance,
+    const QuantityTolerance<Angle>& angleTolerance) const noexcept
+{
+    return radius.equals(other.radius, rangeTolerance)
+        && direction.azimuth.equals(other.direction.azimuth, angleTolerance)
+        && direction.elevation.equals(other.direction.elevation, angleTolerance);
+}
+
+bool SphericalPosition::operator==(const SphericalPosition& other) const noexcept
+{
+    return equals(other);
+}
+
+bool SphericalPosition::operator!=(const SphericalPosition& other) const noexcept
+{
+    return !equals(other);
+}
+
 }

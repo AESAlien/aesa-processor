@@ -1,8 +1,8 @@
 #include "target.hpp"
 
 #include "calculation/tracking/tracking_algorithm.hpp"
-#include "validation/detection_validation.hpp"
 
+#include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <utility>
@@ -11,29 +11,32 @@ namespace target
 {
 
 Target::Target(
-    math::Length slantRange,
-    math::Angle azimuth,
-    math::Angle elevation,
+    math::SphericalPosition position,
     math::LinearVelocity dopplerVelocity,
     float power_db,
     std::chrono::milliseconds time,
     std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm)
-    : _initialSlantRange(slantRange)
-    , _initialAzimuth(azimuth)
-    , _initialElevation(elevation)
+    : _initialPosition(std::move(position))
     , _initialDopplerVelocity(dopplerVelocity)
     , _initialPower_db(power_db)
     , _initialTime(time)
     , _lastResultTime(time)
     , _trackingAlgorithm(std::move(trackingAlgorithm))
 {
+    validate();
+}
+
+void Target::validate() const
+{
+    using namespace math::literals;
     if (!_trackingAlgorithm)
     {
         throw std::invalid_argument("Tracking algorithm must not be null");
     }
 
-    if (time.count() < 0
-        || !validation::hasValidGeometry(slantRange, elevation))
+    if (_initialTime.count() < 0
+        || !_initialPosition.radius.greaterThan(0.0_m, math::Length::NONE_TOLERANCE)
+        || !std::isfinite(_initialPower_db))
     {
         throw std::invalid_argument("Target requires a valid observation and time");
     }
@@ -55,23 +58,22 @@ TargetState Target::state() const
 
 math::Length Target::slantRange() const
 {
-    return _trackingState ? _trackingState->slantRange : _initialSlantRange;
+    return sphericalPosition().radius;
 }
 
 math::Angle Target::azimuth() const
 {
-    return _trackingState ? _trackingState->azimuth : _initialAzimuth;
+    return sphericalPosition().direction.azimuth;
 }
 
 math::Angle Target::elevation() const
 {
-    return _trackingState ? _trackingState->elevation : _initialElevation;
+    return sphericalPosition().direction.elevation;
 }
 
-math::SphericalPosition Target::sphericalPosition() const
+const math::SphericalPosition& Target::sphericalPosition() const
 {
-    return math::SphericalPosition(
-        slantRange(), math::SphericalDirection(azimuth(), elevation()));
+    return _trackingState ? _trackingState->sphericalPosition : _initialPosition;
 }
 
 math::LinearVelocity Target::dopplerVelocity() const
@@ -123,7 +125,6 @@ bool Target::confirm(const Target& observation)
     const auto time = observation.lastObservationTime();
     if (state() != TargetState::TENTATIVE
         || observation.state() != TargetState::UNREGISTERED
-        || !validation::isValidTarget(observation)
         || time <= _lastResultTime || time <= _initialTime)
     {
         return false;
@@ -137,7 +138,6 @@ bool Target::update(const Target& observation)
     const auto time = observation.lastObservationTime();
     if (state() != TargetState::TRACKING
         || observation.state() != TargetState::UNREGISTERED
-        || !validation::isValidTarget(observation)
         || time <= _lastResultTime || time <= _trackingState->timestamp)
     {
         return false;
@@ -150,9 +150,13 @@ bool Target::applyTrackingState(
     const std::optional<TargetTrackingState>& state,
     std::chrono::milliseconds time)
 {
-    if (!state || state->timestamp != time || !validation::isValidTrackingState(*state))
+    if (!state)
     {
         return false;
+    }
+    if (state->timestamp != time)
+    {
+        throw std::invalid_argument("Tracking state must use the observation time");
     }
 
     _trackingState.emplace(*state);
@@ -194,10 +198,13 @@ std::optional<TargetPrediction> Target::predict(std::chrono::milliseconds time) 
     }
 
     const auto prediction = _trackingAlgorithm->predict(*this, time);
-    if (!prediction || prediction->timestamp != time
-        || !validation::isValidPrediction(*prediction))
+    if (!prediction)
     {
         return std::nullopt;
+    }
+    if (prediction->timestamp != time)
+    {
+        throw std::invalid_argument("Prediction must use the requested time");
     }
     return prediction;
 }

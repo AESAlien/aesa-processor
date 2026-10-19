@@ -6,6 +6,7 @@ namespace math
 {
 
 struct SphericalPosition;
+struct CartesianDisplacement;
 
 struct CartesianPosition
 {
@@ -23,5 +24,9 @@ struct CartesianPosition
     const Length y;
     const Length z;
 };
+
+// 오른쪽 위치에서 왼쪽 위치로 향하는 변위를 반환한다.
+// 성분이 유한한 Length 범위를 넘으면 std::invalid_argument를 던진다.
+CartesianDisplacement operator-(const CartesianPosition& left, const CartesianPosition& right);
 
 }

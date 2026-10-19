@@ -20,8 +20,7 @@ std::optional<std::size_t> TentativeSelector::selectNewCandidate(
     for (std::size_t index = 0; index < observations.size(); ++index)
     {
         const Target& observation = observations[index];
-        if (observation.state() != TargetState::UNREGISTERED
-            || !_matcher.isValidPosition(observation))
+        if (observation.state() != TargetState::UNREGISTERED)
         {
             continue;
         }
