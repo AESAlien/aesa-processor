@@ -165,6 +165,27 @@ TEST(SearchGridConfigTest, ElevationOutsideSphericalRangeThrows)
         std::invalid_argument);
 }
 
+TEST(SearchGridConfigTest, ElevationEquivalentByPeriodToValidRangeThrows)
+{
+    // 리뷰에서 제시한 450, 270, 90도 격자
+    EXPECT_THROW(
+        gridBuilder().elevationCount(3).elevationStart(450_deg).elevationStep(-180_deg).build(),
+        std::invalid_argument);
+
+    // 90도와 주기적으로 동치지만 수치 범위 밖인 단일점
+    EXPECT_THROW(
+        gridBuilder().elevationCount(1).elevationStart(450_deg).build(),
+        std::invalid_argument);
+    EXPECT_THROW(
+        gridBuilder().elevationCount(1).elevationStart(-270_deg).build(),
+        std::invalid_argument);
+
+    // 시작점은 유효하지만 마지막 점이 450도인 격자
+    EXPECT_THROW(
+        gridBuilder().elevationCount(3).elevationStart(90_deg).elevationStep(180_deg).build(),
+        std::invalid_argument);
+}
+
 TEST(SearchGridConfigTest, ElevationBoundaryIsAccepted)
 {
     // 마지막 고각이 정확히 90도

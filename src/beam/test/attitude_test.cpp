@@ -95,6 +95,18 @@ TEST(RadarAttitudeTest, ThrowsOnOutOfRangeValues)
     EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, 361_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
 }
 
+TEST(RadarAttitudeTest, ThrowsOnValuesEquivalentByPeriodToValidRange)
+{
+    // 360도 주기로는 범위 안과 동치이지만 실제 수치가 명시된 범위 밖이면 거부해야 한다.
+    EXPECT_ATTITUDE_ERROR(makeAttitude(450_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(-270_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(37_deg, 540_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(37_deg, -540_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(540_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, 720_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, -720_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+}
+
 TEST(RadarAttitudeTest, ValidatesAltitudeBoundariesWithLengthLiterals)
 {
     EXPECT_NO_THROW(makeAttitude(37_deg, 127_deg, -0.5_km, 0_deg, 0_deg, 0_deg));
