@@ -101,7 +101,7 @@ void SearchGridConfig::validate() const
     const math::Angle elevationLast = lastPoint(_elevationStart, _elevationStep, _elevationCount);
 
     // 고각 축은 단조 증가 또는 감소이므로 양 끝이 범위 안이면 중간 점도 범위 안이다.
-    // 방위각은 SphericalDirection에 넘기기 전에 wrap180()으로 정규화하므로 범위를 검사하지 않는다.
+    // 방위각은 SphericalDirection이 [0, 360)으로 정규화하므로 범위를 검사하지 않는다.
     if (!isWithinElevationRange(_elevationStart) || !isWithinElevationRange(elevationLast))
     {
         throw std::invalid_argument("SearchGridConfig: elevation must be in [-90, 90] degrees");

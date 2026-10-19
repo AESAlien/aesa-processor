@@ -119,7 +119,7 @@ TEST(SearchBeamTableTest, TableMatchesAnglesConvertedToAntFrame)
     for (std::size_t beamIndex = 0; beamIndex < table.size(); ++beamIndex)
     {
         const math::SphericalDirection direction_ant = transform.enuToAnt(
-            math::SphericalDirection(math::wrap180(gridAzimuth(beamIndex)), gridElevation(beamIndex)));
+            math::SphericalDirection(gridAzimuth(beamIndex), gridElevation(beamIndex)));
         EXPECT_EQ(table.get(beamIndex).direction_ant.azimuth, direction_ant.azimuth) << "beamIndex=" << beamIndex;
         EXPECT_EQ(table.get(beamIndex).direction_ant.elevation, direction_ant.elevation) << "beamIndex=" << beamIndex;
     }
