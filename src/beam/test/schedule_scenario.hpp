@@ -146,7 +146,7 @@ namespace detail
 
 inline bool sameAngle(math::Angle left, math::Angle right)
 {
-    return left.equals(right);
+    return left.isEquivalentTo(right);
 }
 
 // 송신된 요청 빔을 보낸 요청과 짝짓는다(종류와 각도가 같은 아직 짝이 없는 요청).

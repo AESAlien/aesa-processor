@@ -169,8 +169,8 @@ TEST(AngleTest, RejectsDivisionByZeroWithoutChangingValue)
     EXPECT_DOUBLE_EQ(angle.deg(), 45.0);
 }
 
-// 동등 비교는 완전한 회전을 같은 각도로 취급하지만 대소 비교는 저장값을 그대로 사용한다.
-TEST(AngleTest, EqualityWrapsFullTurnsWhileOrderingUsesStoredDegrees)
+// 기본 비교는 저장값을 사용하고 주기 동치 비교만 완전한 회전을 같은 각도로 취급한다.
+TEST(AngleTest, PeriodicEquivalenceWrapsFullTurnsWhileDefaultComparisonUsesStoredDegrees)
 {
     const auto zero = math::Angle::fromDegrees(0.0);
     const auto negative = math::Angle::fromDegrees(-10.0);
@@ -179,14 +179,23 @@ TEST(AngleTest, EqualityWrapsFullTurnsWhileOrderingUsesStoredDegrees)
     const auto calculated = math::Angle::fromDegrees(0.1 + 0.2);
     const auto expected = math::Angle::fromDegrees(0.3);
 
-    EXPECT_TRUE(zero.equals(fullTurn, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_TRUE(zero == fullTurn);
-    EXPECT_TRUE(zero == negativeFullTurn);
-    EXPECT_FALSE(zero.notEquals(fullTurn, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
-    EXPECT_FALSE(zero != fullTurn);
+    EXPECT_FALSE(zero.equals(fullTurn, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(zero.isEquivalentTo(
+        fullTurn,
+        math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(zero.isEquivalentTo(
+        negativeFullTurn,
+        math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_FALSE(zero == fullTurn);
+    EXPECT_FALSE(zero == negativeFullTurn);
+    EXPECT_TRUE(zero.notEquals(fullTurn, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
+    EXPECT_TRUE(zero != fullTurn);
     EXPECT_TRUE(zero.notEquals(negative, math::QuantityTolerance{math::Angle::fromDegrees(0.0), 0.0}));
     EXPECT_TRUE(zero != negative);
-    EXPECT_TRUE(math::Angle::fromDegrees(359.75).equals(
+    EXPECT_FALSE(math::Angle::fromDegrees(359.75).equals(
+        math::Angle::fromDegrees(0.25),
+        math::QuantityTolerance{math::Angle::fromDegrees(0.5), 0.0}));
+    EXPECT_TRUE(math::Angle::fromDegrees(359.75).isEquivalentTo(
         math::Angle::fromDegrees(0.25),
         math::QuantityTolerance{math::Angle::fromDegrees(0.5), 0.0}));
     EXPECT_TRUE(calculated.equals(expected));

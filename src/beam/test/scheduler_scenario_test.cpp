@@ -317,7 +317,7 @@ TEST(SchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
 
         if (left.command->beamType == beam::BeamType::SEARCH)
         {
-            anySearchAngleDiffers |= !left.command->direction_ant.azimuth.equals(right.command->direction_ant.azimuth);
+            anySearchAngleDiffers |= !left.command->direction_ant.azimuth.isEquivalentTo(right.command->direction_ant.azimuth);
         }
         else
         {

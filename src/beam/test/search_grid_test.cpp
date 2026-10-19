@@ -99,7 +99,7 @@ TEST(SearchGridTest, ZeroAttitudeKeepsFixedGrid)
 
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
-        EXPECT_EQ(beams[beamIndex].direction_ant.azimuth, gridAzimuth(beamIndex)) << "beamIndex=" << beamIndex;
+        EXPECT_TRUE(beams[beamIndex].direction_ant.azimuth.isEquivalentTo(gridAzimuth(beamIndex))) << "beamIndex=" << beamIndex;
         EXPECT_EQ(beams[beamIndex].direction_ant.elevation, gridElevation(beamIndex))
             << "beamIndex=" << beamIndex;
     }
@@ -110,16 +110,16 @@ TEST(SearchGridTest, GridOrderStartsLowElevationLeftAzimuth)
     const std::vector<beam::SearchBeam> beams = takeAllBeams(makeValidTransform(0_deg, 0_deg, 0_deg));
 
     // 첫 빔: 가장 낮은 고각, 가장 왼쪽 방위각
-    EXPECT_EQ(beams[0].direction_ant.azimuth, -42_deg);
+    EXPECT_TRUE(beams[0].direction_ant.azimuth.isEquivalentTo(-42_deg));
     EXPECT_EQ(beams[0].direction_ant.elevation, 3_deg);
     // 같은 고각의 마지막 빔: 가장 오른쪽 방위각
-    EXPECT_EQ(beams[20].direction_ant.azimuth, 42_deg);
+    EXPECT_TRUE(beams[20].direction_ant.azimuth.isEquivalentTo(42_deg));
     EXPECT_EQ(beams[20].direction_ant.elevation, 3_deg);
     // 다음 고각 줄의 첫 빔
-    EXPECT_EQ(beams[21].direction_ant.azimuth, -42_deg);
+    EXPECT_TRUE(beams[21].direction_ant.azimuth.isEquivalentTo(-42_deg));
     EXPECT_EQ(beams[21].direction_ant.elevation, 7.4_deg);
     // 마지막 빔: 가장 높은 고각, 가장 오른쪽 방위각
-    EXPECT_EQ(beams[188].direction_ant.azimuth, 42_deg);
+    EXPECT_TRUE(beams[188].direction_ant.azimuth.isEquivalentTo(42_deg));
     EXPECT_EQ(beams[188].direction_ant.elevation, 38.2_deg);
 }
 
@@ -130,7 +130,7 @@ TEST(SearchGridTest, YawShiftsAzimuthsByOppositeAngle)
 
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
-        EXPECT_EQ(beams[beamIndex].direction_ant.azimuth, gridAzimuth(beamIndex) - 10_deg)
+        EXPECT_TRUE(beams[beamIndex].direction_ant.azimuth.isEquivalentTo(gridAzimuth(beamIndex) - 10_deg))
             << "beamIndex=" << beamIndex;
         EXPECT_EQ(beams[beamIndex].direction_ant.elevation, gridElevation(beamIndex))
             << "beamIndex=" << beamIndex;
@@ -146,7 +146,7 @@ TEST(SearchGridTest, GridMatchesAnglesConvertedToAntFrame)
     {
         const math::SphericalDirection direction_ant = transform.enuToAnt(
             math::SphericalDirection(gridAzimuth(beamIndex), gridElevation(beamIndex)));
-        EXPECT_EQ(beams[beamIndex].direction_ant.azimuth, direction_ant.azimuth) << "beamIndex=" << beamIndex;
+        EXPECT_TRUE(beams[beamIndex].direction_ant.azimuth.isEquivalentTo(direction_ant.azimuth)) << "beamIndex=" << beamIndex;
         EXPECT_EQ(beams[beamIndex].direction_ant.elevation, direction_ant.elevation) << "beamIndex=" << beamIndex;
     }
 }
@@ -159,7 +159,7 @@ TEST(SearchGridTest, BeamsConvertedBackToFixedFrameRestoreGrid)
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
         const math::SphericalDirection direction_enu = transform.antToEnu(beams[beamIndex].direction_ant);
-        EXPECT_EQ(direction_enu.azimuth, math::wrap360(gridAzimuth(beamIndex))) << "beamIndex=" << beamIndex;
+        EXPECT_TRUE(direction_enu.azimuth.isEquivalentTo(math::wrap360(gridAzimuth(beamIndex)))) << "beamIndex=" << beamIndex;
         EXPECT_EQ(direction_enu.elevation, gridElevation(beamIndex)) << "beamIndex=" << beamIndex;
     }
 }
@@ -172,7 +172,7 @@ TEST(SearchGridTest, DifferentAttitudeProducesDifferentGrid)
     bool anyDifferent = false;
     for (std::size_t beamIndex = 0; beamIndex < zeroAttitudeBeams.size(); ++beamIndex)
     {
-        if (!zeroAttitudeBeams[beamIndex].direction_ant.azimuth.equals(yawRotatedBeams[beamIndex].direction_ant.azimuth))
+        if (!zeroAttitudeBeams[beamIndex].direction_ant.azimuth.isEquivalentTo(yawRotatedBeams[beamIndex].direction_ant.azimuth))
         {
             anyDifferent = true;
             break;
@@ -221,7 +221,7 @@ TEST(SearchGridTest, CustomGridUsesConfiguredStartStepAndWidth)
     ASSERT_EQ(beams.size(), 6u);
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
-        EXPECT_EQ(beams[beamIndex].direction_ant.azimuth, expectedAzimuth[beamIndex])
+        EXPECT_TRUE(beams[beamIndex].direction_ant.azimuth.isEquivalentTo(expectedAzimuth[beamIndex]))
             << "beamIndex=" << beamIndex;
         EXPECT_EQ(beams[beamIndex].direction_ant.elevation, expectedElevation[beamIndex])
             << "beamIndex=" << beamIndex;
@@ -260,7 +260,7 @@ TEST(SearchGridTest, LargeAzimuthStartWithSingleBeamPreservesWrappedDirection)
 
     beam::SearchGrid grid(makeValidTransform(0_deg, 0_deg, 0_deg), config);
 
-    EXPECT_EQ(grid.nextBeam().direction_ant.azimuth, -80_deg);
+    EXPECT_TRUE(grid.nextBeam().direction_ant.azimuth.isEquivalentTo(-80_deg));
 }
 
 // ---------- 탐색 커서 ----------

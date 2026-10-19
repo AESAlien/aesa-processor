@@ -22,16 +22,11 @@ public:
     double deg() const noexcept;
     double rad() const noexcept;
 
-    bool equals(
+    // 360도 주기로 동치이고 지정한 허용오차 범위 안이면 true를 반환한다.
+    bool isEquivalentTo(
         const Angle& other,
         const QuantityTolerance<Angle>& tolerance = DEFAULT_TOLERANCE
     ) const noexcept;
-    bool notEquals(
-        const Angle& other,
-        const QuantityTolerance<Angle>& tolerance = DEFAULT_TOLERANCE
-    ) const noexcept;
-    bool operator==(const Angle& other) const noexcept;
-    bool operator!=(const Angle& other) const noexcept;
 
     Angle operator+() const noexcept;
     Angle operator-() const noexcept;

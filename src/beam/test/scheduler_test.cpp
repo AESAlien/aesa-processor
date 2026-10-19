@@ -168,7 +168,7 @@ TEST(SchedulerTest, GimbalLockAttitudeThrowsAfterSearchGridIsCreated)
     const auto command = scheduler.next(10ms);
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamId, 2u);
-    EXPECT_EQ(command->direction_ant.azimuth, gridAzimuth(1));
+    EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(1)));
 }
 
 TEST(SchedulerTest, GimbalLockUsesPitchLimitFromConfig)
@@ -192,7 +192,7 @@ TEST(SchedulerTest, SecondAttitudeIsIgnored)
     const auto command = scheduler.next(0ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->direction_ant.azimuth, gridAzimuth(0));
+    EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0)));
 }
 
 // ---------- 탐색 빔 ----------
@@ -209,7 +209,7 @@ TEST(SchedulerTest, ReturnsSearchBeamsInGridOrderWhenNoRequests)
         ASSERT_TRUE(command.has_value()) << "index=" << index;
         EXPECT_EQ(command->beamType, beam::BeamType::SEARCH) << "index=" << index;
         EXPECT_EQ(command->beamId, static_cast<std::uint32_t>(index + 1)) << "index=" << index;
-        EXPECT_EQ(command->direction_ant.azimuth, gridAzimuth(index)) << "index=" << index;
+        EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(index))) << "index=" << index;
         EXPECT_EQ(command->direction_ant.elevation, gridElevation(index)) << "index=" << index;
         EXPECT_EQ(command->azimuthBeamWidth, 6_deg);
         EXPECT_EQ(command->elevationBeamWidth, 6_deg);
@@ -252,7 +252,7 @@ TEST(SchedulerTest, SearchBeamsFollowAttitude)
     const auto command = scheduler.next(0ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->direction_ant.azimuth, gridAzimuth(0) - 10_deg);
+    EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0) - 10_deg));
     EXPECT_EQ(command->direction_ant.elevation, gridElevation(0));
 }
 
@@ -270,7 +270,7 @@ TEST(SchedulerTest, ConfirmationRequestProducesConfirmationBeam)
     EXPECT_EQ(command->beamType, beam::BeamType::CONFIRMATION);
     EXPECT_EQ(command->beamId, 20u);
     EXPECT_EQ(command->transmitTime, 100ms);
-    EXPECT_EQ(command->direction_ant.azimuth, 12.5_deg);
+    EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(12.5_deg));
     EXPECT_EQ(command->direction_ant.elevation, 20.5_deg);
     EXPECT_EQ(command->azimuthBeamWidth, 3_deg);
     EXPECT_EQ(command->elevationBeamWidth, 3_deg);
@@ -287,7 +287,7 @@ TEST(SchedulerTest, TrackingRequestProducesTrackingBeam)
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamType::TRACKING);
     EXPECT_EQ(command->beamId, 100u);
-    EXPECT_EQ(command->direction_ant.azimuth, -30_deg);
+    EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(-30_deg));
     EXPECT_EQ(command->direction_ant.elevation, 5_deg);
     EXPECT_EQ(command->azimuthBeamWidth, 3_deg);
     EXPECT_EQ(command->elevationBeamWidth, 3_deg);
@@ -368,20 +368,20 @@ TEST(SchedulerTest, CrowdedTicksFollowDesignedScenario)
 
     const auto at1010 = scheduler.next(1010ms);
     EXPECT_EQ(at1010->beamType, beam::BeamType::TRACKING);
-    EXPECT_EQ(at1010->direction_ant.azimuth, 1_deg);
+    EXPECT_TRUE(at1010->direction_ant.azimuth.isEquivalentTo(1_deg));
 
     const auto at1020 = scheduler.next(1020ms);
     EXPECT_EQ(at1020->beamType, beam::BeamType::CONFIRMATION);
-    EXPECT_EQ(at1020->direction_ant.azimuth, 2_deg);
+    EXPECT_TRUE(at1020->direction_ant.azimuth.isEquivalentTo(2_deg));
 
     const auto at1030 = scheduler.next(1030ms);
     EXPECT_EQ(at1030->beamType, beam::BeamType::TRACKING);
-    EXPECT_EQ(at1030->direction_ant.azimuth, 3_deg);
+    EXPECT_TRUE(at1030->direction_ant.azimuth.isEquivalentTo(3_deg));
 
     // D는 1010ms 요청이 30ms 지연되어 1040ms에 송신된다. 폐기되지 않는다.
     const auto at1040 = scheduler.next(1040ms);
     EXPECT_EQ(at1040->beamType, beam::BeamType::TRACKING);
-    EXPECT_EQ(at1040->direction_ant.azimuth, 4_deg);
+    EXPECT_TRUE(at1040->direction_ant.azimuth.isEquivalentTo(4_deg));
 
     const auto at1050 = scheduler.next(1050ms);
     EXPECT_EQ(at1050->beamType, beam::BeamType::SEARCH);
@@ -461,7 +461,7 @@ TEST(SchedulerTest, TurningOnAgainAfterOffResetsEverything)
     EXPECT_EQ(first->beamType, beam::BeamType::SEARCH);
     EXPECT_EQ(first->beamId, 1u);
     EXPECT_EQ(first->commandCount, 1u);
-    EXPECT_EQ(first->direction_ant.azimuth, gridAzimuth(0));
+    EXPECT_TRUE(first->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0)));
 }
 
 TEST(SchedulerTest, TurningOnWhileAlreadyOnKeepsState)

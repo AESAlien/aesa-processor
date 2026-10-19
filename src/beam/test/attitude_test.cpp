@@ -68,7 +68,7 @@ TEST(AttitudeTransformTest, AcceptsAnglesCreatedFromRadians)
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(
         math::Angle::fromRadians(-math::PI / 6.0), math::Angle::fromRadians(math::PI / 18.0)));
 
-    EXPECT_EQ(direction_enu.azimuth, 60_deg);
+    EXPECT_TRUE(direction_enu.azimuth.isEquivalentTo(60_deg));
     EXPECT_EQ(direction_enu.elevation, 10_deg);
 }
 
@@ -163,7 +163,7 @@ TEST(AttitudeTransformTest, MountRotationIsAppliedToAntDirection)
 
     // 안테나 정면(방위각 0도)이 몸체 기준 -90도(서쪽)로 장착되어 있다.
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
-    EXPECT_EQ(direction_enu.azimuth, -90_deg);
+    EXPECT_TRUE(direction_enu.azimuth.isEquivalentTo(-90_deg));
     EXPECT_EQ(direction_enu.elevation, 0_deg);
 }
 
@@ -194,7 +194,7 @@ TEST(AttitudeTransformTest, YawRotatesAzimuthClockwise)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 90_deg); // 정면이 동쪽
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
-    EXPECT_EQ(direction_enu.azimuth, 90_deg);
+    EXPECT_TRUE(direction_enu.azimuth.isEquivalentTo(90_deg));
     EXPECT_EQ(direction_enu.elevation, 0_deg);
 }
 
@@ -202,7 +202,7 @@ TEST(AttitudeTransformTest, PitchRaisesBoresight)
 {
     const beam::AntEnuTransform transform = makeValidTransform(0_deg, 10_deg, 0_deg);
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
-    EXPECT_EQ(direction_enu.azimuth, 0_deg);
+    EXPECT_TRUE(direction_enu.azimuth.isEquivalentTo(0_deg));
     EXPECT_EQ(direction_enu.elevation, 10_deg);
 }
 
@@ -216,7 +216,7 @@ TEST(AttitudeTransformTest, AntToEnuAndBackRestoresAngles)
         {
             const auto direction_enu = transform.antToEnu(math::SphericalDirection(azimuth_ant, elevation_ant));
             const auto directionRestored_ant = transform.enuToAnt(direction_enu);
-            EXPECT_EQ(directionRestored_ant.azimuth, math::wrap360(azimuth_ant));
+            EXPECT_TRUE(directionRestored_ant.azimuth.isEquivalentTo(math::wrap360(azimuth_ant)));
             EXPECT_EQ(directionRestored_ant.elevation, elevation_ant);
         }
     }
