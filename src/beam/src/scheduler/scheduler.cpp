@@ -1,40 +1,12 @@
 #include "scheduler/scheduler.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
-
-#include <stdexcept>
+#include "scheduler/request_beam_policy.hpp"
 
 namespace beam
 {
 namespace
 {
-BeamType toBeamType(RequestBeamType beamType)
-{
-    switch (beamType)
-    {
-    case RequestBeamType::CONFIRMATION:
-        return BeamType::CONFIRMATION;
-
-    case RequestBeamType::TRACKING:
-        return BeamType::TRACKING;
-    }
-
-    throw std::invalid_argument("Unknown beam request type");
-}
-
-math::Angle requestBeamWidth(const RequestBeamConfig& config, RequestBeamType beamType)
-{
-    switch (beamType)
-    {
-    case RequestBeamType::CONFIRMATION:
-        return config.confirmationBeamWidth();
-    case RequestBeamType::TRACKING:
-        return config.trackingBeamWidth();
-    }
-
-    throw std::invalid_argument("Unkown beam request type");
-}
-
 TransmitBeamCommand makeSearchCommand(
     const SearchBeam& searchBeam,
     std::chrono::milliseconds currentTime,
@@ -57,9 +29,10 @@ TransmitBeamCommand makeRequestCommand(
     std::chrono::milliseconds currentTime,
     std::uint32_t commandCount
 ) {
-    math::Angle width = requestBeamWidth(config, request.beamType());
+    const IRequestBeamPolicy& policy = requestBeamPolicyOf(request.beamType());
+    math::Angle width = policy.beamWidth(config);
     return TransmitBeamCommand::Builder()
-        .beamType(toBeamType(request.beamType()))
+        .beamType(policy.transmitBeamType())
         .transmitTime(currentTime)
         .beamId(request.requestId())
         .commandCount(commandCount)

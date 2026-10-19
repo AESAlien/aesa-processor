@@ -1,5 +1,7 @@
 #include "scheduler/beam_request.hpp"
 
+#include "scheduler/request_beam_policy.hpp"
+
 #include <stdexcept>
 
 namespace beam
@@ -45,15 +47,8 @@ const math::SphericalDirection& BeamRequest::direction_ant() const noexcept
 
 void BeamRequest::validate() const
 {
-    switch (_beamType)
-    {
-    case RequestBeamType::CONFIRMATION:
-    case RequestBeamType::TRACKING:
-        break;
-
-    default:
-        throw std::invalid_argument("BeamRequest: unknown beam request type");
-    }
+    // 알 수 없는 종류면 requestBeamPolicyOf가 std::invalid_argument를 던진다.
+    (void)requestBeamPolicyOf(_beamType);
 
     if (_transmitTime.count() < 0)
     {

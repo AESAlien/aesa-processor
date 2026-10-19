@@ -1,7 +1,16 @@
 #include "scheduler/request_queue.hpp"
 
+#include "scheduler/request_beam_policy.hpp"
+
 namespace beam
 {
+namespace
+{
+int priorityOf(const BeamRequest& request)
+{
+    return requestBeamPolicyOf(request.beamType()).priority();
+}
+} // namespace
 
 void RequestQueue::add(const BeamRequest& request)
 {
@@ -18,15 +27,14 @@ std::optional<BeamRequest> RequestQueue::popNextDue(std::chrono::milliseconds cu
         return std::nullopt;
     }
 
-    // 가장 이른 시각의 요청들 중 확인 빔이 있으면 그것을, 없으면 먼저 들어온 요청을 고른다.
+    // 가장 이른 시각의 요청들 중 우선순위가 가장 높은 요청을 고른다. 우선순위가 같으면 먼저 들어온 요청을 고른다.
     const auto [first, last] = _requests.equal_range(_requests.begin()->first);
     auto selected = first;
     for (auto it = first; it != last; ++it)
     {
-        if (it->second.beamType() == RequestBeamType::CONFIRMATION)
+        if (priorityOf(it->second) > priorityOf(selected->second))
         {
             selected = it;
-            break;
         }
     }
 

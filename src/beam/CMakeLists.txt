@@ -1,6 +1,7 @@
 add_library(beam STATIC
     src/controller/beam_controller.cpp
     src/scheduler/beam_request.cpp
+    src/scheduler/request_beam_policy.cpp
     src/scheduler/search_beam_table.cpp
     src/scheduler/request_queue.cpp
     src/scheduler/scheduler.cpp
@@ -44,6 +45,11 @@ add_executable(beam_request_test test/beam_request_test.cpp)
 target_include_directories(beam_request_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(beam_request_test PRIVATE beam GTest::gtest_main)
 gtest_discover_tests(beam_request_test)
+
+add_executable(beam_request_beam_policy_test test/request_beam_policy_test.cpp)
+target_include_directories(beam_request_beam_policy_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(beam_request_beam_policy_test PRIVATE beam GTest::gtest_main)
+gtest_discover_tests(beam_request_beam_policy_test)
 
 add_executable(beam_request_queue_test test/request_queue_test.cpp)
 target_include_directories(beam_request_queue_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
