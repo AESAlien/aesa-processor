@@ -283,6 +283,15 @@ TEST(AttitudeConfigTest, MaxAbsPitchMustBeInZeroToNinetyDegrees)
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(91_deg).build(), std::invalid_argument);
 }
 
+TEST(AttitudeConfigTest, MaxAbsPitchRejectsAnglesEquivalentToNinetyDegreesByPeriod)
+{
+    // 360도 주기로 90도와 동치인 값은 (0, 90] 범위 밖이므로 거부해야 한다.
+    EXPECT_THROW(attitudeBuilder().maxAbsPitch(450_deg).build(), std::invalid_argument);
+    EXPECT_THROW(attitudeBuilder().maxAbsPitch(810_deg).build(), std::invalid_argument);
+    EXPECT_THROW(attitudeBuilder().maxAbsPitch(-270_deg).build(), std::invalid_argument);
+    EXPECT_THROW(beam::AttitudeConfig(450_deg, math::SquareMatrix::identity(3), 1e-6), std::invalid_argument);
+}
+
 TEST(AttitudeConfigTest, ConstructorValidatesLikeBuilder)
 {
     EXPECT_NO_THROW(beam::AttitudeConfig(89_deg, math::SquareMatrix::identity(3), 1e-6));

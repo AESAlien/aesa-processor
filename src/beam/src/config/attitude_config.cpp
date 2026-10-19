@@ -41,15 +41,15 @@ double AttitudeConfig::mountOrthogonalTolerance() const noexcept
 
 void AttitudeConfig::validate() const
 {
-    using namespace math::literals;
-
     // tolerance를 먼저 검증해야 아래에서 math::Tolerance를 안전하게 만들 수 있다.
     if (!std::isfinite(_mountOrthogonalTolerance) || _mountOrthogonalTolerance < 0.0)
     {
         throw std::invalid_argument("AttitudeConfig: mountOrthogonalTolerance must be finite and non-negative");
     }
 
-    if (_maxAbsPitch <= 0_deg || _maxAbsPitch > 90_deg)
+    // Angle의 순서 비교는 허용오차를 적용하므로, (0, 90] 불변식은 주기 보정 없는 수치(deg())로 직접 검사한다.
+    const double maxAbsPitchDeg = _maxAbsPitch.deg();
+    if (maxAbsPitchDeg <= 0.0 || maxAbsPitchDeg > 90.0)
     {
         throw std::invalid_argument("AttitudeConfig: maxAbsPitch must be in (0, 90] degrees");
     }
