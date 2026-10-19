@@ -33,10 +33,8 @@ void TargetWorker::run()
 
             auto tracks = _controller.nextTrackEvents();
 
-            if (!tracks.empty())
-            {
-                _commChannel.write(std::move(tracks));
-            }
+            // 마지막 표적이 삭제된 경우도 빈 목록으로 콘솔에 전달한다.
+            _commChannel.write(std::move(tracks));
         });
     }
 }
