@@ -3,7 +3,6 @@
 #include "scheduler/beam_request.hpp"
 
 #include <chrono>
-#include <cstddef>
 #include <map>
 #include <optional>
 
@@ -22,8 +21,6 @@ public:
     std::optional<BeamRequest> popNextDue(std::chrono::milliseconds currentTime);
 
     void clear();
-    std::size_t size() const;
-    bool empty() const;
 
 private:
     // 같은 키의 요소는 삽입 순서가 유지된다.

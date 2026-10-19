@@ -36,7 +36,6 @@ TEST(RequestQueueTest, EmptyQueueReturnsNothing)
 {
     beam::RequestQueue queue;
 
-    EXPECT_TRUE(queue.empty());
     EXPECT_FALSE(queue.popNextDue(1000ms).has_value());
 }
 
@@ -46,7 +45,11 @@ TEST(RequestQueueTest, FutureRequestIsNotPoppedAndStaysQueued)
     queue.add(makeTracking(1010ms));
 
     EXPECT_FALSE(queue.popNextDue(1000ms).has_value());
-    EXPECT_EQ(queue.size(), 1u);
+
+    // 시각이 되면 그대로 남아 있던 요청이 꺼내진다.
+    const auto request = queue.popNextDue(1010ms);
+    ASSERT_TRUE(request.has_value());
+    EXPECT_EQ(request->transmitTime(), 1010ms);
 }
 
 TEST(RequestQueueTest, RequestExactlyAtCurrentTimeIsDue)
@@ -66,7 +69,6 @@ TEST(RequestQueueTest, PoppedRequestIsRemovedFromQueue)
     queue.add(makeTracking(1000ms));
 
     ASSERT_TRUE(queue.popNextDue(1000ms).has_value());
-    EXPECT_TRUE(queue.empty());
     EXPECT_FALSE(queue.popNextDue(1000ms).has_value());
 }
 
@@ -135,7 +137,7 @@ TEST(RequestQueueTest, VeryOldRequestIsStillPopped)
     EXPECT_EQ(first->transmitBeamType(), beam::BeamType::CONFIRMATION);
     ASSERT_TRUE(second.has_value());
     EXPECT_EQ(second->transmitBeamType(), beam::BeamType::TRACKING);
-    EXPECT_TRUE(queue.empty());
+    EXPECT_FALSE(queue.popNextDue(100000ms).has_value());
 }
 
 TEST(RequestQueueTest, CrowdedRequestsAreAllPoppedInTimeOrderWithoutDrop)
@@ -157,7 +159,6 @@ TEST(RequestQueueTest, CrowdedRequestsAreAllPoppedInTimeOrderWithoutDrop)
     }
 
     EXPECT_FALSE(queue.popNextDue(5000ms).has_value());
-    EXPECT_TRUE(queue.empty());
 }
 
 TEST(RequestQueueTest, ClearRemovesAllRequests)
@@ -168,7 +169,5 @@ TEST(RequestQueueTest, ClearRemovesAllRequests)
 
     queue.clear();
 
-    EXPECT_TRUE(queue.empty());
-    EXPECT_EQ(queue.size(), 0u);
     EXPECT_FALSE(queue.popNextDue(5000ms).has_value());
 }

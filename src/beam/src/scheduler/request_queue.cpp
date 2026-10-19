@@ -39,14 +39,4 @@ void RequestQueue::clear()
     _requests.clear();
 }
 
-std::size_t RequestQueue::size() const
-{
-    return _requests.size();
-}
-
-bool RequestQueue::empty() const
-{
-    return _requests.empty();
-}
-
 } // namespace beam
