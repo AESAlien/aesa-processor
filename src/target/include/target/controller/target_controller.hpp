@@ -20,12 +20,13 @@ class TrackSelector;
 class TargetController
 {
 public:
-    TargetController();
+    explicit TargetController(const TargetConfig& config);
 
     std::optional<beam::RequestBeamCommand> handleDetection(DetectionEvent detection);
     std::vector<TrackEvent> nextTrackEvents() const;
 
 private:
+    std::shared_ptr<const TargetConfig> _config;
     std::shared_ptr<const ITrackingAlgorithm> _trackingAlgorithm;
     std::shared_ptr<TargetRepository> _targetRepository;
     std::shared_ptr<const DetectionMatcher> _matcher;

@@ -20,8 +20,7 @@ std::optional<std::size_t> TentativeSelector::selectNewCandidate(
     for (std::size_t index = 0; index < observations.size(); ++index)
     {
         const Target& observation = observations[index];
-        if (observation.state() != TargetState::UNREGISTERED
-            || !_matcher.isValidPosition(observation))
+        if (observation.state() != TargetState::UNREGISTERED)
         {
             continue;
         }
@@ -29,7 +28,8 @@ std::optional<std::size_t> TentativeSelector::selectNewCandidate(
         bool associated = false;
         for (const Target& target : _targetRepository.targets())
         {
-            if (_matcher.matchesPosition(observation, target))
+            const auto score = _matcher.matchesPosition(observation, target);
+            if (score)
             {
                 associated = true;
                 break;

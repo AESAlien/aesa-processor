@@ -1,12 +1,11 @@
 #include <target/controller/target_controller.hpp>
 
 #include "calculation/association/detection_matcher.hpp"
-#include "calculation/tracking/constant_velocity_algorithm.hpp"
+#include "calculation/tracking/constant_acceleration_algorithm.hpp"
 #include "domain/target.hpp"
 #include "repository/target_repository.hpp"
 #include "selector/tentative_selector.hpp"
 #include "selector/track_selector.hpp"
-#include "validation/detection_validation.hpp"
 #include "math/trigonometry.hpp"
 #include <math/geometry/spherical_direction.hpp>
 
@@ -19,10 +18,6 @@ namespace target
 {
 namespace
 {
-
-constexpr std::chrono::milliseconds CONFIRMATION_DELAY{100};
-constexpr std::chrono::milliseconds TRACKING_INTERVAL{1000};
-constexpr std::uint32_t MAX_CONSECUTIVE_TRACKING_MISSES = 3;
 
 std::chrono::milliseconds addTime(
     std::chrono::milliseconds timestamp,
@@ -47,16 +42,6 @@ void validateDetection(const DetectionEvent& detection)
     {
         throw std::invalid_argument("Invalid beam detection metadata");
     }
-
-    // Validate the entire external message before converting or storing any target.
-    for (const auto& plot : detection.plots)
-    {
-        if (!validation::hasValidGeometry(
-                plot.slantRange, plot.elevation))
-        {
-            throw std::invalid_argument("Invalid beam detection plot");
-        }
-    }
 }
 
 std::vector<Target> toTargets(
@@ -67,7 +52,8 @@ std::vector<Target> toTargets(
     targets.reserve(detection.plots.size());
     for (const auto& plot : detection.plots)
     {
-        targets.emplace_back(plot.slantRange, plot.azimuth, plot.elevation,
+        targets.emplace_back(math::SphericalPosition(
+                plot.slantRange, math::SphericalDirection(plot.azimuth, plot.elevation)),
             plot.dopplerVelocity, plot.power_db, detection.transmitTime, trackingAlgorithm);
     }
     return targets;
@@ -80,6 +66,7 @@ std::optional<beam::RequestBeamCommand> trackingRequest(
     const auto prediction = target.predict(transmitTime);
     if (!prediction)
     {
+        repository.remove(target.id());
         return std::nullopt;
     }
 
@@ -97,7 +84,7 @@ TrackEvent trackEvent(const Target& target)
         throw std::overflow_error("Target ID cannot be represented by TrackEvent");
     }
 
-    const auto& state = target.trackingState().value();
+    const auto& state = *target.trackingState();
     using namespace math::literals;
 
     const auto& position = state.position;
@@ -105,10 +92,10 @@ TrackEvent trackEvent(const Target& target)
     const auto horizontalRange = position.horizontalDistance();
     const auto horizontalSpeed = velocity.horizontalSpeed();
     const auto speed = velocity.speed();
-    const math::Angle heading = horizontalSpeed > 0.0_mps
-        ? math::atan2(velocity.y, velocity.x)
+    const math::Angle heading = horizontalSpeed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+        ? math::atan2(velocity.x, velocity.y)
         : 0_deg;
-    const math::Angle flightPathAngle = speed > 0.0_mps
+    const math::Angle flightPathAngle = speed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         ? math::atan2(velocity.z, horizontalSpeed)
         : 0_deg;
     return TrackEvent(
@@ -130,10 +117,11 @@ TrackEvent trackEvent(const Target& target)
 
 } // namespace
 
-TargetController::TargetController()
-    : _trackingAlgorithm(std::make_shared<ConstantVelocityAlgorithm>())
+TargetController::TargetController(const TargetConfig& config)
+    : _config(std::make_shared<const TargetConfig>(config))
+    , _trackingAlgorithm(std::make_shared<ConstantAccelerationAlgorithm>(*_config))
     , _targetRepository(std::make_shared<TargetRepository>())
-    , _matcher(std::make_shared<DetectionMatcher>())
+    , _matcher(std::make_shared<DetectionMatcher>(*_config))
     , _tentativeSelector(std::make_shared<TentativeSelector>(
           *_targetRepository, *_matcher))
     , _trackSelector(std::make_shared<TrackSelector>(
@@ -143,6 +131,7 @@ TargetController::TargetController()
 
 std::optional<beam::RequestBeamCommand> TargetController::handleDetection(DetectionEvent detection)
 {
+    const auto& config = *_config;
     validateDetection(detection);
     const auto receivedTargets = toTargets(detection, _trackingAlgorithm);
     // Beam metadata belongs to the result, not to an individual physical target.
@@ -166,7 +155,7 @@ std::optional<beam::RequestBeamCommand> TargetController::handleDetection(Detect
             return std::nullopt;
         }
 
-        const auto transmitTime = addTime(resultTime, CONFIRMATION_DELAY);
+        const auto transmitTime = addTime(resultTime, config.confirmationDelay);
         const Target& candidate = receivedTargets[*selected];
         const auto id = _targetRepository->add(candidate);
         _targetRepository->markSearchResultProcessed(requestId, resultTime);
@@ -194,46 +183,36 @@ std::optional<beam::RequestBeamCommand> TargetController::handleDetection(Detect
             return std::nullopt;
         }
 
-        const auto transmitTime = addTime(resultTime, TRACKING_INTERVAL);
+        const auto transmitTime = addTime(resultTime, config.trackingInterval);
         if (!target->confirm(receivedTargets[*selected]))
         {
             _targetRepository->remove(requestId);
             return std::nullopt;
         }
-        const auto request = trackingRequest(*target, transmitTime);
-        if (!request)
-        {
-            _targetRepository->remove(requestId);
-        }
-        return request;
+        return trackingRequestOrRemove(*_targetRepository, *target, transmitTime);
     }
 
     if (!selected
-        && target->consecutiveMissCount() >= MAX_CONSECUTIVE_TRACKING_MISSES - 1)
+        && target->consecutiveMissCount() >= config.maxConsecutiveTrackingMisses - 1)
     {
         target->recordTrackingMiss(resultTime);
         _targetRepository->remove(requestId);
         return std::nullopt;
     }
 
-    const auto transmitTime = addTime(resultTime, TRACKING_INTERVAL);
+    const auto transmitTime = addTime(resultTime, config.trackingInterval);
     const bool updated = selected && target->update(receivedTargets[*selected]);
     if (!updated)
     {
         target->recordTrackingMiss(resultTime);
-        if (target->consecutiveMissCount() >= MAX_CONSECUTIVE_TRACKING_MISSES)
+        if (target->consecutiveMissCount() >= config.maxConsecutiveTrackingMisses)
         {
             _targetRepository->remove(requestId);
             return std::nullopt;
         }
     }
     // Predict again at the next transmit time, even when no measurement matched.
-    const auto request = trackingRequest(*target, transmitTime);
-    if (!request)
-    {
-        _targetRepository->remove(requestId);
-    }
-    return request;
+    return trackingRequestOrRemove(*_targetRepository, *target, transmitTime);
 }
 
 std::vector<TrackEvent> TargetController::nextTrackEvents() const
@@ -244,6 +223,10 @@ std::vector<TrackEvent> TargetController::nextTrackEvents() const
         if (target.state() == TargetState::TRACKING)
         {
             events.push_back(trackEvent(target));
+            if (events.size() == _config->maxReportedTrackCount)
+            {
+                break;
+            }
         }
     }
     return events;

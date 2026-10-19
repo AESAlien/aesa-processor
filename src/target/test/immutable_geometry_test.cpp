@@ -1,5 +1,6 @@
 #include "calculation/tracking/constant_velocity_algorithm.hpp"
 #include "repository/target_repository.hpp"
+#include <target/config/target_config.hpp>
 #include "target/controller/target_controller.hpp"
 
 #include <gtest/gtest.h>
@@ -10,19 +11,29 @@
 using namespace math::literals;
 using namespace std::chrono_literals;
 
+namespace
+{
+math::SphericalPosition position(math::Length range)
+{
+    return math::SphericalPosition(range, math::SphericalDirection(0_deg, 0_deg));
+}
+} // namespace
+
 TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
 {
     const auto algorithm = std::make_shared<target::ConstantVelocityAlgorithm>();
     target::TargetRepository repository;
-    const auto firstId = repository.add(target::Target(100_m, 0_deg, 0_deg, 1_mps, 1.0f, 0ms, algorithm));
-    const auto middleId = repository.add(target::Target(200_m, 0_deg, 0_deg, 1_mps, 1.0f, 0ms, algorithm));
-    const auto lastId = repository.add(target::Target(300_m, 0_deg, 0_deg, 1_mps, 1.0f, 0ms, algorithm));
+    const auto firstId = repository.add(target::Target(position(100_m), 1_mps, 1.0f, 0ms, algorithm));
+    const auto middleId = repository.add(target::Target(position(200_m), 1_mps, 1.0f, 0ms, algorithm));
+    const auto lastId = repository.add(target::Target(position(300_m), 1_mps, 1.0f, 0ms, algorithm));
 
     auto* tracked = repository.find(lastId);
-    ASSERT_TRUE(tracked->confirm(target::Target(301_m, 0_deg, 0_deg, 1_mps, 1.0f, 1000ms, algorithm)));
-    ASSERT_TRUE(tracked->update(target::Target(302_m, 0_deg, 0_deg, 1_mps, 1.0f, 2000ms, algorithm)));
-    EXPECT_EQ(tracked->trackingState()->position.x, 302_m);
-    EXPECT_EQ(tracked->trackingState()->velocity.x, 1_mps);
+    ASSERT_TRUE(tracked->confirm(target::Target(position(301_m), 1_mps, 1.0f, 1000ms, algorithm)));
+    ASSERT_TRUE(tracked->update(target::Target(position(302_m), 1_mps, 1.0f, 2000ms, algorithm)));
+    EXPECT_EQ(tracked->trackingState()->position.x, 0_m);
+    EXPECT_EQ(tracked->trackingState()->position.y, 302_m);
+    EXPECT_EQ(tracked->trackingState()->velocity.x, 0_mps);
+    EXPECT_EQ(tracked->trackingState()->velocity.y, 1_mps);
 
     EXPECT_FALSE(repository.remove(0));
     ASSERT_TRUE(repository.remove(middleId));
@@ -31,10 +42,10 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     EXPECT_EQ(repository.targets()[1].id(), lastId);
     EXPECT_EQ(repository.find(middleId), nullptr);
     tracked = repository.find(lastId);
-    ASSERT_TRUE(tracked->trackingState().has_value());
-    EXPECT_EQ(tracked->trackingState()->position.x, 302_m);
-    ASSERT_TRUE(tracked->update(target::Target(303_m, 0_deg, 0_deg, 1_mps, 1.0f, 3000ms, algorithm)));
-    EXPECT_EQ(tracked->trackingState()->position.x, 303_m);
+    ASSERT_TRUE(tracked->trackingState());
+    EXPECT_EQ(tracked->trackingState()->position.y, 302_m);
+    ASSERT_TRUE(tracked->update(target::Target(position(303_m), 1_mps, 1.0f, 3000ms, algorithm)));
+    EXPECT_EQ(tracked->trackingState()->position.y, 303_m);
 
     EXPECT_TRUE(repository.remove(firstId));
     EXPECT_TRUE(repository.remove(lastId));
@@ -47,7 +58,7 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
     using BeamType = beam::BeamType;
     for (double displacement : {0.0, 1.0})
     {
-        target::TargetController controller;
+        target::TargetController controller(target::TargetConfig{});
         const auto confirmation = controller.handleDetection(target::DetectionEvent(
             BeamType::SEARCH, 1, 0ms, {{100_m, 0_deg, 0_deg, 0_mps, 1.0f}}));
         ASSERT_TRUE(confirmation.has_value());

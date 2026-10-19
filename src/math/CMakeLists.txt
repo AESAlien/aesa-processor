@@ -1,6 +1,7 @@
 find_package(GTest REQUIRED)
 
 add_library(math STATIC
+    src/geometry/cartesian_displacement.cpp
     src/geometry/cartesian_position.cpp
     src/geometry/cartesian_velocity.cpp
     src/quantity/angle.cpp
@@ -32,6 +33,10 @@ gtest_discover_tests(length_test)
 add_executable(spherical_position_test test/spherical_position_test.cpp)
 target_link_libraries(spherical_position_test PRIVATE math GTest::gtest_main)
 gtest_discover_tests(spherical_position_test)
+
+add_executable(cartesian_displacement_test test/cartesian_displacement_test.cpp)
+target_link_libraries(cartesian_displacement_test PRIVATE math GTest::gtest_main)
+gtest_discover_tests(cartesian_displacement_test)
 
 add_executable(trigonometry_test test/trigonometry_test.cpp)
 target_link_libraries(trigonometry_test PRIVATE math GTest::gtest_main)

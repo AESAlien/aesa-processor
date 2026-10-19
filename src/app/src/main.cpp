@@ -1,6 +1,7 @@
 #include <app/worker/worker_error.hpp>
 
 #include <beam/controller/beam_controller.hpp>
+#include <target/config/target_config.hpp>
 #include <target/controller/target_controller.hpp>
 
 #include <chrono>
@@ -153,7 +154,8 @@ int main()
     try
     {
         beam::BeamController beamController;
-        target::TargetController targetController;
+        const target::TargetConfig targetConfig;
+        target::TargetController targetController(targetConfig);
 
         demo::Result result;
 

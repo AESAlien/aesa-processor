@@ -14,7 +14,7 @@ namespace target
 class TargetRepository;
 class DetectionMatcher;
 
-// Select one observation for the requested target without modifying its state.
+// Select the eligible observation with minimum NDS without modifying the requested target.
 class TrackSelector
 {
 public:
