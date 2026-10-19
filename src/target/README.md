@@ -67,16 +67,23 @@ Repository는 전달받은 복사본에 순차 ID를 부여하고 Tentative로 �
 | ConstantVelocityAlgorithm | 두 점 차분 초기화·관측 갱신 및 등속도 예측 |
 | TargetConfig | 연관 기준·측정 잡음·빔 요청 간격·연속 미탐 한도 설정 |
 
-Controller 생성자는 Config, Repository, Matcher, 추적 알고리즘과 두 Selector를 한 번 생성하고 의존성을 연결한다.
+Controller 생성자는 app에서 주입받은 Config를 보관하고 Repository, Matcher, 추적 알고리즘과 두 Selector를 한 번 생성하여 의존성을 연결한다.
 두 Selector는 const TargetRepository&와 const DetectionMatcher&를 생성자로 주입받는다.
 처리 도중 별도 Matcher나 Selector를 만들지 않으며, 저장소 변경은 다음 조회에 그대로 반영된다.
 Selector는 vector 요소의 포인터나 참조를 멤버에 보관하지 않는다.
 Controller 복사본은 Config·Repository·Matcher·Selector·알고리즘 객체 구성을 함께 공유한다.
-외부 app은 기존대로 TargetController()만 생성한다. 공개 헤더에는 TargetConfig 전방 선언과 private 포인터만 두며 설정을 받는 공개 생성자는 추가하지 않는다.
-target_config.hpp/.cpp는 src/config에 둔다. Controller 생성자에서 읽기 전용 Config를 가장 먼저 생성하고, Matcher에 주입한다.
-Controller의 요청 시각·미탐 한도 처리도 소유한 Config를 사용한다. 설정 객체는 외부에서 변경할 수 없고 별도의 정적 설정 함수는 사용하지 않는다.
+외부 app은 공개 헤더 include/target/config/target_config.hpp의 TargetConfig를 생성하여 TargetController(const TargetConfig&)에 명시적으로 주입한다.
+설정 필드 7개는 모두 const이며, 기본값 또는 전체 설정값을 받는 생성자로 초기화한 뒤 변경할 수 없다. 잘못된 설정은 Config 생성 시 거부한다.
+Controller는 전달받은 Config의 읽기 전용 복사본을 소유하여 호출자 객체의 수명에 의존하지 않는다. 이 설정을 Matcher에도 전달하고 요청 시각·미탐 한도 처리에 사용한다.
 
-TargetConfig의 기본값은 다음과 같으며 설정 생성과 Matcher 주입 시 검증한다.
+```cpp
+const target::TargetConfig targetConfig;
+target::TargetController targetController(targetConfig);
+```
+
+Config 구현은 src/config/target_config.cpp에 두며, Controller에서 기본 설정을 암묵적으로 생성하거나 별도의 정적 설정 함수를 사용하지 않는다.
+
+TargetConfig의 기본값은 다음과 같으며 설정 생성 시 한 번 검증한다.
 
 | 설정 | 기본값 |
 |---|---|
@@ -211,5 +218,5 @@ test/의 기존 immutable_geometry_test.cpp는 추적 상태 교체·표적 삭�
 domain_validation_test.cpp는 생성 예외, 상태 보존, 불변 필드 및 설정 주입을 검증한다.
 전체 프로젝트 빌드·기존 프로젝트 테스트와 저장소 밖의 Target 회귀 검증으로 변경을 확인한다.
 외부 회귀 검증은 MSVC C++17 /W4 /WX로 실제 Target 소스를 컴파일한다.
-이번 변경은 전체 프로젝트를 새로 빌드하여 프로젝트 테스트 330개와 외부 Target 회귀 검사 220개를 통과했다.
+이번 변경은 전체 프로젝트를 새로 빌드하여 프로젝트 테스트 331개와 외부 Target 회귀 검사 220개를 통과했다.
 실제 모의기·Comm·운용 콘솔의 통합 실행은 이번 변경 범위에 포함하지 않는다.

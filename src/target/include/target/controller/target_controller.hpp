@@ -1,6 +1,7 @@
 #pragma once
 
 #include <beam/dto/beam_request.hpp>
+#include <target/config/target_config.hpp>
 #include <target/dto/detection_event.hpp>
 #include <target/dto/track_event.hpp>
 
@@ -11,7 +12,6 @@
 namespace target
 {
 
-struct TargetConfig;
 class TargetRepository;
 class ITrackingAlgorithm;
 class DetectionMatcher;
@@ -21,7 +21,7 @@ class TrackSelector;
 class TargetController
 {
 public:
-    TargetController();
+    explicit TargetController(const TargetConfig& config);
 
     std::optional<beam::BeamRequest> handleDetection(DetectionEvent detection);
     std::vector<TrackEvent> nextTrackEvents() const;

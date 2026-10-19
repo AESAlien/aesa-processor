@@ -1,4 +1,4 @@
-#include "target_config.hpp"
+#include <target/config/target_config.hpp>
 
 #include <cmath>
 #include <stdexcept>
@@ -9,13 +9,26 @@ namespace target
 using namespace math::literals;
 
 TargetConfig::TargetConfig()
-    : maxAssociationSpeed(1000.0_mps)
-    , maxInitialDopplerDifference(30.0_mps)
-    , measurementStandardDeviation(7.0_m)
-    , positionNdsThreshold(11.345)
-    , confirmationDelay(100)
-    , trackingInterval(1000)
-    , maxConsecutiveTrackingMisses(3)
+    : TargetConfig(1000.0_mps, 30.0_mps, 7.0_m, 11.345,
+          std::chrono::milliseconds(100), std::chrono::milliseconds(1000), 3)
+{
+}
+
+TargetConfig::TargetConfig(
+    math::LinearVelocity maxAssociationSpeed,
+    math::LinearVelocity maxInitialDopplerDifference,
+    math::Length measurementStandardDeviation,
+    double positionNdsThreshold,
+    std::chrono::milliseconds confirmationDelay,
+    std::chrono::milliseconds trackingInterval,
+    std::uint32_t maxConsecutiveTrackingMisses)
+    : maxAssociationSpeed(maxAssociationSpeed)
+    , maxInitialDopplerDifference(maxInitialDopplerDifference)
+    , measurementStandardDeviation(measurementStandardDeviation)
+    , positionNdsThreshold(positionNdsThreshold)
+    , confirmationDelay(confirmationDelay)
+    , trackingInterval(trackingInterval)
+    , maxConsecutiveTrackingMisses(maxConsecutiveTrackingMisses)
 {
     validate();
 }

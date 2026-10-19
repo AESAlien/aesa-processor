@@ -25,7 +25,6 @@ constexpr std::size_t NDS_DIMENSION = 3;
 
 math::SquareMatrix measurementDifferenceCovariance(const TargetConfig& config)
 {
-    config.validate();
     const double sigma = config.measurementStandardDeviation.m();
     // Two independent measurements; use predicted covariance when available.
     return math::SquareMatrix::identity(NDS_DIMENSION) * (2.0 * sigma * sigma);

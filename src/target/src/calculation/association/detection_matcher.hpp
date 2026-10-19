@@ -1,6 +1,6 @@
 #pragma once
 
-#include "config/target_config.hpp"
+#include <target/config/target_config.hpp>
 
 #include <math/linear_algebra/square_matrix.hpp>
 

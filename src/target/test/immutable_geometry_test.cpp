@@ -1,5 +1,6 @@
 #include "calculation/tracking/constant_velocity_algorithm.hpp"
 #include "repository/target_repository.hpp"
+#include <target/config/target_config.hpp>
 #include "target/controller/target_controller.hpp"
 
 #include <gtest/gtest.h>
@@ -57,7 +58,7 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
     using BeamType = beam::BeamCommand::BeamType;
     for (double displacement : {0.0, 1.0})
     {
-        target::TargetController controller;
+        target::TargetController controller(target::TargetConfig{});
         const auto confirmation = controller.handleDetection(target::DetectionEvent(
             BeamType::SEARCH, 1, 0ms, {{100_m, 0_deg, 0_deg, 0_mps, 1.0f}}));
         ASSERT_TRUE(confirmation.has_value());
