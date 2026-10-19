@@ -19,11 +19,14 @@ DetectionEvent 하나는 완료된 빔 하나의 결과다.
 - plots: 해당 빔의 모든 탐지. 탐지가 없는 완료 결과는 빈 목록으로 전달한다.
 
 Controller의 입력 경계에서만 DetectionEvent와 Plot을 사용한다.
-validateDetection()이 메타데이터와 전체 Plot의 위치·도플러를 먼저 검사한다.
-toTargets()가 각 Plot의 측정값과 실제 시각을 Target으로 복사한다.
+validateDetection()은 빔 타입·요청 ID·송신 시각 등 메시지 메타데이터만 검사한다.
+거리·각도·도플러의 NaN·무한대는 math 물리량 생성 단계에서 거부된다.
+toTargets()는 각 Plot의 좌표를 math::SphericalPosition으로 묶어 Target을 생성한다.
+math 좌표 생성자가 음수 거리·고각 범위를 검사하고, Target 생성자가 양수 거리·시각·유한한 신호 세기와 알고리즘 의존성을 검사한다.
+전체 Plot의 Target 생성이 끝난 뒤 저장소를 처리하므로, 뒤쪽 Plot이 잘못되어도 앞쪽 Plot만 저장되는 일은 없다.
 이후 처리에는 빔 메타데이터 지역변수와 vector<Target>만 전달한다.
 Selector, Matcher, Repository, 도메인 및 추적 알고리즘은 DetectionEvent를 포함하거나 사용하지 않는다.
-DTO를 검증하는 validateDetection()은 값 검증 함수를 사용하며, Matcher에는 Target만 전달한다.
+이미 생성된 Target은 유효한 객체로 신뢰하며, Matcher와 Selector에서 값의 유효성을 반복 검사하지 않는다.
 
 반환값은 빔 요청 0개(nullopt) 또는 1개다. BeamRequest.requestId에는 등록된 Target ID를 넣는다.
 메시지 파싱·패키징·직렬화는 Comm의 역할이다.
@@ -62,24 +65,54 @@ Repository는 전달받은 복사본에 순차 ID를 부여하고 Tentative로 �
 | TargetRepository | add/find/remove/targets: 등록·조회·삭제·소유. 다음 ID 및 그리드별 처리 시각 관리 |
 | ITrackingAlgorithm | Target 입력으로 initialize/update/predict 계산, 도메인 상태·예측 결과 반환 |
 | ConstantVelocityAlgorithm | 두 점 차분 초기화·관측 갱신 및 등속도 예측 |
+| TargetConfig | 연관 기준·측정 잡음·빔 요청 간격·연속 미탐 한도 설정 |
 
-Controller 생성자는 Repository, Matcher, 추적 알고리즘과 두 Selector를 한 번 생성하고 의존성을 연결한다.
+Controller 생성자는 app에서 주입받은 Config를 보관하고 Repository, Matcher, 추적 알고리즘과 두 Selector를 한 번 생성하여 의존성을 연결한다.
 두 Selector는 const TargetRepository&와 const DetectionMatcher&를 생성자로 주입받는다.
 처리 도중 별도 Matcher나 Selector를 만들지 않으며, 저장소 변경은 다음 조회에 그대로 반영된다.
 Selector는 vector 요소의 포인터나 참조를 멤버에 보관하지 않는다.
-Controller 복사본은 Repository·Matcher·Selector·알고리즘 객체 구성을 함께 공유한다.
-외부 app은 TargetController()만 생성하면 된다.
+Controller 복사본은 Config·Repository·Matcher·Selector·알고리즘 객체 구성을 함께 공유한다.
+외부 app은 공개 헤더 include/target/config/target_config.hpp의 TargetConfig를 생성하여 TargetController(const TargetConfig&)에 명시적으로 주입한다.
+설정 필드 7개는 모두 const이며, 기본값 또는 전체 설정값을 받는 생성자로 초기화한 뒤 변경할 수 없다. 잘못된 설정은 Config 생성 시 거부한다.
+Controller는 전달받은 Config의 읽기 전용 복사본을 소유하여 호출자 객체의 수명에 의존하지 않는다. 이 설정을 Matcher에도 전달하고 요청 시각·미탐 한도 처리에 사용한다.
+
+```cpp
+const target::TargetConfig targetConfig;
+target::TargetController targetController(targetConfig);
+```
+
+Config 구현은 src/config/target_config.cpp에 두며, Controller에서 기본 설정을 암묵적으로 생성하거나 별도의 정적 설정 함수를 사용하지 않는다.
+
+TargetConfig의 기본값은 다음과 같으며 설정 생성 시 한 번 검증한다.
+
+| 설정 | 기본값 |
+|---|---|
+| maxAssociationSpeed | 1000m/s |
+| maxInitialDopplerDifference | 30m/s |
+| measurementStandardDeviation | 7m |
+| positionNdsThreshold | 11.345 (3차원 99%, 임시 기준) |
+| confirmationDelay | 100ms |
+| trackingInterval | 1000ms |
+| maxConsecutiveTrackingMisses | 3 |
+
+잡음은 양수이며 2σ²가 유한한 양수여야 한다. 임계값과 속력·도플러 한도는 음수가 될 수 없다.
+요청 간격과 연속 미탐 한도는 양수여야 하며, 잘못된 설정은 std::invalid_argument를 발생시킨다.
 
 ## 연관과 추적 계산
 
 모든 탐지 연관은 src/calculation/association/의 DetectionMatcher를 거친다.
 확인 분기에서도 Target.canConfirm()을 호출하지 않는다.
 
-- matchesPosition(observation, other): 거리·방위각·고각 완전 일치. NDS 도입 전 임시 탐색 중복 조건.
-- matchesConfirmation(observation, tentative): 두 점의 안테나 좌표계 Cartesian 거리 / 실제 시간 차이가 1000m/s 이하이고 측정 도플러 차이가 30m/s 이하인지 검사.
+- matchesPosition(observation, other): Tentative는 최초 위치에서 1000m/s × 두 탐지의 시간 차이만큼 이동할 수 있다고 보고, 그 범위를 벗어난 잔여 위치 차이의 NDS가 임시 99% 기준인 11.345 이하이면 탐색 중복으로 판단한다. Tracking은 수신 시각의 예측 위치와 비교하되, 최근 관측보다 과거인 탐색 결과는 최신 저장 위치와 시간 차이로 같은 이동 범위 보정을 적용한다.
+- matchesConfirmation(observation, tentative): 두 점의 안테나 좌표계 Cartesian 거리 / 실제 시간 차이가 1000m/s 이하이고 측정 도플러 차이가 30m/s 이하인 탐지의 NDS 점수를 반환한다. TrackSelector가 가장 작은 점수 하나를 선택한다.
 - matchesTracking(observation, tracking): 수신 시각의 예측 위치와 완전 일치. NDS 도입 전 임시 추적 연관 조건.
 
 확인 연관의 속력은 레이더와 표적 사이의 거리 변화만 사용하지 않고, 방위각·고각을 포함한 두 위치의 3차원 차분으로 계산한다.
+Tentative 탐색 중복의 허용거리는 1000m/s × |현재 탐지 시각 − 최초 탐지 시각| + 측정오차 허용거리이다.
+다른 그리드에서 늦게 도착한 과거 탐색 결과도 Tracking과 중복 비교한다. 이때 기준은 최초 시각이나 최근 미탐 시각이 아닌 최근 관측 시각이며, 추적 상태를 과거로 갱신하거나 역방향 예측을 수행하지 않는다.
+동일 시각·미래 시각의 Tracking 예측이 실패하면 기존대로 점수를 반환하지 않으며, 저장 위치 비교로 우회하지 않는다.
+기본 설정의 98I 공분산과 11.345 기준에서는 측정오차 허용거리가 약 33.34m이며, 이동 가능한 거리 안의 중복 점수는 0이다.
+최초 관측은 갱신하지 않는다. 이 이동 보정은 등방성 2σ²I를 전제로 하므로 향후 축별 공분산 모델을 도입할 때 다시 검토한다.
 Matcher는 추적 상태를 초기화하거나 변경하지 않는다.
 TrackSelector가 연관에 성공한 Target 하나를 선택하면, 기존 Target.confirm()이 추적 알고리즘을 한 번 호출하여 초기화한다.
 연관 통과와 추적 초기화 성공은 별도 조건이며, 선택 후 초기화가 실패하면 확인 실패로 삭제한다.
@@ -96,18 +129,30 @@ Target마다 자신의 상태를 보관하고 shared_ptr<const ITrackingAlgorith
 알고리즘은 입력 Target을 수정하지 않는다.
 Repository는 추적 알고리즘에 의존하지 않고 이미 생성된 Target을 보관한다.
 
-Target은 알고리즘의 반환 시각과 좌표·각도·속도의 유효성을 확인한 뒤에만 결과를 저장하거나 반환한다.
-실패한 초기화·갱신은 기존 상태를 덮어쓰지 않는다.
+Target, TargetTrackingState, TargetPrediction은 생성자에서 각자의 private validate()를 호출한다.
+추적 상태와 예측 결과는 모든 필드가 const이며, 생성 후 외부에서 필드를 바꿀 수 없다.
+Target의 상태 변경에서는 새 상태 객체의 생성 검증을 신뢰하고, 수신 시각과 반환 시각의 일치 등 변경 조건만 확인한다.
+이미 저장된 상태를 조회·연관·예측에 사용할 때 유효성을 재검사하지 않는다.
+유효하지 않은 생성 값이나 알고리즘의 시각 계약 위반은 예외를 발생시키며, 상태 반영 전 검사하므로 기존 상태·시각·미탐 횟수를 보존한다.
+연관 실패·과거 결과·잘못된 상태에 대한 처리 조건과 실제 계산 실패의 false/nullopt는 유지한다.
 필터 추정값이 수신 측정값과 같아야 한다는 조건은 두지 않는다.
 최초 측정값은 별도 필드에 보존하고 현재 값 getter는 Tracking일 때 최근 추적 상태를 반환한다.
 예측은 저장 상태와 관측 시각을 앞당기지 않는다.
 
 position은 math::CartesianPosition, velocity는 math::CartesianVelocity이다.
-안테나 고정 좌표계는 방위각 0도 방향 x, 방위각 +90도 방향 y, 위쪽 z를 사용한다.
-cartesian_math.hpp가 Target 극좌표의 Cartesian 변환과 단위 성분↔math::Vector 변환을 공유한다.
-차분·외삽·크기는 math::Vector로 계산하고, 단위 리터럴과 equals를 사용한다.
-math 모듈은 수정하지 않는다. cmath는 isfinite와 math API에 없는 sin/cos/atan2에만 사용한다.
-validation/detection_validation.hpp/.cpp는 DTO 의존성 없이 기하·Target·추적 상태·예측을 검증한다.
+안테나 고정 좌표계는 math와 동일하게 방위각 0도 방향 y, 방위각 +90도 방향 x, 위쪽 z를 사용한다.
+Target의 최초 위치와 추적 상태·예측 결과의 구면 위치는 math::SphericalPosition으로 저장한다.
+Target.sphericalPosition()은 저장된 구면 위치의 const 참조를 반환하며, 조회할 때 좌표 객체를 다시 생성하지 않는다.
+구면·직교 위치 변환은 math::SphericalPosition::toCartesian()과 math::CartesianPosition::toSpherical()에 위임한다.
+모든 도메인 구면 위치의 방위각은 math의 [0, 360)도 기준으로 정규화된다.
+위치 뺄셈은 math::CartesianDisplacement를 반환한다. Matcher는 toVector()로 NDS 입력을 얻고, 초기화·갱신 알고리즘은 toVelocity()로 속도 벡터를 계산한다.
+추적의 완전 위치 비교는 SphericalPosition::equals()에 허용오차 없음을 명시해 수행한다.
+등속도 예측의 위치(m)·속도(m/s) 숫자 벡터 구성은 추적 알고리즘 내부에서 처리한다.
+별도의 좌표 변환 보조 헤더는 사용하지 않는다. cmath는 유한값 검사에만 사용한다.
+NDS는 math::cholesky()와 SquareMatrix::solveLowerTriangular()로 계산하며, 분해·연립방정식 풀이의 계산 실패는 점수 없음으로 처리한다.
+유효한 두 위치라도 변위나 속력이 수치 범위를 넘으면 Matcher는 계산 실패로 점수 없음을 반환한다.
+기존 대칭 허용오차를 통과한 공분산의 비대각 원소는 같은 평균값으로 맞춘 뒤 분해한다.
+별도의 detection_validation 파일은 제거하고 객체별 검증을 도메인 내부로 옮겼다.
 
 ## 빔 타입별 처리
 
@@ -145,7 +190,8 @@ validation/detection_validation.hpp/.cpp는 DTO 의존성 없이 기하·Target�
 실제 대기나 타이머 실행은 하지 않는다.
 
 빈 plots는 탐지 없는 완료 결과이며, 좌표가 0인 가짜 탐지로 변환하지 않는다.
-결과 메시지 자체의 미수신이나 Beam 큐의 요청 폐기는 별도의 통지·시간 제한 계약이 필요하다.
+현재 구현은 탐지가 없는 경우에도 완료 결과 메시지가 항상 도착한다고 가정한다.
+결과 메시지 미수신이나 Beam 큐의 요청 폐기에 대한 시간 제한 처리는 구현하지 않는다.
 
 ## 추적 정보 보고와 미구현 범위
 
@@ -158,13 +204,19 @@ nextTrackEvents()는 현재 Tracking만 복사하여 반환하며 조회로 표�
 - heading / flightPathAngle: 레이더 기준 수평 진행각 / 속도 상승각. 정지 표적은 0도.
 - latitude / longitude: 기준 위치가 없어 현재 0도로 보고한다.
 
-NDS·공분산·칼만필터/CA·플랫폼 자세 보정은 미구현이다.
+NDS는 설정된 축별 표준편차 σ로 구성한 2σ²I 공분산을 임시로 사용한다. 기본 7m 설정에서는 98I이다.
+Tracking 결과 연관은 아직 완전 위치 일치와 첫 통과 탐지 선택을 사용한다. NDS 점수와 최소 점수 선택은 미구현이다.
+추적 공분산·칼만필터/CA·플랫폼 자세 보정은 미구현이다. 칼만필터 연결 시 표적별 가속도·공분산 저장 및 예측 공분산 전달 구조도 함께 확장해야 한다.
 연관 조건은 Matcher에서, 추적 알고리즘은 ITrackingAlgorithm 구현체에서 교체한다.
-현재 Beam Scheduler의 확인·추적 beamId 연결은 담당 모듈의 별도 수정이 필요하다.
+Beam Scheduler는 확인·추적 요청의 requestId를 BeamCommand.beamId로 전달한다. Comm은 수신 beamID를 DetectionEvent.requestId로 전달한다.
+실제 장비의 추적 조향 범위 검증은 요청을 생성하는 쪽의 책임이다. 현재는 기하 유효성만 검사하며, 조향 범위 밖의 요청 중단·표적 정리 정책은 미구현이다.
+추적 알고리즘 완료 후에는 구면·직교 위치 중 기준 표현을 정하거나 두 표현의 일관성 계약을 확정한다.
 
 ## 검증
 
-test/는 요청대로 비워 둔다. Target 테스트·데모 및 GTest 대상은 모듈 CMake에 추가하지 않는다.
+test/의 기존 immutable_geometry_test.cpp는 추적 상태 교체·표적 삭제·보고와 math 좌표축 기준을 확인한다.
+domain_validation_test.cpp는 생성 예외, 상태 보존, 불변 필드 및 설정 주입을 검증한다.
 전체 프로젝트 빌드·기존 프로젝트 테스트와 저장소 밖의 Target 회귀 검증으로 변경을 확인한다.
 외부 회귀 검증은 MSVC C++17 /W4 /WX로 실제 Target 소스를 컴파일한다.
+이번 변경은 전체 프로젝트를 새로 빌드하여 프로젝트 테스트 331개와 외부 Target 회귀 검사 220개를 통과했다.
 실제 모의기·Comm·운용 콘솔의 통합 실행은 이번 변경 범위에 포함하지 않는다.

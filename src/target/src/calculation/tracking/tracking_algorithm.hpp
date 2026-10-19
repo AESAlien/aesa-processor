@@ -11,7 +11,8 @@ namespace target
 class Target;
 
 // Strategies retain no per-target state; each Target owns the returned state.
-// Calculations leave their inputs unchanged and return nullopt when they fail.
+// Calculations leave their inputs unchanged and return nullopt when no result is available.
+// Result constructors throw for invalid values; Target rejects inconsistent result times.
 // Successful states use the received Target's observation time.
 class ITrackingAlgorithm
 {

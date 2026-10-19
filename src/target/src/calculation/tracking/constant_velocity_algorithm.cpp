@@ -1,11 +1,13 @@
 #include "constant_velocity_algorithm.hpp"
 
-#include "cartesian_math.hpp"
-#include "validation/detection_validation.hpp"
+#include "domain/target.hpp"
 
-#include <math/trigonometry.hpp>
+#include <math/geometry/cartesian_displacement.hpp>
+#include <math/geometry/cartesian_position.hpp>
+#include <math/geometry/cartesian_velocity.hpp>
+#include <math/geometry/spherical_position.hpp>
+#include <math/linear_algebra/vector.hpp>
 
-#include <array>
 #include <cmath>
 
 namespace target
@@ -24,6 +26,19 @@ double elapsedSeconds(
     return std::chrono::duration<double>(current - previous).count();
 }
 
+std::optional<TargetTrackingState> estimateTrackingState(
+    const math::CartesianPosition& previousPosition,
+    std::chrono::milliseconds previousTime,
+    const Target& observation)
+{
+    const auto time = observation.lastObservationTime();
+    const auto position = observation.sphericalPosition().toCartesian();
+    const auto velocity = (position - previousPosition).toVelocity(
+        std::chrono::duration<double>{elapsedSeconds(previousTime, time)});
+    return TargetTrackingState{observation.sphericalPosition(),
+        observation.dopplerVelocity(), observation.power_db(), time, position, velocity};
+}
+
 } // namespace
 
 std::optional<TargetTrackingState> ConstantVelocityAlgorithm::initialize(
@@ -32,25 +47,12 @@ std::optional<TargetTrackingState> ConstantVelocityAlgorithm::initialize(
 {
     const auto firstTime = first.lastObservationTime();
     const auto secondTime = second.lastObservationTime();
-    if (!validation::isValidTarget(first) || !validation::isValidTarget(second)
-        || secondTime <= firstTime)
+    if (secondTime <= firstTime)
     {
         return std::nullopt;
     }
 
-    const auto firstPosition = cartesian::position(first);
-    const auto secondPosition = cartesian::position(second);
-    const auto velocityVector = (cartesian::toVector(secondPosition)
-        - cartesian::toVector(firstPosition)) / elapsedSeconds(firstTime, secondTime);
-    const auto velocity = cartesian::toVelocity(velocityVector);
-
-    if (!std::isfinite(velocityVector.norm()))
-    {
-        return std::nullopt;
-    }
-
-    return TargetTrackingState{second.slantRange(), second.azimuth(), second.elevation(),
-        second.dopplerVelocity(), second.power_db(), secondTime, secondPosition, velocity};
+    return estimateTrackingState(first.sphericalPosition().toCartesian(), firstTime, second);
 }
 
 std::optional<TargetTrackingState> ConstantVelocityAlgorithm::update(
@@ -59,25 +61,12 @@ std::optional<TargetTrackingState> ConstantVelocityAlgorithm::update(
 {
     const auto& currentState = current.trackingState();
     const auto time = observation.lastObservationTime();
-    if (!currentState || !validation::isValidTrackingState(*currentState)
-        || !validation::isValidTarget(observation) || time <= currentState->timestamp)
+    if (!currentState || time <= currentState->timestamp)
     {
         return std::nullopt;
     }
 
-    const auto& state = *currentState;
-    const auto position = cartesian::position(observation);
-    const auto velocityVector = (cartesian::toVector(position)
-        - cartesian::toVector(state.position)) / elapsedSeconds(state.timestamp, time);
-    const auto velocity = cartesian::toVelocity(velocityVector);
-
-    if (!std::isfinite(velocityVector.norm()))
-    {
-        return std::nullopt;
-    }
-
-    return TargetTrackingState{observation.slantRange(), observation.azimuth(), observation.elevation(),
-        observation.dopplerVelocity(), observation.power_db(), time, position, velocity};
+    return estimateTrackingState(currentState->position, currentState->timestamp, observation);
 }
 
 std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
@@ -85,8 +74,7 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     std::chrono::milliseconds time) const
 {
     const auto& currentState = current.trackingState();
-    if (!currentState || !validation::isValidTrackingState(*currentState)
-        || time < currentState->timestamp)
+    if (!currentState || time < currentState->timestamp)
     {
         return std::nullopt;
     }
@@ -94,29 +82,29 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     const auto& state = *currentState;
     // Preserve a stationary measured position exactly while matching remains exact.
     const auto& velocity = state.velocity;
-    if (velocity.x.equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
-        && velocity.y.equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0})
-        && velocity.z.equals(0.0_mps, math::QuantityTolerance{0.0_mps, 0.0}))
+    if (velocity.x.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+        && velocity.y.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+        && velocity.z.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE))
     {
-        return TargetPrediction{time, state.slantRange, state.azimuth, state.elevation};
+        return TargetPrediction{time, state.sphericalPosition};
     }
 
-    const auto positionVector = cartesian::toVector(state.position)
-        + cartesian::toVector(velocity) * elapsedSeconds(state.timestamp, time);
-    const auto position = cartesian::toPosition(positionVector);
-    const auto range = position.distance();
-    if (range <= 0.0_m)
+    const math::Vector velocityVector{velocity.x.mps(), velocity.y.mps(), velocity.z.mps()};
+    const auto positionVector = math::Vector{
+        state.position.x.m(), state.position.y.m(), state.position.z.m()}
+        + velocityVector * elapsedSeconds(state.timestamp, time);
+    const double rangeMeters = positionVector.norm();
+    if (!positionVector.isFinite() || !std::isfinite(rangeMeters) || rangeMeters <= 0.0)
     {
         return std::nullopt;
     }
 
-    const auto horizontalRange = position.horizontalDistance();
-    return TargetPrediction{
-        time,
-        range,
-        math::atan2(position.y, position.x),
-        math::atan2(position.z, horizontalRange)
-    };
+    const math::CartesianPosition predictedPosition{
+        math::Length::fromMeters(positionVector[0]),
+        math::Length::fromMeters(positionVector[1]),
+        math::Length::fromMeters(positionVector[2])};
+    const auto position = predictedPosition.toSpherical();
+    return TargetPrediction{time, position};
 }
 
 } // namespace target
