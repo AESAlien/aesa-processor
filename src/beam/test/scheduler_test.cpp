@@ -1,4 +1,5 @@
 ﻿#include "scheduler/scheduler.hpp"
+#include "scheduler/request_beam_policy_factory.hpp"
 
 #include "attitude/attitude_error.hpp"
 
@@ -39,6 +40,19 @@ void makeReady(beam::Scheduler& scheduler)
     makeReady(scheduler, makeZeroAttitude());
 }
 
+// 요청에 주입되는 정책은 팩토리가 고른다. 설정을 지정하지 않으면 기본 설정의 팩토리를 쓴다.
+beam::BeamRequest makeRequest(
+    const beam::RequestBeamPolicyFactory& factory,
+    beam::RequestBeamType beamType,
+    std::chrono::milliseconds transmitTime,
+    uint32_t requestId,
+    math::Angle azimuth,
+    math::Angle elevation
+) {
+    return beam::BeamRequest(
+        factory.create(beamType), transmitTime, requestId, math::SphericalDirection(azimuth, elevation));
+}
+
 beam::BeamRequest makeRequest(
     beam::RequestBeamType beamType,
     std::chrono::milliseconds transmitTime,
@@ -46,7 +60,8 @@ beam::BeamRequest makeRequest(
     math::Angle azimuth,
     math::Angle elevation
 ) {
-    return beam::BeamRequest(beamType, transmitTime, requestId, math::SphericalDirection(azimuth, elevation));
+    static const beam::RequestBeamPolicyFactory factory{beam::RequestBeamConfig{}};
+    return makeRequest(factory, beamType, transmitTime, requestId, azimuth, elevation);
 }
 
 // 영 자세에서 탐색 빔 index번째(0부터)의 방위각/고각
@@ -473,36 +488,27 @@ TEST(SchedulerTest, TurningOffWhileAlreadyOffDoesNothing)
 }
 
 // ---------- 요청 빔 설정 반영 ----------
+// 빔 폭은 요청에 주입된 정책이 정한다. Scheduler는 설정을 직접 읽지 않는다.
 // 설정 값 검증(빔폭 0 이하)은 config_test.cpp 에서 확인한다.
 
-namespace
+TEST(SchedulerTest, RequestBeamWidthFollowsPolicyOfEachRequest)
 {
-
-beam::BeamConfig makeConfigWithRequestBeamWidth(math::Angle confirmationWidth, math::Angle trackingWidth)
-{
-    return beam::BeamConfig::Builder()
-        .requestBeamConfig(beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(confirmationWidth)
-            .trackingBeamWidth(trackingWidth)
-            .build())
-        .build();
-}
-
-} // namespace
-
-TEST(SchedulerTest, ConfiguredRequestBeamWidthIsUsedPerBeamType)
-{
-    beam::Scheduler scheduler(makeConfigWithRequestBeamWidth(2_deg, 4_deg));
+    const beam::RequestBeamPolicyFactory factory(
+        beam::RequestBeamConfig::Builder()
+            .confirmationBeamWidth(2_deg)
+            .trackingBeamWidth(4_deg)
+            .build());
+    beam::Scheduler scheduler;
     makeReady(scheduler);
 
-    scheduler.addRequest(makeRequest(beam::RequestBeamType::CONFIRMATION, 0ms, 1, 1_deg, 5_deg));
+    scheduler.addRequest(makeRequest(factory, beam::RequestBeamType::CONFIRMATION, 0ms, 1, 1_deg, 5_deg));
     const auto confirmation = scheduler.next(0ms);
     ASSERT_TRUE(confirmation.has_value());
     EXPECT_EQ(confirmation->beamType, beam::BeamType::CONFIRMATION);
     EXPECT_EQ(confirmation->azimuthBeamWidth, 2_deg);
     EXPECT_EQ(confirmation->elevationBeamWidth, 2_deg);
 
-    scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 10ms, 2, 1_deg, 5_deg));
+    scheduler.addRequest(makeRequest(factory, beam::RequestBeamType::TRACKING, 10ms, 2, 1_deg, 5_deg));
     const auto tracking = scheduler.next(10ms);
     ASSERT_TRUE(tracking.has_value());
     EXPECT_EQ(tracking->beamType, beam::BeamType::TRACKING);

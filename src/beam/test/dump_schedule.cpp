@@ -42,11 +42,6 @@ const char* typeName(beam::BeamType beamType)
     return "UNKNOWN";
 }
 
-const char* typeName(beam::RequestBeamType beamType)
-{
-    return typeName(static_cast<beam::BeamType>(beamType));
-}
-
 const char* statusName(schedule_scenario::Status status)
 {
     switch (status)
@@ -151,7 +146,7 @@ int main(int argc, char** argv)
             std::printf(
                 "%s,%s,%lld,%.6f,%.6f,%lld\n",
                 spec.name.c_str(),
-                typeName(spec.request.beamType()),
+                typeName(spec.request.transmitBeamType()),
                 static_cast<long long>(spec.request.transmitTime().count()),
                 spec.request.direction_ant().azimuth.deg(),
                 spec.request.direction_ant().elevation.deg(),

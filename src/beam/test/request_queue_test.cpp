@@ -1,4 +1,5 @@
 ﻿#include "scheduler/request_queue.hpp"
+#include "scheduler/request_beam_policy_factory.hpp"
 
 #include <gtest/gtest.h>
 
@@ -15,7 +16,8 @@ beam::BeamRequest makeRequest(
     std::chrono::milliseconds transmitTime,
     math::Angle azimuth = 0_deg
 ) {
-    return beam::BeamRequest(beamType, transmitTime, 1, math::SphericalDirection(azimuth, 0_deg));
+    static const beam::RequestBeamPolicyFactory factory{beam::RequestBeamConfig{}};
+    return beam::BeamRequest(factory.create(beamType), transmitTime, 1, math::SphericalDirection(azimuth, 0_deg));
 }
 
 beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)
@@ -91,8 +93,8 @@ TEST(RequestQueueTest, SameTransmitTimeConfirmationComesBeforeTracking)
 
     ASSERT_TRUE(first.has_value());
     ASSERT_TRUE(second.has_value());
-    EXPECT_EQ(first->beamType(), beam::RequestBeamType::CONFIRMATION);
-    EXPECT_EQ(second->beamType(), beam::RequestBeamType::TRACKING);
+    EXPECT_EQ(first->transmitBeamType(), beam::BeamType::CONFIRMATION);
+    EXPECT_EQ(second->transmitBeamType(), beam::BeamType::TRACKING);
 }
 
 TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
@@ -116,7 +118,7 @@ TEST(RequestQueueTest, EarlierTrackingStillComesBeforeLaterConfirmation)
     const auto request = queue.popNextDue(1010ms);
 
     ASSERT_TRUE(request.has_value());
-    EXPECT_EQ(request->beamType(), beam::RequestBeamType::TRACKING);
+    EXPECT_EQ(request->transmitBeamType(), beam::BeamType::TRACKING);
 }
 
 TEST(RequestQueueTest, VeryOldRequestIsStillPopped)
@@ -130,9 +132,9 @@ TEST(RequestQueueTest, VeryOldRequestIsStillPopped)
     const auto second = queue.popNextDue(100000ms);
 
     ASSERT_TRUE(first.has_value());
-    EXPECT_EQ(first->beamType(), beam::RequestBeamType::CONFIRMATION);
+    EXPECT_EQ(first->transmitBeamType(), beam::BeamType::CONFIRMATION);
     ASSERT_TRUE(second.has_value());
-    EXPECT_EQ(second->beamType(), beam::RequestBeamType::TRACKING);
+    EXPECT_EQ(second->transmitBeamType(), beam::BeamType::TRACKING);
     EXPECT_TRUE(queue.empty());
 }
 

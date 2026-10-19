@@ -1,4 +1,4 @@
-#include "scheduler/request_beam_policy.hpp"
+#include "scheduler/request_beam_policy_factory.hpp"
 
 #include <gtest/gtest.h>
 
@@ -10,62 +10,89 @@ namespace
 {
 
 // 확인 빔 폭과 추적 빔 폭을 서로 다른 값으로 두어 두 값이 뒤바뀌면 테스트가 실패하게 한다.
-beam::RequestBeamConfig makeConfig()
+beam::RequestBeamPolicyFactory makeFactory()
 {
-    return beam::RequestBeamConfig::Builder()
-        .confirmationBeamWidth(4_deg)
-        .trackingBeamWidth(2_deg)
-        .build();
+    return beam::RequestBeamPolicyFactory(
+        beam::RequestBeamConfig::Builder()
+            .confirmationBeamWidth(4_deg)
+            .trackingBeamWidth(2_deg)
+            .build());
 }
 
 } // namespace
 
 TEST(RequestBeamPolicyTest, ConfirmationTransmitsConfirmationBeam)
 {
-    const beam::IRequestBeamPolicy& policy = beam::requestBeamPolicyOf(beam::RequestBeamType::CONFIRMATION);
+    const auto policy = makeFactory().create(beam::RequestBeamType::CONFIRMATION);
 
-    EXPECT_EQ(policy.transmitBeamType(), beam::BeamType::CONFIRMATION);
+    EXPECT_EQ(policy->transmitBeamType(), beam::BeamType::CONFIRMATION);
 }
 
 TEST(RequestBeamPolicyTest, TrackingTransmitsTrackingBeam)
 {
-    const beam::IRequestBeamPolicy& policy = beam::requestBeamPolicyOf(beam::RequestBeamType::TRACKING);
+    const auto policy = makeFactory().create(beam::RequestBeamType::TRACKING);
 
-    EXPECT_EQ(policy.transmitBeamType(), beam::BeamType::TRACKING);
+    EXPECT_EQ(policy->transmitBeamType(), beam::BeamType::TRACKING);
 }
 
-TEST(RequestBeamPolicyTest, ConfirmationUsesConfirmationBeamWidth)
+TEST(RequestBeamPolicyTest, ConfirmationUsesInjectedConfirmationBeamWidth)
 {
-    const beam::IRequestBeamPolicy& policy = beam::requestBeamPolicyOf(beam::RequestBeamType::CONFIRMATION);
+    const auto policy = makeFactory().create(beam::RequestBeamType::CONFIRMATION);
 
-    EXPECT_EQ(policy.beamWidth(makeConfig()), 4_deg);
+    EXPECT_EQ(policy->beamWidth(), 4_deg);
 }
 
-TEST(RequestBeamPolicyTest, TrackingUsesTrackingBeamWidth)
+TEST(RequestBeamPolicyTest, TrackingUsesInjectedTrackingBeamWidth)
 {
-    const beam::IRequestBeamPolicy& policy = beam::requestBeamPolicyOf(beam::RequestBeamType::TRACKING);
+    const auto policy = makeFactory().create(beam::RequestBeamType::TRACKING);
 
-    EXPECT_EQ(policy.beamWidth(makeConfig()), 2_deg);
+    EXPECT_EQ(policy->beamWidth(), 2_deg);
+}
+
+TEST(RequestBeamPolicyTest, DefaultConfigGivesDefaultBeamWidths)
+{
+    const beam::RequestBeamPolicyFactory factory{beam::RequestBeamConfig{}};
+
+    EXPECT_EQ(factory.create(beam::RequestBeamType::CONFIRMATION)->beamWidth(), 3_deg);
+    EXPECT_EQ(factory.create(beam::RequestBeamType::TRACKING)->beamWidth(), 3_deg);
 }
 
 TEST(RequestBeamPolicyTest, ConfirmationHasHigherPriorityThanTracking)
 {
-    const beam::IRequestBeamPolicy& confirmation = beam::requestBeamPolicyOf(beam::RequestBeamType::CONFIRMATION);
-    const beam::IRequestBeamPolicy& tracking = beam::requestBeamPolicyOf(beam::RequestBeamType::TRACKING);
+    const beam::RequestBeamPolicyFactory factory = makeFactory();
+    const auto confirmation = factory.create(beam::RequestBeamType::CONFIRMATION);
+    const auto tracking = factory.create(beam::RequestBeamType::TRACKING);
 
-    EXPECT_GT(confirmation.priority(), tracking.priority());
+    EXPECT_GT(confirmation->priority(), tracking->priority());
 }
 
 TEST(RequestBeamPolicyTest, SameTypeReturnsSamePolicy)
 {
+    const beam::RequestBeamPolicyFactory factory = makeFactory();
+
     EXPECT_EQ(
-        &beam::requestBeamPolicyOf(beam::RequestBeamType::TRACKING),
-        &beam::requestBeamPolicyOf(beam::RequestBeamType::TRACKING));
+        factory.create(beam::RequestBeamType::TRACKING),
+        factory.create(beam::RequestBeamType::TRACKING));
+}
+
+TEST(RequestBeamPolicyTest, DifferentTypesReturnDifferentPolicies)
+{
+    const beam::RequestBeamPolicyFactory factory = makeFactory();
+
+    EXPECT_NE(
+        factory.create(beam::RequestBeamType::CONFIRMATION),
+        factory.create(beam::RequestBeamType::TRACKING));
 }
 
 TEST(RequestBeamPolicyTest, UnknownTypeThrows)
 {
+    const beam::RequestBeamPolicyFactory factory = makeFactory();
+
+    EXPECT_THROW(factory.create(static_cast<beam::RequestBeamType>(0)), std::invalid_argument);
+    EXPECT_THROW(factory.create(static_cast<beam::RequestBeamType>(99)), std::invalid_argument);
+
+    // 요청할 수 없는 탐색 빔 값(BeamType::SEARCH = 1)도 거부한다.
     EXPECT_THROW(
-        beam::requestBeamPolicyOf(static_cast<beam::RequestBeamType>(99)),
+        factory.create(static_cast<beam::RequestBeamType>(beam::BeamType::SEARCH)),
         std::invalid_argument);
 }

@@ -261,6 +261,27 @@ TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
     EXPECT_EQ(command->elevationBeamWidth, 4_deg);
 }
 
+TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
+{
+    const beam::BeamConfig config = beam::BeamConfig::Builder()
+        .requestBeamConfig(beam::RequestBeamConfig::Builder()
+            .confirmationBeamWidth(5_deg)
+            .trackingBeamWidth(4_deg)
+            .build())
+        .build();
+    beam::BeamController controller(config);
+    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+
+    controller.requestBeam(makeRequestCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 7, 7.5_deg, 15.5_deg));
+    const auto command = controller.nextBeamCommand(0ms);
+
+    ASSERT_TRUE(command.has_value());
+    EXPECT_EQ(command->beamType, beam::BeamType::CONFIRMATION);
+    EXPECT_EQ(command->azimuthBeamWidth, 5_deg);
+    EXPECT_EQ(command->elevationBeamWidth, 5_deg);
+}
+
 TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
 {
     const beam::BeamConfig config = beam::BeamConfig::Builder()

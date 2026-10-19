@@ -13,6 +13,7 @@
 namespace beam
 {
 
+class BeamRequestFactory;
 class Scheduler;
 
 // 빔 모듈의 외부 인터페이스. 내부 스케줄러에 호출을 전달한다.
@@ -35,6 +36,7 @@ public:
     void setAttitude(SetAttitudeCommand command);
 
     // 요청 값이 잘못되면(알 수 없는 종류, 음수 transmitTime, requestId 0) 운용 상태와 관계없이 std::invalid_argument를 던진다.
+    // 생성자에 주입한 요청 빔 설정(빔 폭)은 요청에 주입되는 정책을 통해 반영된다.
     // 올바른 요청은 준비 상태(ON이고 자세정보를 받음)일 때만 받아들이고, 그 외에는 무시한다.
     void requestBeam(RequestBeamCommand command);
 
@@ -43,6 +45,8 @@ public:
 
 private:
     std::unique_ptr<Scheduler> _scheduler;
+    // RequestBeamCommand를 BeamRequest로 바꾼다. 요청 빔 설정은 생성 시 한 번 주입된다.
+    std::unique_ptr<BeamRequestFactory> _requestFactory;
 };
 
 } // namespace beam

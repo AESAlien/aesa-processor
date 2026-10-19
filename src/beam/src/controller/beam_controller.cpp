@@ -1,7 +1,7 @@
 #include <beam/controller/beam_controller.hpp>
 
 #include "attitude/radar_attitude.hpp"
-#include "scheduler/beam_request.hpp"
+#include "scheduler/beam_request_factory.hpp"
 #include "scheduler/scheduler.hpp"
 
 namespace beam
@@ -11,7 +11,9 @@ BeamController::BeamController() : BeamController(BeamConfig{})
 {
 }
 
-BeamController::BeamController(const BeamConfig& config) : _scheduler(std::make_unique<Scheduler>(config))
+BeamController::BeamController(const BeamConfig& config)
+    : _scheduler(std::make_unique<Scheduler>(config)),
+      _requestFactory(std::make_unique<BeamRequestFactory>(config.requestBeam()))
 {
 }
 
@@ -40,8 +42,8 @@ void BeamController::setAttitude(SetAttitudeCommand command)
 
 void BeamController::requestBeam(RequestBeamCommand command)
 {
-    // 잘못된 요청이면 BeamRequest 생성자가 std::invalid_argument를 던진다.
-    _scheduler->addRequest(BeamRequest(command));
+    // 잘못된 요청이면 팩토리가 std::invalid_argument를 던진다.
+    _scheduler->addRequest(_requestFactory->create(command));
 }
 
 std::optional<TransmitBeamCommand> BeamController::nextBeamCommand(std::chrono::milliseconds currentTime)

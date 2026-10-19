@@ -1,16 +1,7 @@
 #include "scheduler/request_queue.hpp"
 
-#include "scheduler/request_beam_policy.hpp"
-
 namespace beam
 {
-namespace
-{
-int priorityOf(const BeamRequest& request)
-{
-    return requestBeamPolicyOf(request.beamType()).priority();
-}
-} // namespace
 
 void RequestQueue::add(const BeamRequest& request)
 {
@@ -32,7 +23,7 @@ std::optional<BeamRequest> RequestQueue::popNextDue(std::chrono::milliseconds cu
     auto selected = earliestBegin;
     for (auto candidate = earliestBegin; candidate != earliestEnd; ++candidate)
     {
-        if (priorityOf(candidate->second) > priorityOf(selected->second))
+        if (candidate->second.priority() > selected->second.priority())
         {
             selected = candidate;
         }

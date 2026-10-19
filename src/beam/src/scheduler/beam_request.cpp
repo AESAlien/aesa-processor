@@ -1,18 +1,17 @@
 #include "scheduler/beam_request.hpp"
 
-#include "scheduler/request_beam_policy.hpp"
-
 #include <stdexcept>
+#include <utility>
 
 namespace beam
 {
 
 BeamRequest::BeamRequest(
-    RequestBeamType beamType,
+    std::shared_ptr<const IRequestBeamPolicy> policy,
     std::chrono::milliseconds transmitTime,
     std::uint32_t requestId,
     math::SphericalDirection direction_ant
-) : _beamType(beamType),
+) : _policy(std::move(policy)),
     _transmitTime(transmitTime),
     _requestId(requestId),
     _direction_ant(direction_ant)
@@ -20,14 +19,19 @@ BeamRequest::BeamRequest(
     validate();
 }
 
-BeamRequest::BeamRequest(const RequestBeamCommand& command)
-    : BeamRequest(command.beamType, command.transmitTime, command.requestId, command.direction_ant)
+BeamType BeamRequest::transmitBeamType() const
 {
+    return _policy->transmitBeamType();
 }
 
-RequestBeamType BeamRequest::beamType() const noexcept
+math::Angle BeamRequest::beamWidth() const
 {
-    return _beamType;
+    return _policy->beamWidth();
+}
+
+int BeamRequest::priority() const
+{
+    return _policy->priority();
 }
 
 std::chrono::milliseconds BeamRequest::transmitTime() const noexcept
@@ -47,8 +51,10 @@ const math::SphericalDirection& BeamRequest::direction_ant() const noexcept
 
 void BeamRequest::validate() const
 {
-    // 알 수 없는 종류면 requestBeamPolicyOf가 std::invalid_argument를 던진다.
-    (void)requestBeamPolicyOf(_beamType);
+    if (_policy == nullptr)
+    {
+        throw std::invalid_argument("BeamRequest: policy must not be null");
+    }
 
     if (_transmitTime.count() < 0)
     {

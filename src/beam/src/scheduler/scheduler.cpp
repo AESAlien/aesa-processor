@@ -1,7 +1,6 @@
 #include "scheduler/scheduler.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
-#include "scheduler/request_beam_policy.hpp"
 
 namespace beam
 {
@@ -25,14 +24,12 @@ TransmitBeamCommand makeSearchCommand(
 
 TransmitBeamCommand makeRequestCommand(
     const BeamRequest& request,
-    const RequestBeamConfig& config,
     std::chrono::milliseconds currentTime,
     std::uint32_t commandCount
 ) {
-    const IRequestBeamPolicy& policy = requestBeamPolicyOf(request.beamType());
-    math::Angle width = policy.beamWidth(config);
+    const math::Angle width = request.beamWidth();
     return TransmitBeamCommand::Builder()
-        .beamType(policy.transmitBeamType())
+        .beamType(request.transmitBeamType())
         .transmitTime(currentTime)
         .beamId(request.requestId())
         .commandCount(commandCount)
@@ -96,7 +93,7 @@ std::optional<TransmitBeamCommand> Scheduler::next(std::chrono::milliseconds cur
 
     if (const std::optional<BeamRequest> request = _requestQueue.popNextDue(currentTime))
     {
-        return makeRequestCommand(*request, _config.requestBeam(), currentTime, _commandCount);
+        return makeRequestCommand(*request, currentTime, _commandCount);
     }
 
     return makeSearchCommand(_searchGrid->nextBeam(), currentTime, _commandCount);

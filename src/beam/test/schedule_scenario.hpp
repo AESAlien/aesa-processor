@@ -10,6 +10,7 @@
 #pragma once
 
 #include "scheduler/scheduler.hpp"
+#include "scheduler/request_beam_policy_factory.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -70,10 +71,12 @@ inline RequestSpec makeRequestSpec(
     double azimuth_deg,
     double elevation_deg
 ) {
+    // Scheduler가 기본 설정으로 동작하므로 요청의 정책도 기본 설정의 팩토리로 고른다.
+    static const beam::RequestBeamPolicyFactory factory{beam::RequestBeamConfig{}};
     return RequestSpec{
         name,
         beam::BeamRequest(
-            beamType,
+            factory.create(beamType),
             transmitTime,
             REQUEST_ID,
             math::SphericalDirection(math::Angle::fromDegrees(azimuth_deg), math::Angle::fromDegrees(elevation_deg)))
@@ -154,7 +157,7 @@ inline void markSent(
 ) {
     for (RequestSpec& spec : requests)
     {
-        const bool sameType = static_cast<int>(spec.request.beamType()) == static_cast<int>(command.beamType);
+        const bool sameType = spec.request.transmitBeamType() == command.beamType;
         if (spec.sentTick_ms < 0 && sameType &&
             sameAngle(spec.request.direction_ant().azimuth, command.direction_ant.azimuth) &&
             sameAngle(spec.request.direction_ant().elevation, command.direction_ant.elevation))
