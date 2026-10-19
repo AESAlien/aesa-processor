@@ -28,13 +28,13 @@ std::optional<BeamRequest> RequestQueue::popNextDue(std::chrono::milliseconds cu
     }
 
     // 가장 이른 시각의 요청들 중 우선순위가 가장 높은 요청을 고른다. 우선순위가 같으면 먼저 들어온 요청을 고른다.
-    const auto [first, last] = _requests.equal_range(_requests.begin()->first);
-    auto selected = first;
-    for (auto it = first; it != last; ++it)
+    const auto [earliestBegin, earliestEnd] = _requests.equal_range(_requests.begin()->first);
+    auto selected = earliestBegin;
+    for (auto candidate = earliestBegin; candidate != earliestEnd; ++candidate)
     {
-        if (priorityOf(it->second) > priorityOf(selected->second))
+        if (priorityOf(candidate->second) > priorityOf(selected->second))
         {
-            selected = it;
+            selected = candidate;
         }
     }
 
