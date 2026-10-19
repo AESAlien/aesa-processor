@@ -32,6 +32,8 @@ static_assert(std::is_const_v<decltype(TargetConfig::positionNdsThreshold)>);
 static_assert(std::is_const_v<decltype(TargetConfig::confirmationDelay)>);
 static_assert(std::is_const_v<decltype(TargetConfig::trackingInterval)>);
 static_assert(std::is_const_v<decltype(TargetConfig::maxConsecutiveTrackingMisses)>);
+static_assert(std::is_const_v<decltype(TargetConfig::initialAccelerationStandardDeviation)>);
+static_assert(std::is_const_v<decltype(TargetConfig::maxReportedTrackCount)>);
 static_assert(!std::is_default_constructible_v<TargetController>);
 static_assert(!std::is_convertible_v<TargetConfig, TargetController>);
 static_assert(!std::is_copy_assignable_v<TargetPrediction>);
@@ -42,7 +44,7 @@ static_assert(std::is_const_v<decltype(TargetTrackingState::power_db)>);
 static_assert(std::is_same_v<decltype(std::declval<const Target&>().sphericalPosition()),
     const math::SphericalPosition&>);
 static_assert(std::is_same_v<decltype(std::declval<const Target&>().trackingState()),
-    const std::optional<TargetTrackingState>&>);
+    const std::shared_ptr<const TargetTrackingState>&>);
 
 math::SphericalPosition position(math::Length range = 1000_m)
 {
@@ -203,12 +205,12 @@ TEST(DomainValidationTest, RejectedUpdatePreservesStateAndMissHistory)
     auto& target = *repository.find(id);
     ASSERT_TRUE(target.confirm(observation(100ms)));
     ASSERT_TRUE(target.recordTrackingMiss(1100ms));
-    const auto* saved = &target.trackingState().value();
+    const auto* saved = target.trackingState().get();
     for (auto fault : {FaultAlgorithm::Fault::INVALID_STATE, FaultAlgorithm::Fault::WRONG_TIME})
     {
         algorithm->fault = fault;
         EXPECT_THROW(target.update(observation(2100ms)), std::invalid_argument);
-        EXPECT_EQ(&target.trackingState().value(), saved);
+        EXPECT_EQ(target.trackingState().get(), saved);
         EXPECT_EQ(target.lastObservationTime(), 100ms);
         EXPECT_EQ(target.lastResultTime(), 1100ms);
         EXPECT_EQ(target.consecutiveMissCount(), 1u);

@@ -1,7 +1,7 @@
 #include <target/controller/target_controller.hpp>
 
 #include "calculation/association/detection_matcher.hpp"
-#include "calculation/tracking/constant_velocity_algorithm.hpp"
+#include "calculation/tracking/constant_acceleration_algorithm.hpp"
 #include "domain/target.hpp"
 #include "repository/target_repository.hpp"
 #include "selector/tentative_selector.hpp"
@@ -85,7 +85,7 @@ TrackEvent trackEvent(const Target& target)
         throw std::overflow_error("Target ID cannot be represented by TrackEvent");
     }
 
-    const auto& state = target.trackingState().value();
+    const auto& state = *target.trackingState();
     using namespace math::literals;
 
     const auto& position = state.position;
@@ -120,7 +120,7 @@ TrackEvent trackEvent(const Target& target)
 
 TargetController::TargetController(const TargetConfig& config)
     : _config(std::make_shared<const TargetConfig>(config))
-    , _trackingAlgorithm(std::make_shared<ConstantVelocityAlgorithm>())
+    , _trackingAlgorithm(std::make_shared<ConstantAccelerationAlgorithm>(*_config))
     , _targetRepository(std::make_shared<TargetRepository>())
     , _matcher(std::make_shared<DetectionMatcher>(*_config))
     , _tentativeSelector(std::make_shared<TentativeSelector>(
@@ -225,6 +225,10 @@ std::vector<TrackEvent> TargetController::nextTrackEvents() const
         if (target.state() == TargetState::TRACKING)
         {
             events.push_back(trackEvent(target));
+            if (events.size() == _config->maxReportedTrackCount)
+            {
+                break;
+            }
         }
     }
     return events;

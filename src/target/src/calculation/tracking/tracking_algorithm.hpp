@@ -28,6 +28,8 @@ public:
         const Target& observation) const = 0;
 
     // Prediction does not advance the state or its observation timestamp.
+    // Covariance-aware strategies return the predicted 3x3 position covariance
+    // in the same Cartesian frame used by the state and position measurements.
     virtual std::optional<TargetPrediction> predict(
         const Target& current,
         std::chrono::milliseconds time) const = 0;

@@ -23,11 +23,26 @@ namespace
 
 constexpr std::size_t NDS_DIMENSION = 3;
 
+math::SquareMatrix measurementCovariance(const TargetConfig& config)
+{
+    const double sigma = config.measurementStandardDeviation.m();
+    return math::SquareMatrix::identity(NDS_DIMENSION) * (sigma * sigma);
+}
+
 math::SquareMatrix measurementDifferenceCovariance(const TargetConfig& config)
 {
     const double sigma = config.measurementStandardDeviation.m();
-    // Two independent measurements; use predicted covariance when available.
     return math::SquareMatrix::identity(NDS_DIMENSION) * (2.0 * sigma * sigma);
+}
+
+math::SquareMatrix innovationCovariance(
+    const std::optional<math::SquareMatrix>& positionCovariance,
+    const math::SquareMatrix& measurement,
+    const math::SquareMatrix& legacyDifference)
+{
+    // CV and existing strategy implementations may not estimate covariance.
+    // Their explicit legacy fallback is two independent measurement errors, 2R.
+    return positionCovariance ? *positionCovariance + measurement : legacyDifference;
 }
 
 // Cartesian residual components are metres; covariance entries are square metres.
@@ -81,6 +96,7 @@ std::optional<double> calculateNds(
 
 DetectionMatcher::DetectionMatcher(TargetConfig config)
     : _config(config)
+    , _measurementCovariance(measurementCovariance(_config))
     , _measurementDifferenceCovariance(measurementDifferenceCovariance(_config))
 {
 }
@@ -129,12 +145,34 @@ std::optional<double> DetectionMatcher::matchesPosition(
             return std::nullopt;
         }
 
-        // Gate the residual beyond reachable motion using the isotropic covariance.
+        // Retain the geometric motion allowance by shrinking the residual radially
+        // before scoring it with the available position uncertainty.
         residual = distanceMeters <= maximumTravelMeters
             ? math::Vector(NDS_DIMENSION)
             : residual * ((distanceMeters - maximumTravelMeters) / distanceMeters);
     }
-    const auto score = calculateNds(residual, _measurementDifferenceCovariance);
+    auto covariance = _measurementDifferenceCovariance;
+    if (prediction)
+    {
+        covariance = innovationCovariance(prediction->positionCovariance,
+            _measurementCovariance, _measurementDifferenceCovariance);
+    }
+    else if (pastTracking && other.trackingState()->errorCovariance)
+    {
+        // Delayed searches compare against the latest stored position without
+        // rewinding the filter, while retaining that position's uncertainty.
+        math::SquareMatrix positionCovariance(NDS_DIMENSION);
+        const auto& stateCovariance = *other.trackingState()->errorCovariance;
+        for (std::size_t row = 0; row < NDS_DIMENSION; ++row)
+        {
+            for (std::size_t column = 0; column < NDS_DIMENSION; ++column)
+            {
+                positionCovariance(row, column) = stateCovariance(row, column);
+            }
+        }
+        covariance = positionCovariance + _measurementCovariance;
+    }
+    const auto score = calculateNds(residual, covariance);
     if (!score || *score > _config.positionNdsThreshold)
     {
         return std::nullopt;
@@ -177,7 +215,7 @@ std::optional<double> DetectionMatcher::matchesConfirmation(
     }
 }
 
-bool DetectionMatcher::matchesTracking(
+std::optional<double> DetectionMatcher::matchesTracking(
     const Target& observation,
     const Target& tracking) const
 {
@@ -185,12 +223,34 @@ bool DetectionMatcher::matchesTracking(
     if (tracking.state() != TargetState::TRACKING
         || time <= tracking.lastResultTime())
     {
-        return false;
+        return std::nullopt;
     }
 
     const auto prediction = tracking.predict(time);
-    return prediction && observation.sphericalPosition().equals(prediction->sphericalPosition,
-        math::Length::NONE_TOLERANCE, math::Angle::NONE_TOLERANCE);
+    if (!prediction)
+    {
+        return std::nullopt;
+    }
+
+    const auto position = observation.sphericalPosition().toCartesian();
+    const auto predictedPosition = prediction->sphericalPosition.toCartesian();
+    try
+    {
+        const auto residual = (position - predictedPosition).toVector();
+        const auto covariance = innovationCovariance(prediction->positionCovariance,
+            _measurementCovariance, _measurementDifferenceCovariance);
+        const auto score = calculateNds(residual, covariance);
+        if (!score || *score > _config.positionNdsThreshold)
+        {
+            return std::nullopt;
+        }
+        return score;
+    }
+    catch (const std::invalid_argument&)
+    {
+        // Valid positions can still have an unrepresentable displacement.
+        return std::nullopt;
+    }
 }
 
 } // namespace target

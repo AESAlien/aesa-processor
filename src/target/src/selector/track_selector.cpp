@@ -42,19 +42,14 @@ std::optional<std::size_t> TrackSelector::selectObservation(
             continue;
         }
 
-        if (target.state() == TargetState::TENTATIVE)
+        const auto score = target.state() == TargetState::TENTATIVE
+            ? _matcher.matchesConfirmation(observation, target)
+            : _matcher.matchesTracking(observation, target);
+        // Keep the first observation when two eligible scores are equal.
+        if (score && (!bestIndex || *score < bestScore))
         {
-            const auto score = _matcher.matchesConfirmation(observation, target);
-            // Keep the first observation when two eligible scores are equal.
-            if (score && (!bestIndex || *score < bestScore))
-            {
-                bestIndex = index;
-                bestScore = *score;
-            }
-        }
-        else if (_matcher.matchesTracking(observation, target))
-        {
-            return index;
+            bestIndex = index;
+            bestScore = *score;
         }
     }
 
