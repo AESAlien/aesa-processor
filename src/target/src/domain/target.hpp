@@ -44,7 +44,7 @@ public:
     std::chrono::milliseconds lastObservationTime() const;
     std::chrono::milliseconds lastResultTime() const;
     std::uint32_t consecutiveMissCount() const;
-    const std::optional<TargetTrackingState>& trackingState() const;
+    const std::shared_ptr<const TargetTrackingState>& trackingState() const;
 
     bool confirm(const Target& observation);
     bool update(const Target& observation);
@@ -70,7 +70,7 @@ private:
     std::chrono::milliseconds _initialTime;
     std::chrono::milliseconds _lastResultTime;
     std::uint32_t _consecutiveMissCount = 0;
-    std::optional<TargetTrackingState> _trackingState;
+    std::shared_ptr<const TargetTrackingState> _trackingState;
     std::shared_ptr<const ITrackingAlgorithm> _trackingAlgorithm;
 };
 

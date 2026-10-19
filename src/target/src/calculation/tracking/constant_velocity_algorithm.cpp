@@ -35,6 +35,7 @@ std::optional<TargetTrackingState> estimateTrackingState(
     const auto position = observation.sphericalPosition().toCartesian();
     const auto velocity = (position - previousPosition).toVelocity(
         std::chrono::duration<double>{elapsedSeconds(previousTime, time)});
+    // The temporary CV strategy leaves acceleration zero and covariance unestimated.
     return TargetTrackingState{observation.sphericalPosition(),
         observation.dopplerVelocity(), observation.power_db(), time, position, velocity};
 }
@@ -80,7 +81,7 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     }
 
     const auto& state = *currentState;
-    // Preserve a stationary measured position exactly while matching remains exact.
+    // Preserve a stationary measured position without conversion roundoff.
     const auto& velocity = state.velocity;
     if (velocity.x.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         && velocity.y.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)

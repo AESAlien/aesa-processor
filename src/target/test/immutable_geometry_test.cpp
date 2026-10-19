@@ -42,7 +42,7 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     EXPECT_EQ(repository.targets()[1].id(), lastId);
     EXPECT_EQ(repository.find(middleId), nullptr);
     tracked = repository.find(lastId);
-    ASSERT_TRUE(tracked->trackingState().has_value());
+    ASSERT_TRUE(tracked->trackingState());
     EXPECT_EQ(tracked->trackingState()->position.y, 302_m);
     ASSERT_TRUE(tracked->update(target::Target(position(303_m), 1_mps, 1.0f, 3000ms, algorithm)));
     EXPECT_EQ(tracked->trackingState()->position.y, 303_m);

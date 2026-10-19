@@ -106,7 +106,7 @@ std::uint32_t Target::consecutiveMissCount() const
     return _consecutiveMissCount;
 }
 
-const std::optional<TargetTrackingState>& Target::trackingState() const
+const std::shared_ptr<const TargetTrackingState>& Target::trackingState() const
 {
     return _trackingState;
 }
@@ -159,7 +159,9 @@ bool Target::applyTrackingState(
         throw std::invalid_argument("Tracking state must use the observation time");
     }
 
-    _trackingState.emplace(*state);
+    // Finish allocations before replacing the previous immutable state.
+    auto nextState = std::make_shared<const TargetTrackingState>(*state);
+    _trackingState = std::move(nextState);
     _lastResultTime = time;
     _consecutiveMissCount = 0;
     return true;
