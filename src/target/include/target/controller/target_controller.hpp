@@ -1,6 +1,7 @@
 #pragma once
 
 #include <beam/dto/request_beam_command.hpp>
+#include <target/config/target_config.hpp>
 #include <target/dto/detection_event.hpp>
 #include <target/dto/track_event.hpp>
 

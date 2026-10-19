@@ -59,7 +59,8 @@ std::vector<Target> toTargets(
     return targets;
 }
 
-std::optional<beam::RequestBeamCommand> trackingRequest(
+std::optional<beam::RequestBeamCommand> trackingRequestOrRemove(
+    TargetRepository& repository,
     const Target& target,
     std::chrono::milliseconds transmitTime)
 {
@@ -74,7 +75,7 @@ std::optional<beam::RequestBeamCommand> trackingRequest(
         beam::RequestBeamType::TRACKING,
         prediction->timestamp,
         target.id(),
-        math::SphericalDirection(prediction->azimuth, prediction->elevation));
+        prediction->sphericalPosition.direction);
 }
 
 TrackEvent trackEvent(const Target& target)
