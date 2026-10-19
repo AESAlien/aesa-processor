@@ -167,22 +167,16 @@ TEST(SearchGridConfigTest, ElevationOutsideSphericalRangeThrows)
 
 TEST(SearchGridConfigTest, ElevationEquivalentByPeriodToValidRangeThrows)
 {
-    // 리뷰에서 제시한 450, 270, 90도 격자
+    // 360도 주기로는 범위 안(90도)과 동치이지만 실제 수치는 [-90, 90]도 밖이므로 거부해야 한다.
+    // 450 -> 270 -> 90도로 가는 격자는 중간 고각 270도가 SphericalDirection에서 거부된다.
     EXPECT_THROW(
         gridBuilder().elevationCount(3).elevationStart(450_deg).elevationStep(-180_deg).build(),
         std::invalid_argument);
-
-    // 90도와 주기적으로 동치지만 수치 범위 밖인 단일점
+    EXPECT_THROW(gridBuilder().elevationCount(1).elevationStart(450_deg).elevationStep(0_deg).build(), std::invalid_argument);
+    EXPECT_THROW(gridBuilder().elevationCount(1).elevationStart(-270_deg).elevationStep(0_deg).build(), std::invalid_argument);
+    // 시작점은 범위 안이고 마지막 고각만 90 + 360 = 450도
     EXPECT_THROW(
-        gridBuilder().elevationCount(1).elevationStart(450_deg).build(),
-        std::invalid_argument);
-    EXPECT_THROW(
-        gridBuilder().elevationCount(1).elevationStart(-270_deg).build(),
-        std::invalid_argument);
-
-    // 시작점은 유효하지만 마지막 점이 450도인 격자
-    EXPECT_THROW(
-        gridBuilder().elevationCount(3).elevationStart(90_deg).elevationStep(180_deg).build(),
+        gridBuilder().elevationCount(2).elevationStart(90_deg).elevationStep(360_deg).build(),
         std::invalid_argument);
 }
 

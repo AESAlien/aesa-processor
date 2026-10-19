@@ -30,8 +30,6 @@ math::Angle RequestBeamConfig::trackingBeamWidth() const noexcept
 
 void RequestBeamConfig::validate() const
 {
-    using namespace math::literals;
-
     if (_confirmationBeamWidth <= 0_deg || _trackingBeamWidth <= 0_deg)
     {
         throw std::invalid_argument("RequestBeamConfig: beam width must be greater than 0");

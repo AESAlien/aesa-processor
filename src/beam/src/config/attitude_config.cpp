@@ -47,9 +47,9 @@ void AttitudeConfig::validate() const
         throw std::invalid_argument("AttitudeConfig: mountOrthogonalTolerance must be finite and non-negative");
     }
 
-    // Angle의 순서 비교는 허용오차를 적용하므로, (0, 90] 불변식은 주기 보정 없는 수치(deg())로 직접 검사한다.
-    const double maxAbsPitchDeg = _maxAbsPitch.deg();
-    if (maxAbsPitchDeg <= 0.0 || maxAbsPitchDeg > 90.0)
+    // 허용오차 없이(NONE_TOLERANCE) 순서 비교로 검사한다
+    if (_maxAbsPitch.lessThanOrEqual(0_deg, math::Angle::NONE_TOLERANCE) ||
+        _maxAbsPitch.greaterThan(90_deg, math::Angle::NONE_TOLERANCE))
     {
         throw std::invalid_argument("AttitudeConfig: maxAbsPitch must be in (0, 90] degrees");
     }
