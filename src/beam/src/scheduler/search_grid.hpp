@@ -8,15 +8,13 @@
 namespace beam
 {
 
-class SearchBeamTable
+// SearchGridConfig의 격자를 안테나 좌표계의 탐색 빔 목록으로 만들어 두고, 탐색 순서대로 하나씩 꺼내 쓴다.
+class SearchGrid
 {
 public:
-    explicit SearchBeamTable(const AntEnuTransform& transform, const SearchGridConfig&);
-    const SearchBeam& get(std::size_t index) const;
-    std::size_t size(void) const;
+    explicit SearchGrid(const AntEnuTransform& transform, const SearchGridConfig& config);
 
     // 탐색 순서상 다음 빔을 반환하고 커서를 한 칸 옮긴다. 마지막 빔 다음에는 처음 빔으로 돌아간다.
-    // get()과 size()는 커서와 무관하게 동작한다.
     const SearchBeam& nextBeam();
 
 private:

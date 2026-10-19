@@ -1,11 +1,11 @@
-#include "search_beam_table.hpp"
+#include "search_grid.hpp"
 
 #include <cstdint>
 
 namespace beam
 {
 
-SearchBeamTable::SearchBeamTable(const AntEnuTransform& transform, const SearchGridConfig& config)
+SearchGrid::SearchGrid(const AntEnuTransform& transform, const SearchGridConfig& config)
 {
     _beams.reserve(config.azimuthCount() * config.elevationCount());
 
@@ -27,17 +27,7 @@ SearchBeamTable::SearchBeamTable(const AntEnuTransform& transform, const SearchG
     }
 }
 
-const SearchBeam& SearchBeamTable::get(std::size_t index) const
-{
-    return _beams.at(index);
-}
-
-std::size_t SearchBeamTable::size(void) const
-{
-    return _beams.size();
-}
-
-const SearchBeam& SearchBeamTable::nextBeam()
+const SearchBeam& SearchGrid::nextBeam()
 {
     const SearchBeam& beam = _beams[_searchCursor];
     _searchCursor = (_searchCursor + 1) % _beams.size();
