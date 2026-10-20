@@ -1,11 +1,11 @@
-// BeamTable 내용을 CSV로 출력하는 시각화용 도구
+// SearchGrid 내용을 CSV로 출력하는 시각화용 도구
 //
 // 사용법: beam_table_dump [--matrix] [roll_deg pitch_deg yaw_deg]
 // 출력  : idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg   (안테나 기준 각도)
 //
 // visualize_beam_table.py 가 이 프로그램을 실행해서 결과를 그린다.
 
-#include "beam_table.hpp"
+#include "search_grid.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
 #include "attitude/attitude_error.hpp"
@@ -41,17 +41,10 @@ int main(int argc, char** argv)
         return 2;
     }
 
-    beam::RadarAttitude att{};
-    att.latitude = 37_deg;
-    att.longitude = 127_deg;
-    att.altitude = 0.1_km;
-    att.roll = roll;
-    att.pitch = pitch;
-    att.yaw = yaw;
-
     beam::AntEnuTransform xform = [&]() {
         try
         {
+            const beam::RadarAttitude att(37_deg, 127_deg, 0.1_km, roll, pitch, yaw);
             return beam::AntEnuTransform(att, beam::AttitudeConfig{});
         }
         catch (const beam::AttitudeError& e)
@@ -76,19 +69,21 @@ int main(int argc, char** argv)
 
     try
     {
-        const beam::BeamTable table(xform, beam::SearchGridConfig{});
+        const beam::SearchGridConfig config{};
+        beam::SearchGrid grid(xform, config);
+        const std::size_t beamCount = config.azimuthCount() * config.elevationCount();
         std::printf("idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg\n");
-        for (std::size_t i = 0; i < table.size(); ++i)
+        for (std::size_t i = 0; i < beamCount; ++i)
         {
-            const beam::BeamInfo& b = table.get(i);
+            const beam::SearchBeam& b = grid.nextBeam();
             std::printf("%zu,%u,%.6f,%.6f,%.2f,%.2f\n",
-                        i, b.beamId, b.azimuth_ant.deg(), b.elevation_ant.deg(),
+                        i, b.beamId, b.direction_ant.azimuth.deg(), b.direction_ant.elevation.deg(),
                         b.azimuthBeamWidth.deg(), b.elevationBeamWidth.deg());
         }
     }
     catch (const std::exception& e)
     {
-        std::fprintf(stderr, "BeamTable failed: %s\n", e.what());
+        std::fprintf(stderr, "SearchGrid failed: %s\n", e.what());
         return 4;
     }
     return 0;

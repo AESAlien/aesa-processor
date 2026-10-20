@@ -32,7 +32,7 @@ bool SphericalPosition::equals(
     const QuantityTolerance<Angle>& angleTolerance) const noexcept
 {
     return radius.equals(other.radius, rangeTolerance)
-        && direction.azimuth.equals(other.direction.azimuth, angleTolerance)
+        && direction.azimuth.isEquivalentTo(other.direction.azimuth, angleTolerance)
         && direction.elevation.equals(other.direction.elevation, angleTolerance);
 }
 

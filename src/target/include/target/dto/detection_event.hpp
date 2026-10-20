@@ -1,6 +1,6 @@
 #pragma once
 
-#include <beam/dto/beam_command.hpp>
+#include <beam/dto/beam_type.hpp>
 #include <math/quantity/angle.hpp>
 #include <math/quantity/length.hpp>
 #include <math/quantity/linear_velocity.hpp>
@@ -18,7 +18,7 @@ struct DetectionEvent
 {
     struct Plot;
 
-    const beam::BeamCommand::BeamType beamType;
+    const beam::BeamType beamType;
     const uint32_t requestId;
     const std::chrono::milliseconds transmitTime;
     const std::vector<Plot> plots;
@@ -71,7 +71,7 @@ struct DetectionEvent
     };
 
     DetectionEvent(
-        beam::BeamCommand::BeamType beamType,
+        beam::BeamType beamType,
         uint32_t requestId,
         std::chrono::milliseconds transmitTime,
         std::vector<Plot> plots
@@ -85,7 +85,7 @@ struct DetectionEvent
     class Builder
     {
     public:
-        Builder& beamType(beam::BeamCommand::BeamType value) { _beamType = value; return *this; }
+        Builder& beamType(beam::BeamType value) { _beamType = value; return *this; }
         Builder& requestId(uint32_t value) { _requestId = value; return *this; }
         Builder& transmitTime(std::chrono::milliseconds value) { _transmitTime = value; return *this; }
         Builder& plots(std::vector<Plot> value) { _plots = std::move(value); return *this; }
@@ -97,7 +97,7 @@ struct DetectionEvent
         }
 
     private:
-        std::optional<beam::BeamCommand::BeamType> _beamType;
+        std::optional<beam::BeamType> _beamType;
         std::optional<uint32_t> _requestId;
         std::optional<std::chrono::milliseconds> _transmitTime;
         std::optional<std::vector<Plot>> _plots;

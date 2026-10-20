@@ -1,44 +1,44 @@
 #pragma once
 
-#include <math/quantity/angle.hpp>
-#include <math/linear_algebra/square_matrix.hpp>
+#include <beam/config/attitude_config.hpp>
+#include <beam/config/search_grid_config.hpp>
+#include <beam/config/request_beam_config.hpp>
 
 #include <cstddef>
 
 namespace beam
 {
-
 using math::literals::operator""_deg;
 
-struct AttitudeConfig
+class BeamConfig
 {
-    math::Angle maxAbsPitch = 89_deg;
-    math::SquareMatrix mountAntToBodyRotation = math::SquareMatrix::identity(3);
-    double mountOrthogonalTolerance = 1e-6;
-};
+public:
+    class Builder
+    {
+    public:
+        Builder& attitudeConfig(AttitudeConfig value)       { _attitude = value; return *this; }
+        Builder& searchGridConfig(SearchGridConfig value)   { _searchGrid = value; return *this; }
+        Builder& requestBeamConfig(RequestBeamConfig value) { _requestBeam = value; return *this; }
 
-struct SearchGridConfig
-{
-    std::size_t azimuthCount = 21;
-    std::size_t elevationCount = 9;
-    math::Angle azimuthStart = -42_deg;
-    math::Angle azimuthStep = 4.2_deg;
-    math::Angle elevationStart = 3_deg;
-    math::Angle elevationStep = 4.4_deg;
-    math::Angle beamWidth = 6_deg;
-};
+        BeamConfig build() const;
+    private:
+        AttitudeConfig _attitude;
+        SearchGridConfig _searchGrid;
+        RequestBeamConfig _requestBeam;
+    }; // class Builder
 
-struct RequestBeamConfig
-{
-    math::Angle confirmationBeamWidth = 3_deg;
-    math::Angle trackingBeamWidth = 3_deg;
-};
+    BeamConfig();
+    BeamConfig(AttitudeConfig attitude,
+               SearchGridConfig searchGrid,
+               RequestBeamConfig requestBeam);
 
-struct BeamConfig
-{
-    AttitudeConfig attitude;
-    SearchGridConfig searchGrid;
-    RequestBeamConfig requestBeam;
+    const AttitudeConfig& attitude() const noexcept;
+    const SearchGridConfig& searchGrid() const noexcept;
+    const RequestBeamConfig& requestBeam() const noexcept;
+private:
+    AttitudeConfig _attitude;
+    SearchGridConfig _searchGrid;
+    RequestBeamConfig _requestBeam;
 };
 
 } // namespace beam

@@ -82,7 +82,7 @@ void CommWorker::runSendSimulator()
         tryWorkerAction("CommSendSimulator", [&]
         {
             const auto& command =
-                std::get<beam::BeamCommand>(*event);
+                std::get<beam::TransmitBeamCommand>(*event);
 
             _controller.sendBeamCommand(command);
         });

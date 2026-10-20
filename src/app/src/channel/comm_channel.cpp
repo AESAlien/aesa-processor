@@ -7,7 +7,7 @@ namespace app
 {
 void CommChannel::write(CommEvent message)
 {
-    if (std::holds_alternative<beam::BeamCommand>(message))
+    if (std::holds_alternative<beam::TransmitBeamCommand>(message))
     {
         _simulatorQueue.push(std::move(message));
     }

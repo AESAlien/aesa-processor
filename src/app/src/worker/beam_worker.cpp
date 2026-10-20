@@ -30,7 +30,7 @@ void BeamWorker::run()
             auto& message = *event;
 
             if (auto* request =
-                    std::get_if<beam::BeamRequest>(&message))
+                    std::get_if<beam::RequestBeamCommand>(&message))
             {
                 _controller.requestBeam(*request);
             }

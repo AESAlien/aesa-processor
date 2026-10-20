@@ -1,7 +1,7 @@
 #pragma once
 
 #include <app/queue/message_queue.hpp>
-#include <beam/dto/beam_command.hpp>
+#include <beam/dto/transmit_beam_command.hpp>
 #include <target/dto/track_event.hpp>
 
 #include <optional>
@@ -11,7 +11,7 @@
 namespace app
 {
 using CommEvent = std::variant<
-    beam::BeamCommand,
+    beam::TransmitBeamCommand,
     std::vector<target::TrackEvent>>;
 
 class CommChannel final

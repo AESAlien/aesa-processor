@@ -1,6 +1,6 @@
 #pragma once
 
-#include <beam/dto/beam_command.hpp>
+#include <beam/dto/transmit_beam_command.hpp>
 #include <target/dto/track_event.hpp>
 
 #include <cstdint>
@@ -24,7 +24,7 @@ struct EncodeResult
 };
 
 EncodeResult encodeBeamCommand(
-    const beam::BeamCommand& command
+    const beam::TransmitBeamCommand& command
 );
 
 EncodeResult encodeTrackEvents(

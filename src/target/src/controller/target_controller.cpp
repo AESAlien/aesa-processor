@@ -7,6 +7,7 @@
 #include "selector/tentative_selector.hpp"
 #include "selector/track_selector.hpp"
 #include "math/trigonometry.hpp"
+#include <math/geometry/spherical_direction.hpp>
 
 #include <cstdint>
 #include <limits>
@@ -32,7 +33,7 @@ std::chrono::milliseconds addTime(
 
 void validateDetection(const DetectionEvent& detection)
 {
-    using BeamType = beam::BeamCommand::BeamType;
+    using BeamType = beam::BeamType;
     if (detection.transmitTime.count() < 0
         || (detection.beamType != BeamType::SEARCH
             && detection.beamType != BeamType::CONFIRMATION
@@ -58,7 +59,7 @@ std::vector<Target> toTargets(
     return targets;
 }
 
-std::optional<beam::BeamRequest> trackingRequestOrRemove(
+std::optional<beam::RequestBeamCommand> trackingRequestOrRemove(
     TargetRepository& repository,
     const Target& target,
     std::chrono::milliseconds transmitTime)
@@ -70,12 +71,11 @@ std::optional<beam::BeamRequest> trackingRequestOrRemove(
         return std::nullopt;
     }
 
-    return beam::BeamRequest(
-        beam::BeamRequest::BeamType::TRACKING,
+    return beam::RequestBeamCommand(
+        beam::RequestBeamType::TRACKING,
         prediction->timestamp,
         target.id(),
-        prediction->sphericalPosition.direction.azimuth,
-        prediction->sphericalPosition.direction.elevation);
+        prediction->sphericalPosition.direction);
 }
 
 TrackEvent trackEvent(const Target& target)
@@ -130,7 +130,7 @@ TargetController::TargetController(const TargetConfig& config)
 {
 }
 
-std::optional<beam::BeamRequest> TargetController::handleDetection(DetectionEvent detection)
+std::optional<beam::RequestBeamCommand> TargetController::handleDetection(DetectionEvent detection)
 {
     const auto& config = *_config;
     validateDetection(detection);
@@ -140,7 +140,7 @@ std::optional<beam::BeamRequest> TargetController::handleDetection(DetectionEven
     const auto requestId = detection.requestId;
     const auto resultTime = detection.transmitTime;
 
-    using BeamType = beam::BeamCommand::BeamType;
+    using BeamType = beam::BeamType;
     if (beamType == BeamType::SEARCH)
     {
         const auto previous = _targetRepository->lastSearchResultTime(requestId);
@@ -160,12 +160,11 @@ std::optional<beam::BeamRequest> TargetController::handleDetection(DetectionEven
         const Target& candidate = receivedTargets[*selected];
         const auto id = _targetRepository->add(candidate);
         _targetRepository->markSearchResultProcessed(requestId, resultTime);
-        return beam::BeamRequest(
-            beam::BeamRequest::BeamType::CONFIRMATION,
+        return beam::RequestBeamCommand(
+            beam::RequestBeamType::CONFIRMATION,
             transmitTime,
             id,
-            candidate.azimuth(),
-            candidate.elevation());
+            math::SphericalDirection(candidate.azimuth(), candidate.elevation()));
     }
 
     Target* target = _targetRepository->find(requestId);

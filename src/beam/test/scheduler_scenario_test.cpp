@@ -24,14 +24,7 @@ constexpr std::size_t BEAM_COUNT = 189;
 
 beam::RadarAttitude makeAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    beam::RadarAttitude attitude{};
-    attitude.latitude = 37.0_deg;
-    attitude.longitude = 127.0_deg;
-    attitude.altitude = 0.1_km;
-    attitude.roll = roll;
-    attitude.pitch = pitch;
-    attitude.yaw = yaw;
-    return attitude;
+    return beam::RadarAttitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
 }
 
 beam::RadarAttitude makeZeroAttitude()
@@ -55,9 +48,9 @@ const schedule_scenario::RequestSpec& requestNamed(const Result& result, const s
     return *found;
 }
 
-std::vector<beam::BeamCommand> sentCommands(const Result& result)
+std::vector<beam::TransmitBeamCommand> sentCommands(const Result& result)
 {
-    std::vector<beam::BeamCommand> commands;
+    std::vector<beam::TransmitBeamCommand> commands;
     for (const TickRecord& tick : result.ticks)
     {
         if (tick.command.has_value())
@@ -73,7 +66,7 @@ std::vector<std::uint32_t> searchBeamIds(const Result& result)
     std::vector<std::uint32_t> ids;
     for (const TickRecord& tick : result.ticks)
     {
-        if (tick.command.has_value() && tick.command->beamType == beam::BeamCommand::BeamType::SEARCH)
+        if (tick.command.has_value() && tick.command->beamType == beam::BeamType::SEARCH)
         {
             ids.push_back(tick.command->beamId);
         }
@@ -84,7 +77,7 @@ std::vector<std::uint32_t> searchBeamIds(const Result& result)
 // 설계 규칙: 틱마다 빔은 하나, 명령 카운트는 1부터 연속, 탐색 번호는 1~189를 빠짐없이 순환한다.
 void expectCommonRules(const Result& result)
 {
-    const std::vector<beam::BeamCommand> commands = sentCommands(result);
+    const std::vector<beam::TransmitBeamCommand> commands = sentCommands(result);
     for (std::size_t index = 0; index < commands.size(); ++index)
     {
         EXPECT_EQ(commands[index].commandCount, index + 1) << "command #" << index;
@@ -104,16 +97,16 @@ void expectCommonRules(const Result& result)
             continue;
         }
 
-        const beam::BeamCommand& command = *tick.command;
+        const beam::TransmitBeamCommand& command = *tick.command;
         EXPECT_EQ(command.transmitTime, std::chrono::milliseconds(tick.tick_ms));
-        if (command.beamType == beam::BeamCommand::BeamType::SEARCH)
+        if (command.beamType == beam::BeamType::SEARCH)
         {
             EXPECT_EQ(command.azimuthBeamWidth, 6_deg) << "tick " << tick.tick_ms << "ms";
             EXPECT_EQ(command.elevationBeamWidth, 6_deg) << "tick " << tick.tick_ms << "ms";
         }
         else
         {
-            EXPECT_EQ(command.beamId, 0u) << "tick " << tick.tick_ms << "ms";
+            EXPECT_EQ(command.beamId, schedule_scenario::REQUEST_ID) << "tick " << tick.tick_ms << "ms";
             EXPECT_EQ(command.azimuthBeamWidth, 3_deg) << "tick " << tick.tick_ms << "ms";
             EXPECT_EQ(command.elevationBeamWidth, 3_deg) << "tick " << tick.tick_ms << "ms";
         }
@@ -127,7 +120,7 @@ void expectCommonRules(const Result& result)
             continue;
         }
 
-        EXPECT_GE(spec.sentTick_ms - spec.request.transmitTime.count(), 0) << spec.name;
+        EXPECT_GE(spec.sentTick_ms - spec.request.transmitTime().count(), 0) << spec.name;
     }
 }
 
@@ -150,14 +143,14 @@ TEST(SchedulerScenarioTest, MixedSendsNothingUntilReady)
 
     const TickRecord& firstReady = tickAt(result, 40);
     ASSERT_TRUE(firstReady.command.has_value());
-    EXPECT_EQ(firstReady.command->beamType, beam::BeamCommand::BeamType::SEARCH);
+    EXPECT_EQ(firstReady.command->beamType, beam::BeamType::SEARCH);
     EXPECT_EQ(firstReady.command->beamId, 1u);
     EXPECT_EQ(firstReady.command->commandCount, 1u);
 }
 
 TEST(SchedulerScenarioTest, MixedSendsRequestBeamsAtTheDesignedTicks)
 {
-    using Type = beam::BeamCommand::BeamType;
+    using Type = beam::BeamType;
     const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitude());
 
     struct Expected
@@ -210,8 +203,8 @@ TEST(SchedulerScenarioTest, MixedSendsEveryRequestEvenWhenItWaitsLong)
     {
         EXPECT_GE(spec.sentTick_ms, 0) << spec.name;
     }
-    EXPECT_EQ(requestNamed(result, "D").sentTick_ms - requestNamed(result, "D").request.transmitTime.count(), 30);
-    EXPECT_EQ(requestNamed(result, "H").sentTick_ms - requestNamed(result, "H").request.transmitTime.count(), 30);
+    EXPECT_EQ(requestNamed(result, "D").sentTick_ms - requestNamed(result, "D").request.transmitTime().count(), 30);
+    EXPECT_EQ(requestNamed(result, "H").sentTick_ms - requestNamed(result, "H").request.transmitTime().count(), 30);
 }
 
 TEST(SchedulerScenarioTest, MixedSearchSweepContinuesWithoutSkippingAfterInterruptions)
@@ -242,7 +235,7 @@ TEST(SchedulerScenarioTest, TracksSendsEveryRequestWithoutDelay)
     ASSERT_EQ(result.requests.size(), 59u);
     for (const schedule_scenario::RequestSpec& spec : result.requests)
     {
-        EXPECT_EQ(spec.sentTick_ms, spec.request.transmitTime.count()) << spec.name;
+        EXPECT_EQ(spec.sentTick_ms, spec.request.transmitTime().count()) << spec.name;
     }
 }
 
@@ -253,7 +246,7 @@ TEST(SchedulerScenarioTest, TracksFirstSearchSweepIsLongerByTheNumberOfRequestBe
     std::vector<long long> sweepStartTicks;
     for (const TickRecord& tick : result.ticks)
     {
-        if (tick.command.has_value() && tick.command->beamType == beam::BeamCommand::BeamType::SEARCH &&
+        if (tick.command.has_value() && tick.command->beamType == beam::BeamType::SEARCH &&
             tick.command->beamId == 1)
         {
             sweepStartTicks.push_back(tick.tick_ms);
@@ -322,15 +315,15 @@ TEST(SchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
         EXPECT_EQ(left.command->beamId, right.command->beamId) << "tick " << left.tick_ms << "ms";
         EXPECT_EQ(left.command->commandCount, right.command->commandCount) << "tick " << left.tick_ms << "ms";
 
-        if (left.command->beamType == beam::BeamCommand::BeamType::SEARCH)
+        if (left.command->beamType == beam::BeamType::SEARCH)
         {
-            anySearchAngleDiffers |= !left.command->azimuth_ant.equals(right.command->azimuth_ant);
+            anySearchAngleDiffers |= !left.command->direction_ant.azimuth.isEquivalentTo(right.command->direction_ant.azimuth);
         }
         else
         {
             // 요청 빔의 각도는 요청 그대로 나가므로 자세와 무관하다.
-            EXPECT_EQ(left.command->azimuth_ant, right.command->azimuth_ant);
-            EXPECT_EQ(left.command->elevation_ant, right.command->elevation_ant);
+            EXPECT_TRUE(left.command->direction_ant.azimuth.isEquivalentTo(right.command->direction_ant.azimuth));
+            EXPECT_EQ(left.command->direction_ant.elevation, right.command->direction_ant.elevation);
         }
     }
 

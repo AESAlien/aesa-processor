@@ -88,7 +88,7 @@ public:
         }
     }
 
-    void sendBeamCommand(const beam::BeamCommand& command)
+    void sendBeamCommand(const beam::TransmitBeamCommand& command)
     {
         sendEncodedMessage(
             NetworkPeer::SCENARIO_SIMULATOR,
@@ -255,7 +255,7 @@ std::optional<IncomingDto> CommController::receiveData()
 }
 
 void CommController::sendBeamCommand(
-    const beam::BeamCommand& command
+    const beam::TransmitBeamCommand& command
 )
 {
     _impl->sendBeamCommand(command);

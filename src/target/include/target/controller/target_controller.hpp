@@ -1,6 +1,6 @@
 #pragma once
 
-#include <beam/dto/beam_request.hpp>
+#include <beam/dto/request_beam_command.hpp>
 #include <target/config/target_config.hpp>
 #include <target/dto/detection_event.hpp>
 #include <target/dto/track_event.hpp>
@@ -23,7 +23,7 @@ class TargetController
 public:
     explicit TargetController(const TargetConfig& config);
 
-    std::optional<beam::BeamRequest> handleDetection(DetectionEvent detection);
+    std::optional<beam::RequestBeamCommand> handleDetection(DetectionEvent detection);
     std::vector<TrackEvent> nextTrackEvents() const;
 
 private:

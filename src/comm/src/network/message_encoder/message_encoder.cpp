@@ -89,7 +89,7 @@ uint32_t convertTimestamp(
 }
 
 protocol::ST_BeamTx encodeBeam(
-    const beam::BeamCommand& command
+    const beam::TransmitBeamCommand& command
 )
 {
     protocol::ST_BeamTx encodedBeam{};
@@ -97,8 +97,8 @@ protocol::ST_BeamTx encodeBeam(
     encodedBeam.beamID =        command.beamId;
     encodedBeam.commandCount =  command.commandCount;
     encodedBeam.timestamp =     convertTimestamp(command.transmitTime);
-    encodedBeam.beam_az_deg =   convertFloat(command.azimuth_ant.deg());
-    encodedBeam.beam_el_deg =   convertFloat(command.elevation_ant.deg());
+    encodedBeam.beam_az_deg =   convertFloat(command.direction_ant.azimuth.deg());
+    encodedBeam.beam_el_deg =   convertFloat(command.direction_ant.elevation.deg());
     encodedBeam.az_width_deg =  convertFloat(command.azimuthBeamWidth.deg());
     encodedBeam.el_width_deg =  convertFloat(command.elevationBeamWidth.deg());
 
@@ -144,7 +144,7 @@ std::vector<uint8_t> toBytes(const Message& message)
 } // namespace
 
 EncodeResult encodeBeamCommand(
-    const beam::BeamCommand& command
+    const beam::TransmitBeamCommand& command
 )
 {
     try

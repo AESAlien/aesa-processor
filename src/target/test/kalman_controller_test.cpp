@@ -23,7 +23,7 @@ namespace
 using namespace math::literals;
 using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
-using BeamType = beam::BeamCommand::BeamType;
+using BeamType = beam::BeamType;
 
 math::CartesianPosition radial(math::Length range)
 {
@@ -46,7 +46,7 @@ DetectionEvent result(
     return DetectionEvent(type, id, time, std::move(plots));
 }
 
-std::optional<beam::BeamRequest> beginTracking(
+std::optional<beam::RequestBeamCommand> beginTracking(
     TargetController& controller,
     const math::CartesianPosition& first,
     const math::CartesianPosition& second)
@@ -57,7 +57,7 @@ std::optional<beam::BeamRequest> beginTracking(
         ADD_FAILURE() << "A new search observation must produce a confirmation request";
         return std::nullopt;
     }
-    EXPECT_EQ(confirmation->beamType, beam::BeamRequest::BeamType::CONFIRMATION);
+    EXPECT_EQ(confirmation->beamType, beam::RequestBeamType::CONFIRMATION);
     EXPECT_EQ(confirmation->requestId, 1u);
     EXPECT_EQ(confirmation->transmitTime, 100ms);
     return controller.handleDetection(result(BeamType::CONFIRMATION,
@@ -84,11 +84,11 @@ TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInst
     TargetController controller(TargetConfig{});
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
-    EXPECT_EQ(tracking->beamType, beam::BeamRequest::BeamType::TRACKING);
+    EXPECT_EQ(tracking->beamType, beam::RequestBeamType::TRACKING);
     EXPECT_EQ(tracking->requestId, 1u);
     EXPECT_EQ(tracking->transmitTime, 1100ms);
-    EXPECT_NEAR(tracking->azimuth_ant.deg(), 0.0, 1e-12);
-    EXPECT_NEAR(tracking->elevation_ant.deg(), 0.0, 1e-12);
+    EXPECT_NEAR(tracking->direction_ant.azimuth.deg(), 0.0, 1e-12);
+    EXPECT_NEAR(tracking->direction_ant.elevation.deg(), 0.0, 1e-12);
 
     const auto next = controller.handleDetection(result(BeamType::TRACKING,
         tracking->requestId, tracking->transmitTime, {radial(1100_m)}));
@@ -186,8 +186,8 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
             EXPECT_EQ(retry->requestId, tracking->requestId);
             EXPECT_EQ(retry->transmitTime, resultTime + 1000ms);
             const auto truth = trajectory(std::chrono::duration<double>(retry->transmitTime).count()).toSpherical();
-            EXPECT_NEAR(retry->azimuth_ant.deg(), truth.direction.azimuth.deg(), 0.05);
-            EXPECT_NEAR(retry->elevation_ant.deg(), truth.direction.elevation.deg(), 0.05);
+            EXPECT_NEAR(retry->direction_ant.azimuth.deg(), truth.direction.azimuth.deg(), 0.05);
+            EXPECT_NEAR(retry->direction_ant.elevation.deg(), truth.direction.elevation.deg(), 0.05);
             const auto events = controller.nextTrackEvents();
             ASSERT_EQ(events.size(), 1u);
             EXPECT_EQ(events[0].timestamp, observationTime);

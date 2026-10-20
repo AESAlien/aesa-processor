@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <stdexcept>
 #include <type_traits>
 #include <vector>
 
@@ -19,19 +20,20 @@ namespace
 
 using namespace std::chrono_literals;
 
-beam::BeamCommand makeBeamCommand(
+beam::TransmitBeamCommand makeBeamCommand(
     std::chrono::milliseconds transmitTime = 1234ms,
-    double azimuth = 10.5
+    double azimuthBeamWidth = 3.25
 )
 {
-    return beam::BeamCommand(
-        beam::BeamCommand::BeamType::TRACKING,
+    return beam::TransmitBeamCommand(
+        beam::BeamType::TRACKING,
         transmitTime,
         21,
         7,
-        math::Angle::fromDegrees(azimuth),
-        math::Angle::fromDegrees(-4.5),
-        math::Angle::fromDegrees(3.25),
+        math::SphericalDirection(
+            math::Angle::fromDegrees(10.5),
+            math::Angle::fromDegrees(-4.5)),
+        math::Angle::fromDegrees(azimuthBeamWidth),
         math::Angle::fromDegrees(2.75));
 }
 
@@ -72,6 +74,30 @@ Value readValue(
     return value;
 }
 
+// 방위각이 azimuthDegrees인 빔 명령을 인코딩해서 와이어의 방위각(beam_az_deg)을 반환한다.
+// 방위각은 SphericalDirection이 [0, 360)으로 정규화하며, 시뮬레이터 규격도 0-360이다.
+float encodeAzimuthToWire(double azimuthDegrees)
+{
+    const beam::TransmitBeamCommand command(
+        beam::BeamType::TRACKING,
+        1234ms,
+        21,
+        7,
+        math::SphericalDirection(
+            math::Angle::fromDegrees(azimuthDegrees),
+            math::Angle::fromDegrees(-4.5)),
+        math::Angle::fromDegrees(3.25),
+        math::Angle::fromDegrees(2.75));
+
+    const comm::EncodeResult result = comm::encodeBeamCommand(command);
+    if (result.error != comm::EncodingError::NONE || !result.bytes.has_value())
+    {
+        throw std::runtime_error("failed to encode beam command");
+    }
+
+    return readValue<comm::protocol::ST_BeamTxMsg>(*result.bytes).beam_cmd.beam_az_deg;
+}
+
 } // namespace
 
 TEST(MessageEncoderTest, EncodesBeamCommand)
@@ -98,7 +124,7 @@ TEST(MessageEncoderTest, EncodesBeamCommand)
 
     EXPECT_EQ(
         message.beam_cmd.beamType,
-        static_cast<uint8_t>(beam::BeamCommand::BeamType::TRACKING));
+        static_cast<uint8_t>(beam::BeamType::TRACKING));
     EXPECT_EQ(message.beam_cmd.timestamp, 1234u);
     EXPECT_EQ(message.beam_cmd.beamID, 21u);
     EXPECT_EQ(message.beam_cmd.commandCount, 7u);
@@ -115,6 +141,31 @@ TEST(MessageEncoderTest, EncodesBeamCommand)
     {
         EXPECT_EQ(padding, 0);
     }
+}
+
+TEST(MessageEncoderTest, EncodesNegativeAzimuthAsZeroToThreeSixtyOnWire)
+{
+    EXPECT_FLOAT_EQ(encodeAzimuthToWire(-10.0), 350.0F);
+    EXPECT_FLOAT_EQ(encodeAzimuthToWire(-180.0), 180.0F);
+}
+
+TEST(MessageEncoderTest, EncodesFullTurnAzimuthAsZeroOnWire)
+{
+    EXPECT_FLOAT_EQ(encodeAzimuthToWire(0.0), 0.0F);
+    EXPECT_FLOAT_EQ(encodeAzimuthToWire(360.0), 0.0F);
+}
+
+TEST(MessageEncoderTest, EncodesAzimuthBeyondFullTurnWithinRangeOnWire)
+{
+    EXPECT_FLOAT_EQ(encodeAzimuthToWire(370.0), 10.0F);
+    EXPECT_FLOAT_EQ(encodeAzimuthToWire(725.0), 5.0F);
+}
+
+TEST(MessageEncoderTest, KeepsAzimuthAlreadyInRangeOnWire)
+{
+    EXPECT_FLOAT_EQ(encodeAzimuthToWire(0.5), 0.5F);
+    EXPECT_FLOAT_EQ(encodeAzimuthToWire(180.0), 180.0F);
+    EXPECT_FLOAT_EQ(encodeAzimuthToWire(359.5), 359.5F);
 }
 
 TEST(MessageEncoderTest, EncodesTrackEventsUsingActualMessageSize)
