@@ -32,7 +32,7 @@ math::SphericalPosition position(math::Length range = 1000_m)
 }
 
 TargetTrackingState state(
-    math::Vector acceleration = math::Vector(TargetTrackingState::ACCELERATION_DIMENSION),
+    math::CartesianAcceleration acceleration = math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
     std::optional<math::SquareMatrix> covariance = std::nullopt)
 {
     return TargetTrackingState(position(), 0_mps, -10.0f, 100ms,
@@ -55,7 +55,6 @@ public:
     enum class Fault
     {
         NONE,
-        INVALID_ACCELERATION,
         INVALID_COVARIANCE,
         WRONG_TIME
     };
@@ -86,9 +85,9 @@ private:
         {
             return std::nullopt;
         }
-        const auto acceleration = fault == Fault::INVALID_ACCELERATION
-            ? math::Vector(2)
-            : updating ? math::Vector{4.0, 5.0, 6.0} : math::Vector{1.0, 2.0, 3.0};
+        const auto acceleration = updating
+            ? math::CartesianAcceleration(4_mps2, 5_mps2, 6_mps2)
+            : math::CartesianAcceleration(1_mps2, 2_mps2, 3_mps2);
         auto covariance = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION)
             * (updating ? 50.0 : 25.0);
         if (fault == Fault::INVALID_COVARIANCE)
@@ -109,18 +108,17 @@ TEST(TrackingStateTest, ExistingConstructorAndConstantVelocityLeaveCovarianceUna
     const TargetTrackingState legacy(position(), 0_mps, -10.0f, 100ms,
         math::CartesianPosition(0_m, 1000_m, 0_m),
         math::CartesianVelocity(0_mps, 0_mps, 0_mps));
-    ASSERT_EQ(legacy.acceleration.size(), 3u);
-    EXPECT_EQ(legacy.acceleration.norm(), 0.0);
+    EXPECT_EQ(legacy.acceleration.acceleration(), 0_mps2);
     EXPECT_FALSE(legacy.errorCovariance);
 
     TargetRepository repository;
     const auto id = repository.add(observation(1000_m, 0ms));
     auto& target = *repository.find(id);
     ASSERT_TRUE(target.confirm(observation(1010_m, 100ms)));
-    EXPECT_EQ(target.trackingState()->acceleration.norm(), 0.0);
+    EXPECT_EQ(target.trackingState()->acceleration.acceleration(), 0_mps2);
     EXPECT_FALSE(target.trackingState()->errorCovariance);
     ASSERT_TRUE(target.update(observation(1020_m, 200ms)));
-    EXPECT_EQ(target.trackingState()->acceleration.norm(), 0.0);
+    EXPECT_EQ(target.trackingState()->acceleration.acceleration(), 0_mps2);
     EXPECT_FALSE(target.trackingState()->errorCovariance);
 }
 
@@ -128,17 +126,18 @@ TEST(TrackingStateTest, CopiesAccelerationAndCovarianceIndependentlyOfCallerLife
 {
     std::shared_ptr<const TargetTrackingState> stored;
     {
-        math::Vector acceleration{1.0, 2.0, 3.0};
+        const math::CartesianAcceleration acceleration(1_mps2, 2_mps2, 3_mps2);
         auto covariance = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION) * 25.0;
         covariance(0, 3) = 2.0;
         covariance(3, 0) = 2.0;
         stored = std::make_shared<const TargetTrackingState>(state(acceleration, covariance));
-        acceleration[0] = 99.0;
         covariance(0, 0) = 99.0;
     }
     const TargetTrackingState copied(*stored);
     stored.reset();
-    EXPECT_EQ(copied.acceleration, (math::Vector{1.0, 2.0, 3.0}));
+    EXPECT_EQ(copied.acceleration.x, 1_mps2);
+    EXPECT_EQ(copied.acceleration.y, 2_mps2);
+    EXPECT_EQ(copied.acceleration.z, 3_mps2);
     ASSERT_TRUE(copied.errorCovariance);
     EXPECT_EQ(copied.errorCovariance->size(), 9u);
     EXPECT_EQ((*copied.errorCovariance)(0, 0), 25.0);
@@ -146,21 +145,15 @@ TEST(TrackingStateTest, CopiesAccelerationAndCovarianceIndependentlyOfCallerLife
     EXPECT_EQ((*copied.errorCovariance)(3, 0), 2.0);
 }
 
-TEST(TrackingStateTest, RejectsAccelerationWithWrongDimension)
-{
-    for (std::size_t size : {0u, 2u, 4u})
-    {
-        SCOPED_TRACE(size);
-        EXPECT_THROW(state(math::Vector(size)), std::invalid_argument);
-    }
-}
-
 TEST(TrackingStateTest, RejectsNonfiniteAccelerationComponents)
 {
     for (double invalid : {std::numeric_limits<double>::quiet_NaN(),
              std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()})
     {
-        EXPECT_THROW(state(math::Vector{0.0, invalid, 0.0}), std::invalid_argument);
+        EXPECT_THROW(math::CartesianAcceleration(
+            0_mps2,
+            math::LinearAcceleration::fromMetersPerSecondSquared(invalid),
+            0_mps2), std::invalid_argument);
     }
 }
 
@@ -169,7 +162,8 @@ TEST(TrackingStateTest, RejectsCovarianceWithWrongDimension)
     for (std::size_t size : {0u, 3u, 8u, 10u})
     {
         SCOPED_TRACE(size);
-        EXPECT_THROW(state(math::Vector(3), math::SquareMatrix(size)), std::invalid_argument);
+        EXPECT_THROW(state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
+            math::SquareMatrix(size)), std::invalid_argument);
     }
 }
 
@@ -180,20 +174,24 @@ TEST(TrackingStateTest, RejectsNonfiniteOrAsymmetricCovariance)
     {
         auto covariance = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION);
         covariance(0, 0) = invalid;
-        EXPECT_THROW(state(math::Vector(3), covariance), std::invalid_argument);
+        EXPECT_THROW(state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance),
+            std::invalid_argument);
     }
     auto asymmetric = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION);
     asymmetric(0, 1) = std::numeric_limits<double>::epsilon();
-    EXPECT_THROW(state(math::Vector(3), asymmetric), std::invalid_argument);
+    EXPECT_THROW(state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), asymmetric),
+        std::invalid_argument);
 }
 
 TEST(TrackingStateTest, RejectsNegativeDiagonalButAllowsExplicitSingularZeroCovariance)
 {
     auto negative = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION);
     negative(0, 0) = -1.0;
-    EXPECT_THROW(state(math::Vector(3), negative), std::invalid_argument);
+    EXPECT_THROW(state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), negative),
+        std::invalid_argument);
 
-    const auto explicitZero = state(math::Vector(3), math::SquareMatrix(TargetTrackingState::STATE_DIMENSION));
+    const auto explicitZero = state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
+        math::SquareMatrix(TargetTrackingState::STATE_DIMENSION));
     ASSERT_TRUE(explicitZero.errorCovariance);
     EXPECT_EQ(*explicitZero.errorCovariance, math::SquareMatrix(9));
     // These are structural checks; they do not establish positive semidefiniteness for arbitrary matrices.
@@ -207,17 +205,21 @@ TEST(TrackingStateTest, StoresAlgorithmStateAcrossUpdatesAndPreservesItDuringMis
     auto& target = *repository.find(id);
     ASSERT_TRUE(target.confirm(observation(1010_m, 100ms)));
     const auto initialSnapshot = target.trackingState();
-    EXPECT_EQ(initialSnapshot->acceleration, (math::Vector{1.0, 2.0, 3.0}));
+    EXPECT_EQ(initialSnapshot->acceleration.x, 1_mps2);
+    EXPECT_EQ(initialSnapshot->acceleration.y, 2_mps2);
+    EXPECT_EQ(initialSnapshot->acceleration.z, 3_mps2);
     ASSERT_TRUE(initialSnapshot->errorCovariance);
     EXPECT_EQ((*initialSnapshot->errorCovariance)(0, 0), 25.0);
 
     ASSERT_TRUE(target.update(observation(1020_m, 200ms)));
     const auto updatedSnapshot = target.trackingState();
     EXPECT_NE(updatedSnapshot.get(), initialSnapshot.get());
-    EXPECT_EQ(updatedSnapshot->acceleration, (math::Vector{4.0, 5.0, 6.0}));
+    EXPECT_EQ(updatedSnapshot->acceleration.x, 4_mps2);
+    EXPECT_EQ(updatedSnapshot->acceleration.y, 5_mps2);
+    EXPECT_EQ(updatedSnapshot->acceleration.z, 6_mps2);
     ASSERT_TRUE(updatedSnapshot->errorCovariance);
     EXPECT_EQ((*updatedSnapshot->errorCovariance)(0, 0), 50.0);
-    EXPECT_EQ(initialSnapshot->acceleration, (math::Vector{1.0, 2.0, 3.0}));
+    EXPECT_EQ(initialSnapshot->acceleration.x, 1_mps2);
     EXPECT_EQ((*initialSnapshot->errorCovariance)(0, 0), 25.0);
 
     ASSERT_TRUE(target.recordTrackingMiss(1200ms));
@@ -238,13 +240,15 @@ TEST(TrackingStateTest, RejectedAlgorithmStatesPreserveAccelerationCovarianceAnd
     ASSERT_TRUE(target.recordTrackingMiss(1100ms));
     const auto saved = target.trackingState();
 
-    for (auto fault : {EnrichedAlgorithm::Fault::INVALID_ACCELERATION,
-             EnrichedAlgorithm::Fault::INVALID_COVARIANCE, EnrichedAlgorithm::Fault::WRONG_TIME})
+    for (auto fault : {EnrichedAlgorithm::Fault::INVALID_COVARIANCE,
+             EnrichedAlgorithm::Fault::WRONG_TIME})
     {
         algorithm->fault = fault;
         EXPECT_THROW(target.update(observation(1020_m, 2100ms)), std::invalid_argument);
         EXPECT_EQ(target.trackingState().get(), saved.get());
-        EXPECT_EQ(target.trackingState()->acceleration, (math::Vector{1.0, 2.0, 3.0}));
+        EXPECT_EQ(target.trackingState()->acceleration.x, 1_mps2);
+        EXPECT_EQ(target.trackingState()->acceleration.y, 2_mps2);
+        EXPECT_EQ(target.trackingState()->acceleration.z, 3_mps2);
         EXPECT_EQ((*target.trackingState()->errorCovariance)(0, 0), 25.0);
         EXPECT_EQ(target.lastObservationTime(), 100ms);
         EXPECT_EQ(target.lastResultTime(), 1100ms);
@@ -252,7 +256,9 @@ TEST(TrackingStateTest, RejectedAlgorithmStatesPreserveAccelerationCovarianceAnd
     }
     algorithm->fault = EnrichedAlgorithm::Fault::NONE;
     ASSERT_TRUE(target.update(observation(1020_m, 2100ms)));
-    EXPECT_EQ(target.trackingState()->acceleration, (math::Vector{4.0, 5.0, 6.0}));
+    EXPECT_EQ(target.trackingState()->acceleration.x, 4_mps2);
+    EXPECT_EQ(target.trackingState()->acceleration.y, 5_mps2);
+    EXPECT_EQ(target.trackingState()->acceleration.z, 6_mps2);
     EXPECT_EQ((*target.trackingState()->errorCovariance)(0, 0), 50.0);
     EXPECT_EQ(target.consecutiveMissCount(), 0u);
 }
@@ -274,10 +280,14 @@ TEST(TrackingStateTest, RemovingTargetsPreservesRemainingAccelerationAndCovarian
     ASSERT_EQ(repository.targets().size(), 2u);
     EXPECT_EQ(repository.targets()[0].id(), firstId);
     EXPECT_EQ(repository.targets()[1].id(), lastId);
-    EXPECT_EQ(repository.find(firstId)->trackingState()->acceleration, (math::Vector{1.0, 2.0, 3.0}));
+    EXPECT_EQ(repository.find(firstId)->trackingState()->acceleration.x, 1_mps2);
+    EXPECT_EQ(repository.find(firstId)->trackingState()->acceleration.y, 2_mps2);
+    EXPECT_EQ(repository.find(firstId)->trackingState()->acceleration.z, 3_mps2);
     EXPECT_EQ((*repository.find(firstId)->trackingState()->errorCovariance)(0, 0), 25.0);
     EXPECT_EQ(repository.find(lastId)->trackingState().get(), saved.get());
-    EXPECT_EQ(saved->acceleration, (math::Vector{4.0, 5.0, 6.0}));
+    EXPECT_EQ(saved->acceleration.x, 4_mps2);
+    EXPECT_EQ(saved->acceleration.y, 5_mps2);
+    EXPECT_EQ(saved->acceleration.z, 6_mps2);
     EXPECT_EQ((*saved->errorCovariance)(0, 0), 50.0);
 }
 

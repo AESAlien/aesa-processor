@@ -1,4 +1,5 @@
 add_library(math STATIC
+    src/geometry/cartesian_acceleration.cpp
     src/geometry/cartesian_displacement.cpp
     src/geometry/cartesian_position.cpp
     src/geometry/cartesian_velocity.cpp
@@ -12,6 +13,7 @@ add_library(math STATIC
     src/tolerance.cpp
     src/linear_algebra/vector.cpp
     src/quantity/linear_velocity.cpp
+    src/quantity/linear_acceleration.cpp
 )
 
 target_include_directories(math PUBLIC
@@ -45,6 +47,14 @@ if(BUILD_TESTING)
     add_executable(linear_velocity_test test/linear_velocity_test.cpp)
     target_link_libraries(linear_velocity_test PRIVATE math GTest::gtest_main)
     gtest_discover_tests(linear_velocity_test)
+
+    add_executable(linear_acceleration_test test/linear_acceleration_test.cpp)
+    target_link_libraries(linear_acceleration_test PRIVATE math GTest::gtest_main)
+    gtest_discover_tests(linear_acceleration_test)
+
+    add_executable(cartesian_acceleration_test test/cartesian_acceleration_test.cpp)
+    target_link_libraries(cartesian_acceleration_test PRIVATE math GTest::gtest_main)
+    gtest_discover_tests(cartesian_acceleration_test)
 
     add_executable(matrix_test test/matrix_test.cpp)
     target_link_libraries(matrix_test PRIVATE math GTest::gtest_main)

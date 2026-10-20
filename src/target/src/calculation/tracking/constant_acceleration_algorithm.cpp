@@ -7,6 +7,7 @@
 #include <math/geometry/cartesian_velocity.hpp>
 #include <math/geometry/spherical_position.hpp>
 #include <math/linear_algebra/matrix.hpp>
+#include <math/linear_algebra/vector.hpp>
 
 #include <cmath>
 #include <cstddef>
@@ -36,7 +37,7 @@ math::Vector stateVector(const TargetTrackingState& state)
 {
     return math::Vector{state.position.x.m(), state.position.y.m(), state.position.z.m(),
         state.velocity.x.mps(), state.velocity.y.mps(), state.velocity.z.mps(),
-        state.acceleration[0], state.acceleration[1], state.acceleration[2]};
+        state.acceleration.x.mps2(), state.acceleration.y.mps2(), state.acceleration.z.mps2()};
 }
 
 math::Matrix measurementMatrix()
@@ -232,7 +233,7 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::initialize(
     }
     return TargetTrackingState(position.toSpherical(), second.dopplerVelocity(),
         second.power_db(), secondTime, position, *velocity,
-        math::Vector(POSITION_DIMENSION), std::move(initialCovariance));
+        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), std::move(initialCovariance));
 }
 
 std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
@@ -300,7 +301,11 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
     }
     return TargetTrackingState(position->toSpherical(), observation.dopplerVelocity(),
         observation.power_db(), time, *position, *velocity,
-        math::Vector{values[6], values[7], values[8]}, std::move(*covariance));
+        math::CartesianAcceleration(
+            math::LinearAcceleration::fromMetersPerSecondSquared(values[6]),
+            math::LinearAcceleration::fromMetersPerSecondSquared(values[7]),
+            math::LinearAcceleration::fromMetersPerSecondSquared(values[8])),
+        std::move(*covariance));
 }
 
 std::optional<TargetPrediction> ConstantAccelerationAlgorithm::predict(

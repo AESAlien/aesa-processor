@@ -2,6 +2,7 @@
 #include "math/linear_algebra/vector.hpp"
 #include "math/quantity/angle.hpp"
 #include "math/quantity/length.hpp"
+#include "math/quantity/linear_acceleration.hpp"
 #include "math/quantity/linear_velocity.hpp"
 
 #include <gtest/gtest.h>
@@ -224,6 +225,10 @@ T makeQuantity(double value)
     {
         return math::Length::fromMeters(value);
     }
+    else if constexpr (std::is_same_v<T, math::LinearAcceleration>)
+    {
+        return math::LinearAcceleration::fromMetersPerSecondSquared(value);
+    }
     else
     {
         return math::LinearVelocity::fromMetersPerSecond(value);
@@ -235,9 +240,11 @@ TEST(QuantityTest, SharesStorageAndChecksWithoutLosingUnitSafety)
     static_assert(std::is_base_of_v<math::Quantity<math::Angle>, math::Angle>);
     static_assert(std::is_base_of_v<math::Quantity<math::Length>, math::Length>);
     static_assert(std::is_base_of_v<math::Quantity<math::LinearVelocity>, math::LinearVelocity>);
+    static_assert(std::is_base_of_v<math::Quantity<math::LinearAcceleration>, math::LinearAcceleration>);
     static_assert(sizeof(math::Angle) == sizeof(double));
     static_assert(sizeof(math::Length) == sizeof(double));
     static_assert(sizeof(math::LinearVelocity) == sizeof(double));
+    static_assert(sizeof(math::LinearAcceleration) == sizeof(double));
     static_assert(!std::is_assignable_v<math::Quantity<math::Length>&, math::Length>);
     static_assert(!std::is_constructible_v<math::Angle, math::Length>);
 
@@ -247,6 +254,7 @@ TEST(QuantityTest, SharesStorageAndChecksWithoutLosingUnitSafety)
     EXPECT_FALSE(quantity.isNonnegative());
     EXPECT_DOUBLE_EQ(math::Length::fromKilometers(2.0).value(), 2000.0);
     EXPECT_DOUBLE_EQ(math::LinearVelocity::fromMetersPerSecond(3.0).value(), 3.0);
+    EXPECT_DOUBLE_EQ(math::LinearAcceleration::fromMetersPerSecondSquared(4.0).value(), 4.0);
 }
 
 // 새 물리량도 단위별 분기 없이 공통 정책을 사용할 수 있다.
@@ -354,7 +362,11 @@ class QuantityComparisonTest : public testing::Test
 {
 };
 
-using QuantityTypes = testing::Types<math::Angle, math::Length, math::LinearVelocity>;
+using QuantityTypes = testing::Types<
+    math::Angle,
+    math::Length,
+    math::LinearVelocity,
+    math::LinearAcceleration>;
 TYPED_TEST_SUITE(QuantityComparisonTest, QuantityTypes);
 
 TYPED_TEST(QuantityComparisonTest, NoneToleranceDisablesAbsoluteAndRelativeTolerance)
@@ -385,6 +397,7 @@ TYPED_TEST(QuantityComparisonTest, RestrictsComparisonsToMatchingQuantityTypes)
     checkComparisonTypes<TypeParam, math::Angle>();
     checkComparisonTypes<TypeParam, math::Length>();
     checkComparisonTypes<TypeParam, math::LinearVelocity>();
+    checkComparisonTypes<TypeParam, math::LinearAcceleration>();
 }
 
 TYPED_TEST(QuantityComparisonTest, NamedInequalitySupportsExplicitTolerances)
