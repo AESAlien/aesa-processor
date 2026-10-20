@@ -1,6 +1,6 @@
 #include "scheduler/beam_request_factory.hpp"
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 BeamRequestFactory::BeamRequestFactory(const RequestBeamConfig& config) : _policyFactory(config)
@@ -17,4 +17,4 @@ BeamRequest BeamRequestFactory::create(const RequestBeamCommand& command) const
         command.direction_ant);
 }
 
-} // namespace beam
+} // namespace aesa_processor::beam

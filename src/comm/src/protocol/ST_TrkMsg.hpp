@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace comm::protocol
+namespace aesa_processor::comm::protocol
 {
 
 #pragma pack(push, 1)
@@ -48,4 +48,4 @@ static_assert(sizeof(ST_TrkHeader) == 4, "ST_TrkHeader must be 4 bytes");
 static_assert(sizeof(ST_Trk) == 88, "ST_Trk must be 88 bytes");
 static_assert(sizeof(ST_TrkMsg) == 8824, "Maximum ST_TrkMsg must be 8824 bytes");
 
-} // namespace comm::protocol
+} // namespace aesa_processor::comm::protocol

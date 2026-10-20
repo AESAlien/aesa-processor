@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace app
+namespace aesa_processor::app
 {
 class ChannelClosedError : public std::runtime_error
 {
@@ -74,4 +74,4 @@ private:
     std::condition_variable _condition;
     bool _closed = false;
 };
-} // namespace app
+} // namespace aesa_processor::app

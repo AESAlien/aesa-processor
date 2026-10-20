@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace math
+namespace aesa_processor::math
 {
 
 template<typename T>

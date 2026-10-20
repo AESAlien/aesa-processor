@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 // 빔 스케줄링 본체. 타이머나 스레드를 갖지 않고, 호출자(app)가 틱마다 next()를 호출한다.
@@ -60,4 +60,4 @@ private:
     std::uint32_t _commandCount = 0;
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

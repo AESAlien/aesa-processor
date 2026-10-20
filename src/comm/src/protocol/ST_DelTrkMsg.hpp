@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace comm::protocol
+namespace aesa_processor::comm::protocol
 {
 
 #pragma pack(push, 1)
@@ -18,4 +18,4 @@ struct ST_DelTrkMsg
 
 static_assert(sizeof(ST_DelTrkMsg) == 224, "ST_DelTrkMsg must be 224 bytes");
 
-} // namespace comm::protocol
+} // namespace aesa_processor::comm::protocol

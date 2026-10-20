@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 RequestBeamConfig::RequestBeamConfig() : RequestBeamConfig(Builder().build())
@@ -10,20 +10,20 @@ RequestBeamConfig::RequestBeamConfig() : RequestBeamConfig(Builder().build())
 }
 
 RequestBeamConfig::RequestBeamConfig(
-    math::Angle confirmationBeamWidth,
-    math::Angle trackingBeamWidth
+    aesa_processor::math::Angle confirmationBeamWidth,
+    aesa_processor::math::Angle trackingBeamWidth
 ) : _confirmationBeamWidth(confirmationBeamWidth),
     _trackingBeamWidth(trackingBeamWidth)
 {
     validate();
 }
 
-math::Angle RequestBeamConfig::confirmationBeamWidth() const noexcept
+aesa_processor::math::Angle RequestBeamConfig::confirmationBeamWidth() const noexcept
 {
     return _confirmationBeamWidth;
 }
 
-math::Angle RequestBeamConfig::trackingBeamWidth() const noexcept
+aesa_processor::math::Angle RequestBeamConfig::trackingBeamWidth() const noexcept
 {
     return _trackingBeamWidth;
 }
@@ -41,4 +41,4 @@ RequestBeamConfig RequestBeamConfig::Builder::build() const
     return RequestBeamConfig(_confirmationBeamWidth, _trackingBeamWidth);
 }
 
-} // namespace beam
+} // namespace aesa_processor::beam

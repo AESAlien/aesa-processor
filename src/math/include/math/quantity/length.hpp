@@ -2,7 +2,7 @@
 
 #include "math/quantity/quantity_tolerance.hpp"
 
-namespace math
+namespace aesa_processor::math
 {
 
 class Length : public Quantity<Length>

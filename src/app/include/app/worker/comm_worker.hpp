@@ -6,7 +6,7 @@
 #include <comm/controller/comm_controller.hpp>
 #include <app/worker/worker_error.hpp>
 
-namespace app
+namespace aesa_processor::app
 {
 class CommWorker
 {
@@ -15,7 +15,7 @@ public:
         CommChannel& commChannel,
         BeamChannel& beamChannel,
         TargetChannel& targetChannel,
-        comm::CommController& controller);
+        aesa_processor::comm::CommController& controller);
 
     // 이 버전에서는 receiveData()의 nullopt를 수신 종료로 해석한다.
     void runReceive();
@@ -28,6 +28,6 @@ private:
     CommChannel& _commChannel;
     BeamChannel& _beamChannel;
     TargetChannel& _targetChannel;
-    comm::CommController& _controller;
+    aesa_processor::comm::CommController& _controller;
 };
-} // namespace app
+} // namespace aesa_processor::app

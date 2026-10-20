@@ -14,7 +14,7 @@
 #include <memory>
 #include <stdexcept>
 
-namespace target
+namespace aesa_processor::target
 {
 namespace
 {
@@ -33,7 +33,7 @@ std::chrono::milliseconds addTime(
 
 void validateDetection(const DetectionEvent& detection)
 {
-    using BeamType = beam::BeamType;
+    using BeamType = aesa_processor::beam::BeamType;
     if (detection.transmitTime.count() < 0
         || (detection.beamType != BeamType::SEARCH
             && detection.beamType != BeamType::CONFIRMATION
@@ -52,14 +52,14 @@ std::vector<Target> toTargets(
     targets.reserve(detection.plots.size());
     for (const auto& plot : detection.plots)
     {
-        targets.emplace_back(math::SphericalPosition(
-                plot.slantRange, math::SphericalDirection(plot.azimuth, plot.elevation)),
+        targets.emplace_back(aesa_processor::math::SphericalPosition(
+                plot.slantRange, aesa_processor::math::SphericalDirection(plot.azimuth, plot.elevation)),
             plot.dopplerVelocity, plot.power_db, detection.transmitTime, trackingAlgorithm);
     }
     return targets;
 }
 
-std::optional<beam::RequestBeamCommand> trackingRequestOrRemove(
+std::optional<aesa_processor::beam::RequestBeamCommand> trackingRequestOrRemove(
     TargetRepository& repository,
     const Target& target,
     std::chrono::milliseconds transmitTime)
@@ -71,8 +71,8 @@ std::optional<beam::RequestBeamCommand> trackingRequestOrRemove(
         return std::nullopt;
     }
 
-    return beam::RequestBeamCommand(
-        beam::RequestBeamType::TRACKING,
+    return aesa_processor::beam::RequestBeamCommand(
+        aesa_processor::beam::RequestBeamType::TRACKING,
         prediction->timestamp,
         target.id(),
         prediction->sphericalPosition.direction);
@@ -86,18 +86,18 @@ TrackEvent trackEvent(const Target& target)
     }
 
     const auto& state = *target.trackingState();
-    using namespace math::literals;
+    using namespace aesa_processor::math::literals;
 
     const auto& position = state.position;
     const auto& velocity = state.velocity;
     const auto horizontalRange = position.horizontalDistance();
     const auto horizontalSpeed = velocity.horizontalSpeed();
     const auto speed = velocity.speed();
-    const math::Angle heading = horizontalSpeed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
-        ? math::atan2(velocity.x, velocity.y)
+    const aesa_processor::math::Angle heading = horizontalSpeed.greaterThan(0.0_mps, aesa_processor::math::LinearVelocity::NONE_TOLERANCE)
+        ? aesa_processor::math::atan2(velocity.x, velocity.y)
         : 0_deg;
-    const math::Angle flightPathAngle = speed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
-        ? math::atan2(velocity.z, horizontalSpeed)
+    const aesa_processor::math::Angle flightPathAngle = speed.greaterThan(0.0_mps, aesa_processor::math::LinearVelocity::NONE_TOLERANCE)
+        ? aesa_processor::math::atan2(velocity.z, horizontalSpeed)
         : 0_deg;
     return TrackEvent(
         static_cast<std::uint16_t>(target.id()),
@@ -130,7 +130,7 @@ TargetController::TargetController(const TargetConfig& config)
 {
 }
 
-std::optional<beam::RequestBeamCommand> TargetController::handleDetection(DetectionEvent detection)
+std::optional<aesa_processor::beam::RequestBeamCommand> TargetController::handleDetection(DetectionEvent detection)
 {
     const auto& config = *_config;
     validateDetection(detection);
@@ -140,7 +140,7 @@ std::optional<beam::RequestBeamCommand> TargetController::handleDetection(Detect
     const auto requestId = detection.requestId;
     const auto resultTime = detection.transmitTime;
 
-    using BeamType = beam::BeamType;
+    using BeamType = aesa_processor::beam::BeamType;
     if (beamType == BeamType::SEARCH)
     {
         const auto previous = _targetRepository->lastSearchResultTime(requestId);
@@ -160,11 +160,11 @@ std::optional<beam::RequestBeamCommand> TargetController::handleDetection(Detect
         const Target& candidate = receivedTargets[*selected];
         const auto id = _targetRepository->add(candidate);
         _targetRepository->markSearchResultProcessed(requestId, resultTime);
-        return beam::RequestBeamCommand(
-            beam::RequestBeamType::CONFIRMATION,
+        return aesa_processor::beam::RequestBeamCommand(
+            aesa_processor::beam::RequestBeamType::CONFIRMATION,
             transmitTime,
             id,
-            math::SphericalDirection(candidate.azimuth(), candidate.elevation()));
+            aesa_processor::math::SphericalDirection(candidate.azimuth(), candidate.elevation()));
     }
 
     Target* target = _targetRepository->find(requestId);
@@ -233,4 +233,4 @@ std::vector<TrackEvent> TargetController::nextTrackEvents() const
     return events;
 }
 
-} // namespace target
+} // namespace aesa_processor::target

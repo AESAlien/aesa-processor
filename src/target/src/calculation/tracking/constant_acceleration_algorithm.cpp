@@ -14,12 +14,12 @@
 #include <stdexcept>
 #include <utility>
 
-namespace target
+namespace aesa_processor::target
 {
 namespace
 {
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 
 constexpr std::size_t POSITION_DIMENSION = 3;
 constexpr std::size_t VELOCITY_OFFSET = 3;
@@ -33,16 +33,16 @@ double elapsedSeconds(
     return std::chrono::duration<double>(current - previous).count();
 }
 
-math::Vector stateVector(const TargetTrackingState& state)
+aesa_processor::math::Vector stateVector(const TargetTrackingState& state)
 {
-    return math::Vector{state.position.x.m(), state.position.y.m(), state.position.z.m(),
+    return aesa_processor::math::Vector{state.position.x.m(), state.position.y.m(), state.position.z.m(),
         state.velocity.x.mps(), state.velocity.y.mps(), state.velocity.z.mps(),
         state.acceleration.x.mps2(), state.acceleration.y.mps2(), state.acceleration.z.mps2()};
 }
 
-math::Matrix measurementMatrix()
+aesa_processor::math::Matrix measurementMatrix()
 {
-    math::Matrix measurement(POSITION_DIMENSION, STATE_DIMENSION);
+    aesa_processor::math::Matrix measurement(POSITION_DIMENSION, STATE_DIMENSION);
     for (std::size_t axis = 0; axis < POSITION_DIMENSION; ++axis)
     {
         measurement(axis, axis) = 1.0;
@@ -50,9 +50,9 @@ math::Matrix measurementMatrix()
     return measurement;
 }
 
-std::optional<math::CartesianVelocity> initialVelocity(
-    const math::CartesianPosition& first,
-    const math::CartesianPosition& second,
+std::optional<aesa_processor::math::CartesianVelocity> initialVelocity(
+    const aesa_processor::math::CartesianPosition& first,
+    const aesa_processor::math::CartesianPosition& second,
     double seconds)
 {
     try
@@ -68,9 +68,9 @@ std::optional<math::CartesianVelocity> initialVelocity(
     }
 }
 
-math::SquareMatrix positionCovariance(const math::SquareMatrix& covariance)
+aesa_processor::math::SquareMatrix positionCovariance(const aesa_processor::math::SquareMatrix& covariance)
 {
-    math::SquareMatrix position(POSITION_DIMENSION);
+    aesa_processor::math::SquareMatrix position(POSITION_DIMENSION);
     for (std::size_t row = 0; row < POSITION_DIMENSION; ++row)
     {
         for (std::size_t column = 0; column < POSITION_DIMENSION; ++column)
@@ -81,7 +81,7 @@ math::SquareMatrix positionCovariance(const math::SquareMatrix& covariance)
     return position;
 }
 
-std::optional<math::SquareMatrix> symmetricCovariance(math::SquareMatrix covariance)
+std::optional<aesa_processor::math::SquareMatrix> symmetricCovariance(aesa_processor::math::SquareMatrix covariance)
 {
     if (!covariance.isFinite())
     {
@@ -107,8 +107,8 @@ std::optional<math::SquareMatrix> symmetricCovariance(math::SquareMatrix covaria
 
 struct PredictedState
 {
-    math::Vector values;
-    math::SquareMatrix covariance;
+    aesa_processor::math::Vector values;
+    aesa_processor::math::SquareMatrix covariance;
 };
 
 std::optional<PredictedState> predictState(
@@ -126,7 +126,7 @@ std::optional<PredictedState> predictState(
     {
         return std::nullopt;
     }
-    auto transition = math::SquareMatrix::identity(STATE_DIMENSION);
+    auto transition = aesa_processor::math::SquareMatrix::identity(STATE_DIMENSION);
     for (std::size_t axis = 0; axis < POSITION_DIMENSION; ++axis)
     {
         transition(axis, axis + VELOCITY_OFFSET) = seconds;
@@ -135,7 +135,7 @@ std::optional<PredictedState> predictState(
     }
     auto values = transition * stateVector(state);
     auto covariance = symmetricCovariance(
-        transition * *state.errorCovariance * math::transpose(transition));
+        transition * *state.errorCovariance * aesa_processor::math::transpose(transition));
     if (!values.isFinite() || !covariance)
     {
         return std::nullopt;
@@ -144,15 +144,15 @@ std::optional<PredictedState> predictState(
     return PredictedState{std::move(values), std::move(*covariance)};
 }
 
-std::optional<math::CartesianPosition> calculatedPosition(const math::Vector& values)
+std::optional<aesa_processor::math::CartesianPosition> calculatedPosition(const aesa_processor::math::Vector& values)
 {
     try
     {
-        const math::CartesianPosition position(
-            math::Length::fromMeters(values[0]),
-            math::Length::fromMeters(values[1]),
-            math::Length::fromMeters(values[2]));
-        if (position.distance().equals(0_m, math::Length::NONE_TOLERANCE))
+        const aesa_processor::math::CartesianPosition position(
+            aesa_processor::math::Length::fromMeters(values[0]),
+            aesa_processor::math::Length::fromMeters(values[1]),
+            aesa_processor::math::Length::fromMeters(values[2]));
+        if (position.distance().equals(0_m, aesa_processor::math::Length::NONE_TOLERANCE))
         {
             return std::nullopt;
         }
@@ -164,14 +164,14 @@ std::optional<math::CartesianPosition> calculatedPosition(const math::Vector& va
     }
 }
 
-std::optional<math::CartesianVelocity> calculatedVelocity(const math::Vector& values)
+std::optional<aesa_processor::math::CartesianVelocity> calculatedVelocity(const aesa_processor::math::Vector& values)
 {
     try
     {
-        const math::CartesianVelocity velocity(
-            math::LinearVelocity::fromMetersPerSecond(values[3]),
-            math::LinearVelocity::fromMetersPerSecond(values[4]),
-            math::LinearVelocity::fromMetersPerSecond(values[5]));
+        const aesa_processor::math::CartesianVelocity velocity(
+            aesa_processor::math::LinearVelocity::fromMetersPerSecond(values[3]),
+            aesa_processor::math::LinearVelocity::fromMetersPerSecond(values[4]),
+            aesa_processor::math::LinearVelocity::fromMetersPerSecond(values[5]));
         static_cast<void>(velocity.speed());
         return velocity;
     }
@@ -216,7 +216,7 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::initialize(
         + 0.25 * seconds * seconds * accelerationVariance;
     const double velocityAccelerationCovariance = 0.5 * seconds * accelerationVariance;
 
-    math::SquareMatrix initialCovariance(STATE_DIMENSION);
+    aesa_processor::math::SquareMatrix initialCovariance(STATE_DIMENSION);
     for (std::size_t axis = 0; axis < POSITION_DIMENSION; ++axis)
     {
         initialCovariance(axis, axis) = measurementVariance;
@@ -233,7 +233,7 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::initialize(
     }
     return TargetTrackingState(position.toSpherical(), second.dopplerVelocity(),
         second.power_db(), secondTime, position, *velocity,
-        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), std::move(initialCovariance));
+        aesa_processor::math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), std::move(initialCovariance));
 }
 
 std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
@@ -253,12 +253,12 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
     }
 
     const auto observationPosition = observation.sphericalPosition().toCartesian();
-    const math::Vector measurement{observationPosition.x.m(),
+    const aesa_processor::math::Vector measurement{observationPosition.x.m(),
         observationPosition.y.m(), observationPosition.z.m()};
     const auto measurementMapping = measurementMatrix();
     const double sigma = _config.measurementStandardDeviation.m();
-    const auto measurementNoise = math::SquareMatrix::identity(POSITION_DIMENSION) * (sigma * sigma);
-    const auto crossCovariance = predicted->covariance.asMatrix() * math::transpose(measurementMapping);
+    const auto measurementNoise = aesa_processor::math::SquareMatrix::identity(POSITION_DIMENSION) * (sigma * sigma);
+    const auto crossCovariance = predicted->covariance.asMatrix() * aesa_processor::math::transpose(measurementMapping);
     auto innovationCovariance = symmetricCovariance(
         positionCovariance(predicted->covariance) + measurementNoise);
     if (!innovationCovariance)
@@ -268,12 +268,12 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
 
     // S = L L^T. Solve each transposed gain row instead of forming S^-1.
     // A non-positive-definite S is a math/domain error and deliberately propagates.
-    const auto lower = math::cholesky(*innovationCovariance);
-    const auto upper = math::transpose(lower);
-    math::Matrix gain(STATE_DIMENSION, POSITION_DIMENSION);
+    const auto lower = aesa_processor::math::cholesky(*innovationCovariance);
+    const auto upper = aesa_processor::math::transpose(lower);
+    aesa_processor::math::Matrix gain(STATE_DIMENSION, POSITION_DIMENSION);
     for (std::size_t row = 0; row < STATE_DIMENSION; ++row)
     {
-        const math::Vector rightHandSide{crossCovariance(row, 0),
+        const aesa_processor::math::Vector rightHandSide{crossCovariance(row, 0),
             crossCovariance(row, 1), crossCovariance(row, 2)};
         const auto solved = upper.solveUpperTriangular(lower.solveLowerTriangular(rightHandSide));
         for (std::size_t column = 0; column < POSITION_DIMENSION; ++column)
@@ -284,11 +284,11 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
     const auto residual = measurement - measurementMapping * predicted->values;
     const auto values = predicted->values + gain * residual;
     // Joseph form retains the two PSD contributions despite rounding in K.
-    const auto remaining = math::SquareMatrix::identity(STATE_DIMENSION).asMatrix()
+    const auto remaining = aesa_processor::math::SquareMatrix::identity(STATE_DIMENSION).asMatrix()
         - gain * measurementMapping;
-    auto covariance = symmetricCovariance(math::SquareMatrix(
-        remaining * predicted->covariance.asMatrix() * math::transpose(remaining)
-        + gain * measurementNoise.asMatrix() * math::transpose(gain)));
+    auto covariance = symmetricCovariance(aesa_processor::math::SquareMatrix(
+        remaining * predicted->covariance.asMatrix() * aesa_processor::math::transpose(remaining)
+        + gain * measurementNoise.asMatrix() * aesa_processor::math::transpose(gain)));
     if (!values.isFinite() || !covariance)
     {
         return std::nullopt;
@@ -301,10 +301,10 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
     }
     return TargetTrackingState(position->toSpherical(), observation.dopplerVelocity(),
         observation.power_db(), time, *position, *velocity,
-        math::CartesianAcceleration(
-            math::LinearAcceleration::fromMetersPerSecondSquared(values[6]),
-            math::LinearAcceleration::fromMetersPerSecondSquared(values[7]),
-            math::LinearAcceleration::fromMetersPerSecondSquared(values[8])),
+        aesa_processor::math::CartesianAcceleration(
+            aesa_processor::math::LinearAcceleration::fromMetersPerSecondSquared(values[6]),
+            aesa_processor::math::LinearAcceleration::fromMetersPerSecondSquared(values[7]),
+            aesa_processor::math::LinearAcceleration::fromMetersPerSecondSquared(values[8])),
         std::move(*covariance));
 }
 
@@ -330,4 +330,4 @@ std::optional<TargetPrediction> ConstantAccelerationAlgorithm::predict(
     return TargetPrediction(time, position->toSpherical(), positionCovariance(predicted->covariance));
 }
 
-} // namespace target
+} // namespace aesa_processor::target

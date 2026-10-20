@@ -6,11 +6,11 @@
 #include <limits>
 #include <type_traits>
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 using namespace std::chrono_literals;
 
-static_assert(!std::is_default_constructible_v<math::LinearAcceleration>);
-static_assert(!std::is_constructible_v<math::LinearAcceleration, double>);
+static_assert(!std::is_default_constructible_v<aesa_processor::math::LinearAcceleration>);
+static_assert(!std::is_constructible_v<aesa_processor::math::LinearAcceleration, double>);
 
 
 
@@ -26,8 +26,8 @@ TEST(LinearAccelerationTest, PreservesSignedMetersPerSecondSquared)
 // 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(LinearAccelerationTest, CreatesMetersPerSecondSquaredLiterals)
 {
-    static_assert(std::is_same_v<decltype(2_mps2), math::LinearAcceleration>);
-    static_assert(std::is_same_v<decltype(2.5_mps2), math::LinearAcceleration>);
+    static_assert(std::is_same_v<decltype(2_mps2), aesa_processor::math::LinearAcceleration>);
+    static_assert(std::is_same_v<decltype(2.5_mps2), aesa_processor::math::LinearAcceleration>);
     EXPECT_DOUBLE_EQ((2_mps2).mps2(), 2.0);
     EXPECT_DOUBLE_EQ((-2.5_mps2).mps2(), -2.5);
 }
@@ -35,8 +35,8 @@ TEST(LinearAccelerationTest, CreatesMetersPerSecondSquaredLiterals)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(LinearAccelerationTest, SupportsQuantityArithmetic)
 {
-    static_assert(std::is_same_v<decltype(3_mps2 + 2_mps2), math::LinearAcceleration>);
-    static_assert(std::is_same_v<decltype(3_mps2 * 2.0), math::LinearAcceleration>);
+    static_assert(std::is_same_v<decltype(3_mps2 + 2_mps2), aesa_processor::math::LinearAcceleration>);
+    static_assert(std::is_same_v<decltype(3_mps2 * 2.0), aesa_processor::math::LinearAcceleration>);
 
     EXPECT_EQ(3_mps2 + 2_mps2, 5_mps2);
     EXPECT_EQ(3_mps2 - 2_mps2, 1_mps2);
@@ -62,7 +62,7 @@ TEST(LinearAccelerationTest, AppliesCompoundArithmetic)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(LinearAccelerationTest, CalculatesVelocityFromAccelerationAndDuration)
 {
-    static_assert(std::is_same_v<decltype(2_mps2 * 500ms), math::LinearVelocity>);
+    static_assert(std::is_same_v<decltype(2_mps2 * 500ms), aesa_processor::math::LinearVelocity>);
 
     EXPECT_EQ(2_mps2 * 500ms, 1_mps);
     EXPECT_EQ(-2_mps2 * 3s, -6_mps);
@@ -72,14 +72,14 @@ TEST(LinearAccelerationTest, CalculatesVelocityFromAccelerationAndDuration)
 // 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TEST(LinearAccelerationTest, AbsReturnsNonnegativeAcceleration)
 {
-    EXPECT_EQ(math::abs(-2_mps2), 2_mps2);
-    EXPECT_EQ(math::abs(2_mps2), 2_mps2);
+    EXPECT_EQ(aesa_processor::math::abs(-2_mps2), 2_mps2);
+    EXPECT_EQ(aesa_processor::math::abs(2_mps2), 2_mps2);
 }
 
 // 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LinearAccelerationTest, RejectsInvalidScalarArithmetic)
 {
-    const auto maximum = math::LinearAcceleration::fromMetersPerSecondSquared(
+    const auto maximum = aesa_processor::math::LinearAcceleration::fromMetersPerSecondSquared(
         std::numeric_limits<double>::max());
 
     EXPECT_THROW(maximum + maximum, std::invalid_argument);
@@ -92,7 +92,7 @@ TEST(LinearAccelerationTest, RejectsInvalidScalarArithmetic)
 // 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LinearAccelerationTest, CompoundArithmeticPreservesValueOnFailure)
 {
-    const auto maximum = math::LinearAcceleration::fromMetersPerSecondSquared(
+    const auto maximum = aesa_processor::math::LinearAcceleration::fromMetersPerSecondSquared(
         std::numeric_limits<double>::max());
     auto acceleration = maximum;
 
@@ -112,18 +112,18 @@ TEST(LinearAccelerationTest, RejectsNonfiniteValuesAndResults)
     const double maximum = std::numeric_limits<double>::max();
 
     EXPECT_THROW(
-        math::LinearAcceleration::fromMetersPerSecondSquared(
+        aesa_processor::math::LinearAcceleration::fromMetersPerSecondSquared(
             std::numeric_limits<double>::infinity()),
         std::invalid_argument);
     EXPECT_THROW(
-        math::LinearAcceleration::fromMetersPerSecondSquared(maximum) * 2s,
+        aesa_processor::math::LinearAcceleration::fromMetersPerSecondSquared(maximum) * 2s,
         std::invalid_argument);
     EXPECT_THROW(
         1_mps2 * std::chrono::duration<double>{
             std::numeric_limits<double>::quiet_NaN()},
         std::invalid_argument);
     EXPECT_THROW(
-        math::literals::operator""_mps2(
+        aesa_processor::math::literals::operator""_mps2(
             static_cast<long double>(std::numeric_limits<double>::infinity())),
         std::invalid_argument);
 }

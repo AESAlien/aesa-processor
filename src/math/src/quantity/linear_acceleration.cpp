@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace math
+namespace aesa_processor::math
 {
 
 const QuantityTolerance<LinearAcceleration> LinearAcceleration::NONE_TOLERANCE{

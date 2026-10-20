@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 BeamConfig::BeamConfig() : BeamConfig(Builder().build())
@@ -40,4 +40,4 @@ BeamConfig BeamConfig::Builder::build() const
     return BeamConfig(_attitude, _searchGrid, _requestBeam);
 }
 
-} // namespace beam
+} // namespace aesa_processor::beam

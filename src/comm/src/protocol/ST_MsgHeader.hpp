@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace comm::protocol
+namespace aesa_processor::comm::protocol
 {
 
 constexpr uint8_t MESSAGE_VERSION = 1;
@@ -35,4 +35,4 @@ struct ST_MsgHeader
 
 static_assert(sizeof(ST_MsgHeader) == 20, "ST_MsgHeader must be 20 bytes");
 
-} // namespace comm::protocol
+} // namespace aesa_processor::comm::protocol

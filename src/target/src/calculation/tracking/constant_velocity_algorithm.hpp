@@ -2,7 +2,7 @@
 
 #include "tracking_algorithm.hpp"
 
-namespace target
+namespace aesa_processor::target
 {
 
 class ConstantVelocityAlgorithm final : public ITrackingAlgorithm
@@ -21,4 +21,4 @@ public:
         std::chrono::milliseconds time) const override;
 };
 
-} // namespace target
+} // namespace aesa_processor::target

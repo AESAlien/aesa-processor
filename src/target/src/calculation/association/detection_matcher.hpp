@@ -6,7 +6,7 @@
 
 #include <optional>
 
-namespace target
+namespace aesa_processor::target
 {
 
 class Target;
@@ -30,8 +30,8 @@ public:
 
 private:
     const TargetConfig _config;
-    const math::SquareMatrix _measurementCovariance;
-    const math::SquareMatrix _measurementDifferenceCovariance;
+    const aesa_processor::math::SquareMatrix _measurementCovariance;
+    const aesa_processor::math::SquareMatrix _measurementDifferenceCovariance;
 };
 
-} // namespace target
+} // namespace aesa_processor::target

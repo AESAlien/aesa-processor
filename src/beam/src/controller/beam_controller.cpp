@@ -4,7 +4,7 @@
 #include "scheduler/beam_request_factory.hpp"
 #include "scheduler/scheduler.hpp"
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 BeamController::BeamController() : BeamController(BeamConfig{})
@@ -51,4 +51,4 @@ std::optional<TransmitBeamCommand> BeamController::nextBeamCommand(std::chrono::
     return _scheduler->next(currentTime);
 }
 
-} // namespace beam
+} // namespace aesa_processor::beam

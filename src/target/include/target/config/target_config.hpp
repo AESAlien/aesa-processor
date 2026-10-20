@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace target
+namespace aesa_processor::target
 {
 
 struct TargetConfig
@@ -17,9 +17,9 @@ struct TargetConfig
 
     TargetConfig();
     TargetConfig(
-        math::LinearVelocity maxAssociationSpeed,
-        math::LinearVelocity maxInitialDopplerDifference,
-        math::Length measurementStandardDeviation,
+        aesa_processor::math::LinearVelocity maxAssociationSpeed,
+        aesa_processor::math::LinearVelocity maxInitialDopplerDifference,
+        aesa_processor::math::Length measurementStandardDeviation,
         double positionNdsThreshold,
         std::chrono::milliseconds confirmationDelay,
         std::chrono::milliseconds trackingInterval,
@@ -27,9 +27,9 @@ struct TargetConfig
         double initialAccelerationStandardDeviation = 10.0,
         std::size_t maxReportedTrackCount = MAXIMUM_REPORTED_TRACK_COUNT);
 
-    const math::LinearVelocity maxAssociationSpeed;
-    const math::LinearVelocity maxInitialDopplerDifference;
-    const math::Length measurementStandardDeviation;
+    const aesa_processor::math::LinearVelocity maxAssociationSpeed;
+    const aesa_processor::math::LinearVelocity maxInitialDopplerDifference;
+    const aesa_processor::math::Length measurementStandardDeviation;
     // Provisional chi-square gate for three dimensions at 99%; tune at construction.
     const double positionNdsThreshold;
     const std::chrono::milliseconds confirmationDelay;
@@ -44,4 +44,4 @@ private:
     void validate() const;
 };
 
-} // namespace target
+} // namespace aesa_processor::target

@@ -8,7 +8,7 @@
 #include <optional>
 #include <vector>
 
-namespace target
+namespace aesa_processor::target
 {
 
 class TargetRepository;
@@ -33,4 +33,4 @@ private:
     const DetectionMatcher& _matcher;
 };
 
-} // namespace target
+} // namespace aesa_processor::target

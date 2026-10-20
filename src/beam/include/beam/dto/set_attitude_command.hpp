@@ -4,25 +4,25 @@
 #include <math/quantity/length.hpp>
 #include <optional>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 struct SetAttitudeCommand
 {
-    const math::Angle latitude;
-    const math::Angle longitude;
-    const math::Length altitude;
-    const math::Angle roll;
-    const math::Angle pitch;
-    const math::Angle yaw;
+    const aesa_processor::math::Angle latitude;
+    const aesa_processor::math::Angle longitude;
+    const aesa_processor::math::Length altitude;
+    const aesa_processor::math::Angle roll;
+    const aesa_processor::math::Angle pitch;
+    const aesa_processor::math::Angle yaw;
 
     SetAttitudeCommand(
-        math::Angle latitude,
-        math::Angle longitude,
-        math::Length altitude,
-        math::Angle roll,
-        math::Angle pitch,
-        math::Angle yaw
+        aesa_processor::math::Angle latitude,
+        aesa_processor::math::Angle longitude,
+        aesa_processor::math::Length altitude,
+        aesa_processor::math::Angle roll,
+        aesa_processor::math::Angle pitch,
+        aesa_processor::math::Angle yaw
     ) : latitude(latitude),
         longitude(longitude),
         altitude(altitude),
@@ -35,12 +35,12 @@ struct SetAttitudeCommand
     class Builder
     {
     public:
-        Builder& latitude(math::Angle value) { _latitude = value; return *this; }
-        Builder& longitude(math::Angle value) { _longitude = value; return *this; }
-        Builder& altitude(math::Length value) { _altitude = value; return *this; }
-        Builder& roll(math::Angle value) { _roll = value; return *this; }
-        Builder& pitch(math::Angle value) { _pitch = value; return *this; }
-        Builder& yaw(math::Angle value) { _yaw = value; return *this; }
+        Builder& latitude(aesa_processor::math::Angle value) { _latitude = value; return *this; }
+        Builder& longitude(aesa_processor::math::Angle value) { _longitude = value; return *this; }
+        Builder& altitude(aesa_processor::math::Length value) { _altitude = value; return *this; }
+        Builder& roll(aesa_processor::math::Angle value) { _roll = value; return *this; }
+        Builder& pitch(aesa_processor::math::Angle value) { _pitch = value; return *this; }
+        Builder& yaw(aesa_processor::math::Angle value) { _yaw = value; return *this; }
 
         SetAttitudeCommand build() const
         {
@@ -50,15 +50,15 @@ struct SetAttitudeCommand
         }
 
     private:
-        std::optional<math::Angle> _latitude;
-        std::optional<math::Angle> _longitude;
-        std::optional<math::Length> _altitude;
-        std::optional<math::Angle> _roll;
-        std::optional<math::Angle> _pitch;
-        std::optional<math::Angle> _yaw;
+        std::optional<aesa_processor::math::Angle> _latitude;
+        std::optional<aesa_processor::math::Angle> _longitude;
+        std::optional<aesa_processor::math::Length> _altitude;
+        std::optional<aesa_processor::math::Angle> _roll;
+        std::optional<aesa_processor::math::Angle> _pitch;
+        std::optional<aesa_processor::math::Angle> _yaw;
     };
 };
 
 static_assert(sizeof(SetAttitudeCommand) == 48, "SetAttitudeCommand must be 48 bytes");
 
-} // namespace beam
+} // namespace aesa_processor::beam

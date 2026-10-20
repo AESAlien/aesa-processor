@@ -4,7 +4,7 @@
 
 #include <cmath>
 
-namespace math
+namespace aesa_processor::math
 {
 
 CartesianVelocity::CartesianVelocity(LinearVelocity x, LinearVelocity y, LinearVelocity z) noexcept

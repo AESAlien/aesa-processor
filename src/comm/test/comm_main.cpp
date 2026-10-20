@@ -19,38 +19,38 @@ constexpr char SCENARIO_SIMULATOR_ADDRESS[] = "127.0.0.100";
 constexpr uint16_t SCENARIO_SIMULATOR_PORT = 3300;
 constexpr std::chrono::milliseconds RETRY_DELAY{100};
 
-const char* operationStateName(beam::OperationState state)
+const char* operationStateName(aesa_processor::beam::OperationState state)
 {
     switch (state)
     {
-    case beam::OperationState::ON:
+    case aesa_processor::beam::OperationState::ON:
         return "on";
 
-    case beam::OperationState::OFF:
+    case aesa_processor::beam::OperationState::OFF:
         return "off";
     }
 
     return "unknown";
 }
 
-const char* beamTypeName(beam::BeamType beamType)
+const char* beamTypeName(aesa_processor::beam::BeamType beamType)
 {
     switch (beamType)
     {
-    case beam::BeamType::SEARCH:
+    case aesa_processor::beam::BeamType::SEARCH:
         return "search";
 
-    case beam::BeamType::CONFIRMATION:
+    case aesa_processor::beam::BeamType::CONFIRMATION:
         return "confirmation";
 
-    case beam::BeamType::TRACKING:
+    case aesa_processor::beam::BeamType::TRACKING:
         return "tracking";
     }
 
     return "unknown";
 }
 
-comm::CommConfiguration makeConfiguration()
+aesa_processor::comm::CommConfiguration makeConfiguration()
 {
     return
     {
@@ -82,10 +82,10 @@ void printConfiguration()
         << '\n';
 }
 
-void printIncomingData(const comm::IncomingDto& message)
+void printIncomingData(const aesa_processor::comm::IncomingDto& message)
 {
     if (const auto* command =
-            std::get_if<beam::SetOperationStateCommand>(&message))
+            std::get_if<aesa_processor::beam::SetOperationStateCommand>(&message))
     {
         std::cout
             << "[received] type=operation-state"
@@ -96,7 +96,7 @@ void printIncomingData(const comm::IncomingDto& message)
     }
 
     if (const auto* command =
-            std::get_if<beam::SetAttitudeCommand>(&message))
+            std::get_if<aesa_processor::beam::SetAttitudeCommand>(&message))
     {
         std::cout
             << "[received] type=radar-attitude"
@@ -116,7 +116,7 @@ void printIncomingData(const comm::IncomingDto& message)
         return;
     }
 
-    const auto& event = std::get<target::DetectionEvent>(message);
+    const auto& event = std::get<aesa_processor::target::DetectionEvent>(message);
     std::cout
         << "[received] type=plot-information"
         << ", beam-type="
@@ -131,7 +131,7 @@ void printIncomingData(const comm::IncomingDto& message)
 
     for (std::size_t index = 0; index < event.plots.size(); ++index)
     {
-        const target::DetectionEvent::Plot& plot = event.plots[index];
+        const aesa_processor::target::DetectionEvent::Plot& plot = event.plots[index];
         std::cout
             << "  [plot "
             << index
@@ -150,7 +150,7 @@ void printIncomingData(const comm::IncomingDto& message)
     }
 }
 
-bool testOpenServer(comm::CommController& controller)
+bool testOpenServer(aesa_processor::comm::CommController& controller)
 {
     try
     {
@@ -158,7 +158,7 @@ bool testOpenServer(comm::CommController& controller)
         std::cout << "[success] openServer" << '\n';
         return true;
     }
-    catch (const comm::ServerOpenError& error)
+    catch (const aesa_processor::comm::ServerOpenError& error)
     {
         std::cerr
             << "[failure] openServer: "
@@ -168,13 +168,13 @@ bool testOpenServer(comm::CommController& controller)
     }
 }
 
-int testReceiveData(comm::CommController& controller)
+int testReceiveData(aesa_processor::comm::CommController& controller)
 {
     while (true)
     {
         try
         {
-            const std::optional<comm::IncomingDto> incoming =
+            const std::optional<aesa_processor::comm::IncomingDto> incoming =
                 controller.receiveData();
 
             if (!incoming.has_value())
@@ -185,14 +185,14 @@ int testReceiveData(comm::CommController& controller)
 
             printIncomingData(*incoming);
         }
-        catch (const comm::ConnectionError& error)
+        catch (const aesa_processor::comm::ConnectionError& error)
         {
             std::cerr
                 << "[connection-error] "
                 << error.what()
                 << '\n';
         }
-        catch (const comm::ReceiveError& error)
+        catch (const aesa_processor::comm::ReceiveError& error)
         {
             std::cerr
                 << "[receive-error] "
@@ -214,7 +214,7 @@ int testReceiveData(comm::CommController& controller)
 
 int runControllerTest()
 {
-    comm::CommController controller(makeConfiguration());
+    aesa_processor::comm::CommController controller(makeConfiguration());
     if (!testOpenServer(controller))
     {
         return 1;

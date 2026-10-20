@@ -3,10 +3,10 @@
 #include <cmath>
 #include <stdexcept>
 
-namespace target
+namespace aesa_processor::target
 {
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 
 TargetConfig::TargetConfig()
     : TargetConfig(1000.0_mps, 30.0_mps, 7.0_m, 11.345,
@@ -15,9 +15,9 @@ TargetConfig::TargetConfig()
 }
 
 TargetConfig::TargetConfig(
-    math::LinearVelocity maxAssociationSpeed,
-    math::LinearVelocity maxInitialDopplerDifference,
-    math::Length measurementStandardDeviation,
+    aesa_processor::math::LinearVelocity maxAssociationSpeed,
+    aesa_processor::math::LinearVelocity maxInitialDopplerDifference,
+    aesa_processor::math::Length measurementStandardDeviation,
     double positionNdsThreshold,
     std::chrono::milliseconds confirmationDelay,
     std::chrono::milliseconds trackingInterval,
@@ -44,8 +44,8 @@ void TargetConfig::validate() const
     const double differenceVariance = 2.0 * variance;
     const double accelerationVariance = initialAccelerationStandardDeviation
         * initialAccelerationStandardDeviation;
-    if (maxAssociationSpeed.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
-        || maxInitialDopplerDifference.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+    if (maxAssociationSpeed.lessThan(0.0_mps, aesa_processor::math::LinearVelocity::NONE_TOLERANCE)
+        || maxInitialDopplerDifference.lessThan(0.0_mps, aesa_processor::math::LinearVelocity::NONE_TOLERANCE)
         || sigma <= 0.0 || !std::isfinite(variance) || variance <= 0.0
         || !std::isfinite(differenceVariance)
         || !std::isfinite(positionNdsThreshold) || positionNdsThreshold < 0.0
@@ -60,4 +60,4 @@ void TargetConfig::validate() const
     }
 }
 
-} // namespace target
+} // namespace aesa_processor::target

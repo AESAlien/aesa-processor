@@ -15,26 +15,26 @@
 #include <utility>
 #include <vector>
 
-namespace target
+namespace aesa_processor::target
 {
 namespace
 {
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
-using BeamType = beam::BeamType;
+using BeamType = aesa_processor::beam::BeamType;
 
-math::CartesianPosition radial(math::Length range)
+aesa_processor::math::CartesianPosition radial(aesa_processor::math::Length range)
 {
-    return math::CartesianPosition(0_m, range, 0_m);
+    return aesa_processor::math::CartesianPosition(0_m, range, 0_m);
 }
 
 DetectionEvent result(
     BeamType type,
     std::uint32_t id,
     Time time,
-    std::initializer_list<math::CartesianPosition> positions)
+    std::initializer_list<aesa_processor::math::CartesianPosition> positions)
 {
     std::vector<DetectionEvent::Plot> plots;
     for (const auto& position : positions)
@@ -46,10 +46,10 @@ DetectionEvent result(
     return DetectionEvent(type, id, time, std::move(plots));
 }
 
-std::optional<beam::RequestBeamCommand> beginTracking(
+std::optional<aesa_processor::beam::RequestBeamCommand> beginTracking(
     TargetController& controller,
-    const math::CartesianPosition& first,
-    const math::CartesianPosition& second)
+    const aesa_processor::math::CartesianPosition& first,
+    const aesa_processor::math::CartesianPosition& second)
 {
     const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 37, 0ms, {first}));
     if (!confirmation)
@@ -57,23 +57,23 @@ std::optional<beam::RequestBeamCommand> beginTracking(
         ADD_FAILURE() << "A new search observation must produce a confirmation request";
         return std::nullopt;
     }
-    EXPECT_EQ(confirmation->beamType, beam::RequestBeamType::CONFIRMATION);
+    EXPECT_EQ(confirmation->beamType, aesa_processor::beam::RequestBeamType::CONFIRMATION);
     EXPECT_EQ(confirmation->requestId, 1u);
     EXPECT_EQ(confirmation->transmitTime, 100ms);
     return controller.handleDetection(result(BeamType::CONFIRMATION,
         confirmation->requestId, confirmation->transmitTime, {second}));
 }
 
-math::CartesianPosition consolePosition(const TrackEvent& event)
+aesa_processor::math::CartesianPosition consolePosition(const TrackEvent& event)
 {
-    return math::SphericalPosition(event.slantRange,
-        math::SphericalDirection(event.azimuth, event.elevation)).toCartesian();
+    return aesa_processor::math::SphericalPosition(event.slantRange,
+        aesa_processor::math::SphericalDirection(event.azimuth, event.elevation)).toCartesian();
 }
 
-math::CartesianPosition trajectory(double seconds)
+aesa_processor::math::CartesianPosition trajectory(double seconds)
 {
     // True antenna-frame motion: p0=(3000,10000,1000), v0=(80,-40,10), a=(6,3,-2).
-    return math::CartesianPosition(
+    return aesa_processor::math::CartesianPosition(
         3000_m + 80_m * seconds + 3_m * seconds * seconds,
         10000_m - 40_m * seconds + 1.5_m * seconds * seconds,
         1000_m + 10_m * seconds - 1_m * seconds * seconds);
@@ -84,7 +84,7 @@ TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInst
     TargetController controller(TargetConfig{});
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
-    EXPECT_EQ(tracking->beamType, beam::RequestBeamType::TRACKING);
+    EXPECT_EQ(tracking->beamType, aesa_processor::beam::RequestBeamType::TRACKING);
     EXPECT_EQ(tracking->requestId, 1u);
     EXPECT_EQ(tracking->transmitTime, 1100ms);
     EXPECT_NEAR(tracking->direction_ant.azimuth.deg(), 0.0, 1e-12);
@@ -150,7 +150,7 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
         const double seconds = std::chrono::duration<double>(observationTime).count();
         const auto truth = trajectory(seconds);
         // Fixed Cartesian errors scaled by the configured 7 m per-axis measurement noise.
-        const math::CartesianDisplacement measurementError(
+        const aesa_processor::math::CartesianDisplacement measurementError(
             7_m * noise[0],
             7_m * noise[1],
             7_m * noise[2]);
@@ -242,4 +242,4 @@ TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAn
 }
 
 } // namespace
-} // namespace target
+} // namespace aesa_processor::target

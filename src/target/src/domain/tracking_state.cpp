@@ -4,13 +4,13 @@
 #include <stdexcept>
 #include <utility>
 
-namespace target
+namespace aesa_processor::target
 {
 
 TargetPrediction::TargetPrediction(
     std::chrono::milliseconds timestamp,
-    math::SphericalPosition sphericalPosition,
-    std::optional<math::SquareMatrix> positionCovariance)
+    aesa_processor::math::SphericalPosition sphericalPosition,
+    std::optional<aesa_processor::math::SquareMatrix> positionCovariance)
     : timestamp(timestamp)
     , sphericalPosition(std::move(sphericalPosition))
     , positionCovariance(std::move(positionCovariance))
@@ -20,9 +20,9 @@ TargetPrediction::TargetPrediction(
 
 void TargetPrediction::validate() const
 {
-    using namespace math::literals;
+    using namespace aesa_processor::math::literals;
     if (timestamp.count() < 0
-        || !sphericalPosition.radius.greaterThan(0.0_m, math::Length::NONE_TOLERANCE))
+        || !sphericalPosition.radius.greaterThan(0.0_m, aesa_processor::math::Length::NONE_TOLERANCE))
     {
         throw std::invalid_argument("Prediction requires a positive range and nonnegative time");
     }
@@ -30,7 +30,7 @@ void TargetPrediction::validate() const
     if (positionCovariance)
     {
         if (positionCovariance->size() != POSITION_DIMENSION
-            || !positionCovariance->isSymmetric(math::NONE_TOLERANCE))
+            || !positionCovariance->isSymmetric(aesa_processor::math::NONE_TOLERANCE))
         {
             throw std::invalid_argument("Prediction covariance requires a finite symmetric 3x3 matrix");
         }
@@ -45,14 +45,14 @@ void TargetPrediction::validate() const
 }
 
 TargetTrackingState::TargetTrackingState(
-    math::SphericalPosition sphericalPosition,
-    math::LinearVelocity dopplerVelocity,
+    aesa_processor::math::SphericalPosition sphericalPosition,
+    aesa_processor::math::LinearVelocity dopplerVelocity,
     float power_db,
     std::chrono::milliseconds timestamp,
-    math::CartesianPosition position,
-    math::CartesianVelocity velocity,
-    math::CartesianAcceleration acceleration,
-    std::optional<math::SquareMatrix> errorCovariance)
+    aesa_processor::math::CartesianPosition position,
+    aesa_processor::math::CartesianVelocity velocity,
+    aesa_processor::math::CartesianAcceleration acceleration,
+    std::optional<aesa_processor::math::SquareMatrix> errorCovariance)
     : sphericalPosition(std::move(sphericalPosition))
     , dopplerVelocity(dopplerVelocity)
     , power_db(power_db)
@@ -67,9 +67,9 @@ TargetTrackingState::TargetTrackingState(
 
 void TargetTrackingState::validate() const
 {
-    using namespace math::literals;
+    using namespace aesa_processor::math::literals;
     if (timestamp.count() < 0
-        || !sphericalPosition.radius.greaterThan(0.0_m, math::Length::NONE_TOLERANCE)
+        || !sphericalPosition.radius.greaterThan(0.0_m, aesa_processor::math::Length::NONE_TOLERANCE)
         || !std::isfinite(power_db))
     {
         throw std::invalid_argument("Tracking state requires valid observation values and time");
@@ -81,7 +81,7 @@ void TargetTrackingState::validate() const
     if (errorCovariance)
     {
         if (errorCovariance->size() != STATE_DIMENSION
-            || !errorCovariance->isSymmetric(math::NONE_TOLERANCE))
+            || !errorCovariance->isSymmetric(aesa_processor::math::NONE_TOLERANCE))
         {
             throw std::invalid_argument("Tracking covariance requires a finite symmetric 9x9 matrix");
         }
@@ -95,4 +95,4 @@ void TargetTrackingState::validate() const
     }
 }
 
-} // namespace target
+} // namespace aesa_processor::target

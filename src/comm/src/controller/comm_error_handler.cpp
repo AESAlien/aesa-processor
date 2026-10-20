@@ -7,7 +7,7 @@
 #include <sstream>
 #include <string>
 
-namespace comm
+namespace aesa_processor::comm
 {
 namespace controller_error
 {
@@ -344,4 +344,4 @@ void reportRejectedConnection(
 }
 
 } // namespace controller_error
-} // namespace comm
+} // namespace aesa_processor::comm

@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace app
+namespace aesa_processor::app
 {
 void TargetChannel::write(TargetEvent message)
 {
@@ -18,4 +18,4 @@ void TargetChannel::close()
 {
     _queue.close();
 }
-} // namespace app
+} // namespace aesa_processor::app

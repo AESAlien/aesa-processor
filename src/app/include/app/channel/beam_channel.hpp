@@ -9,7 +9,7 @@
 #include <optional>
 #include <variant>
 
-namespace app
+namespace aesa_processor::app
 {
 struct NextBeamCommandEvent
 {
@@ -17,9 +17,9 @@ struct NextBeamCommandEvent
 };
 
 using BeamEvent = std::variant<
-    beam::SetOperationStateCommand,
-    beam::SetAttitudeCommand,
-    beam::RequestBeamCommand,
+    aesa_processor::beam::SetOperationStateCommand,
+    aesa_processor::beam::SetAttitudeCommand,
+    aesa_processor::beam::RequestBeamCommand,
     NextBeamCommandEvent>;
 
 class BeamChannel final
@@ -34,4 +34,4 @@ public:
 private:
     MessageQueue<BeamEvent> _queue;
 };
-} // namespace app
+} // namespace aesa_processor::app

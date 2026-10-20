@@ -4,22 +4,22 @@
 #include <math/quantity/angle.hpp>
 #include <cstdint>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 struct SearchBeam
 {
     const uint32_t beamId;
     // ENU 기준 빔 지향 방향. 생성 시점에 범위가 검증된다.
-    const math::SphericalDirection direction_enu;
-    const math::Angle azimuthBeamWidth;
-    const math::Angle elevationBeamWidth;
+    const aesa_processor::math::SphericalDirection direction_enu;
+    const aesa_processor::math::Angle azimuthBeamWidth;
+    const aesa_processor::math::Angle elevationBeamWidth;
 
     SearchBeam(
         uint32_t beamId,
-        math::SphericalDirection direction_enu,
-        math::Angle azimuthBeamWidth,
-        math::Angle elevationBeamWidth
+        aesa_processor::math::SphericalDirection direction_enu,
+        aesa_processor::math::Angle azimuthBeamWidth,
+        aesa_processor::math::Angle elevationBeamWidth
     ) : beamId(beamId),
         direction_enu(direction_enu),
         azimuthBeamWidth(azimuthBeamWidth),
@@ -28,4 +28,4 @@ struct SearchBeam
     }
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

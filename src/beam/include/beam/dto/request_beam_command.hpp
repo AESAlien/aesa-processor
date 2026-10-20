@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 // 확인/추적 빔 송신 요청. target이 만들어 BeamController::requestBeam으로 전달한다.
@@ -22,13 +22,13 @@ struct RequestBeamCommand
     const RequestBeamType beamType;
     const std::chrono::milliseconds transmitTime;
     const uint32_t requestId;
-    const math::SphericalDirection direction_ant;
+    const aesa_processor::math::SphericalDirection direction_ant;
 
     RequestBeamCommand(
         RequestBeamType beamType,
         std::chrono::milliseconds transmitTime,
         uint32_t requestId,
-        math::SphericalDirection direction_ant
+        aesa_processor::math::SphericalDirection direction_ant
     ) : beamType(beamType),
         transmitTime(transmitTime),
         requestId(requestId),
@@ -43,7 +43,7 @@ struct RequestBeamCommand
         Builder& transmitTime(std::chrono::milliseconds value) { _transmitTime = value; return *this; }
         Builder& requestId(uint32_t value) { _requestId = value; return *this; }
         // SphericalDirection은 대입할 수 없으므로 emplace로 다시 만든다.
-        Builder& direction_ant(math::SphericalDirection value) { _direction_ant.emplace(value); return *this; }
+        Builder& direction_ant(aesa_processor::math::SphericalDirection value) { _direction_ant.emplace(value); return *this; }
 
         RequestBeamCommand build() const
         {
@@ -58,8 +58,8 @@ struct RequestBeamCommand
         std::optional<RequestBeamType> _beamType;
         std::optional<std::chrono::milliseconds> _transmitTime;
         std::optional<uint32_t> _requestId;
-        std::optional<math::SphericalDirection> _direction_ant;
+        std::optional<aesa_processor::math::SphericalDirection> _direction_ant;
     };
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

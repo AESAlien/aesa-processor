@@ -6,7 +6,7 @@
 #include <variant>
 #include <vector>
 
-namespace comm
+namespace aesa_processor::comm
 {
 
 struct NetworkEndpoint
@@ -131,4 +131,4 @@ struct SendResult
     int errorCode = 0;
 };
 
-} // namespace comm
+} // namespace aesa_processor::comm

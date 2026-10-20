@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace comm::protocol
+namespace aesa_processor::comm::protocol
 {
 
 #pragma pack(push, 1)
@@ -32,4 +32,4 @@ struct ST_BeamTxMsg
 static_assert(sizeof(ST_BeamTx) == 60, "ST_BeamTx must be 60 bytes");
 static_assert(sizeof(ST_BeamTxMsg) == 80, "ST_BeamTxMsg must be 80 bytes");
 
-} // namespace comm::protocol
+} // namespace aesa_processor::comm::protocol

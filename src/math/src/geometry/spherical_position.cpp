@@ -5,7 +5,7 @@
 
 #include <stdexcept>
 
-namespace math
+namespace aesa_processor::math
 {
 SphericalPosition::SphericalPosition(Length radius, SphericalDirection direction)
     : radius(radius),

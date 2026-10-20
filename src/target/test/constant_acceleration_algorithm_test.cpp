@@ -14,26 +14,26 @@
 #include <stdexcept>
 #include <utility>
 
-namespace target
+namespace aesa_processor::target
 {
 namespace
 {
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
 
-math::CartesianPosition position(double x, double y, double z)
+aesa_processor::math::CartesianPosition position(double x, double y, double z)
 {
-    return math::CartesianPosition(math::Length::fromMeters(x),
-        math::Length::fromMeters(y), math::Length::fromMeters(z));
+    return aesa_processor::math::CartesianPosition(aesa_processor::math::Length::fromMeters(x),
+        aesa_processor::math::Length::fromMeters(y), aesa_processor::math::Length::fromMeters(z));
 }
 
 Target observation(
-    const math::CartesianPosition& point,
+    const aesa_processor::math::CartesianPosition& point,
     Time time,
     std::shared_ptr<const ITrackingAlgorithm> algorithm,
-    math::LinearVelocity doppler = 0_mps,
+    aesa_processor::math::LinearVelocity doppler = 0_mps,
     float power = -10.0f)
 {
     return Target(point.toSpherical(), doppler, power, time, std::move(algorithm));
@@ -67,10 +67,10 @@ private:
 };
 
 Target seededTarget(
-    math::CartesianPosition point,
-    math::CartesianVelocity velocity,
-    math::CartesianAcceleration acceleration,
-    std::optional<math::SquareMatrix> covariance,
+    aesa_processor::math::CartesianPosition point,
+    aesa_processor::math::CartesianVelocity velocity,
+    aesa_processor::math::CartesianAcceleration acceleration,
+    std::optional<aesa_processor::math::SquareMatrix> covariance,
     Time time = 100ms)
 {
     const auto algorithm = std::make_shared<SeedStateAlgorithm>(TargetTrackingState(
@@ -87,8 +87,8 @@ class ConstantAccelerationAlgorithmTest : public ::testing::Test
 {
 protected:
     Target makeTracking(
-        math::CartesianPosition first = position(0.0, 1000.0, 0.0),
-        math::CartesianPosition second = position(0.0, 1000.0, 0.0),
+        aesa_processor::math::CartesianPosition first = position(0.0, 1000.0, 0.0),
+        aesa_processor::math::CartesianPosition second = position(0.0, 1000.0, 0.0),
         Time firstTime = 0ms,
         Time secondTime = 100ms)
     {
@@ -110,7 +110,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, InitializesExactTwoPointCovarianceAndZ
     const auto& state = *target.trackingState();
     ASSERT_TRUE(state.errorCovariance);
     const auto& covariance = *state.errorCovariance;
-    EXPECT_TRUE(covariance.isSymmetric(math::NONE_TOLERANCE));
+    EXPECT_TRUE(covariance.isSymmetric(aesa_processor::math::NONE_TOLERANCE));
     for (std::size_t axis = 0; axis < 3; ++axis)
     {
         const double accelerationComponents[] = {
@@ -135,7 +135,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, InitializesExactTwoPointCovarianceAndZ
             }
         }
     }
-    EXPECT_NO_THROW(math::cholesky(covariance));
+    EXPECT_NO_THROW(aesa_processor::math::cholesky(covariance));
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, InitialVelocityUsesActualThreeDimensionalTimeDifference)
@@ -168,7 +168,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, PredictsCaPositionAndPositionCovarianc
     EXPECT_NEAR(point.z.m(), 1033.0, 1e-8);
     ASSERT_TRUE(first->positionCovariance);
     EXPECT_NEAR((*first->positionCovariance)(0, 0), 10859.25, 1e-7);
-    EXPECT_TRUE(first->positionCovariance->equals(*repeated->positionCovariance, math::NONE_TOLERANCE));
+    EXPECT_TRUE(first->positionCovariance->equals(*repeated->positionCovariance, aesa_processor::math::NONE_TOLERANCE));
     EXPECT_EQ(target.trackingState(), saved);
     EXPECT_EQ(target.lastObservationTime(), 100ms);
     EXPECT_EQ(target.lastResultTime(), 100ms);
@@ -177,9 +177,9 @@ TEST_F(ConstantAccelerationAlgorithmTest, PredictsCaPositionAndPositionCovarianc
 TEST_F(ConstantAccelerationAlgorithmTest, UsesStoredAccelerationAndUnequalPredictionInterval)
 {
     const auto target = seededTarget(position(1000.0, 2000.0, 3000.0),
-        math::CartesianVelocity(10_mps, -20_mps, 30_mps),
-        math::CartesianAcceleration(1_mps2, -2_mps2, 3_mps2),
-        math::SquareMatrix::identity(9));
+        aesa_processor::math::CartesianVelocity(10_mps, -20_mps, 30_mps),
+        aesa_processor::math::CartesianAcceleration(1_mps2, -2_mps2, 3_mps2),
+        aesa_processor::math::SquareMatrix::identity(9));
     const auto predicted = _algorithm->predict(target, 2600ms);
     ASSERT_TRUE(predicted);
     const auto point = predicted->sphericalPosition.toCartesian();
@@ -220,20 +220,20 @@ TEST_F(ConstantAccelerationAlgorithmTest, MeasurementUpdateMatchesIndependentSca
     EXPECT_NEAR(covariance(1, 4), 297.0 * 49.0 / INNOVATION_VARIANCE, 1e-9);
     EXPECT_NEAR(covariance(1, 7), 100.0 * 49.0 / INNOVATION_VARIANCE, 1e-9);
     EXPECT_NEAR(covariance(4, 4), 323.0 - 297.0 * 297.0 / INNOVATION_VARIANCE, 1e-9);
-    EXPECT_TRUE(covariance.isSymmetric(math::NONE_TOLERANCE));
-    EXPECT_NO_THROW(math::cholesky(covariance));
+    EXPECT_TRUE(covariance.isSymmetric(aesa_processor::math::NONE_TOLERANCE));
+    EXPECT_NO_THROW(aesa_processor::math::cholesky(covariance));
     const auto canonical = updated->position.toSpherical().toCartesian();
     EXPECT_NEAR(canonical.y.m(), updated->sphericalPosition.toCartesian().y.m(), 1e-9);
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, PreservesCrossAxisCovarianceInTheGain)
 {
-    auto covariance = math::SquareMatrix::identity(9);
+    auto covariance = aesa_processor::math::SquareMatrix::identity(9);
     covariance(0, 1) = 0.5;
     covariance(1, 0) = 0.5;
     const auto target = seededTarget(position(1000.0, 2000.0, 3000.0),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps),
-        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance);
+        aesa_processor::math::CartesianVelocity(0_mps, 0_mps, 0_mps),
+        aesa_processor::math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance);
     const auto updated = _algorithm->update(target,
         observation(position(1000.0, 2010.0, 3000.0), 1100ms, _algorithm));
     ASSERT_TRUE(updated);
@@ -243,7 +243,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, PreservesCrossAxisCovarianceInTheGain)
     EXPECT_NEAR(updated->position.z.m(), 3000.0, 1e-9);
     ASSERT_TRUE(updated->errorCovariance);
     EXPECT_GT((*updated->errorCovariance)(0, 1), 0.0);
-    EXPECT_NO_THROW(math::cholesky(*updated->errorCovariance));
+    EXPECT_NO_THROW(aesa_processor::math::cholesky(*updated->errorCovariance));
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, LearnsAccelerationWithZeroProcessNoise)
@@ -292,8 +292,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsUnavailableCovarianceAndNonIncr
     EXPECT_FALSE(_algorithm->predict(target, 99ms));
     EXPECT_TRUE(_algorithm->predict(target, 100ms));
     const auto withoutCovariance = seededTarget(position(0.0, 1000.0, 0.0),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps),
-        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), std::nullopt);
+        aesa_processor::math::CartesianVelocity(0_mps, 0_mps, 0_mps),
+        aesa_processor::math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), std::nullopt);
     EXPECT_FALSE(_algorithm->predict(withoutCovariance, 1100ms));
     EXPECT_FALSE(_algorithm->update(withoutCovariance,
         observation(position(0.0, 1000.0, 0.0), 1100ms, _algorithm)));
@@ -302,16 +302,16 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsUnavailableCovarianceAndNonIncr
 TEST_F(ConstantAccelerationAlgorithmTest, RejectsOriginAndNonfinitePredictionsWithoutChangingState)
 {
     const auto originTarget = seededTarget(position(0.0, 1000.0, 0.0),
-        math::CartesianVelocity(0_mps, -1000_mps, 0_mps),
-        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
-        math::SquareMatrix::identity(9));
+        aesa_processor::math::CartesianVelocity(0_mps, -1000_mps, 0_mps),
+        aesa_processor::math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
+        aesa_processor::math::SquareMatrix::identity(9));
     EXPECT_FALSE(_algorithm->predict(originTarget, 1100ms));
     const double maximum = std::numeric_limits<double>::max();
     const auto overflowTarget = seededTarget(position(0.0, 1000.0, 0.0),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps),
-        math::CartesianAcceleration(
-            math::LinearAcceleration::fromMetersPerSecondSquared(maximum), 0_mps2, 0_mps2),
-        math::SquareMatrix::identity(9));
+        aesa_processor::math::CartesianVelocity(0_mps, 0_mps, 0_mps),
+        aesa_processor::math::CartesianAcceleration(
+            aesa_processor::math::LinearAcceleration::fromMetersPerSecondSquared(maximum), 0_mps2, 0_mps2),
+        aesa_processor::math::SquareMatrix::identity(9));
     const auto saved = overflowTarget.trackingState();
     EXPECT_FALSE(_algorithm->predict(overflowTarget, 10100ms));
     EXPECT_EQ(overflowTarget.trackingState(), saved);
@@ -319,12 +319,12 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsOriginAndNonfinitePredictionsWi
 
 TEST_F(ConstantAccelerationAlgorithmTest, PropagatesInvalidInnovationCovarianceAsMathError)
 {
-    auto covariance = math::SquareMatrix::identity(9);
+    auto covariance = aesa_processor::math::SquareMatrix::identity(9);
     covariance(0, 1) = 100.0;
     covariance(1, 0) = 100.0;
     const auto target = seededTarget(position(1000.0, 2000.0, 3000.0),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps),
-        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance);
+        aesa_processor::math::CartesianVelocity(0_mps, 0_mps, 0_mps),
+        aesa_processor::math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance);
     const auto saved = target.trackingState();
     EXPECT_THROW(_algorithm->update(target,
         observation(position(1000.0, 2000.0, 3000.0), 1100ms, _algorithm)), std::domain_error);
@@ -339,7 +339,7 @@ TEST(ConstantAccelerationConfigTest, ValidatesInitialAccelerationVarianceAndSing
         EXPECT_THROW(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, sigma),
             std::invalid_argument);
     }
-    EXPECT_THROW(TargetConfig(1000_mps, 30_mps, math::Length::fromMeters(1.2e-162),
+    EXPECT_THROW(TargetConfig(1000_mps, 30_mps, aesa_processor::math::Length::fromMeters(1.2e-162),
         11.345, 100ms, 1000ms, 3), std::invalid_argument);
     const TargetConfig compatible(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3);
     EXPECT_DOUBLE_EQ(compatible.initialAccelerationStandardDeviation, 10.0);
@@ -359,4 +359,4 @@ TEST(ConstantAccelerationConfigTest, UsesInjectedInitialAccelerationUncertainty)
 }
 
 } // namespace
-} // namespace target
+} // namespace aesa_processor::target

@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-namespace comm
+namespace aesa_processor::comm
 {
 namespace
 {
@@ -88,7 +88,7 @@ public:
         }
     }
 
-    void sendBeamCommand(const beam::TransmitBeamCommand& command)
+    void sendBeamCommand(const aesa_processor::beam::TransmitBeamCommand& command)
     {
         sendEncodedMessage(
             NetworkPeer::SCENARIO_SIMULATOR,
@@ -96,7 +96,7 @@ public:
     }
 
     void sendTrackEvents(
-        const std::vector<target::TrackEvent>& trackEvents
+        const std::vector<aesa_processor::target::TrackEvent>& trackEvents
     )
     {
         sendEncodedMessage(
@@ -255,17 +255,17 @@ std::optional<IncomingDto> CommController::receiveData()
 }
 
 void CommController::sendBeamCommand(
-    const beam::TransmitBeamCommand& command
+    const aesa_processor::beam::TransmitBeamCommand& command
 )
 {
     _impl->sendBeamCommand(command);
 }
 
 void CommController::sendTrackEvents(
-    const std::vector<target::TrackEvent>& trackEvents
+    const std::vector<aesa_processor::target::TrackEvent>& trackEvents
 )
 {
     _impl->sendTrackEvents(trackEvents);
 }
 
-} // namespace comm
+} // namespace aesa_processor::comm

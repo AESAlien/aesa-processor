@@ -17,7 +17,7 @@
 
 int main(int argc, char** argv)
 {
-    using namespace math::literals;
+    using namespace aesa_processor::math::literals;
 
     int first = 1;
     const bool printMatrix = argc > first && std::strcmp(argv[first], "--matrix") == 0;
@@ -31,9 +31,9 @@ int main(int argc, char** argv)
     auto yaw = 0_deg;
     if (argc - first == 3)
     {
-        roll = math::Angle::fromDegrees(std::atof(argv[first]));
-        pitch = math::Angle::fromDegrees(std::atof(argv[first + 1]));
-        yaw = math::Angle::fromDegrees(std::atof(argv[first + 2]));
+        roll = aesa_processor::math::Angle::fromDegrees(std::atof(argv[first]));
+        pitch = aesa_processor::math::Angle::fromDegrees(std::atof(argv[first + 1]));
+        yaw = aesa_processor::math::Angle::fromDegrees(std::atof(argv[first + 2]));
     }
     else if (argc - first != 0)
     {
@@ -41,13 +41,13 @@ int main(int argc, char** argv)
         return 2;
     }
 
-    beam::AntEnuTransform xform = [&]() {
+    aesa_processor::beam::AntEnuTransform xform = [&]() {
         try
         {
-            const beam::RadarAttitude att(37_deg, 127_deg, 0.1_km, roll, pitch, yaw);
-            return beam::AntEnuTransform(att, beam::AttitudeConfig{});
+            const aesa_processor::beam::RadarAttitude att(37_deg, 127_deg, 0.1_km, roll, pitch, yaw);
+            return aesa_processor::beam::AntEnuTransform(att, aesa_processor::beam::AttitudeConfig{});
         }
-        catch (const beam::AttitudeError& e)
+        catch (const aesa_processor::beam::AttitudeError& e)
         {
             std::fprintf(stderr, "makeAntToEnu failed: code=%d (%s)\n", static_cast<int>(e.code()), e.what());
             std::exit(3);
@@ -69,13 +69,13 @@ int main(int argc, char** argv)
 
     try
     {
-        const beam::SearchGridConfig config{};
-        beam::SearchGrid grid(xform, config);
+        const aesa_processor::beam::SearchGridConfig config{};
+        aesa_processor::beam::SearchGrid grid(xform, config);
         const std::size_t beamCount = config.azimuthCount() * config.elevationCount();
         std::printf("idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg\n");
         for (std::size_t i = 0; i < beamCount; ++i)
         {
-            const beam::SearchBeam& b = grid.nextBeam();
+            const aesa_processor::beam::SearchBeam& b = grid.nextBeam();
             std::printf("%zu,%u,%.6f,%.6f,%.2f,%.2f\n",
                         i, b.beamId, b.direction_enu.azimuth.deg(), b.direction_enu.elevation.deg(),
                         b.azimuthBeamWidth.deg(), b.elevationBeamWidth.deg());

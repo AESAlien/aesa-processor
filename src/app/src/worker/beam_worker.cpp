@@ -4,13 +4,13 @@
 #include <utility>
 #include <variant>
 
-namespace app
+namespace aesa_processor::app
 {
 
 BeamWorker::BeamWorker(
     BeamChannel& beamChannel,
     CommChannel& commChannel,
-    beam::BeamController& controller)
+    aesa_processor::beam::BeamController& controller)
     : _beamChannel(beamChannel),
       _commChannel(commChannel),
       _controller(controller)
@@ -26,17 +26,17 @@ void BeamWorker::run()
             auto& message = *event;
 
             if (auto* request =
-                    std::get_if<beam::RequestBeamCommand>(&message))
+                    std::get_if<aesa_processor::beam::RequestBeamCommand>(&message))
             {
                 _controller.requestBeam(*request);
             }
             else if (auto* state =
-                         std::get_if<beam::SetOperationStateCommand>(&message))
+                         std::get_if<aesa_processor::beam::SetOperationStateCommand>(&message))
             {
                 _controller.setOperationState(*state);
             }
             else if (auto* attitude =
-                         std::get_if<beam::SetAttitudeCommand>(&message))
+                         std::get_if<aesa_processor::beam::SetAttitudeCommand>(&message))
             {
                 _controller.setAttitude(*attitude);
             }
@@ -55,4 +55,4 @@ void BeamWorker::run()
     }
 }
 
-} // namespace app
+} // namespace aesa_processor::app

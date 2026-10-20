@@ -11,17 +11,17 @@
 #include <utility>
 #include <vector>
 
-namespace target
+namespace aesa_processor::target
 {
 namespace
 {
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
-using BeamType = beam::BeamType;
+using BeamType = aesa_processor::beam::BeamType;
 
-math::Length range(std::uint32_t id)
+aesa_processor::math::Length range(std::uint32_t id)
 {
     return 1000_m + 100_m * static_cast<double>(id - 1);
 }
@@ -44,7 +44,7 @@ void addCandidates(TargetController& controller, std::uint32_t count)
     {
         const auto request = controller.handleDetection(result(BeamType::SEARCH, id, 0ms));
         ASSERT_TRUE(request) << "Candidate " << id;
-        EXPECT_EQ(request->beamType, beam::RequestBeamType::CONFIRMATION);
+        EXPECT_EQ(request->beamType, aesa_processor::beam::RequestBeamType::CONFIRMATION);
         EXPECT_EQ(request->requestId, id);
         EXPECT_EQ(request->transmitTime, 100ms);
     }
@@ -56,7 +56,7 @@ void confirm(TargetController& controller, std::uint32_t first, std::uint32_t la
     {
         const auto request = controller.handleDetection(result(BeamType::CONFIRMATION, id, 100ms));
         ASSERT_TRUE(request) << "Confirmation " << id;
-        EXPECT_EQ(request->beamType, beam::RequestBeamType::TRACKING);
+        EXPECT_EQ(request->beamType, aesa_processor::beam::RequestBeamType::TRACKING);
         EXPECT_EQ(request->requestId, id);
         EXPECT_EQ(request->transmitTime, 1100ms);
     }
@@ -186,4 +186,4 @@ TEST(TrackReportingLimitTest, ValidatesConfiguredCountAgainstTheMessageMaximum)
 }
 
 } // namespace
-} // namespace target
+} // namespace aesa_processor::target

@@ -8,18 +8,18 @@
 #include <variant>
 #include <vector>
 
-namespace app
+namespace aesa_processor::app
 {
 using CommEvent = std::variant<
-    beam::TransmitBeamCommand,
-    std::vector<target::TrackEvent>>;
+    aesa_processor::beam::TransmitBeamCommand,
+    std::vector<aesa_processor::target::TrackEvent>>;
 
 class CommChannel final
 {
 public:
     void write(CommEvent message);
 
-    void write(const target::TrackEvent& message);
+    void write(const aesa_processor::target::TrackEvent& message);
 
     std::optional<CommEvent> readSimulator();
 
@@ -31,4 +31,4 @@ private:
     MessageQueue<CommEvent> _simulatorQueue;
     MessageQueue<CommEvent> _consoleQueue;
 };
-} // namespace app
+} // namespace aesa_processor::app

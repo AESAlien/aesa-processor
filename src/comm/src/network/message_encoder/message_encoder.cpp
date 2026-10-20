@@ -12,7 +12,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace comm
+namespace aesa_processor::comm
 {
 namespace
 {
@@ -89,7 +89,7 @@ uint32_t convertTimestamp(
 }
 
 protocol::ST_BeamTx encodeBeam(
-    const beam::TransmitBeamCommand& command
+    const aesa_processor::beam::TransmitBeamCommand& command
 )
 {
     protocol::ST_BeamTx encodedBeam{};
@@ -106,7 +106,7 @@ protocol::ST_BeamTx encodeBeam(
 }
 
 protocol::ST_Trk encodeTrack(
-    const target::TrackEvent& event
+    const aesa_processor::target::TrackEvent& event
 )
 {
     protocol::ST_Trk encodedTrack{};
@@ -144,7 +144,7 @@ std::vector<uint8_t> toBytes(const Message& message)
 } // namespace
 
 EncodeResult encodeBeamCommand(
-    const beam::TransmitBeamCommand& command
+    const aesa_processor::beam::TransmitBeamCommand& command
 )
 {
     try
@@ -166,7 +166,7 @@ EncodeResult encodeBeamCommand(
 }
 
 EncodeResult encodeTrackEvents(
-    const std::vector<target::TrackEvent>& trackEvents
+    const std::vector<aesa_processor::target::TrackEvent>& trackEvents
 )
 {
     if (trackEvents.size() > MAXIMUM_TRACK_COUNT)
@@ -178,7 +178,7 @@ EncodeResult encodeTrackEvents(
     encodedTracks.reserve(trackEvents.size());
     try
     {
-        for (const target::TrackEvent& trackEvent : trackEvents)
+        for (const aesa_processor::target::TrackEvent& trackEvent : trackEvents)
         {
             encodedTracks.push_back(encodeTrack(trackEvent));
         }
@@ -220,4 +220,4 @@ EncodeResult encodeTrackEvents(
     return encoded(std::move(bytes));
 }
 
-} // namespace comm
+} // namespace aesa_processor::comm

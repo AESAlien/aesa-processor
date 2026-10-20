@@ -2,7 +2,7 @@
 
 #include <protocol/ST_MsgHeader.hpp>
 
-namespace comm::protocol
+namespace aesa_processor::comm::protocol
 {
 
 #pragma pack(push, 1)
@@ -16,4 +16,4 @@ struct ST_OperatorMsg
 
 static_assert(sizeof(ST_OperatorMsg) == 24, "ST_OperatorMsg must be 24 bytes");
 
-} // namespace comm::protocol
+} // namespace aesa_processor::comm::protocol

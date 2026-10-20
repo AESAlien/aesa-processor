@@ -34,17 +34,17 @@ std::string getErrorMessage(Function function)
 
 TEST(CommErrorHandlerTest, IncludesServerOpenFailureDetailsInExceptionMessage)
 {
-    const comm::OperationResult result
+    const aesa_processor::comm::OperationResult result
     {
-        comm::OperationStatus::ERROR,
-        comm::NetworkOperation::BIND,
+        aesa_processor::comm::OperationStatus::ERROR,
+        aesa_processor::comm::NetworkOperation::BIND,
         10048
     };
 
-    const std::string message = getErrorMessage<comm::ServerOpenError>(
+    const std::string message = getErrorMessage<aesa_processor::comm::ServerOpenError>(
         [&result]()
         {
-            comm::controller_error::throwServerOpenFailure(result);
+            aesa_processor::comm::controller_error::throwServerOpenFailure(result);
         });
 
     EXPECT_EQ(
@@ -55,18 +55,18 @@ TEST(CommErrorHandlerTest, IncludesServerOpenFailureDetailsInExceptionMessage)
 
 TEST(CommErrorHandlerTest, IncludesConnectionFailureDetailsInExceptionMessage)
 {
-    const comm::PollResult result
+    const aesa_processor::comm::PollResult result
     {
-        comm::PollStatus::ERROR,
+        aesa_processor::comm::PollStatus::ERROR,
         {},
-        comm::NetworkOperation::ACCEPT,
+        aesa_processor::comm::NetworkOperation::ACCEPT,
         10061
     };
 
-    const std::string message = getErrorMessage<comm::ConnectionError>(
+    const std::string message = getErrorMessage<aesa_processor::comm::ConnectionError>(
         [&result]()
         {
-            comm::controller_error::throwPollFailure(result);
+            aesa_processor::comm::controller_error::throwPollFailure(result);
         });
 
     EXPECT_EQ(
@@ -77,11 +77,11 @@ TEST(CommErrorHandlerTest, IncludesConnectionFailureDetailsInExceptionMessage)
 
 TEST(CommErrorHandlerTest, IncludesReceiveFailureDetailsInExceptionMessage)
 {
-    const std::string message = getErrorMessage<comm::ReceiveError>(
+    const std::string message = getErrorMessage<aesa_processor::comm::ReceiveError>(
         []()
         {
-            comm::controller_error::throwReceiveFailure(
-                comm::NetworkOperation::RECEIVE,
+            aesa_processor::comm::controller_error::throwReceiveFailure(
+                aesa_processor::comm::NetworkOperation::RECEIVE,
                 10054);
         });
 
@@ -93,12 +93,12 @@ TEST(CommErrorHandlerTest, IncludesReceiveFailureDetailsInExceptionMessage)
 
 TEST(CommErrorHandlerTest, IncludesFramingFailureDetailsInExceptionMessage)
 {
-    const std::string message = getErrorMessage<comm::ReceiveError>(
+    const std::string message = getErrorMessage<aesa_processor::comm::ReceiveError>(
         []()
         {
-            comm::controller_error::throwFramingFailure(
-                comm::NetworkPeer::OPERATOR_CONSOLE,
-                comm::FramingError::INVALID_FRAME_SIZE);
+            aesa_processor::comm::controller_error::throwFramingFailure(
+                aesa_processor::comm::NetworkPeer::OPERATOR_CONSOLE,
+                aesa_processor::comm::FramingError::INVALID_FRAME_SIZE);
         });
 
     EXPECT_EQ(
@@ -109,12 +109,12 @@ TEST(CommErrorHandlerTest, IncludesFramingFailureDetailsInExceptionMessage)
 
 TEST(CommErrorHandlerTest, IncludesDecodingFailureDetailsInExceptionMessage)
 {
-    const std::string message = getErrorMessage<comm::ReceiveError>(
+    const std::string message = getErrorMessage<aesa_processor::comm::ReceiveError>(
         []()
         {
-            comm::controller_error::throwDecodingFailure(
-                comm::NetworkPeer::SCENARIO_SIMULATOR,
-                comm::DecodingError::UNSUPPORTED_VERSION);
+            aesa_processor::comm::controller_error::throwDecodingFailure(
+                aesa_processor::comm::NetworkPeer::SCENARIO_SIMULATOR,
+                aesa_processor::comm::DecodingError::UNSUPPORTED_VERSION);
         });
 
     EXPECT_EQ(
@@ -125,12 +125,12 @@ TEST(CommErrorHandlerTest, IncludesDecodingFailureDetailsInExceptionMessage)
 
 TEST(CommErrorHandlerTest, IncludesEncodingFailureDetailsInExceptionMessage)
 {
-    const std::string message = getErrorMessage<comm::SendError>(
+    const std::string message = getErrorMessage<aesa_processor::comm::SendError>(
         []()
         {
-            comm::controller_error::throwEncodingFailure(
-                comm::NetworkPeer::SCENARIO_SIMULATOR,
-                comm::EncodingError::TYPE_CONVERSION_ERROR);
+            aesa_processor::comm::controller_error::throwEncodingFailure(
+                aesa_processor::comm::NetworkPeer::SCENARIO_SIMULATOR,
+                aesa_processor::comm::EncodingError::TYPE_CONVERSION_ERROR);
         });
 
     EXPECT_EQ(
@@ -141,19 +141,19 @@ TEST(CommErrorHandlerTest, IncludesEncodingFailureDetailsInExceptionMessage)
 
 TEST(CommErrorHandlerTest, IncludesSendFailureDetailsInExceptionMessage)
 {
-    const comm::SendResult result
+    const aesa_processor::comm::SendResult result
     {
-        comm::SendStatus::CONNECTION_LOST,
+        aesa_processor::comm::SendStatus::CONNECTION_LOST,
         128,
-        comm::NetworkOperation::SEND,
+        aesa_processor::comm::NetworkOperation::SEND,
         10054
     };
 
-    const std::string message = getErrorMessage<comm::SendError>(
+    const std::string message = getErrorMessage<aesa_processor::comm::SendError>(
         [&result]()
         {
-            comm::controller_error::throwSendFailure(
-                comm::NetworkPeer::SCENARIO_SIMULATOR,
+            aesa_processor::comm::controller_error::throwSendFailure(
+                aesa_processor::comm::NetworkPeer::SCENARIO_SIMULATOR,
                 result);
         });
 

@@ -6,7 +6,7 @@
 #include <math/geometry/spherical_direction.hpp>
 #include <math/linear_algebra/square_matrix.hpp>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 class AntEnuTransform
@@ -14,14 +14,14 @@ class AntEnuTransform
 public:
     AntEnuTransform(const RadarAttitude&, const AttitudeConfig&);
 
-    math::SphericalDirection antToEnu(const math::SphericalDirection& direction_ant) const;
+    aesa_processor::math::SphericalDirection antToEnu(const aesa_processor::math::SphericalDirection& direction_ant) const;
 
-    const math::SquareMatrix& rotationMatrix() const;
+    const aesa_processor::math::SquareMatrix& rotationMatrix() const;
 
-    math::SphericalDirection enuToAnt(const math::SphericalDirection& direction_enu) const;
+    aesa_processor::math::SphericalDirection enuToAnt(const aesa_processor::math::SphericalDirection& direction_enu) const;
 
 private:
-    math::SquareMatrix _rotationMatrix;
+    aesa_processor::math::SquareMatrix _rotationMatrix;
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

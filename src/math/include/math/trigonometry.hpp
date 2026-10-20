@@ -4,7 +4,7 @@
 #include "math/quantity/length.hpp"
 #include "math/quantity/linear_velocity.hpp"
 
-namespace math
+namespace aesa_processor::math
 {
 
 double sin(Angle angle);

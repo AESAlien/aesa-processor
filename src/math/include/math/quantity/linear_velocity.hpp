@@ -6,7 +6,7 @@
 #include <chrono>
 #include <stdexcept>
 
-namespace math
+namespace aesa_processor::math
 {
 
 // 부호를 갖는 초당 미터 단위 속도량으로, 직교 좌표계의 성분과 도플러 측정에도 사용한다.

@@ -4,7 +4,7 @@
 
 #include <target/config/target_config.hpp>
 
-namespace target
+namespace aesa_processor::target
 {
 
 // Nine-state linear Cartesian Kalman filter with constant acceleration and Q = 0.
@@ -29,4 +29,4 @@ private:
     const TargetConfig _config;
 };
 
-} // namespace target
+} // namespace aesa_processor::target

@@ -3,7 +3,7 @@
 #include "math/geometry/spherical_direction.hpp"
 #include "math/quantity/length.hpp"
 
-namespace math
+namespace aesa_processor::math
 {
 
 struct CartesianPosition;

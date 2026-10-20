@@ -10,22 +10,22 @@
 #include <stdexcept>
 #include <type_traits>
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 
-static_assert(std::is_const_v<decltype(math::CartesianDisplacement::x)>);
-static_assert(std::is_const_v<decltype(math::CartesianDisplacement::y)>);
-static_assert(std::is_const_v<decltype(math::CartesianDisplacement::z)>);
-static_assert(std::is_copy_constructible_v<math::CartesianDisplacement>);
-static_assert(!std::is_copy_assignable_v<math::CartesianDisplacement>);
-static_assert(!std::is_move_assignable_v<math::CartesianDisplacement>);
-static_assert(!std::is_aggregate_v<math::CartesianDisplacement>);
+static_assert(std::is_const_v<decltype(aesa_processor::math::CartesianDisplacement::x)>);
+static_assert(std::is_const_v<decltype(aesa_processor::math::CartesianDisplacement::y)>);
+static_assert(std::is_const_v<decltype(aesa_processor::math::CartesianDisplacement::z)>);
+static_assert(std::is_copy_constructible_v<aesa_processor::math::CartesianDisplacement>);
+static_assert(!std::is_copy_assignable_v<aesa_processor::math::CartesianDisplacement>);
+static_assert(!std::is_move_assignable_v<aesa_processor::math::CartesianDisplacement>);
+static_assert(!std::is_aggregate_v<aesa_processor::math::CartesianDisplacement>);
 
 
 
 // 값의 변환과 정규화 결과를 검증한다.
 TEST(CartesianDisplacementTest, ExportsMeterComponentsInAxisOrder)
 {
-    const math::CartesianDisplacement displacement(1_km, -2_m, 3_m);
+    const aesa_processor::math::CartesianDisplacement displacement(1_km, -2_m, 3_m);
     const auto vector = displacement.toVector();
 
     ASSERT_EQ(vector.size(), 3);
@@ -37,9 +37,9 @@ TEST(CartesianDisplacementTest, ExportsMeterComponentsInAxisOrder)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(CartesianDisplacementTest, AddsDisplacementToPosition)
 {
-    const math::CartesianPosition position(1_m, -2_m, 3_m);
-    const math::CartesianDisplacement displacement(4_m, -6_m, 15_m);
-    const math::CartesianPosition result = position + displacement;
+    const aesa_processor::math::CartesianPosition position(1_m, -2_m, 3_m);
+    const aesa_processor::math::CartesianDisplacement displacement(4_m, -6_m, 15_m);
+    const aesa_processor::math::CartesianPosition result = position + displacement;
 
     EXPECT_EQ(result.x, 5_m);
     EXPECT_EQ(result.y, -8_m);
@@ -49,9 +49,9 @@ TEST(CartesianDisplacementTest, AddsDisplacementToPosition)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(CartesianDisplacementTest, SubtractsDisplacementFromPosition)
 {
-    const math::CartesianPosition position(5_m, -8_m, 18_m);
-    const math::CartesianDisplacement displacement(4_m, -6_m, 15_m);
-    const math::CartesianPosition result = position - displacement;
+    const aesa_processor::math::CartesianPosition position(5_m, -8_m, 18_m);
+    const aesa_processor::math::CartesianDisplacement displacement(4_m, -6_m, 15_m);
+    const aesa_processor::math::CartesianPosition result = position - displacement;
 
     EXPECT_EQ(result.x, 1_m);
     EXPECT_EQ(result.y, -2_m);
@@ -61,9 +61,9 @@ TEST(CartesianDisplacementTest, SubtractsDisplacementFromPosition)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(CartesianDisplacementTest, AddsDisplacements)
 {
-    const math::CartesianDisplacement left(1_m, -2_m, 3_m);
-    const math::CartesianDisplacement right(4_m, -6_m, 15_m);
-    const math::CartesianDisplacement result = left + right;
+    const aesa_processor::math::CartesianDisplacement left(1_m, -2_m, 3_m);
+    const aesa_processor::math::CartesianDisplacement right(4_m, -6_m, 15_m);
+    const aesa_processor::math::CartesianDisplacement result = left + right;
 
     EXPECT_EQ(result.x, 5_m);
     EXPECT_EQ(result.y, -8_m);
@@ -73,8 +73,8 @@ TEST(CartesianDisplacementTest, AddsDisplacements)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(CartesianDisplacementTest, CalculatesDisplacementFromVelocityAndElapsedTime)
 {
-    const math::CartesianVelocity velocity(6_mps, -8_mps, 24_mps);
-    const math::CartesianDisplacement displacement = velocity * std::chrono::milliseconds{500};
+    const aesa_processor::math::CartesianVelocity velocity(6_mps, -8_mps, 24_mps);
+    const aesa_processor::math::CartesianDisplacement displacement = velocity * std::chrono::milliseconds{500};
 
     EXPECT_EQ(displacement.x, 3_m);
     EXPECT_EQ(displacement.y, -4_m);
@@ -84,8 +84,8 @@ TEST(CartesianDisplacementTest, CalculatesDisplacementFromVelocityAndElapsedTime
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(CartesianDisplacementTest, PreservesElapsedTimeSign)
 {
-    const math::CartesianVelocity velocity(6_mps, -8_mps, 24_mps);
-    const math::CartesianDisplacement displacement = velocity * std::chrono::seconds{-2};
+    const aesa_processor::math::CartesianVelocity velocity(6_mps, -8_mps, 24_mps);
+    const aesa_processor::math::CartesianDisplacement displacement = velocity * std::chrono::seconds{-2};
 
     EXPECT_EQ(displacement.x, -12_m);
     EXPECT_EQ(displacement.y, 16_m);
@@ -95,8 +95,8 @@ TEST(CartesianDisplacementTest, PreservesElapsedTimeSign)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(CartesianDisplacementTest, SubtractsPositionsInCorrectDirection)
 {
-    const math::CartesianPosition previous(1_m, -2_m, 3_m);
-    const math::CartesianPosition current(4_m, -6_m, 15_m);
+    const aesa_processor::math::CartesianPosition previous(1_m, -2_m, 3_m);
+    const aesa_processor::math::CartesianPosition current(4_m, -6_m, 15_m);
     const auto displacement = current - previous;
     const auto opposite = previous - current;
 
@@ -112,7 +112,7 @@ TEST(CartesianDisplacementTest, SubtractsPositionsInCorrectDirection)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(CartesianDisplacementTest, SubtractsIdenticalPositionsToZero)
 {
-    const math::CartesianPosition point(1_m, -2_m, 3_m);
+    const aesa_processor::math::CartesianPosition point(1_m, -2_m, 3_m);
     const auto displacement = point - point;
 
     EXPECT_EQ(displacement.distance(), 0_m);
@@ -122,7 +122,7 @@ TEST(CartesianDisplacementTest, SubtractsIdenticalPositionsToZero)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(CartesianDisplacementTest, CalculatesVelocityFromElapsedSeconds)
 {
-    const math::CartesianDisplacement displacement(3_m, -4_m, 12_m);
+    const aesa_processor::math::CartesianDisplacement displacement(3_m, -4_m, 12_m);
     const auto velocity = displacement.toVelocity(std::chrono::milliseconds{500});
 
     EXPECT_EQ(velocity.x, 6_mps);
@@ -136,7 +136,7 @@ TEST(CartesianDisplacementTest, CalculatesDistanceAtExtremeFiniteScales)
 {
     for (double scale : {1e-200, 1e200})
     {
-        const math::CartesianDisplacement displacement(
+        const aesa_processor::math::CartesianDisplacement displacement(
             3_m * scale,
             -4_m * scale,
             12_m * scale);
@@ -148,9 +148,9 @@ TEST(CartesianDisplacementTest, CalculatesDistanceAtExtremeFiniteScales)
 // 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsAdditionOverflow)
 {
-    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
-    const math::CartesianPosition position(maximum, 0_m, 0_m);
-    const math::CartesianDisplacement displacement(maximum, 0_m, 0_m);
+    const auto maximum = aesa_processor::math::Length::fromMeters(std::numeric_limits<double>::max());
+    const aesa_processor::math::CartesianPosition position(maximum, 0_m, 0_m);
+    const aesa_processor::math::CartesianDisplacement displacement(maximum, 0_m, 0_m);
 
     EXPECT_THROW(position + displacement, std::invalid_argument);
 }
@@ -158,9 +158,9 @@ TEST(CartesianDisplacementTest, RejectsAdditionOverflow)
 // 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsPositionDisplacementSubtractionOverflow)
 {
-    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
-    const math::CartesianPosition position(-maximum, 0_m, 0_m);
-    const math::CartesianDisplacement displacement(maximum, 0_m, 0_m);
+    const auto maximum = aesa_processor::math::Length::fromMeters(std::numeric_limits<double>::max());
+    const aesa_processor::math::CartesianPosition position(-maximum, 0_m, 0_m);
+    const aesa_processor::math::CartesianDisplacement displacement(maximum, 0_m, 0_m);
 
     EXPECT_THROW(position - displacement, std::invalid_argument);
 }
@@ -168,9 +168,9 @@ TEST(CartesianDisplacementTest, RejectsPositionDisplacementSubtractionOverflow)
 // 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsDisplacementAdditionOverflow)
 {
-    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
-    const math::CartesianDisplacement left(maximum, 0_m, 0_m);
-    const math::CartesianDisplacement right(maximum, 0_m, 0_m);
+    const auto maximum = aesa_processor::math::Length::fromMeters(std::numeric_limits<double>::max());
+    const aesa_processor::math::CartesianDisplacement left(maximum, 0_m, 0_m);
+    const aesa_processor::math::CartesianDisplacement right(maximum, 0_m, 0_m);
 
     EXPECT_THROW(left + right, std::invalid_argument);
 }
@@ -178,9 +178,9 @@ TEST(CartesianDisplacementTest, RejectsDisplacementAdditionOverflow)
 // 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsInvalidVelocityTimeProduct)
 {
-    const auto maximum = math::LinearVelocity::fromMetersPerSecond(
+    const auto maximum = aesa_processor::math::LinearVelocity::fromMetersPerSecond(
         std::numeric_limits<double>::max());
-    const math::CartesianVelocity velocity(maximum, 0_mps, 0_mps);
+    const aesa_processor::math::CartesianVelocity velocity(maximum, 0_mps, 0_mps);
 
     EXPECT_THROW(velocity * std::chrono::seconds{2}, std::invalid_argument);
     EXPECT_THROW(velocity * std::chrono::duration<double>{
@@ -190,7 +190,7 @@ TEST(CartesianDisplacementTest, RejectsInvalidVelocityTimeProduct)
 // 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsInvalidElapsedTime)
 {
-    const math::CartesianDisplacement displacement(1_m, 0_m, 0_m);
+    const aesa_processor::math::CartesianDisplacement displacement(1_m, 0_m, 0_m);
     for (double seconds : {0.0, -1.0, std::numeric_limits<double>::infinity(),
         -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN()})
     {
@@ -202,8 +202,8 @@ TEST(CartesianDisplacementTest, RejectsInvalidElapsedTime)
 TEST(CartesianDisplacementTest, DividesSubnormalComponentsWithoutReciprocalOverflow)
 {
     const double smallest = std::numeric_limits<double>::denorm_min();
-    const math::CartesianDisplacement displacement(
-        math::Length::fromMeters(smallest), math::Length::fromMeters(-smallest), 0_m);
+    const aesa_processor::math::CartesianDisplacement displacement(
+        aesa_processor::math::Length::fromMeters(smallest), aesa_processor::math::Length::fromMeters(-smallest), 0_m);
     const auto velocity = displacement.toVelocity(std::chrono::duration<double>{smallest});
 
     EXPECT_EQ(velocity.x, 1_mps);
@@ -214,7 +214,7 @@ TEST(CartesianDisplacementTest, DividesSubnormalComponentsWithoutReciprocalOverf
 // 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsVelocityOverflow)
 {
-    const math::CartesianDisplacement displacement(1_m, 0_m, 0_m);
+    const aesa_processor::math::CartesianDisplacement displacement(1_m, 0_m, 0_m);
 
     EXPECT_THROW(displacement.toVelocity(
         std::chrono::duration<double>{std::numeric_limits<double>::denorm_min()}), std::invalid_argument);
@@ -223,9 +223,9 @@ TEST(CartesianDisplacementTest, RejectsVelocityOverflow)
 // 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsSubtractionOverflow)
 {
-    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
-    const math::CartesianPosition positive(maximum, 0_m, 0_m);
-    const math::CartesianPosition negative(-maximum, 0_m, 0_m);
+    const auto maximum = aesa_processor::math::Length::fromMeters(std::numeric_limits<double>::max());
+    const aesa_processor::math::CartesianPosition positive(maximum, 0_m, 0_m);
+    const aesa_processor::math::CartesianPosition negative(-maximum, 0_m, 0_m);
 
     EXPECT_THROW(positive - negative, std::invalid_argument);
 }

@@ -118,9 +118,9 @@ std::vector<uint8_t> makeMessage()
         std::chrono::duration_cast<std::chrono::nanoseconds>(
             elapsed - elapsedSeconds);
 
-    comm::protocol::ST_MsgHeader header{};
+    aesa_processor::comm::protocol::ST_MsgHeader header{};
     header.message_Id = static_cast<uint16_t>(
-        comm::protocol::MessageId::RadarAttitudeFromSimulator);
+        aesa_processor::comm::protocol::MessageId::RadarAttitudeFromSimulator);
     header.version = MESSAGE_VERSION;
     header.block_size = static_cast<uint32_t>(
         sizeof(header) + PAYLOAD.size());

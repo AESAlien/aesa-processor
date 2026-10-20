@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace target
+namespace aesa_processor::target
 {
 
 std::uint32_t TargetRepository::nextTargetId() const
@@ -117,4 +117,4 @@ void TargetRepository::markSearchResultProcessed(
     }
 }
 
-} // namespace target
+} // namespace aesa_processor::target

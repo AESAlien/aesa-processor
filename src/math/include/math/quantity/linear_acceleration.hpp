@@ -5,7 +5,7 @@
 
 #include <chrono>
 
-namespace math
+namespace aesa_processor::math
 {
 
 class LinearAcceleration : public Quantity<LinearAcceleration>

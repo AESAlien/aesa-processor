@@ -2,7 +2,7 @@
 
 #include "math/quantity/angle.hpp"
 
-namespace math
+namespace aesa_processor::math
 {
 
 class Vector;

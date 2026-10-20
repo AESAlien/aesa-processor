@@ -7,7 +7,7 @@
 #include <cmath>
 #include <stdexcept>
 
-namespace math
+namespace aesa_processor::math
 {
 using namespace literals;
 

@@ -4,7 +4,7 @@
 
 #include <optional>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 struct SetOperationStateCommand
@@ -33,4 +33,4 @@ struct SetOperationStateCommand
 
 static_assert(sizeof(SetOperationStateCommand) == 1, "SetOperationStateCommand must be 1 bytes");
 
-} // namespace beam
+} // namespace aesa_processor::beam

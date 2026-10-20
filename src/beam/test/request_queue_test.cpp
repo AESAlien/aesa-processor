@@ -6,42 +6,42 @@
 #include <chrono>
 
 using namespace std::chrono_literals;
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 
 namespace
 {
 
-beam::BeamRequest makeRequest(
-    beam::RequestBeamType beamType,
+aesa_processor::beam::BeamRequest makeRequest(
+    aesa_processor::beam::RequestBeamType beamType,
     std::chrono::milliseconds transmitTime,
-    math::Angle azimuth = 0_deg
+    aesa_processor::math::Angle azimuth = 0_deg
 ) {
-    static const beam::RequestBeamPolicyFactory factory{beam::RequestBeamConfig{}};
-    return beam::BeamRequest(factory.create(beamType), transmitTime, 1, math::SphericalDirection(azimuth, 0_deg));
+    static const aesa_processor::beam::RequestBeamPolicyFactory factory{aesa_processor::beam::RequestBeamConfig{}};
+    return aesa_processor::beam::BeamRequest(factory.create(beamType), transmitTime, 1, aesa_processor::math::SphericalDirection(azimuth, 0_deg));
 }
 
-beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)
+aesa_processor::beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, aesa_processor::math::Angle azimuth = 0_deg)
 {
-    return makeRequest(beam::RequestBeamType::CONFIRMATION, transmitTime, azimuth);
+    return makeRequest(aesa_processor::beam::RequestBeamType::CONFIRMATION, transmitTime, azimuth);
 }
 
-beam::BeamRequest makeTracking(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)
+aesa_processor::beam::BeamRequest makeTracking(std::chrono::milliseconds transmitTime, aesa_processor::math::Angle azimuth = 0_deg)
 {
-    return makeRequest(beam::RequestBeamType::TRACKING, transmitTime, azimuth);
+    return makeRequest(aesa_processor::beam::RequestBeamType::TRACKING, transmitTime, azimuth);
 }
 
 } // namespace
 
 TEST(RequestQueueTest, EmptyQueueReturnsNothing)
 {
-    beam::RequestQueue queue;
+    aesa_processor::beam::RequestQueue queue;
 
     EXPECT_FALSE(queue.popNextDue(1000ms).has_value());
 }
 
 TEST(RequestQueueTest, FutureRequestIsNotPoppedAndStaysQueued)
 {
-    beam::RequestQueue queue;
+    aesa_processor::beam::RequestQueue queue;
     queue.add(makeTracking(1010ms));
 
     EXPECT_FALSE(queue.popNextDue(1000ms).has_value());
@@ -54,7 +54,7 @@ TEST(RequestQueueTest, FutureRequestIsNotPoppedAndStaysQueued)
 
 TEST(RequestQueueTest, RequestExactlyAtCurrentTimeIsDue)
 {
-    beam::RequestQueue queue;
+    aesa_processor::beam::RequestQueue queue;
     queue.add(makeTracking(1000ms));
 
     const auto request = queue.popNextDue(1000ms);
@@ -65,7 +65,7 @@ TEST(RequestQueueTest, RequestExactlyAtCurrentTimeIsDue)
 
 TEST(RequestQueueTest, PoppedRequestIsRemovedFromQueue)
 {
-    beam::RequestQueue queue;
+    aesa_processor::beam::RequestQueue queue;
     queue.add(makeTracking(1000ms));
 
     ASSERT_TRUE(queue.popNextDue(1000ms).has_value());
@@ -74,7 +74,7 @@ TEST(RequestQueueTest, PoppedRequestIsRemovedFromQueue)
 
 TEST(RequestQueueTest, EarliestDueRequestComesFirstRegardlessOfInsertionOrder)
 {
-    beam::RequestQueue queue;
+    aesa_processor::beam::RequestQueue queue;
     queue.add(makeTracking(1010ms, 3_deg));
     queue.add(makeTracking(1000ms, 1_deg));
     queue.add(makeTracking(1005ms, 2_deg));
@@ -86,7 +86,7 @@ TEST(RequestQueueTest, EarliestDueRequestComesFirstRegardlessOfInsertionOrder)
 
 TEST(RequestQueueTest, SameTransmitTimeConfirmationComesBeforeTracking)
 {
-    beam::RequestQueue queue;
+    aesa_processor::beam::RequestQueue queue;
     queue.add(makeTracking(1000ms, 1_deg));
     queue.add(makeConfirmation(1000ms, 2_deg));
 
@@ -95,13 +95,13 @@ TEST(RequestQueueTest, SameTransmitTimeConfirmationComesBeforeTracking)
 
     ASSERT_TRUE(first.has_value());
     ASSERT_TRUE(second.has_value());
-    EXPECT_EQ(first->transmitBeamType(), beam::BeamType::CONFIRMATION);
-    EXPECT_EQ(second->transmitBeamType(), beam::BeamType::TRACKING);
+    EXPECT_EQ(first->transmitBeamType(), aesa_processor::beam::BeamType::CONFIRMATION);
+    EXPECT_EQ(second->transmitBeamType(), aesa_processor::beam::BeamType::TRACKING);
 }
 
 TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
 {
-    beam::RequestQueue queue;
+    aesa_processor::beam::RequestQueue queue;
     queue.add(makeTracking(1000ms, 1_deg));
     queue.add(makeTracking(1000ms, 2_deg));
     queue.add(makeTracking(1000ms, 3_deg));
@@ -113,20 +113,20 @@ TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
 
 TEST(RequestQueueTest, EarlierTrackingStillComesBeforeLaterConfirmation)
 {
-    beam::RequestQueue queue;
+    aesa_processor::beam::RequestQueue queue;
     queue.add(makeConfirmation(1010ms));
     queue.add(makeTracking(1000ms));
 
     const auto request = queue.popNextDue(1010ms);
 
     ASSERT_TRUE(request.has_value());
-    EXPECT_EQ(request->transmitBeamType(), beam::BeamType::TRACKING);
+    EXPECT_EQ(request->transmitBeamType(), aesa_processor::beam::BeamType::TRACKING);
 }
 
 TEST(RequestQueueTest, VeryOldRequestIsStillPopped)
 {
     // 요청은 만료로 폐기되지 않는다. 아무리 오래 기다렸어도 꺼낼 수 있다.
-    beam::RequestQueue queue;
+    aesa_processor::beam::RequestQueue queue;
     queue.add(makeConfirmation(1000ms, 1_deg));
     queue.add(makeTracking(1000ms, 2_deg));
 
@@ -134,16 +134,16 @@ TEST(RequestQueueTest, VeryOldRequestIsStillPopped)
     const auto second = queue.popNextDue(100000ms);
 
     ASSERT_TRUE(first.has_value());
-    EXPECT_EQ(first->transmitBeamType(), beam::BeamType::CONFIRMATION);
+    EXPECT_EQ(first->transmitBeamType(), aesa_processor::beam::BeamType::CONFIRMATION);
     ASSERT_TRUE(second.has_value());
-    EXPECT_EQ(second->transmitBeamType(), beam::BeamType::TRACKING);
+    EXPECT_EQ(second->transmitBeamType(), aesa_processor::beam::BeamType::TRACKING);
     EXPECT_FALSE(queue.popNextDue(100000ms).has_value());
 }
 
 TEST(RequestQueueTest, CrowdedRequestsAreAllPoppedInTimeOrderWithoutDrop)
 {
     // 방위각으로 기대 순서를 표시한다. 일부러 시각 순서와 다르게 넣는다.
-    beam::RequestQueue queue;
+    aesa_processor::beam::RequestQueue queue;
     queue.add(makeTracking(1020ms, 5_deg));
     queue.add(makeConfirmation(1010ms, 2_deg));
     queue.add(makeTracking(1010ms, 3_deg));
@@ -155,7 +155,7 @@ TEST(RequestQueueTest, CrowdedRequestsAreAllPoppedInTimeOrderWithoutDrop)
     {
         const auto request = queue.popNextDue(5000ms);
         ASSERT_TRUE(request.has_value()) << "expected azimuth " << expectedAzimuth;
-        EXPECT_TRUE(request->direction_enu().azimuth.isEquivalentTo(math::Angle::fromDegrees(expectedAzimuth)));
+        EXPECT_TRUE(request->direction_enu().azimuth.isEquivalentTo(aesa_processor::math::Angle::fromDegrees(expectedAzimuth)));
     }
 
     EXPECT_FALSE(queue.popNextDue(5000ms).has_value());
@@ -163,7 +163,7 @@ TEST(RequestQueueTest, CrowdedRequestsAreAllPoppedInTimeOrderWithoutDrop)
 
 TEST(RequestQueueTest, ClearRemovesAllRequests)
 {
-    beam::RequestQueue queue;
+    aesa_processor::beam::RequestQueue queue;
     queue.add(makeTracking(1000ms));
     queue.add(makeConfirmation(2000ms));
 

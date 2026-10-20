@@ -9,7 +9,7 @@
 #include <limits>
 #include <stdexcept>
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 
 namespace
 {
@@ -18,22 +18,22 @@ const double NAN_VALUE = std::numeric_limits<double>::quiet_NaN();
 const double INF_VALUE = std::numeric_limits<double>::infinity();
 const double MAX_VALUE = std::numeric_limits<double>::max();
 
-// NaN·Inf Angle은 math::Angle 생성 단계에서 std::invalid_argument로 거부되므로 설정 검증 대상이 아니다.
-const math::Angle MAX_ANGLE = math::Angle::fromDegrees(MAX_VALUE);
+// NaN·Inf Angle은 aesa_processor::math::Angle 생성 단계에서 std::invalid_argument로 거부되므로 설정 검증 대상이 아니다.
+const aesa_processor::math::Angle MAX_ANGLE = aesa_processor::math::Angle::fromDegrees(MAX_VALUE);
 
-beam::AttitudeConfig::Builder attitudeBuilder()
+aesa_processor::beam::AttitudeConfig::Builder attitudeBuilder()
 {
-    return beam::AttitudeConfig::Builder();
+    return aesa_processor::beam::AttitudeConfig::Builder();
 }
 
-beam::SearchGridConfig::Builder gridBuilder()
+aesa_processor::beam::SearchGridConfig::Builder gridBuilder()
 {
-    return beam::SearchGridConfig::Builder();
+    return aesa_processor::beam::SearchGridConfig::Builder();
 }
 
-beam::RequestBeamConfig::Builder requestBuilder()
+aesa_processor::beam::RequestBeamConfig::Builder requestBuilder()
 {
-    return beam::RequestBeamConfig::Builder();
+    return aesa_processor::beam::RequestBeamConfig::Builder();
 }
 
 } // namespace
@@ -42,7 +42,7 @@ beam::RequestBeamConfig::Builder requestBuilder()
 
 TEST(SearchGridConfigTest, DefaultsMatchOperationalGrid)
 {
-    const beam::SearchGridConfig config;
+    const aesa_processor::beam::SearchGridConfig config;
 
     EXPECT_EQ(config.azimuthCount(), 21u);
     EXPECT_EQ(config.elevationCount(), 9u);
@@ -55,8 +55,8 @@ TEST(SearchGridConfigTest, DefaultsMatchOperationalGrid)
 
 TEST(SearchGridConfigTest, BuilderDefaultsEqualDefaultConstructor)
 {
-    const beam::SearchGridConfig fromBuilder = gridBuilder().build();
-    const beam::SearchGridConfig fromDefault;
+    const aesa_processor::beam::SearchGridConfig fromBuilder = gridBuilder().build();
+    const aesa_processor::beam::SearchGridConfig fromDefault;
 
     EXPECT_EQ(fromBuilder.azimuthCount(), fromDefault.azimuthCount());
     EXPECT_EQ(fromBuilder.elevationCount(), fromDefault.elevationCount());
@@ -69,7 +69,7 @@ TEST(SearchGridConfigTest, BuilderDefaultsEqualDefaultConstructor)
 
 TEST(SearchGridConfigTest, BuilderOverridesOnlyGivenValues)
 {
-    const beam::SearchGridConfig config = gridBuilder()
+    const aesa_processor::beam::SearchGridConfig config = gridBuilder()
         .azimuthCount(3)
         .elevationCount(2)
         .azimuthStart(-10_deg)
@@ -87,15 +87,15 @@ TEST(SearchGridConfigTest, BuilderOverridesOnlyGivenValues)
     EXPECT_EQ(config.elevationStep(), 2_deg);
     EXPECT_EQ(config.beamWidth(), 4_deg);
 
-    const beam::SearchGridConfig partial = gridBuilder().azimuthCount(5).build();
+    const aesa_processor::beam::SearchGridConfig partial = gridBuilder().azimuthCount(5).build();
     EXPECT_EQ(partial.azimuthCount(), 5u);
     EXPECT_EQ(partial.elevationCount(), 9u);
 }
 
 TEST(SearchGridConfigTest, ConstructorValidatesLikeBuilder)
 {
-    EXPECT_NO_THROW(beam::SearchGridConfig(3, 2, -10_deg, 5_deg, 1_deg, 2_deg, 4_deg));
-    EXPECT_THROW(beam::SearchGridConfig(0, 2, -10_deg, 5_deg, 1_deg, 2_deg, 4_deg), std::invalid_argument);
+    EXPECT_NO_THROW(aesa_processor::beam::SearchGridConfig(3, 2, -10_deg, 5_deg, 1_deg, 2_deg, 4_deg));
+    EXPECT_THROW(aesa_processor::beam::SearchGridConfig(0, 2, -10_deg, 5_deg, 1_deg, 2_deg, 4_deg), std::invalid_argument);
 }
 
 TEST(SearchGridConfigTest, ZeroAzimuthCountThrows)
@@ -192,25 +192,25 @@ TEST(SearchGridConfigTest, AzimuthBeyondHalfTurnIsAccepted)
 {
     // 방위각은 SphericalDirection에 넘기기 전에 정규화되므로 범위를 제한하지 않는다.
     EXPECT_NO_THROW(gridBuilder().azimuthCount(100).azimuthStep(10_deg).build());
-    EXPECT_NO_THROW(gridBuilder().azimuthCount(1).elevationCount(1).azimuthStart(math::Angle::fromDegrees(1e18)).build());
+    EXPECT_NO_THROW(gridBuilder().azimuthCount(1).elevationCount(1).azimuthStart(aesa_processor::math::Angle::fromDegrees(1e18)).build());
 }
 
 // ================================================================ AttitudeConfig
 
 TEST(AttitudeConfigTest, DefaultsMatchOperationalValues)
 {
-    const beam::AttitudeConfig config;
+    const aesa_processor::beam::AttitudeConfig config;
 
     EXPECT_EQ(config.maxAbsPitch(), 89_deg);
     EXPECT_EQ(config.mountOrthogonalTolerance(), 1e-6);
     ASSERT_EQ(config.mountAntToBodyRotation().size(), 3u);
-    EXPECT_TRUE(config.mountAntToBodyRotation().isRotation(math::Tolerance{1e-12, 0.0}));
+    EXPECT_TRUE(config.mountAntToBodyRotation().isRotation(aesa_processor::math::Tolerance{1e-12, 0.0}));
 }
 
 TEST(AttitudeConfigTest, BuilderOverridesGivenValues)
 {
-    const math::SquareMatrix mount{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}};
-    const beam::AttitudeConfig config = attitudeBuilder()
+    const aesa_processor::math::SquareMatrix mount{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}};
+    const aesa_processor::beam::AttitudeConfig config = attitudeBuilder()
         .maxAbsPitch(80_deg)
         .mountAntToBodyRotation(mount)
         .mountOrthogonalTolerance(1e-3)
@@ -225,34 +225,34 @@ TEST(AttitudeConfigTest, BuilderOverridesGivenValues)
 TEST(AttitudeConfigTest, AcceptsRotationMount)
 {
     EXPECT_NO_THROW(attitudeBuilder()
-        .mountAntToBodyRotation(math::SquareMatrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}}) // z축 90도 회전
+        .mountAntToBodyRotation(aesa_processor::math::SquareMatrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}}) // z축 90도 회전
         .build());
 }
 
 TEST(AttitudeConfigTest, AcceptsRotationMountWithFloatingPointEntries)
 {
-    const math::Angle angle = 0.37_rad;
+    const aesa_processor::math::Angle angle = 0.37_rad;
     const double c = std::cos(angle.rad());
     const double s = std::sin(angle.rad());
 
     EXPECT_NO_THROW(attitudeBuilder()
-        .mountAntToBodyRotation(math::SquareMatrix{{c, -s, 0}, {s, c, 0}, {0, 0, 1}})
+        .mountAntToBodyRotation(aesa_processor::math::SquareMatrix{{c, -s, 0}, {s, c, 0}, {0, 0, 1}})
         .build());
 }
 
 TEST(AttitudeConfigTest, NonRotationMountThrows)
 {
     EXPECT_THROW(
-        attitudeBuilder().mountAntToBodyRotation(math::SquareMatrix{{2, 0, 0}, {0, 1, 0}, {0, 0, 1}}).build(),
+        attitudeBuilder().mountAntToBodyRotation(aesa_processor::math::SquareMatrix{{2, 0, 0}, {0, 1, 0}, {0, 0, 1}}).build(),
         std::invalid_argument); // 스케일
     EXPECT_THROW(
-        attitudeBuilder().mountAntToBodyRotation(math::SquareMatrix{{1, 0, 0}, {0, 1, 0}, {0, 0, -1}}).build(),
+        attitudeBuilder().mountAntToBodyRotation(aesa_processor::math::SquareMatrix{{1, 0, 0}, {0, 1, 0}, {0, 0, -1}}).build(),
         std::invalid_argument); // 반사 (det = -1)
     EXPECT_THROW(
-        attitudeBuilder().mountAntToBodyRotation(math::SquareMatrix{{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}).build(),
+        attitudeBuilder().mountAntToBodyRotation(aesa_processor::math::SquareMatrix{{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}).build(),
         std::invalid_argument); // 특이 행렬
     EXPECT_THROW(
-        attitudeBuilder().mountAntToBodyRotation(math::SquareMatrix::identity(2)).build(),
+        attitudeBuilder().mountAntToBodyRotation(aesa_processor::math::SquareMatrix::identity(2)).build(),
         std::invalid_argument); // 3x3 이 아님
 }
 
@@ -261,7 +261,7 @@ TEST(AttitudeConfigTest, NonFiniteMountEntriesAndOverflowThrow)
     for (double value : {NAN_VALUE, INF_VALUE, MAX_VALUE})
     {
         EXPECT_THROW(
-            attitudeBuilder().mountAntToBodyRotation(math::SquareMatrix{{value, 0, 0}, {0, 1, 0}, {0, 0, 1}}).build(),
+            attitudeBuilder().mountAntToBodyRotation(aesa_processor::math::SquareMatrix{{value, 0, 0}, {0, 1, 0}, {0, 0, 1}}).build(),
             std::invalid_argument)
             << "value=" << value;
     }
@@ -269,7 +269,7 @@ TEST(AttitudeConfigTest, NonFiniteMountEntriesAndOverflowThrow)
 
 TEST(AttitudeConfigTest, MountOrthogonalityUsesConfiguredTolerance)
 {
-    const math::SquareMatrix skewed{{1, 0.1, 0}, {0, 1, 0}, {0, 0, 1}};
+    const aesa_processor::math::SquareMatrix skewed{{1, 0.1, 0}, {0, 1, 0}, {0, 0, 1}};
 
     EXPECT_NO_THROW(attitudeBuilder().mountAntToBodyRotation(skewed).mountOrthogonalTolerance(0.2).build());
     EXPECT_THROW(
@@ -304,20 +304,20 @@ TEST(AttitudeConfigTest, MaxAbsPitchRejectsAnglesEquivalentToNinetyDegreesByPeri
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(450_deg).build(), std::invalid_argument);
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(810_deg).build(), std::invalid_argument);
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(-270_deg).build(), std::invalid_argument);
-    EXPECT_THROW(beam::AttitudeConfig(450_deg, math::SquareMatrix::identity(3), 1e-6), std::invalid_argument);
+    EXPECT_THROW(aesa_processor::beam::AttitudeConfig(450_deg, aesa_processor::math::SquareMatrix::identity(3), 1e-6), std::invalid_argument);
 }
 
 TEST(AttitudeConfigTest, ConstructorValidatesLikeBuilder)
 {
-    EXPECT_NO_THROW(beam::AttitudeConfig(89_deg, math::SquareMatrix::identity(3), 1e-6));
-    EXPECT_THROW(beam::AttitudeConfig(89_deg, math::SquareMatrix::identity(2), 1e-6), std::invalid_argument);
+    EXPECT_NO_THROW(aesa_processor::beam::AttitudeConfig(89_deg, aesa_processor::math::SquareMatrix::identity(3), 1e-6));
+    EXPECT_THROW(aesa_processor::beam::AttitudeConfig(89_deg, aesa_processor::math::SquareMatrix::identity(2), 1e-6), std::invalid_argument);
 }
 
 // ================================================================ RequestBeamConfig
 
 TEST(RequestBeamConfigTest, DefaultsAreThreeDegrees)
 {
-    const beam::RequestBeamConfig config;
+    const aesa_processor::beam::RequestBeamConfig config;
 
     EXPECT_EQ(config.confirmationBeamWidth(), 3_deg);
     EXPECT_EQ(config.trackingBeamWidth(), 3_deg);
@@ -325,7 +325,7 @@ TEST(RequestBeamConfigTest, DefaultsAreThreeDegrees)
 
 TEST(RequestBeamConfigTest, BuilderOverridesGivenValues)
 {
-    const beam::RequestBeamConfig config = requestBuilder()
+    const aesa_processor::beam::RequestBeamConfig config = requestBuilder()
         .confirmationBeamWidth(2_deg)
         .trackingBeamWidth(4_deg)
         .build();
@@ -344,15 +344,15 @@ TEST(RequestBeamConfigTest, NonPositiveBeamWidthThrows)
 
 TEST(RequestBeamConfigTest, ConstructorValidatesLikeBuilder)
 {
-    EXPECT_NO_THROW(beam::RequestBeamConfig(2_deg, 4_deg));
-    EXPECT_THROW(beam::RequestBeamConfig(0_deg, 4_deg), std::invalid_argument);
+    EXPECT_NO_THROW(aesa_processor::beam::RequestBeamConfig(2_deg, 4_deg));
+    EXPECT_THROW(aesa_processor::beam::RequestBeamConfig(0_deg, 4_deg), std::invalid_argument);
 }
 
 // ================================================================ BeamConfig
 
 TEST(BeamConfigTest, DefaultsComposeDefaultSubConfigs)
 {
-    const beam::BeamConfig config;
+    const aesa_processor::beam::BeamConfig config;
 
     EXPECT_EQ(config.attitude().maxAbsPitch(), 89_deg);
     EXPECT_EQ(config.searchGrid().azimuthCount(), 21u);
@@ -361,7 +361,7 @@ TEST(BeamConfigTest, DefaultsComposeDefaultSubConfigs)
 
 TEST(BeamConfigTest, BuilderReplacesOnlyGivenSubConfigs)
 {
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
+    const aesa_processor::beam::BeamConfig config = aesa_processor::beam::BeamConfig::Builder()
         .searchGridConfig(gridBuilder().azimuthCount(5).build())
         .requestBeamConfig(requestBuilder().trackingBeamWidth(4_deg).build())
         .build();
@@ -374,7 +374,7 @@ TEST(BeamConfigTest, BuilderReplacesOnlyGivenSubConfigs)
 
 TEST(BeamConfigTest, ConstructorKeepsGivenSubConfigs)
 {
-    const beam::BeamConfig config(
+    const aesa_processor::beam::BeamConfig config(
         attitudeBuilder().maxAbsPitch(70_deg).build(),
         gridBuilder().elevationCount(4).build(),
         requestBuilder().confirmationBeamWidth(2_deg).build());

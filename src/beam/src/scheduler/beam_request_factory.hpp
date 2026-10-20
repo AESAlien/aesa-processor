@@ -6,7 +6,7 @@
 #include <beam/config/request_beam_config.hpp>
 #include <beam/dto/request_beam_command.hpp>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 // 공개 DTO인 RequestBeamCommand를 내부 요청(BeamRequest)으로 바꾸는 유일한 곳이다.
@@ -28,4 +28,4 @@ private:
     RequestBeamPolicyFactory _policyFactory;
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

@@ -24,7 +24,7 @@ namespace
 
 constexpr std::chrono::milliseconds BEAM_PERIOD{10};
 
-comm::CommConfiguration makeConfiguration()
+aesa_processor::comm::CommConfiguration makeConfiguration()
 {
     // 외부 프로그램은 자신의 source IP/port를 아래 endpoint에 맞춰 bind해야 한다.
     return
@@ -41,15 +41,15 @@ void runWorker(const char* name, Action action)
     try
     {
         action();
-        app::reportWorkerError(name, "Worker returned unexpectedly");
+        aesa_processor::app::reportWorkerError(name, "Worker returned unexpectedly");
     }
     catch (const std::exception& error)
     {
-        app::reportWorkerError(name, error.what());
+        aesa_processor::app::reportWorkerError(name, error.what());
     }
     catch (...)
     {
-        app::reportWorkerError(name, "Unknown worker failure");
+        aesa_processor::app::reportWorkerError(name, "Unknown worker failure");
     }
 
     // 일반 모듈 예외는 기존 워커 내부에서 처리한다.
@@ -69,27 +69,27 @@ int main()
     try
     {
         // 1. 채널 3개. CommChannel 내부에는 목적지별 큐 2개가 있다.
-        app::BeamChannel beamChannel;
-        app::TargetChannel targetChannel;
-        app::CommChannel commChannel;
+        aesa_processor::app::BeamChannel beamChannel;
+        aesa_processor::app::TargetChannel targetChannel;
+        aesa_processor::app::CommChannel commChannel;
 
         // 2. 실제 구현된 컨트롤러.
-        beam::BeamController beamController;
-        target::TargetController targetController(target::TargetConfig{});
-        comm::CommController commController(makeConfiguration());
+        aesa_processor::beam::BeamController beamController;
+        aesa_processor::target::TargetController targetController(aesa_processor::target::TargetConfig{});
+        aesa_processor::comm::CommController commController(makeConfiguration());
 
         // 다른 스레드가 컨트롤러를 사용하기 전에 서버를 연다.
         commController.openServer();
 
         // 3. 역할별 워커 5개. Comm 워커 셋은 같은 컨트롤러/채널을 공유한다.
-        app::BeamWorker beamWorker(beamChannel, commChannel, beamController);
-        app::TargetWorker targetWorker(
+        aesa_processor::app::BeamWorker beamWorker(beamChannel, commChannel, beamController);
+        aesa_processor::app::TargetWorker targetWorker(
             targetChannel, beamChannel, commChannel, targetController);
-        app::CommWorker receiveWorker(
+        aesa_processor::app::CommWorker receiveWorker(
             commChannel, beamChannel, targetChannel, commController);
-        app::CommWorker simulatorSendWorker(
+        aesa_processor::app::CommWorker simulatorSendWorker(
             commChannel, beamChannel, targetChannel, commController);
-        app::CommWorker consoleSendWorker(
+        aesa_processor::app::CommWorker consoleSendWorker(
             commChannel, beamChannel, targetChannel, commController);
 
         // 스레드를 시작한 뒤의 실패는 아래 내부 catch에서 즉시 처리한다.
@@ -144,7 +144,7 @@ int main()
                 const auto currentTime =
                     std::chrono::duration_cast<std::chrono::milliseconds>(now - started);
 
-                beamChannel.write(app::NextBeamCommandEvent{currentTime});
+                beamChannel.write(aesa_processor::app::NextBeamCommandEvent{currentTime});
 
                 nextTick += BEAM_PERIOD;
                 if (nextTick <= now)
@@ -156,22 +156,22 @@ int main()
         }
         catch (const std::exception& error)
         {
-            app::reportWorkerError("main", error.what());
+            aesa_processor::app::reportWorkerError("main", error.what());
             std::_Exit(EXIT_FAILURE);
         }
         catch (...)
         {
-            app::reportWorkerError("main", "Unknown thread/timer failure");
+            aesa_processor::app::reportWorkerError("main", "Unknown thread/timer failure");
             std::_Exit(EXIT_FAILURE);
         }
     }
     catch (const std::exception& error)
     {
-        app::reportWorkerError("main", error.what());
+        aesa_processor::app::reportWorkerError("main", error.what());
     }
     catch (...)
     {
-        app::reportWorkerError("main", "Unknown startup/timer failure");
+        aesa_processor::app::reportWorkerError("main", "Unknown startup/timer failure");
     }
 
     // 여기로 오는 것은 스레드 생성 전의 초기화 실패다.

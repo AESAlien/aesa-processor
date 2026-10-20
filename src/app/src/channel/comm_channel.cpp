@@ -3,11 +3,11 @@
 #include <utility>
 #include <variant>
 
-namespace app
+namespace aesa_processor::app
 {
 void CommChannel::write(CommEvent message)
 {
-    if (std::holds_alternative<beam::TransmitBeamCommand>(message))
+    if (std::holds_alternative<aesa_processor::beam::TransmitBeamCommand>(message))
     {
         _simulatorQueue.push(std::move(message));
     }
@@ -17,10 +17,10 @@ void CommChannel::write(CommEvent message)
     }
 }
 
-void CommChannel::write(const target::TrackEvent& message)
+void CommChannel::write(const aesa_processor::target::TrackEvent& message)
 {
     write(
-        CommEvent{std::vector<target::TrackEvent>{message}});
+        CommEvent{std::vector<aesa_processor::target::TrackEvent>{message}});
 }
 
 std::optional<CommEvent> CommChannel::readSimulator()
@@ -38,4 +38,4 @@ void CommChannel::close()
     _simulatorQueue.close();
     _consoleQueue.close();
 }
-} // namespace app
+} // namespace aesa_processor::app

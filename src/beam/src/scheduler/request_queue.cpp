@@ -1,6 +1,6 @@
 #include "scheduler/request_queue.hpp"
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 void RequestQueue::add(const BeamRequest& request)
@@ -39,4 +39,4 @@ void RequestQueue::clear()
     _requests.clear();
 }
 
-} // namespace beam
+} // namespace aesa_processor::beam

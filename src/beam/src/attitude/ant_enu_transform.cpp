@@ -8,22 +8,22 @@
 #include <math/trigonometry.hpp>
 #include <math/linear_algebra/vector.hpp>
 
-namespace beam
+namespace aesa_processor::beam
 {
 namespace
 {
-math::SquareMatrix bodyToEnu(math::Angle roll, math::Angle pitch, math::Angle yaw)
+aesa_processor::math::SquareMatrix bodyToEnu(aesa_processor::math::Angle roll, aesa_processor::math::Angle pitch, aesa_processor::math::Angle yaw)
 {
-    const double cr = math::cos(roll);
-    const double sr = math::sin(roll);
-    const double cp = math::cos(pitch);
-    const double sp = math::sin(pitch);
-    const double cy = math::cos(yaw);
-    const double sy = math::sin(yaw);
+    const double cr = aesa_processor::math::cos(roll);
+    const double sr = aesa_processor::math::sin(roll);
+    const double cp = aesa_processor::math::cos(pitch);
+    const double sp = aesa_processor::math::sin(pitch);
+    const double cy = aesa_processor::math::cos(yaw);
+    const double sy = aesa_processor::math::sin(yaw);
 
-    const math::SquareMatrix Rz{{cy, sy, 0}, {-sy, cy, 0}, {0, 0, 1}};
-    const math::SquareMatrix Rx{{1, 0, 0}, {0, cp, -sp}, {0, sp, cp}};
-    const math::SquareMatrix Ry{{cr, 0, sr}, {0, 1, 0}, {-sr, 0, cr}};
+    const aesa_processor::math::SquareMatrix Rz{{cy, sy, 0}, {-sy, cy, 0}, {0, 0, 1}};
+    const aesa_processor::math::SquareMatrix Rx{{1, 0, 0}, {0, cp, -sp}, {0, sp, cp}};
+    const aesa_processor::math::SquareMatrix Ry{{cr, 0, sr}, {0, 1, 0}, {-sr, 0, cr}};
 
     return Rz * (Rx * Ry);
 }
@@ -41,23 +41,23 @@ AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeCo
         bodyToEnu(attitude.roll(), attitude.pitch(), attitude.yaw()) * config.mountAntToBodyRotation();
 }
 
-math::SphericalDirection AntEnuTransform::antToEnu(const math::SphericalDirection& direction_ant) const
+aesa_processor::math::SphericalDirection AntEnuTransform::antToEnu(const aesa_processor::math::SphericalDirection& direction_ant) const
 {
-    const math::Vector vector_ant = direction_ant.toCartesianUnitVector();
-    const math::Vector vector_enu = _rotationMatrix * vector_ant;
-    return math::SphericalDirection::fromCartesianUnitVector(vector_enu);
+    const aesa_processor::math::Vector vector_ant = direction_ant.toCartesianUnitVector();
+    const aesa_processor::math::Vector vector_enu = _rotationMatrix * vector_ant;
+    return aesa_processor::math::SphericalDirection::fromCartesianUnitVector(vector_enu);
 }
 
-const math::SquareMatrix& AntEnuTransform::rotationMatrix() const
+const aesa_processor::math::SquareMatrix& AntEnuTransform::rotationMatrix() const
 {
     return _rotationMatrix;
 }
 
-math::SphericalDirection AntEnuTransform::enuToAnt(const math::SphericalDirection& direction_enu) const
+aesa_processor::math::SphericalDirection AntEnuTransform::enuToAnt(const aesa_processor::math::SphericalDirection& direction_enu) const
 {
-    const math::Vector vector_enu = direction_enu.toCartesianUnitVector();
-    const math::Vector vector_ant = math::transpose(_rotationMatrix) * vector_enu;
-    return math::SphericalDirection::fromCartesianUnitVector(vector_ant);
+    const aesa_processor::math::Vector vector_enu = direction_enu.toCartesianUnitVector();
+    const aesa_processor::math::Vector vector_ant = aesa_processor::math::transpose(_rotationMatrix) * vector_enu;
+    return aesa_processor::math::SphericalDirection::fromCartesianUnitVector(vector_ant);
 }
 
-} // namespace beam
+} // namespace aesa_processor::beam

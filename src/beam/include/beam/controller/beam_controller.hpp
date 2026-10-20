@@ -10,7 +10,7 @@
 #include <memory>
 #include <optional>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 class BeamRequestFactory;
@@ -49,4 +49,4 @@ private:
     std::unique_ptr<BeamRequestFactory> _requestFactory;
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

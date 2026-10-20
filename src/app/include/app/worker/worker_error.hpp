@@ -5,7 +5,7 @@
 #include <mutex>
 #include <utility>
 
-namespace app
+namespace aesa_processor::app
 {
 inline void reportWorkerError(
     const char* worker,
@@ -44,4 +44,4 @@ bool tryWorkerAction(const char* worker, Function&& action)
 
     return false;
 }
-} // namespace app
+} // namespace aesa_processor::app

@@ -6,7 +6,7 @@
 #include <initializer_list>
 #include <vector>
 
-namespace math
+namespace aesa_processor::math
 {
 
 class Matrix

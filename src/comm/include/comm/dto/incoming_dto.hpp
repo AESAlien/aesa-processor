@@ -6,13 +6,13 @@
 
 #include <variant>
 
-namespace comm
+namespace aesa_processor::comm
 {
 
 using IncomingDto = std::variant<
-    beam::SetOperationStateCommand,
-    beam::SetAttitudeCommand,
-    target::DetectionEvent
+    aesa_processor::beam::SetOperationStateCommand,
+    aesa_processor::beam::SetAttitudeCommand,
+    aesa_processor::target::DetectionEvent
 >;
 
-} // namespace comm
+} // namespace aesa_processor::comm

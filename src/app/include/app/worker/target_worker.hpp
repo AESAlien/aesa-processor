@@ -6,7 +6,7 @@
 #include <target/controller/target_controller.hpp>
 #include <app/worker/worker_error.hpp>
 
-namespace app
+namespace aesa_processor::app
 {
 class TargetWorker
 {
@@ -15,7 +15,7 @@ public:
         TargetChannel& targetChannel,
         BeamChannel& beamChannel,
         CommChannel& commChannel,
-        target::TargetController& controller);
+        aesa_processor::target::TargetController& controller);
 
     void run();
 
@@ -23,6 +23,6 @@ private:
     TargetChannel& _targetChannel;
     BeamChannel& _beamChannel;
     CommChannel& _commChannel;
-    target::TargetController& _controller;
+    aesa_processor::target::TargetController& _controller;
 };
-} // namespace app
+} // namespace aesa_processor::app

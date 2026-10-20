@@ -5,7 +5,7 @@
 #include <chrono>
 #include <optional>
 
-namespace target
+namespace aesa_processor::target
 {
 
 class Target;
@@ -35,4 +35,4 @@ public:
         std::chrono::milliseconds time) const = 0;
 };
 
-} // namespace target
+} // namespace aesa_processor::target

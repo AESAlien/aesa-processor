@@ -2,7 +2,7 @@
 
 #include "math/quantity/length.hpp"
 
-namespace math
+namespace aesa_processor::math
 {
 
 struct SphericalPosition;

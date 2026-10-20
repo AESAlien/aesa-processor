@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace comm
+namespace aesa_processor::comm
 {
 
 class CommError : public std::runtime_error
@@ -39,4 +39,4 @@ public:
     using CommError::CommError;
 };
 
-} // namespace comm
+} // namespace aesa_processor::comm

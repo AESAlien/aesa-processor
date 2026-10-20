@@ -7,7 +7,7 @@
 
 #include <memory>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 // 요청 빔 종류에 맞는 정책을 만든다. 확인/추적 빔 종류에 따른 분기(switch/case)는 이 클래스에만 둔다.
@@ -27,4 +27,4 @@ private:
     std::shared_ptr<const IRequestBeamPolicy> _trackingPolicy;
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

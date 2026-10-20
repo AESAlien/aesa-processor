@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-namespace comm::protocol
+namespace aesa_processor::comm::protocol
 {
 
 #pragma pack(push, 1)
@@ -38,4 +38,4 @@ static_assert(sizeof(ST_PlotHeader) == 4, "ST_PlotHeader must be 4 bytes");
 static_assert(sizeof(ST_Plot) == 24, "ST_Plot must be 24 bytes");
 static_assert(sizeof(ST_PlotMsg) == 2484, "ST_PlotMsg must be 2484 bytes");
 
-} // namespace comm::protocol
+} // namespace aesa_processor::comm::protocol

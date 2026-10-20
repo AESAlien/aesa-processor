@@ -5,7 +5,7 @@
 #include <network/message_framer/message_framer.hpp>
 #include <network/network_manager/network_types.hpp>
 
-namespace comm
+namespace aesa_processor::comm
 {
 namespace controller_error
 {
@@ -48,4 +48,4 @@ void reportRejectedConnection(
 ) noexcept;
 
 } // namespace controller_error
-} // namespace comm
+} // namespace aesa_processor::comm

@@ -6,7 +6,7 @@
 #include <map>
 #include <optional>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 // 확인/추적 빔 요청을 시각 순으로 보관한다.
@@ -27,4 +27,4 @@ private:
     std::multimap<std::chrono::milliseconds, BeamRequest> _requests;
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

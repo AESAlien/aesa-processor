@@ -9,7 +9,7 @@
 #include <memory>
 #include <optional>
 
-namespace target
+namespace aesa_processor::target
 {
 
 class ITrackingAlgorithm;
@@ -26,19 +26,19 @@ class Target
 {
 public:
     Target(
-        math::SphericalPosition position,
-        math::LinearVelocity dopplerVelocity,
+        aesa_processor::math::SphericalPosition position,
+        aesa_processor::math::LinearVelocity dopplerVelocity,
         float power_db,
         std::chrono::milliseconds time,
         std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm);
 
     std::uint32_t id() const;
     TargetState state() const;
-    math::Length slantRange() const;
-    math::Angle azimuth() const;
-    math::Angle elevation() const;
-    const math::SphericalPosition& sphericalPosition() const;
-    math::LinearVelocity dopplerVelocity() const;
+    aesa_processor::math::Length slantRange() const;
+    aesa_processor::math::Angle azimuth() const;
+    aesa_processor::math::Angle elevation() const;
+    const aesa_processor::math::SphericalPosition& sphericalPosition() const;
+    aesa_processor::math::LinearVelocity dopplerVelocity() const;
     float power_db() const;
     std::chrono::milliseconds initialTime() const;
     std::chrono::milliseconds lastObservationTime() const;
@@ -64,8 +64,8 @@ private:
     std::uint32_t _id = 0;
     // A received Target has no repository identity until a new candidate is selected.
     // Preserve the first observation independently from subsequent tracking updates.
-    math::SphericalPosition _initialPosition;
-    math::LinearVelocity _initialDopplerVelocity;
+    aesa_processor::math::SphericalPosition _initialPosition;
+    aesa_processor::math::LinearVelocity _initialDopplerVelocity;
     float _initialPower_db;
     std::chrono::milliseconds _initialTime;
     std::chrono::milliseconds _lastResultTime;
@@ -74,4 +74,4 @@ private:
     std::shared_ptr<const ITrackingAlgorithm> _trackingAlgorithm;
 };
 
-} // namespace target
+} // namespace aesa_processor::target

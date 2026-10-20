@@ -3,13 +3,13 @@
 
 #include <utility>
 
-namespace app
+namespace aesa_processor::app
 {
 TargetWorker::TargetWorker(
     TargetChannel& targetChannel,
     BeamChannel& beamChannel,
     CommChannel& commChannel,
-    target::TargetController& controller)
+    aesa_processor::target::TargetController& controller)
     : _targetChannel(targetChannel),
       _beamChannel(beamChannel),
       _commChannel(commChannel),
@@ -38,4 +38,4 @@ void TargetWorker::run()
         });
     }
 }
-} // namespace app
+} // namespace aesa_processor::app

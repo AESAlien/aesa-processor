@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace comm
+namespace aesa_processor::comm
 {
 
 struct CommEndpoint
@@ -47,11 +47,11 @@ public:
     std::optional<IncomingDto> receiveData();
 
     void sendBeamCommand(
-        const beam::TransmitBeamCommand& command
+        const aesa_processor::beam::TransmitBeamCommand& command
     );
 
     void sendTrackEvents(
-        const std::vector<target::TrackEvent>& trackEvents
+        const std::vector<aesa_processor::target::TrackEvent>& trackEvents
     );
 
     // void requestStop() noexcept;
@@ -62,4 +62,4 @@ private:
     std::unique_ptr<Impl> _impl;
 };
 
-} // namespace comm
+} // namespace aesa_processor::comm

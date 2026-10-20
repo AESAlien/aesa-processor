@@ -9,7 +9,7 @@
 #include <optional>
 #include <vector>
 
-namespace target
+namespace aesa_processor::target
 {
 
 class TargetRepository;
@@ -23,7 +23,7 @@ class TargetController
 public:
     explicit TargetController(const TargetConfig& config);
 
-    std::optional<beam::RequestBeamCommand> handleDetection(DetectionEvent detection);
+    std::optional<aesa_processor::beam::RequestBeamCommand> handleDetection(DetectionEvent detection);
     std::vector<TrackEvent> nextTrackEvents() const;
 
 private:
@@ -36,4 +36,4 @@ private:
     std::shared_ptr<const TrackSelector> _trackSelector;
 };
 
-} // namespace target
+} // namespace aesa_processor::target

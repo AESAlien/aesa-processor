@@ -3,7 +3,7 @@
 #include "calculation/association/detection_matcher.hpp"
 #include "repository/target_repository.hpp"
 
-namespace target
+namespace aesa_processor::target
 {
 
 TentativeSelector::TentativeSelector(
@@ -45,4 +45,4 @@ std::optional<std::size_t> TentativeSelector::selectNewCandidate(
     return std::nullopt;
 }
 
-} // namespace target
+} // namespace aesa_processor::target

@@ -7,7 +7,7 @@
 #include <optional>
 #include <vector>
 
-namespace comm
+namespace aesa_processor::comm
 {
 
 enum class EncodingError
@@ -24,11 +24,11 @@ struct EncodeResult
 };
 
 EncodeResult encodeBeamCommand(
-    const beam::TransmitBeamCommand& command
+    const aesa_processor::beam::TransmitBeamCommand& command
 );
 
 EncodeResult encodeTrackEvents(
-    const std::vector<target::TrackEvent>& trackEvents
+    const std::vector<aesa_processor::target::TrackEvent>& trackEvents
 );
 
-} // namespace comm
+} // namespace aesa_processor::comm

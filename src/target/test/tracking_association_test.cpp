@@ -18,26 +18,26 @@
 #include <utility>
 #include <vector>
 
-namespace target
+namespace aesa_processor::target
 {
 namespace
 {
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
-using BeamType = beam::BeamType;
+using BeamType = aesa_processor::beam::BeamType;
 
-math::SphericalPosition position(math::Length range)
+aesa_processor::math::SphericalPosition position(aesa_processor::math::Length range)
 {
-    return math::SphericalPosition(range, math::SphericalDirection(0_deg, 0_deg));
+    return aesa_processor::math::SphericalPosition(range, aesa_processor::math::SphericalDirection(0_deg, 0_deg));
 }
 
 DetectionEvent result(
     BeamType type,
     std::uint32_t id,
     Time time,
-    std::initializer_list<math::Length> ranges)
+    std::initializer_list<aesa_processor::math::Length> ranges)
 {
     std::vector<DetectionEvent::Plot> plots;
     for (const auto range : ranges)
@@ -72,7 +72,7 @@ private:
 class CovarianceAlgorithm final : public ITrackingAlgorithm
 {
 public:
-    explicit CovarianceAlgorithm(math::SquareMatrix positionCovariance, double growthPerSecond = 0.0)
+    explicit CovarianceAlgorithm(aesa_processor::math::SquareMatrix positionCovariance, double growthPerSecond = 0.0)
         : _positionCovariance(std::move(positionCovariance))
         , _growthPerSecond(growthPerSecond)
     {
@@ -108,7 +108,7 @@ private:
         {
             return std::nullopt;
         }
-        math::SquareMatrix covariance(TargetTrackingState::STATE_DIMENSION);
+        aesa_processor::math::SquareMatrix covariance(TargetTrackingState::STATE_DIMENSION);
         for (std::size_t row = 0; row < TargetPrediction::POSITION_DIMENSION; ++row)
         {
             for (std::size_t column = 0; column < TargetPrediction::POSITION_DIMENSION; ++column)
@@ -121,7 +121,7 @@ private:
             state->acceleration, std::move(covariance));
     }
 
-    const math::SquareMatrix _positionCovariance;
+    const aesa_processor::math::SquareMatrix _positionCovariance;
     const double _growthPerSecond;
     ConstantVelocityAlgorithm _algorithm;
 };
@@ -129,14 +129,14 @@ private:
 class TrackingAssociationTest : public ::testing::Test
 {
 protected:
-    Target observation(math::Length range, Time time) const
+    Target observation(aesa_processor::math::Length range, Time time) const
     {
         return Target(position(range), 0_mps, -10.0f, time, _algorithm);
     }
 
     std::uint32_t addTracking(
-        math::Length firstRange = 1000_m,
-        math::Length secondRange = 1000_m,
+        aesa_processor::math::Length firstRange = 1000_m,
+        aesa_processor::math::Length secondRange = 1000_m,
         std::shared_ptr<const ITrackingAlgorithm> algorithm = nullptr)
     {
         if (!algorithm)
@@ -170,12 +170,12 @@ TEST_F(TrackingAssociationTest, EqualSlantRangesStillUseAzimuthAndElevationDispl
     for (bool elevationOnly : {false, true})
     {
         SCOPED_TRACE(elevationOnly);
-        const Target near(math::SphericalPosition(1000_m,
-                math::SphericalDirection(elevationOnly ? 0_deg : 1_deg,
+        const Target near(aesa_processor::math::SphericalPosition(1000_m,
+                aesa_processor::math::SphericalDirection(elevationOnly ? 0_deg : 1_deg,
                     elevationOnly ? 1_deg : 0_deg)),
             0_mps, -10.0f, 1100ms, _algorithm);
-        const Target far(math::SphericalPosition(1000_m,
-                math::SphericalDirection(elevationOnly ? 0_deg : 3_deg,
+        const Target far(aesa_processor::math::SphericalPosition(1000_m,
+                aesa_processor::math::SphericalDirection(elevationOnly ? 0_deg : 3_deg,
                     elevationOnly ? 3_deg : 0_deg)),
             0_mps, -10.0f, 1100ms, _algorithm);
         // At 1000 m, one degree gives about 17.45 m displacement; three give 52.35 m.
@@ -238,10 +238,10 @@ TEST_F(TrackingAssociationTest, UsesInjectedMeasurementNoiseForScoreAndGate)
 TEST_F(TrackingAssociationTest, UsesPredictedAnisotropicCovariancePlusOneMeasurementNoise)
 {
     const auto algorithm = std::make_shared<CovarianceAlgorithm>(
-        math::SquareMatrix{{151.0, 0.0, 0.0}, {0.0, 351.0, 0.0}, {0.0, 0.0, 751.0}});
+        aesa_processor::math::SquareMatrix{{151.0, 0.0, 0.0}, {0.0, 351.0, 0.0}, {0.0, 0.0, 751.0}});
     const auto id = addTracking(1000_m, 1000_m, algorithm);
     const auto& tracking = *_repository.find(id);
-    const Target incoming(math::CartesianPosition(10_m, 1020_m, 30_m).toSpherical(),
+    const Target incoming(aesa_processor::math::CartesianPosition(10_m, 1020_m, 30_m).toSpherical(),
         0_mps, -10.0f, 1100ms, _algorithm);
     const auto score = _matcher.matchesTracking(incoming, tracking);
     const auto searchScore = _matcher.matchesPosition(incoming, tracking);
@@ -255,10 +255,10 @@ TEST_F(TrackingAssociationTest, UsesPredictedAnisotropicCovariancePlusOneMeasure
 TEST_F(TrackingAssociationTest, RetainsPredictedCrossAxisCorrelations)
 {
     const auto algorithm = std::make_shared<CovarianceAlgorithm>(
-        math::SquareMatrix{{51.0, 50.0, 0.0}, {50.0, 151.0, 0.0}, {0.0, 0.0, 251.0}});
+        aesa_processor::math::SquareMatrix{{51.0, 50.0, 0.0}, {50.0, 151.0, 0.0}, {0.0, 0.0, 251.0}});
     const auto id = addTracking(1000_m, 1000_m, algorithm);
     const auto& tracking = *_repository.find(id);
-    const Target incoming(math::CartesianPosition(10_m, 1010_m, 0_m).toSpherical(),
+    const Target incoming(aesa_processor::math::CartesianPosition(10_m, 1010_m, 0_m).toSpherical(),
         0_mps, -10.0f, 1100ms, _algorithm);
     const auto score = _matcher.matchesTracking(incoming, tracking);
     ASSERT_TRUE(score);
@@ -269,7 +269,7 @@ TEST_F(TrackingAssociationTest, RetainsPredictedCrossAxisCorrelations)
 TEST_F(TrackingAssociationTest, PredictionUncertaintyChangesTheGateAtTheRequestedTime)
 {
     const auto algorithm = std::make_shared<CovarianceAlgorithm>(
-        math::SquareMatrix::identity(3), 100.0);
+        aesa_processor::math::SquareMatrix::identity(3), 100.0);
     const auto id = addTracking(1000_m, 1000_m, algorithm);
     const auto& tracking = *_repository.find(id);
     EXPECT_FALSE(_matcher.matchesTracking(observation(1050_m, 1100ms), tracking));
@@ -283,7 +283,7 @@ TEST_F(TrackingAssociationTest, PredictionUncertaintyChangesTheGateAtTheRequeste
 TEST_F(TrackingAssociationTest, PastSearchUsesStoredPositionCovarianceAndMotionAllowance)
 {
     const auto algorithm = std::make_shared<CovarianceAlgorithm>(
-        math::SquareMatrix{{51.0, 0.0, 0.0}, {0.0, 351.0, 0.0}, {0.0, 0.0, 51.0}});
+        aesa_processor::math::SquareMatrix{{51.0, 0.0, 0.0}, {0.0, 351.0, 0.0}, {0.0, 0.0, 51.0}});
     const auto id = addTracking(1000_m, 1000_m, algorithm);
     const auto& tracking = *_repository.find(id);
     // 50 ms allows 50 m motion, leaving a 20 m residual along y.
@@ -296,13 +296,13 @@ TEST_F(TrackingAssociationTest, PastSearchUsesStoredPositionCovarianceAndMotionA
 TEST(TrackingPredictionCovarianceTest, ValidatesCovarianceOnlyAtConstruction)
 {
     EXPECT_NO_THROW(TargetPrediction(0ms, position(1000_m)));
-    EXPECT_NO_THROW(TargetPrediction(0ms, position(1000_m), math::SquareMatrix(3)));
+    EXPECT_NO_THROW(TargetPrediction(0ms, position(1000_m), aesa_processor::math::SquareMatrix(3)));
     for (std::size_t dimension : {2u, 4u, 9u})
     {
         EXPECT_THROW(TargetPrediction(0ms, position(1000_m),
-            math::SquareMatrix::identity(dimension)), std::invalid_argument);
+            aesa_processor::math::SquareMatrix::identity(dimension)), std::invalid_argument);
     }
-    auto covariance = math::SquareMatrix::identity(3);
+    auto covariance = aesa_processor::math::SquareMatrix::identity(3);
     covariance(0, 1) = 0.5;
     EXPECT_THROW(TargetPrediction(0ms, position(1000_m), covariance), std::invalid_argument);
     covariance(1, 0) = 0.5;
@@ -457,4 +457,4 @@ TEST(TrackingAssociationControllerTest, NearestSuccessResetsMissesAndPreservesOt
 }
 
 } // namespace
-} // namespace target
+} // namespace aesa_processor::target

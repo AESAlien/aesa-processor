@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 // 시나리오 모의기로 송신할 빔 명령.
@@ -20,18 +20,18 @@ struct TransmitBeamCommand
     const std::chrono::milliseconds transmitTime;
     const uint32_t beamId;
     const uint32_t commandCount;
-    const math::SphericalDirection direction_ant;
-    const math::Angle azimuthBeamWidth;
-    const math::Angle elevationBeamWidth;
+    const aesa_processor::math::SphericalDirection direction_ant;
+    const aesa_processor::math::Angle azimuthBeamWidth;
+    const aesa_processor::math::Angle elevationBeamWidth;
 
     TransmitBeamCommand(
         BeamType beamType,
         std::chrono::milliseconds transmitTime,
         uint32_t beamId,
         uint32_t commandCount,
-        math::SphericalDirection direction_ant,
-        math::Angle azimuthBeamWidth,
-        math::Angle elevationBeamWidth
+        aesa_processor::math::SphericalDirection direction_ant,
+        aesa_processor::math::Angle azimuthBeamWidth,
+        aesa_processor::math::Angle elevationBeamWidth
     ) : beamType(beamType),
         transmitTime(transmitTime),
         beamId(beamId),
@@ -50,9 +50,9 @@ struct TransmitBeamCommand
         Builder& beamId(uint32_t value) { _beamId = value; return *this; }
         Builder& commandCount(uint32_t value) { _commandCount = value; return *this; }
         // SphericalDirection은 대입할 수 없으므로 emplace로 다시 만든다.
-        Builder& direction_ant(math::SphericalDirection value) { _direction_ant.emplace(value); return *this; }
-        Builder& azimuthBeamWidth(math::Angle value) { _azimuthBeamWidth = value; return *this; }
-        Builder& elevationBeamWidth(math::Angle value) { _elevationBeamWidth = value; return *this; }
+        Builder& direction_ant(aesa_processor::math::SphericalDirection value) { _direction_ant.emplace(value); return *this; }
+        Builder& azimuthBeamWidth(aesa_processor::math::Angle value) { _azimuthBeamWidth = value; return *this; }
+        Builder& elevationBeamWidth(aesa_processor::math::Angle value) { _elevationBeamWidth = value; return *this; }
 
         TransmitBeamCommand build() const
         {
@@ -71,10 +71,10 @@ struct TransmitBeamCommand
         std::optional<std::chrono::milliseconds> _transmitTime;
         std::optional<uint32_t> _beamId;
         std::optional<uint32_t> _commandCount;
-        std::optional<math::SphericalDirection> _direction_ant;
-        std::optional<math::Angle> _azimuthBeamWidth;
-        std::optional<math::Angle> _elevationBeamWidth;
+        std::optional<aesa_processor::math::SphericalDirection> _direction_ant;
+        std::optional<aesa_processor::math::Angle> _azimuthBeamWidth;
+        std::optional<aesa_processor::math::Angle> _elevationBeamWidth;
     };
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

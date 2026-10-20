@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace target
+namespace aesa_processor::target
 {
 
 // Owns tentative and tracking targets under the same stable target ID.
@@ -33,4 +33,4 @@ private:
     std::unordered_map<std::uint32_t, std::chrono::milliseconds> _lastSearchResultTimes;
 };
 
-} // namespace target
+} // namespace aesa_processor::target

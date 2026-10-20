@@ -7,12 +7,12 @@
 #include <stdexcept>
 #include <utility>
 
-namespace target
+namespace aesa_processor::target
 {
 
 Target::Target(
-    math::SphericalPosition position,
-    math::LinearVelocity dopplerVelocity,
+    aesa_processor::math::SphericalPosition position,
+    aesa_processor::math::LinearVelocity dopplerVelocity,
     float power_db,
     std::chrono::milliseconds time,
     std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm)
@@ -28,14 +28,14 @@ Target::Target(
 
 void Target::validate() const
 {
-    using namespace math::literals;
+    using namespace aesa_processor::math::literals;
     if (!_trackingAlgorithm)
     {
         throw std::invalid_argument("Tracking algorithm must not be null");
     }
 
     if (_initialTime.count() < 0
-        || !_initialPosition.radius.greaterThan(0.0_m, math::Length::NONE_TOLERANCE)
+        || !_initialPosition.radius.greaterThan(0.0_m, aesa_processor::math::Length::NONE_TOLERANCE)
         || !std::isfinite(_initialPower_db))
     {
         throw std::invalid_argument("Target requires a valid observation and time");
@@ -56,27 +56,27 @@ TargetState Target::state() const
     return _trackingState ? TargetState::TRACKING : TargetState::TENTATIVE;
 }
 
-math::Length Target::slantRange() const
+aesa_processor::math::Length Target::slantRange() const
 {
     return sphericalPosition().radius;
 }
 
-math::Angle Target::azimuth() const
+aesa_processor::math::Angle Target::azimuth() const
 {
     return sphericalPosition().direction.azimuth;
 }
 
-math::Angle Target::elevation() const
+aesa_processor::math::Angle Target::elevation() const
 {
     return sphericalPosition().direction.elevation;
 }
 
-const math::SphericalPosition& Target::sphericalPosition() const
+const aesa_processor::math::SphericalPosition& Target::sphericalPosition() const
 {
     return _trackingState ? _trackingState->sphericalPosition : _initialPosition;
 }
 
-math::LinearVelocity Target::dopplerVelocity() const
+aesa_processor::math::LinearVelocity Target::dopplerVelocity() const
 {
     return _trackingState ? _trackingState->dopplerVelocity : _initialDopplerVelocity;
 }
@@ -211,4 +211,4 @@ std::optional<TargetPrediction> Target::predict(std::chrono::milliseconds time) 
     return prediction;
 }
 
-} // namespace target
+} // namespace aesa_processor::target

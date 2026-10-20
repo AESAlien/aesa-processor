@@ -2,7 +2,7 @@
 
 #include "math/linear_algebra/matrix.hpp"
 
-namespace math
+namespace aesa_processor::math
 {
 
 class SquareMatrix;

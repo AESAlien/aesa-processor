@@ -10,21 +10,21 @@
 #include <stdexcept>
 
 using namespace std::chrono_literals;
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 
 namespace
 {
 
-math::SphericalDirection makeDirection()
+aesa_processor::math::SphericalDirection makeDirection()
 {
-    return math::SphericalDirection(12.5_deg, 20.5_deg);
+    return aesa_processor::math::SphericalDirection(12.5_deg, 20.5_deg);
 }
 
 // 확인 빔 폭과 추적 빔 폭을 서로 다른 값으로 두어 정책이 뒤바뀌면 테스트가 실패하게 한다.
-std::shared_ptr<const beam::IRequestBeamPolicy> makePolicy(beam::RequestBeamType beamType)
+std::shared_ptr<const aesa_processor::beam::IRequestBeamPolicy> makePolicy(aesa_processor::beam::RequestBeamType beamType)
 {
-    const beam::RequestBeamPolicyFactory factory(
-        beam::RequestBeamConfig::Builder()
+    const aesa_processor::beam::RequestBeamPolicyFactory factory(
+        aesa_processor::beam::RequestBeamConfig::Builder()
             .confirmationBeamWidth(4_deg)
             .trackingBeamWidth(2_deg)
             .build());
@@ -35,7 +35,7 @@ std::shared_ptr<const beam::IRequestBeamPolicy> makePolicy(beam::RequestBeamType
 
 TEST(BeamRequestTest, KeepsGivenValues)
 {
-    const beam::BeamRequest request(makePolicy(beam::RequestBeamType::TRACKING), 1500ms, 7, makeDirection());
+    const aesa_processor::beam::BeamRequest request(makePolicy(aesa_processor::beam::RequestBeamType::TRACKING), 1500ms, 7, makeDirection());
 
     EXPECT_EQ(request.transmitTime(), 1500ms);
     EXPECT_EQ(request.requestId(), 7u);
@@ -45,20 +45,20 @@ TEST(BeamRequestTest, KeepsGivenValues)
 
 TEST(BeamRequestTest, DelegatesToInjectedPolicy)
 {
-    const beam::BeamRequest confirmation(makePolicy(beam::RequestBeamType::CONFIRMATION), 0ms, 1, makeDirection());
-    const beam::BeamRequest tracking(makePolicy(beam::RequestBeamType::TRACKING), 0ms, 2, makeDirection());
+    const aesa_processor::beam::BeamRequest confirmation(makePolicy(aesa_processor::beam::RequestBeamType::CONFIRMATION), 0ms, 1, makeDirection());
+    const aesa_processor::beam::BeamRequest tracking(makePolicy(aesa_processor::beam::RequestBeamType::TRACKING), 0ms, 2, makeDirection());
 
-    EXPECT_EQ(confirmation.transmitBeamType(), beam::BeamType::CONFIRMATION);
+    EXPECT_EQ(confirmation.transmitBeamType(), aesa_processor::beam::BeamType::CONFIRMATION);
     EXPECT_EQ(confirmation.beamWidth(), 4_deg);
-    EXPECT_EQ(tracking.transmitBeamType(), beam::BeamType::TRACKING);
+    EXPECT_EQ(tracking.transmitBeamType(), aesa_processor::beam::BeamType::TRACKING);
     EXPECT_EQ(tracking.beamWidth(), 2_deg);
     EXPECT_GT(confirmation.priority(), tracking.priority());
 }
 
 TEST(BeamRequestTest, CopyKeepsSamePolicyBehavior)
 {
-    const beam::BeamRequest request(makePolicy(beam::RequestBeamType::CONFIRMATION), 100ms, 3, makeDirection());
-    const beam::BeamRequest copy = request;
+    const aesa_processor::beam::BeamRequest request(makePolicy(aesa_processor::beam::RequestBeamType::CONFIRMATION), 100ms, 3, makeDirection());
+    const aesa_processor::beam::BeamRequest copy = request;
 
     EXPECT_EQ(copy.transmitBeamType(), request.transmitBeamType());
     EXPECT_EQ(copy.beamWidth(), request.beamWidth());
@@ -69,8 +69,8 @@ TEST(BeamRequestTest, CopyKeepsSamePolicyBehavior)
 TEST(BeamRequestTest, AcceptsBoundaryValues)
 {
     // transmitTime 0과 가장 큰 requestId는 올바른 값이다.
-    EXPECT_NO_THROW(beam::BeamRequest(
-        makePolicy(beam::RequestBeamType::TRACKING),
+    EXPECT_NO_THROW(aesa_processor::beam::BeamRequest(
+        makePolicy(aesa_processor::beam::RequestBeamType::TRACKING),
         0ms,
         std::numeric_limits<std::uint32_t>::max(),
         makeDirection()));
@@ -78,29 +78,29 @@ TEST(BeamRequestTest, AcceptsBoundaryValues)
 
 TEST(BeamRequestTest, RejectsNullPolicy)
 {
-    EXPECT_THROW(beam::BeamRequest(nullptr, 0ms, 1, makeDirection()), std::invalid_argument);
+    EXPECT_THROW(aesa_processor::beam::BeamRequest(nullptr, 0ms, 1, makeDirection()), std::invalid_argument);
 }
 
 TEST(BeamRequestTest, RejectsNegativeTransmitTime)
 {
     EXPECT_THROW(
-        beam::BeamRequest(makePolicy(beam::RequestBeamType::TRACKING), -1ms, 1, makeDirection()),
+        aesa_processor::beam::BeamRequest(makePolicy(aesa_processor::beam::RequestBeamType::TRACKING), -1ms, 1, makeDirection()),
         std::invalid_argument);
 }
 
 TEST(BeamRequestTest, RejectsZeroRequestId)
 {
     EXPECT_THROW(
-        beam::BeamRequest(makePolicy(beam::RequestBeamType::CONFIRMATION), 0ms, 0, makeDirection()),
+        aesa_processor::beam::BeamRequest(makePolicy(aesa_processor::beam::RequestBeamType::CONFIRMATION), 0ms, 0, makeDirection()),
         std::invalid_argument);
 }
 
 TEST(BeamTypeTest, RequestBeamTypeValuesMatchBeamType)
 {
     // 와이어로 나가는 값이므로 숫자 자체도 고정한다. 두 enum의 값 일치는 beam_type.hpp 의 static_assert 가 보장한다.
-    EXPECT_EQ(static_cast<int>(beam::BeamType::SEARCH), 1);
-    EXPECT_EQ(static_cast<int>(beam::BeamType::CONFIRMATION), 2);
-    EXPECT_EQ(static_cast<int>(beam::BeamType::TRACKING), 3);
-    EXPECT_EQ(static_cast<int>(beam::RequestBeamType::CONFIRMATION), 2);
-    EXPECT_EQ(static_cast<int>(beam::RequestBeamType::TRACKING), 3);
+    EXPECT_EQ(static_cast<int>(aesa_processor::beam::BeamType::SEARCH), 1);
+    EXPECT_EQ(static_cast<int>(aesa_processor::beam::BeamType::CONFIRMATION), 2);
+    EXPECT_EQ(static_cast<int>(aesa_processor::beam::BeamType::TRACKING), 3);
+    EXPECT_EQ(static_cast<int>(aesa_processor::beam::RequestBeamType::CONFIRMATION), 2);
+    EXPECT_EQ(static_cast<int>(aesa_processor::beam::RequestBeamType::TRACKING), 3);
 }

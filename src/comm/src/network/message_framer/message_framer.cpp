@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace comm
+namespace aesa_processor::comm
 {
 
 MessageFramer::MessageFramer(std::size_t maximumFrameSize) :
@@ -175,4 +175,4 @@ void MessageFramer::compactBuffer()
     }
 }
 
-} // namespace comm
+} // namespace aesa_processor::comm

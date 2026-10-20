@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 // 빔 종류. 값은 시나리오 모의기와 주고받는 메시지의 beamType 값과 같다.
@@ -27,4 +27,4 @@ static_assert(
     static_cast<uint8_t>(RequestBeamType::TRACKING) == static_cast<uint8_t>(BeamType::TRACKING),
     "RequestBeamType::TRACKING must have the same value as BeamType::TRACKING");
 
-} // namespace beam
+} // namespace aesa_processor::beam

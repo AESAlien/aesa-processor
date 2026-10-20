@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-namespace comm
+namespace aesa_processor::comm
 {
 namespace
 {
@@ -69,31 +69,31 @@ bool isFinite(const protocol::ST_Plot& plot)
         std::isfinite(plot.pwr_DB);
 }
 
-std::optional<beam::BeamType> decodeBeamType(
+std::optional<aesa_processor::beam::BeamType> decodeBeamType(
     uint8_t beamType
 )
 {
-    switch (static_cast<beam::BeamType>(beamType))
+    switch (static_cast<aesa_processor::beam::BeamType>(beamType))
     {
-    case beam::BeamType::SEARCH:
-    case beam::BeamType::CONFIRMATION:
-    case beam::BeamType::TRACKING:
-        return static_cast<beam::BeamType>(beamType);
+    case aesa_processor::beam::BeamType::SEARCH:
+    case aesa_processor::beam::BeamType::CONFIRMATION:
+    case aesa_processor::beam::BeamType::TRACKING:
+        return static_cast<aesa_processor::beam::BeamType>(beamType);
     }
 
     return std::nullopt;
 }
 
-target::DetectionEvent::Plot decodePlot(
+aesa_processor::target::DetectionEvent::Plot decodePlot(
     const protocol::ST_Plot& plot
 )
 {
-    return target::DetectionEvent::Plot::Builder()
-        .slantRange(math::Length::fromKilometers(plot.slantR_km))
-        .azimuth(math::Angle::fromDegrees(plot.azi_deg))
-        .elevation(math::Angle::fromDegrees(plot.elv_deg))
+    return aesa_processor::target::DetectionEvent::Plot::Builder()
+        .slantRange(aesa_processor::math::Length::fromKilometers(plot.slantR_km))
+        .azimuth(aesa_processor::math::Angle::fromDegrees(plot.azi_deg))
+        .elevation(aesa_processor::math::Angle::fromDegrees(plot.elv_deg))
         .dopplerVelocity(
-            math::LinearVelocity::fromMetersPerSecond(plot.doppler_mps))
+            aesa_processor::math::LinearVelocity::fromMetersPerSecond(plot.doppler_mps))
         .power_db(plot.pwr_DB)
         .build();
 }
@@ -149,15 +149,15 @@ DecodeResult MessageDecoder::decodeOperatorControl(
     const protocol::ST_OperatorMsg message =
         readValue<protocol::ST_OperatorMsg>(frame.bytes);
 
-    beam::OperationState operationState;
+    aesa_processor::beam::OperationState operationState;
     switch (message.oper_status)
     {
     case 0:
-        operationState = beam::OperationState::OFF;
+        operationState = aesa_processor::beam::OperationState::OFF;
         break;
 
     case 1:
-        operationState = beam::OperationState::ON;
+        operationState = aesa_processor::beam::OperationState::ON;
         break;
 
     default:
@@ -165,7 +165,7 @@ DecodeResult MessageDecoder::decodeOperatorControl(
     }
 
     return decoded(
-        beam::SetOperationStateCommand::Builder()
+        aesa_processor::beam::SetOperationStateCommand::Builder()
             .powerState(operationState)
             .build());
 }
@@ -188,13 +188,13 @@ DecodeResult MessageDecoder::decodeRadarAttitude(
     }
 
     return decoded(
-        beam::SetAttitudeCommand::Builder()
-            .latitude(math::Angle::fromDegrees(message.radar_lat_deg))
-            .longitude(math::Angle::fromDegrees(message.radar_lon_deg))
-            .altitude(math::Length::fromKilometers(message.radar_alt_km))
-            .roll(math::Angle::fromDegrees(message.roll_deg))
-            .pitch(math::Angle::fromDegrees(message.pitch_deg))
-            .yaw(math::Angle::fromDegrees(message.yaw_deg))
+        aesa_processor::beam::SetAttitudeCommand::Builder()
+            .latitude(aesa_processor::math::Angle::fromDegrees(message.radar_lat_deg))
+            .longitude(aesa_processor::math::Angle::fromDegrees(message.radar_lon_deg))
+            .altitude(aesa_processor::math::Length::fromKilometers(message.radar_alt_km))
+            .roll(aesa_processor::math::Angle::fromDegrees(message.roll_deg))
+            .pitch(aesa_processor::math::Angle::fromDegrees(message.pitch_deg))
+            .yaw(aesa_processor::math::Angle::fromDegrees(message.yaw_deg))
             .build());
 }
 
@@ -230,14 +230,14 @@ DecodeResult MessageDecoder::decodePlotInformation(
         return failed(DecodingError::INVALID_MESSAGE_SIZE);
     }
 
-    const std::optional<beam::BeamType> beamType =
+    const std::optional<aesa_processor::beam::BeamType> beamType =
         decodeBeamType(beamCommand.beamType);
     if (!beamType.has_value())
     {
         return failed(DecodingError::INVALID_FIELD_VALUE);
     }
 
-    std::vector<target::DetectionEvent::Plot> plots;
+    std::vector<aesa_processor::target::DetectionEvent::Plot> plots;
     plots.reserve(plotCount);
 
     for (std::size_t index = 0; index < plotCount; ++index)
@@ -256,7 +256,7 @@ DecodeResult MessageDecoder::decodePlotInformation(
     }
 
     return decoded(
-        target::DetectionEvent::Builder()
+        aesa_processor::target::DetectionEvent::Builder()
             .beamType(*beamType)
             .requestId(beamCommand.beamID)
             .transmitTime(
@@ -265,4 +265,4 @@ DecodeResult MessageDecoder::decodePlotInformation(
             .build());
 }
 
-} // namespace comm
+} // namespace aesa_processor::comm

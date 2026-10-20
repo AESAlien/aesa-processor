@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace math
+namespace aesa_processor::math
 {
 
 Vector::Vector()

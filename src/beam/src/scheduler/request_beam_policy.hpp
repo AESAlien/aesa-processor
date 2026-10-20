@@ -4,7 +4,7 @@
 
 #include <math/quantity/angle.hpp>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 // 요청 빔(확인/추적)의 종류별 동작을 담은 정책이다. 빔 폭 같은 설정 값은 정책을 만들 때 주입되므로 정책은 상태를 바꾸지 않는다.
@@ -19,10 +19,10 @@ public:
     virtual BeamType transmitBeamType() const = 0;
 
     // 송신 빔의 방위각/고각 빔 폭.
-    virtual math::Angle beamWidth() const = 0;
+    virtual aesa_processor::math::Angle beamWidth() const = 0;
 
     // 송신 시각이 같은 요청 중 어느 것을 먼저 보낼지 정한다. 값이 클수록 먼저 보낸다.
     virtual int priority() const = 0;
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

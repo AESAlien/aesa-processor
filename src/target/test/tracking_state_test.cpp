@@ -12,12 +12,12 @@
 #include <type_traits>
 #include <utility>
 
-namespace target
+namespace aesa_processor::target
 {
 namespace
 {
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
 
@@ -26,23 +26,23 @@ static_assert(std::is_const_v<decltype(TargetTrackingState::errorCovariance)>);
 static_assert(!std::is_copy_assignable_v<TargetTrackingState>);
 static_assert(std::is_nothrow_move_constructible_v<Target>);
 
-math::SphericalPosition position(math::Length range = 1000_m)
+aesa_processor::math::SphericalPosition position(aesa_processor::math::Length range = 1000_m)
 {
-    return math::SphericalPosition(range, math::SphericalDirection(0_deg, 0_deg));
+    return aesa_processor::math::SphericalPosition(range, aesa_processor::math::SphericalDirection(0_deg, 0_deg));
 }
 
 TargetTrackingState state(
-    math::CartesianAcceleration acceleration = math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
-    std::optional<math::SquareMatrix> covariance = std::nullopt)
+    aesa_processor::math::CartesianAcceleration acceleration = aesa_processor::math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
+    std::optional<aesa_processor::math::SquareMatrix> covariance = std::nullopt)
 {
     return TargetTrackingState(position(), 0_mps, -10.0f, 100ms,
-        math::CartesianPosition(0_m, 1000_m, 0_m),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps),
+        aesa_processor::math::CartesianPosition(0_m, 1000_m, 0_m),
+        aesa_processor::math::CartesianVelocity(0_mps, 0_mps, 0_mps),
         std::move(acceleration), std::move(covariance));
 }
 
 Target observation(
-    math::Length range,
+    aesa_processor::math::Length range,
     Time time,
     std::shared_ptr<const ITrackingAlgorithm> algorithm = std::make_shared<ConstantVelocityAlgorithm>())
 {
@@ -86,9 +86,9 @@ private:
             return std::nullopt;
         }
         const auto acceleration = updating
-            ? math::CartesianAcceleration(4_mps2, 5_mps2, 6_mps2)
-            : math::CartesianAcceleration(1_mps2, 2_mps2, 3_mps2);
-        auto covariance = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION)
+            ? aesa_processor::math::CartesianAcceleration(4_mps2, 5_mps2, 6_mps2)
+            : aesa_processor::math::CartesianAcceleration(1_mps2, 2_mps2, 3_mps2);
+        auto covariance = aesa_processor::math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION)
             * (updating ? 50.0 : 25.0);
         if (fault == Fault::INVALID_COVARIANCE)
         {
@@ -106,8 +106,8 @@ private:
 TEST(TrackingStateTest, ExistingConstructorAndConstantVelocityLeaveCovarianceUnavailable)
 {
     const TargetTrackingState legacy(position(), 0_mps, -10.0f, 100ms,
-        math::CartesianPosition(0_m, 1000_m, 0_m),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps));
+        aesa_processor::math::CartesianPosition(0_m, 1000_m, 0_m),
+        aesa_processor::math::CartesianVelocity(0_mps, 0_mps, 0_mps));
     EXPECT_EQ(legacy.acceleration.acceleration(), 0_mps2);
     EXPECT_FALSE(legacy.errorCovariance);
 
@@ -126,8 +126,8 @@ TEST(TrackingStateTest, CopiesAccelerationAndCovarianceIndependentlyOfCallerLife
 {
     std::shared_ptr<const TargetTrackingState> stored;
     {
-        const math::CartesianAcceleration acceleration(1_mps2, 2_mps2, 3_mps2);
-        auto covariance = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION) * 25.0;
+        const aesa_processor::math::CartesianAcceleration acceleration(1_mps2, 2_mps2, 3_mps2);
+        auto covariance = aesa_processor::math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION) * 25.0;
         covariance(0, 3) = 2.0;
         covariance(3, 0) = 2.0;
         stored = std::make_shared<const TargetTrackingState>(state(acceleration, covariance));
@@ -150,9 +150,9 @@ TEST(TrackingStateTest, RejectsNonfiniteAccelerationComponents)
     for (double invalid : {std::numeric_limits<double>::quiet_NaN(),
              std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()})
     {
-        EXPECT_THROW(math::CartesianAcceleration(
+        EXPECT_THROW(aesa_processor::math::CartesianAcceleration(
             0_mps2,
-            math::LinearAcceleration::fromMetersPerSecondSquared(invalid),
+            aesa_processor::math::LinearAcceleration::fromMetersPerSecondSquared(invalid),
             0_mps2), std::invalid_argument);
     }
 }
@@ -162,8 +162,8 @@ TEST(TrackingStateTest, RejectsCovarianceWithWrongDimension)
     for (std::size_t size : {0u, 3u, 8u, 10u})
     {
         SCOPED_TRACE(size);
-        EXPECT_THROW(state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
-            math::SquareMatrix(size)), std::invalid_argument);
+        EXPECT_THROW(state(aesa_processor::math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
+            aesa_processor::math::SquareMatrix(size)), std::invalid_argument);
     }
 }
 
@@ -172,28 +172,28 @@ TEST(TrackingStateTest, RejectsNonfiniteOrAsymmetricCovariance)
     for (double invalid : {std::numeric_limits<double>::quiet_NaN(),
              std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()})
     {
-        auto covariance = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION);
+        auto covariance = aesa_processor::math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION);
         covariance(0, 0) = invalid;
-        EXPECT_THROW(state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance),
+        EXPECT_THROW(state(aesa_processor::math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance),
             std::invalid_argument);
     }
-    auto asymmetric = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION);
+    auto asymmetric = aesa_processor::math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION);
     asymmetric(0, 1) = std::numeric_limits<double>::epsilon();
-    EXPECT_THROW(state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), asymmetric),
+    EXPECT_THROW(state(aesa_processor::math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), asymmetric),
         std::invalid_argument);
 }
 
 TEST(TrackingStateTest, RejectsNegativeDiagonalButAllowsExplicitSingularZeroCovariance)
 {
-    auto negative = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION);
+    auto negative = aesa_processor::math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION);
     negative(0, 0) = -1.0;
-    EXPECT_THROW(state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), negative),
+    EXPECT_THROW(state(aesa_processor::math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), negative),
         std::invalid_argument);
 
-    const auto explicitZero = state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
-        math::SquareMatrix(TargetTrackingState::STATE_DIMENSION));
+    const auto explicitZero = state(aesa_processor::math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
+        aesa_processor::math::SquareMatrix(TargetTrackingState::STATE_DIMENSION));
     ASSERT_TRUE(explicitZero.errorCovariance);
-    EXPECT_EQ(*explicitZero.errorCovariance, math::SquareMatrix(9));
+    EXPECT_EQ(*explicitZero.errorCovariance, aesa_processor::math::SquareMatrix(9));
     // These are structural checks; they do not establish positive semidefiniteness for arbitrary matrices.
 }
 
@@ -292,4 +292,4 @@ TEST(TrackingStateTest, RemovingTargetsPreservesRemainingAccelerationAndCovarian
 }
 
 } // namespace
-} // namespace target
+} // namespace aesa_processor::target

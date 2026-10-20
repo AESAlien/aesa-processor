@@ -8,28 +8,28 @@
 #include <chrono>
 #include <memory>
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 using namespace std::chrono_literals;
 
 namespace
 {
-math::SphericalPosition position(math::Length range)
+aesa_processor::math::SphericalPosition position(aesa_processor::math::Length range)
 {
-    return math::SphericalPosition(range, math::SphericalDirection(0_deg, 0_deg));
+    return aesa_processor::math::SphericalPosition(range, aesa_processor::math::SphericalDirection(0_deg, 0_deg));
 }
 } // namespace
 
 TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
 {
-    const auto algorithm = std::make_shared<target::ConstantVelocityAlgorithm>();
-    target::TargetRepository repository;
-    const auto firstId = repository.add(target::Target(position(100_m), 1_mps, 1.0f, 0ms, algorithm));
-    const auto middleId = repository.add(target::Target(position(200_m), 1_mps, 1.0f, 0ms, algorithm));
-    const auto lastId = repository.add(target::Target(position(300_m), 1_mps, 1.0f, 0ms, algorithm));
+    const auto algorithm = std::make_shared<aesa_processor::target::ConstantVelocityAlgorithm>();
+    aesa_processor::target::TargetRepository repository;
+    const auto firstId = repository.add(aesa_processor::target::Target(position(100_m), 1_mps, 1.0f, 0ms, algorithm));
+    const auto middleId = repository.add(aesa_processor::target::Target(position(200_m), 1_mps, 1.0f, 0ms, algorithm));
+    const auto lastId = repository.add(aesa_processor::target::Target(position(300_m), 1_mps, 1.0f, 0ms, algorithm));
 
     auto* tracked = repository.find(lastId);
-    ASSERT_TRUE(tracked->confirm(target::Target(position(301_m), 1_mps, 1.0f, 1000ms, algorithm)));
-    ASSERT_TRUE(tracked->update(target::Target(position(302_m), 1_mps, 1.0f, 2000ms, algorithm)));
+    ASSERT_TRUE(tracked->confirm(aesa_processor::target::Target(position(301_m), 1_mps, 1.0f, 1000ms, algorithm)));
+    ASSERT_TRUE(tracked->update(aesa_processor::target::Target(position(302_m), 1_mps, 1.0f, 2000ms, algorithm)));
     EXPECT_EQ(tracked->trackingState()->position.x, 0_m);
     EXPECT_EQ(tracked->trackingState()->position.y, 302_m);
     EXPECT_EQ(tracked->trackingState()->velocity.x, 0_mps);
@@ -44,7 +44,7 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     tracked = repository.find(lastId);
     ASSERT_TRUE(tracked->trackingState());
     EXPECT_EQ(tracked->trackingState()->position.y, 302_m);
-    ASSERT_TRUE(tracked->update(target::Target(position(303_m), 1_mps, 1.0f, 3000ms, algorithm)));
+    ASSERT_TRUE(tracked->update(aesa_processor::target::Target(position(303_m), 1_mps, 1.0f, 3000ms, algorithm)));
     EXPECT_EQ(tracked->trackingState()->position.y, 303_m);
 
     EXPECT_TRUE(repository.remove(firstId));
@@ -55,18 +55,18 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
 
 TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
 {
-    using BeamType = beam::BeamType;
+    using BeamType = aesa_processor::beam::BeamType;
     for (double displacement : {0.0, 1.0})
     {
-        target::TargetController controller(target::TargetConfig{});
-        const auto confirmation = controller.handleDetection(target::DetectionEvent(
+        aesa_processor::target::TargetController controller(aesa_processor::target::TargetConfig{});
+        const auto confirmation = controller.handleDetection(aesa_processor::target::DetectionEvent(
             BeamType::SEARCH, 1, 0ms, {{100_m, 0_deg, 0_deg, 0_mps, 1.0f}}));
         ASSERT_TRUE(confirmation.has_value());
-        const auto tracking = controller.handleDetection(target::DetectionEvent(
+        const auto tracking = controller.handleDetection(aesa_processor::target::DetectionEvent(
             BeamType::CONFIRMATION,
             confirmation->requestId,
             1000ms,
-            {{math::Length::fromMeters(100.0 + displacement), 0_deg, 0_deg, 0_mps, 1.0f}}));
+            {{aesa_processor::math::Length::fromMeters(100.0 + displacement), 0_deg, 0_deg, 0_mps, 1.0f}}));
         ASSERT_TRUE(tracking.has_value());
         const auto events = controller.nextTrackEvents();
         ASSERT_EQ(events.size(), 1u);

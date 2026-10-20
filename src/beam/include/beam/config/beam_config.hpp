@@ -6,9 +6,9 @@
 
 #include <cstddef>
 
-namespace beam
+namespace aesa_processor::beam
 {
-using math::literals::operator""_deg;
+using aesa_processor::math::literals::operator""_deg;
 
 class BeamConfig
 {
@@ -41,4 +41,4 @@ private:
     RequestBeamConfig _requestBeam;
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

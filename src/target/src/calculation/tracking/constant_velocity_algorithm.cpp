@@ -9,12 +9,12 @@
 
 #include <stdexcept>
 
-namespace target
+namespace aesa_processor::target
 {
 namespace
 {
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 
 double elapsedSeconds(
     std::chrono::milliseconds previous,
@@ -26,7 +26,7 @@ double elapsedSeconds(
 }
 
 std::optional<TargetTrackingState> estimateTrackingState(
-    const math::CartesianPosition& previousPosition,
+    const aesa_processor::math::CartesianPosition& previousPosition,
     std::chrono::milliseconds previousTime,
     const Target& observation)
 {
@@ -82,9 +82,9 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     const auto& state = *currentState;
     // Preserve a stationary measured position without conversion roundoff.
     const auto& velocity = state.velocity;
-    if (velocity.x.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
-        && velocity.y.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
-        && velocity.z.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE))
+    if (velocity.x.equals(0.0_mps, aesa_processor::math::LinearVelocity::NONE_TOLERANCE)
+        && velocity.y.equals(0.0_mps, aesa_processor::math::LinearVelocity::NONE_TOLERANCE)
+        && velocity.z.equals(0.0_mps, aesa_processor::math::LinearVelocity::NONE_TOLERANCE))
     {
         return TargetPrediction{time, state.sphericalPosition};
     }
@@ -105,4 +105,4 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     }
 }
 
-} // namespace target
+} // namespace aesa_processor::target

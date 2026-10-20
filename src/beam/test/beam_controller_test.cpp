@@ -11,21 +11,21 @@
 #include <utility>
 
 using namespace std::chrono_literals;
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 
 namespace
 {
 
-beam::SetOperationStateCommand makeOperationState(beam::OperationState state)
+aesa_processor::beam::SetOperationStateCommand makeOperationState(aesa_processor::beam::OperationState state)
 {
-    return beam::SetOperationStateCommand::Builder()
+    return aesa_processor::beam::SetOperationStateCommand::Builder()
         .powerState(state)
         .build();
 }
 
-beam::SetAttitudeCommand makeAttitudeCommand(math::Angle roll, math::Angle pitch, math::Angle yaw)
+aesa_processor::beam::SetAttitudeCommand makeAttitudeCommand(aesa_processor::math::Angle roll, aesa_processor::math::Angle pitch, aesa_processor::math::Angle yaw)
 {
-    return beam::SetAttitudeCommand::Builder()
+    return aesa_processor::beam::SetAttitudeCommand::Builder()
         .latitude(37.0_deg)
         .longitude(127.0_deg)
         .altitude(0.1_km)
@@ -35,18 +35,18 @@ beam::SetAttitudeCommand makeAttitudeCommand(math::Angle roll, math::Angle pitch
         .build();
 }
 
-beam::RequestBeamCommand makeRequestCommand(
-    beam::RequestBeamType beamType,
+aesa_processor::beam::RequestBeamCommand makeRequestCommand(
+    aesa_processor::beam::RequestBeamType beamType,
     std::chrono::milliseconds transmitTime,
     uint32_t requestId,
-    math::Angle azimuth,
-    math::Angle elevation
+    aesa_processor::math::Angle azimuth,
+    aesa_processor::math::Angle elevation
 ) {
-    return beam::RequestBeamCommand::Builder()
+    return aesa_processor::beam::RequestBeamCommand::Builder()
         .beamType(beamType)
         .transmitTime(transmitTime)
         .requestId(requestId)
-        .direction_ant(math::SphericalDirection(azimuth, elevation))
+        .direction_ant(aesa_processor::math::SphericalDirection(azimuth, elevation))
         .build();
 }
 
@@ -54,42 +54,42 @@ beam::RequestBeamCommand makeRequestCommand(
 
 TEST(BeamControllerTest, ReturnsNothingBeforeStart)
 {
-    beam::BeamController controller;
+    aesa_processor::beam::BeamController controller;
 
     EXPECT_FALSE(controller.nextBeamCommand(0ms).has_value());
 }
 
 TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
 {
-    beam::BeamController controller;
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    aesa_processor::beam::BeamController controller;
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
     const auto command = controller.nextBeamCommand(0ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
+    EXPECT_EQ(command->beamType, aesa_processor::beam::BeamType::SEARCH);
     EXPECT_EQ(command->beamId, 1u);
     EXPECT_EQ(command->commandCount, 1u);
 }
 
 TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
 {
-    const math::Angle roll = 10_deg;
-    const math::Angle pitch = 20_deg;
-    const math::Angle yaw = 30_deg;
+    const aesa_processor::math::Angle roll = 10_deg;
+    const aesa_processor::math::Angle pitch = 20_deg;
+    const aesa_processor::math::Angle yaw = 30_deg;
 
-    beam::BeamController controller;
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    aesa_processor::beam::BeamController controller;
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(roll, pitch, yaw));
 
-    const beam::RadarAttitude attitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
-    beam::SearchGrid expectedGrid(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}), beam::SearchGridConfig{});
+    const aesa_processor::beam::RadarAttitude attitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
+    aesa_processor::beam::SearchGrid expectedGrid(aesa_processor::beam::AntEnuTransform(attitude, aesa_processor::beam::AttitudeConfig{}), aesa_processor::beam::SearchGridConfig{});
 
     for (std::size_t index = 0; index < 5; ++index)
     {
         const auto command = controller.nextBeamCommand(std::chrono::milliseconds(10 * index));
-        const beam::SearchBeam& expected = expectedGrid.nextBeam();
+        const aesa_processor::beam::SearchBeam& expected = expectedGrid.nextBeam();
 
         ASSERT_TRUE(command.has_value());
         EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(expected.direction_enu.azimuth)) << "index=" << index;
@@ -99,16 +99,16 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
 
 TEST(BeamControllerTest, RequestBeamIsDeliveredToScheduler)
 {
-    beam::BeamController controller;
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    aesa_processor::beam::BeamController controller;
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
-    controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 100ms, 5, 7.5_deg, 15.5_deg));
+    controller.requestBeam(makeRequestCommand(aesa_processor::beam::RequestBeamType::TRACKING, 100ms, 5, 7.5_deg, 15.5_deg));
 
     const auto command = controller.nextBeamCommand(100ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamType, beam::BeamType::TRACKING);
+    EXPECT_EQ(command->beamType, aesa_processor::beam::BeamType::TRACKING);
     EXPECT_EQ(command->beamId, 5u);
     EXPECT_EQ(command->transmitTime, 100ms);
     EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(7.5_deg));
@@ -117,58 +117,58 @@ TEST(BeamControllerTest, RequestBeamIsDeliveredToScheduler)
 
 TEST(BeamControllerTest, RequestWhileOffIsIgnored)
 {
-    beam::BeamController controller;
-    controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg));
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    aesa_processor::beam::BeamController controller;
+    controller.requestBeam(makeRequestCommand(aesa_processor::beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg));
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
-    EXPECT_EQ(controller.nextBeamCommand(0ms)->beamType, beam::BeamType::SEARCH);
+    EXPECT_EQ(controller.nextBeamCommand(0ms)->beamType, aesa_processor::beam::BeamType::SEARCH);
 }
 
 TEST(BeamControllerTest, InvalidRequestThrowsEvenWhileOff)
 {
-    beam::BeamController controller;
+    aesa_processor::beam::BeamController controller;
 
     EXPECT_THROW(
-        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 7.5_deg, 15.5_deg)),
+        controller.requestBeam(makeRequestCommand(aesa_processor::beam::RequestBeamType::TRACKING, 0ms, 0, 7.5_deg, 15.5_deg)),
         std::invalid_argument);
     EXPECT_THROW(
-        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, -1ms, 5, 7.5_deg, 15.5_deg)),
+        controller.requestBeam(makeRequestCommand(aesa_processor::beam::RequestBeamType::TRACKING, -1ms, 5, 7.5_deg, 15.5_deg)),
         std::invalid_argument);
     EXPECT_THROW(
-        controller.requestBeam(makeRequestCommand(static_cast<beam::RequestBeamType>(0), 0ms, 5, 7.5_deg, 15.5_deg)),
+        controller.requestBeam(makeRequestCommand(static_cast<aesa_processor::beam::RequestBeamType>(0), 0ms, 5, 7.5_deg, 15.5_deg)),
         std::invalid_argument);
 }
 
 TEST(BeamControllerTest, InvalidRequestIsNotQueued)
 {
-    beam::BeamController controller;
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    aesa_processor::beam::BeamController controller;
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
     EXPECT_THROW(
-        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 0, 7.5_deg, 15.5_deg)),
+        controller.requestBeam(makeRequestCommand(aesa_processor::beam::RequestBeamType::CONFIRMATION, 0ms, 0, 7.5_deg, 15.5_deg)),
         std::invalid_argument);
 
     // 거부된 요청은 큐에 남지 않으므로 정상적으로 탐색 빔이 나간다.
     const auto command = controller.nextBeamCommand(0ms);
     ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
+    EXPECT_EQ(command->beamType, aesa_processor::beam::BeamType::SEARCH);
     EXPECT_EQ(command->beamId, 1u);
 }
 
 TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
 {
-    beam::BeamController controller;
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    aesa_processor::beam::BeamController controller;
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
     controller.nextBeamCommand(10ms);
 
-    controller.setOperationState(makeOperationState(beam::OperationState::OFF));
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::OFF));
     EXPECT_FALSE(controller.nextBeamCommand(20ms).has_value());
 
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
     const auto command = controller.nextBeamCommand(0ms);
 
@@ -179,12 +179,12 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
 
 TEST(BeamControllerTest, MovedControllerKeepsState)
 {
-    beam::BeamController controller;
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    aesa_processor::beam::BeamController controller;
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
 
-    beam::BeamController moved = std::move(controller);
+    aesa_processor::beam::BeamController moved = std::move(controller);
     const auto command = moved.nextBeamCommand(10ms);
 
     ASSERT_TRUE(command.has_value());
@@ -195,11 +195,11 @@ TEST(BeamControllerTest, MovedControllerKeepsState)
 
 TEST(BeamControllerTest, DefaultConstructorUsesDefaultConfig)
 {
-    beam::BeamController defaultController;
-    beam::BeamController explicitController{beam::BeamConfig{}};
-    for (beam::BeamController* controller : {&defaultController, &explicitController})
+    aesa_processor::beam::BeamController defaultController;
+    aesa_processor::beam::BeamController explicitController{aesa_processor::beam::BeamConfig{}};
+    for (aesa_processor::beam::BeamController* controller : {&defaultController, &explicitController})
     {
-        controller->setOperationState(makeOperationState(beam::OperationState::ON));
+        controller->setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
         controller->setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
     }
 
@@ -218,15 +218,15 @@ TEST(BeamControllerTest, DefaultConstructorUsesDefaultConfig)
 
 TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
 {
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .searchGridConfig(beam::SearchGridConfig::Builder()
+    const aesa_processor::beam::BeamConfig config = aesa_processor::beam::BeamConfig::Builder()
+        .searchGridConfig(aesa_processor::beam::SearchGridConfig::Builder()
             .azimuthCount(3)
             .elevationCount(1)
             .beamWidth(4_deg)
             .build())
         .build();
-    beam::BeamController controller(config);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    aesa_processor::beam::BeamController controller(config);
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
     // 빔이 3개뿐이므로 ID가 1, 2, 3, 1 순서로 순환한다.
@@ -243,52 +243,52 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
 
 TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
 {
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .requestBeamConfig(beam::RequestBeamConfig::Builder()
+    const aesa_processor::beam::BeamConfig config = aesa_processor::beam::BeamConfig::Builder()
+        .requestBeamConfig(aesa_processor::beam::RequestBeamConfig::Builder()
             .trackingBeamWidth(4_deg)
             .build())
         .build();
-    beam::BeamController controller(config);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    aesa_processor::beam::BeamController controller(config);
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
-    controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 7, 7.5_deg, 15.5_deg));
+    controller.requestBeam(makeRequestCommand(aesa_processor::beam::RequestBeamType::TRACKING, 0ms, 7, 7.5_deg, 15.5_deg));
     const auto command = controller.nextBeamCommand(0ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamType, beam::BeamType::TRACKING);
+    EXPECT_EQ(command->beamType, aesa_processor::beam::BeamType::TRACKING);
     EXPECT_EQ(command->azimuthBeamWidth, 4_deg);
     EXPECT_EQ(command->elevationBeamWidth, 4_deg);
 }
 
 TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
 {
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .requestBeamConfig(beam::RequestBeamConfig::Builder()
+    const aesa_processor::beam::BeamConfig config = aesa_processor::beam::BeamConfig::Builder()
+        .requestBeamConfig(aesa_processor::beam::RequestBeamConfig::Builder()
             .confirmationBeamWidth(5_deg)
             .trackingBeamWidth(4_deg)
             .build())
         .build();
-    beam::BeamController controller(config);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    aesa_processor::beam::BeamController controller(config);
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
-    controller.requestBeam(makeRequestCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 7, 7.5_deg, 15.5_deg));
+    controller.requestBeam(makeRequestCommand(aesa_processor::beam::RequestBeamType::CONFIRMATION, 0ms, 7, 7.5_deg, 15.5_deg));
     const auto command = controller.nextBeamCommand(0ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamType, beam::BeamType::CONFIRMATION);
+    EXPECT_EQ(command->beamType, aesa_processor::beam::BeamType::CONFIRMATION);
     EXPECT_EQ(command->azimuthBeamWidth, 5_deg);
     EXPECT_EQ(command->elevationBeamWidth, 5_deg);
 }
 
 TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
 {
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .attitudeConfig(beam::AttitudeConfig::Builder().maxAbsPitch(60_deg).build())
+    const aesa_processor::beam::BeamConfig config = aesa_processor::beam::BeamConfig::Builder()
+        .attitudeConfig(aesa_processor::beam::AttitudeConfig::Builder().maxAbsPitch(60_deg).build())
         .build();
-    beam::BeamController controller(config);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    aesa_processor::beam::BeamController controller(config);
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
 
     // 기본 설정(89도)에서는 통과하는 pitch 70도가 이 설정(60도)에서는 짐벌락이다.
     try
@@ -296,9 +296,9 @@ TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
         controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg));
         ADD_FAILURE() << "AttitudeError not thrown";
     }
-    catch (const beam::AttitudeError& error)
+    catch (const aesa_processor::beam::AttitudeError& error)
     {
-        EXPECT_EQ(error.code(), beam::AttitudeErrorCode::GIMBAL_LOCK);
+        EXPECT_EQ(error.code(), aesa_processor::beam::AttitudeErrorCode::GIMBAL_LOCK);
     }
     EXPECT_FALSE(controller.nextBeamCommand(0ms).has_value());
 
@@ -308,50 +308,50 @@ TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
 
 TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
 {
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .attitudeConfig(beam::AttitudeConfig::Builder().maxAbsPitch(60_deg).build())
+    const aesa_processor::beam::BeamConfig config = aesa_processor::beam::BeamConfig::Builder()
+        .attitudeConfig(aesa_processor::beam::AttitudeConfig::Builder().maxAbsPitch(60_deg).build())
         .build();
-    beam::BeamController controller(config);
+    aesa_processor::beam::BeamController controller(config);
 
     // OFF 상태에서도 설정 기준의 짐벌락 자세는 거부한다.
-    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), beam::AttitudeError);
+    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), aesa_processor::beam::AttitudeError);
 
     // 탐색 빔 테이블이 만들어진 뒤에도 마찬가지이며, 기존 상태는 유지된다.
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
     ASSERT_EQ(controller.nextBeamCommand(0ms)->beamId, 1u);
-    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), beam::AttitudeError);
+    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), aesa_processor::beam::AttitudeError);
     EXPECT_EQ(controller.nextBeamCommand(10ms)->beamId, 2u);
 }
 
 TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
 {
-    beam::BeamController controller;
+    aesa_processor::beam::BeamController controller;
 
     // 위도 95도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
-    const beam::SetAttitudeCommand command(95_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg);
+    const aesa_processor::beam::SetAttitudeCommand command(95_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg);
     try
     {
         controller.setAttitude(command);
         ADD_FAILURE() << "AttitudeError not thrown";
     }
-    catch (const beam::AttitudeError& error)
+    catch (const aesa_processor::beam::AttitudeError& error)
     {
-        EXPECT_EQ(error.code(), beam::AttitudeErrorCode::OUT_OF_RANGE);
+        EXPECT_EQ(error.code(), aesa_processor::beam::AttitudeErrorCode::OUT_OF_RANGE);
     }
 }
 
 TEST(BeamControllerTest, ControllerWithInjectedConfigCanBeMoved)
 {
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .searchGridConfig(beam::SearchGridConfig::Builder().azimuthCount(2).elevationCount(1).build())
+    const aesa_processor::beam::BeamConfig config = aesa_processor::beam::BeamConfig::Builder()
+        .searchGridConfig(aesa_processor::beam::SearchGridConfig::Builder().azimuthCount(2).elevationCount(1).build())
         .build();
-    beam::BeamController controller(config);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    aesa_processor::beam::BeamController controller(config);
+    controller.setOperationState(makeOperationState(aesa_processor::beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
 
-    beam::BeamController moved = std::move(controller);
+    aesa_processor::beam::BeamController moved = std::move(controller);
 
     EXPECT_EQ(moved.nextBeamCommand(10ms)->beamId, 2u);
     EXPECT_EQ(moved.nextBeamCommand(20ms)->beamId, 1u);

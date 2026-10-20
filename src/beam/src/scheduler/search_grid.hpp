@@ -5,7 +5,7 @@
 #include <vector>
 #include <cstddef>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 // SearchGridConfig의 격자(안테나 정면 기준)를 ENU 기준 탐색 빔 목록으로 만들어 두고, 탐색 순서대로 하나씩 꺼내 쓴다.
@@ -22,4 +22,4 @@ private:
     std::size_t _searchCursor = 0;
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

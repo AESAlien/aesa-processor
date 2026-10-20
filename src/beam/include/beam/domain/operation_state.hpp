@@ -1,6 +1,6 @@
 #pragma once
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 enum class OperationState : bool
@@ -9,4 +9,4 @@ enum class OperationState : bool
     OFF = false
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-namespace schedule_scenario
+namespace aesa_processor::beam::schedule_scenario
 {
 
 using namespace std::chrono_literals;
@@ -38,7 +38,7 @@ enum class Status
 struct RequestSpec
 {
     std::string name;
-    beam::BeamRequest request;
+    aesa_processor::beam::BeamRequest request;
     // 이 요청 때문에 송신된 빔의 틱(ms). 시나리오가 끝날 때까지 송신되지 못했으면 -1 (요청은 폐기되지 않는다)
     long long sentTick_ms = -1;
 };
@@ -55,7 +55,7 @@ struct TickRecord
 {
     long long tick_ms = 0;
     Status status = Status::OFF;
-    std::optional<beam::TransmitBeamCommand> command;
+    std::optional<aesa_processor::beam::TransmitBeamCommand> command;
 };
 
 struct Result
@@ -66,26 +66,26 @@ struct Result
 
 inline RequestSpec makeRequestSpec(
     const std::string& name,
-    beam::RequestBeamType beamType,
+    aesa_processor::beam::RequestBeamType beamType,
     std::chrono::milliseconds transmitTime,
     double azimuth_deg,
     double elevation_deg
 ) {
     // Scheduler가 기본 설정으로 동작하므로 요청의 정책도 기본 설정의 팩토리로 고른다.
-    static const beam::RequestBeamPolicyFactory factory{beam::RequestBeamConfig{}};
+    static const aesa_processor::beam::RequestBeamPolicyFactory factory{aesa_processor::beam::RequestBeamConfig{}};
     return RequestSpec{
         name,
-        beam::BeamRequest(
+        aesa_processor::beam::BeamRequest(
             factory.create(beamType),
             transmitTime,
             REQUEST_ID,
-            math::SphericalDirection(math::Angle::fromDegrees(azimuth_deg), math::Angle::fromDegrees(elevation_deg)))
+            aesa_processor::math::SphericalDirection(aesa_processor::math::Angle::fromDegrees(azimuth_deg), aesa_processor::math::Angle::fromDegrees(elevation_deg)))
     };
 }
 
 inline Scenario makeMixedScenario()
 {
-    using Type = beam::RequestBeamType;
+    using Type = aesa_processor::beam::RequestBeamType;
 
     Scenario scenario;
     scenario.duration = 400ms;
@@ -111,7 +111,7 @@ inline Scenario makeMixedScenario()
 
 inline Scenario makeTracksScenario()
 {
-    using Type = beam::RequestBeamType;
+    using Type = aesa_processor::beam::RequestBeamType;
 
     constexpr int TRACK_COUNT = 20;
     constexpr int ROUND_COUNT = 3;
@@ -144,7 +144,7 @@ inline Scenario makeTracksScenario()
 namespace detail
 {
 
-inline bool sameAngle(math::Angle left, math::Angle right)
+inline bool sameAngle(aesa_processor::math::Angle left, aesa_processor::math::Angle right)
 {
     return left.isEquivalentTo(right);
 }
@@ -152,7 +152,7 @@ inline bool sameAngle(math::Angle left, math::Angle right)
 // 송신된 요청 빔을 보낸 요청과 짝짓는다(종류와 각도가 같은 아직 짝이 없는 요청).
 inline void markSent(
     std::vector<RequestSpec>& requests,
-    const beam::TransmitBeamCommand& command,
+    const aesa_processor::beam::TransmitBeamCommand& command,
     long long tick_ms
 ) {
     for (RequestSpec& spec : requests)
@@ -171,17 +171,17 @@ inline void markSent(
 } // namespace detail
 
 // 시나리오를 새 Scheduler로 실행한다. 잘못된 자세정보면 AttitudeError가 전파된다.
-inline Result run(Scenario scenario, const beam::RadarAttitude& attitude)
+inline Result run(Scenario scenario, const aesa_processor::beam::RadarAttitude& attitude)
 {
     Result result;
-    beam::Scheduler scheduler;
+    aesa_processor::beam::Scheduler scheduler;
     Status status = Status::OFF;
 
     for (auto time = 0ms; time <= scenario.duration; time += TICK_PERIOD)
     {
         if (time == scenario.onTime)
         {
-            scheduler.setOperationState(beam::OperationState::ON);
+            scheduler.setOperationState(aesa_processor::beam::OperationState::ON);
             status = Status::ON_WAIT_ATTITUDE;
         }
         if (time == scenario.attitudeTime)
@@ -199,7 +199,7 @@ inline Result run(Scenario scenario, const beam::RadarAttitude& attitude)
             status,
             scheduler.next(time)
         };
-        if (record.command.has_value() && record.command->beamType != beam::BeamType::SEARCH)
+        if (record.command.has_value() && record.command->beamType != aesa_processor::beam::BeamType::SEARCH)
         {
             detail::markSent(scenario.requests, *record.command, record.tick_ms);
         }
@@ -210,4 +210,4 @@ inline Result run(Scenario scenario, const beam::RadarAttitude& attitude)
     return result;
 }
 
-} // namespace schedule_scenario
+} // namespace aesa_processor::beam::schedule_scenario

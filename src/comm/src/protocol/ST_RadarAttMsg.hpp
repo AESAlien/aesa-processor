@@ -2,7 +2,7 @@
 
 #include <protocol/ST_MsgHeader.hpp>
 
-namespace comm::protocol
+namespace aesa_processor::comm::protocol
 {
 
 #pragma pack(push, 1)
@@ -20,4 +20,4 @@ struct ST_RadarAttMsg
 
 static_assert(sizeof(ST_RadarAttMsg) == 68, "ST_RadarAttMsg must be 68 bytes");
 
-} // namespace comm::protocol
+} // namespace aesa_processor::comm::protocol

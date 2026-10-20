@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace comm
+namespace aesa_processor::comm
 {
 
 struct MessageFrame
@@ -68,4 +68,4 @@ private:
     std::size_t _maximumFrameSize;
 };
 
-} // namespace comm
+} // namespace aesa_processor::comm

@@ -24,35 +24,35 @@
 namespace
 {
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 
-const char* typeName(beam::BeamType beamType)
+const char* typeName(aesa_processor::beam::BeamType beamType)
 {
     switch (beamType)
     {
-    case beam::BeamType::SEARCH:
+    case aesa_processor::beam::BeamType::SEARCH:
         return "SEARCH";
 
-    case beam::BeamType::CONFIRMATION:
+    case aesa_processor::beam::BeamType::CONFIRMATION:
         return "CONFIRMATION";
 
-    case beam::BeamType::TRACKING:
+    case aesa_processor::beam::BeamType::TRACKING:
         return "TRACKING";
     }
     return "UNKNOWN";
 }
 
-const char* statusName(schedule_scenario::Status status)
+const char* statusName(aesa_processor::beam::schedule_scenario::Status status)
 {
     switch (status)
     {
-    case schedule_scenario::Status::OFF:
+    case aesa_processor::beam::schedule_scenario::Status::OFF:
         return "OFF";
 
-    case schedule_scenario::Status::ON_WAIT_ATTITUDE:
+    case aesa_processor::beam::schedule_scenario::Status::ON_WAIT_ATTITUDE:
         return "ON_WAIT_ATTITUDE";
 
-    case schedule_scenario::Status::READY:
+    case aesa_processor::beam::schedule_scenario::Status::READY:
         return "READY";
     }
     return "UNKNOWN";
@@ -85,23 +85,23 @@ int main(int argc, char** argv)
     auto yaw = 0_deg;
     if (argc - first == 3)
     {
-        roll = math::Angle::fromDegrees(std::atof(argv[first]));
-        pitch = math::Angle::fromDegrees(std::atof(argv[first + 1]));
-        yaw = math::Angle::fromDegrees(std::atof(argv[first + 2]));
+        roll = aesa_processor::math::Angle::fromDegrees(std::atof(argv[first]));
+        pitch = aesa_processor::math::Angle::fromDegrees(std::atof(argv[first + 1]));
+        yaw = aesa_processor::math::Angle::fromDegrees(std::atof(argv[first + 2]));
     }
     else if (argc - first != 0)
     {
         return usage(argv[0]);
     }
 
-    schedule_scenario::Scenario scenario;
+    aesa_processor::beam::schedule_scenario::Scenario scenario;
     if (scenarioName == "mixed")
     {
-        scenario = schedule_scenario::makeMixedScenario();
+        scenario = aesa_processor::beam::schedule_scenario::makeMixedScenario();
     }
     else if (scenarioName == "tracks")
     {
-        scenario = schedule_scenario::makeTracksScenario();
+        scenario = aesa_processor::beam::schedule_scenario::makeTracksScenario();
     }
     else
     {
@@ -111,13 +111,13 @@ int main(int argc, char** argv)
     try
     {
         // 잘못된 자세정보이면 RadarAttitude 생성자가 AttitudeError를 던진다.
-        const beam::RadarAttitude attitude(37_deg, 127_deg, 0.1_km, roll, pitch, yaw);
+        const aesa_processor::beam::RadarAttitude attitude(37_deg, 127_deg, 0.1_km, roll, pitch, yaw);
 
-        const schedule_scenario::Result result = schedule_scenario::run(scenario, attitude);
+        const aesa_processor::beam::schedule_scenario::Result result = aesa_processor::beam::schedule_scenario::run(scenario, attitude);
 
         std::printf("# ticks\n");
         std::printf("tick_ms,status,type,beamID,commandCount,az_deg,el_deg,az_width_deg,el_width_deg\n");
-        for (const schedule_scenario::TickRecord& tick : result.ticks)
+        for (const aesa_processor::beam::schedule_scenario::TickRecord& tick : result.ticks)
         {
             if (!tick.command.has_value())
             {
@@ -125,7 +125,7 @@ int main(int argc, char** argv)
                 continue;
             }
 
-            const beam::TransmitBeamCommand& command = *tick.command;
+            const aesa_processor::beam::TransmitBeamCommand& command = *tick.command;
             std::printf(
                 "%lld,%s,%s,%u,%u,%.6f,%.6f,%.2f,%.2f\n",
                 tick.tick_ms,
@@ -141,7 +141,7 @@ int main(int argc, char** argv)
 
         std::printf("# requests\n");
         std::printf("name,type,timestamp_ms,az_deg,el_deg,sent_tick_ms\n");
-        for (const schedule_scenario::RequestSpec& spec : result.requests)
+        for (const aesa_processor::beam::schedule_scenario::RequestSpec& spec : result.requests)
         {
             std::printf(
                 "%s,%s,%lld,%.6f,%.6f,%lld\n",
@@ -155,16 +155,16 @@ int main(int argc, char** argv)
 
         std::printf("# grid\n");
         std::printf("idx,beamID,az_deg,el_deg\n");
-        const beam::SearchGridConfig gridConfig{};
-        beam::SearchGrid grid(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}), gridConfig);
+        const aesa_processor::beam::SearchGridConfig gridConfig{};
+        aesa_processor::beam::SearchGrid grid(aesa_processor::beam::AntEnuTransform(attitude, aesa_processor::beam::AttitudeConfig{}), gridConfig);
         const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
         for (std::size_t index = 0; index < beamCount; ++index)
         {
-            const beam::SearchBeam& info = grid.nextBeam();
+            const aesa_processor::beam::SearchBeam& info = grid.nextBeam();
             std::printf("%zu,%u,%.6f,%.6f\n", index, info.beamId, info.direction_enu.azimuth.deg(), info.direction_enu.elevation.deg());
         }
     }
-    catch (const beam::AttitudeError& e)
+    catch (const aesa_processor::beam::AttitudeError& e)
     {
         std::fprintf(stderr, "attitude failed: code=%d (%s)\n", static_cast<int>(e.code()), e.what());
         return 3;

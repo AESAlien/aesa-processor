@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 SearchGrid::SearchGrid(const AntEnuTransform& transform, const SearchGridConfig& config)
@@ -14,7 +14,7 @@ SearchGrid::SearchGrid(const AntEnuTransform& transform, const SearchGridConfig&
         for (std::size_t a = 0; a < config.azimuthCount(); ++a)
         {
             // 방위각은 SphericalDirection이 [0, 360)으로 정규화한다.
-            const math::SphericalDirection direction_enu = transform.antToEnu(math::SphericalDirection(
+            const aesa_processor::math::SphericalDirection direction_enu = transform.antToEnu(aesa_processor::math::SphericalDirection(
                 config.azimuthStart() + config.azimuthStep() * static_cast<double>(a),
                 config.elevationStart() + config.elevationStep() * static_cast<double>(e)));
 
@@ -34,4 +34,4 @@ const SearchBeam& SearchGrid::nextBeam()
     return beam;
 }
 
-} // namespace beam
+} // namespace aesa_processor::beam

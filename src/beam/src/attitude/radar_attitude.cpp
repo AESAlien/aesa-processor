@@ -1,16 +1,16 @@
 #include "attitude/radar_attitude.hpp"
 #include "attitude/attitude_error.hpp"
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 RadarAttitude::RadarAttitude(
-    math::Angle latitude,
-    math::Angle longitude,
-    math::Length altitude,
-    math::Angle roll,
-    math::Angle pitch,
-    math::Angle yaw
+    aesa_processor::math::Angle latitude,
+    aesa_processor::math::Angle longitude,
+    aesa_processor::math::Length altitude,
+    aesa_processor::math::Angle roll,
+    aesa_processor::math::Angle pitch,
+    aesa_processor::math::Angle yaw
 ) : _latitude(latitude),
     _longitude(longitude),
     _altitude(altitude),
@@ -21,39 +21,39 @@ RadarAttitude::RadarAttitude(
     validate();
 }
 
-math::Angle RadarAttitude::latitude() const noexcept
+aesa_processor::math::Angle RadarAttitude::latitude() const noexcept
 {
     return _latitude;
 }
 
-math::Angle RadarAttitude::longitude() const noexcept
+aesa_processor::math::Angle RadarAttitude::longitude() const noexcept
 {
     return _longitude;
 }
 
-math::Length RadarAttitude::altitude() const noexcept
+aesa_processor::math::Length RadarAttitude::altitude() const noexcept
 {
     return _altitude;
 }
 
-math::Angle RadarAttitude::roll() const noexcept
+aesa_processor::math::Angle RadarAttitude::roll() const noexcept
 {
     return _roll;
 }
 
-math::Angle RadarAttitude::pitch() const noexcept
+aesa_processor::math::Angle RadarAttitude::pitch() const noexcept
 {
     return _pitch;
 }
 
-math::Angle RadarAttitude::yaw() const noexcept
+aesa_processor::math::Angle RadarAttitude::yaw() const noexcept
 {
     return _yaw;
 }
 
 void RadarAttitude::validate() const
 {
-    using namespace math::literals;
+    using namespace aesa_processor::math::literals;
 
     if (_latitude  < -90_deg  || _latitude  > 90_deg ||
         _longitude < -180_deg || _longitude > 180_deg ||
@@ -65,4 +65,4 @@ void RadarAttitude::validate() const
     }
 }
 
-} // namespace beam
+} // namespace aesa_processor::beam

@@ -2,7 +2,7 @@
 
 #include "attitude/ant_enu_transform.hpp"
 
-namespace beam
+namespace aesa_processor::beam
 {
 namespace
 {
@@ -27,7 +27,7 @@ TransmitBeamCommand makeRequestCommand(
     std::chrono::milliseconds currentTime,
     std::uint32_t commandCount
 ) {
-    const math::Angle width = request.beamWidth();
+    const aesa_processor::math::Angle width = request.beamWidth();
     return TransmitBeamCommand::Builder()
         .beamType(request.transmitBeamType())
         .transmitTime(currentTime)
@@ -111,4 +111,4 @@ void Scheduler::reset()
     _commandCount = 0;
 }
 
-} // namespace beam
+} // namespace aesa_processor::beam

@@ -28,7 +28,7 @@
 #include <limits>
 #include <utility>
 
-namespace comm
+namespace aesa_processor::comm
 {
 
 namespace
@@ -961,4 +961,4 @@ int NetworkManager::closeSocket(SocketHandle& socket)
     return 0;
 }
 
-} // namespace comm
+} // namespace aesa_processor::comm

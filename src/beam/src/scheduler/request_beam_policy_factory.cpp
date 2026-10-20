@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace beam
+namespace aesa_processor::beam
 {
 namespace
 {
@@ -10,7 +10,7 @@ namespace
 class ConfirmationBeamPolicy final : public IRequestBeamPolicy
 {
 public:
-    explicit ConfirmationBeamPolicy(math::Angle beamWidth) : _beamWidth(beamWidth)
+    explicit ConfirmationBeamPolicy(aesa_processor::math::Angle beamWidth) : _beamWidth(beamWidth)
     {
     }
 
@@ -19,7 +19,7 @@ public:
         return BeamType::CONFIRMATION;
     }
 
-    math::Angle beamWidth() const override
+    aesa_processor::math::Angle beamWidth() const override
     {
         return _beamWidth;
     }
@@ -30,13 +30,13 @@ public:
     }
 
 private:
-    math::Angle _beamWidth;
+    aesa_processor::math::Angle _beamWidth;
 };
 
 class TrackingBeamPolicy final : public IRequestBeamPolicy
 {
 public:
-    explicit TrackingBeamPolicy(math::Angle beamWidth) : _beamWidth(beamWidth)
+    explicit TrackingBeamPolicy(aesa_processor::math::Angle beamWidth) : _beamWidth(beamWidth)
     {
     }
 
@@ -45,7 +45,7 @@ public:
         return BeamType::TRACKING;
     }
 
-    math::Angle beamWidth() const override
+    aesa_processor::math::Angle beamWidth() const override
     {
         return _beamWidth;
     }
@@ -56,7 +56,7 @@ public:
     }
 
 private:
-    math::Angle _beamWidth;
+    aesa_processor::math::Angle _beamWidth;
 };
 
 } // namespace
@@ -82,4 +82,4 @@ std::shared_ptr<const IRequestBeamPolicy> RequestBeamPolicyFactory::create(Reque
     throw std::invalid_argument("Unknown beam request type");
 }
 
-} // namespace beam
+} // namespace aesa_processor::beam

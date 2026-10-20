@@ -6,7 +6,7 @@
 #include <cmath>
 #include <stdexcept>
 
-namespace math
+namespace aesa_processor::math
 {
 
 CartesianDisplacement::CartesianDisplacement(Length x, Length y, Length z) noexcept

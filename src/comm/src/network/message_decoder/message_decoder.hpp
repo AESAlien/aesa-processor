@@ -5,7 +5,7 @@
 
 #include <optional>
 
-namespace comm
+namespace aesa_processor::comm
 {
 
 enum class DecodingError
@@ -43,4 +43,4 @@ private:
     ) const;
 };
 
-} // namespace comm
+} // namespace aesa_processor::comm

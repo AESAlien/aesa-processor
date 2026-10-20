@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 enum class AttitudeErrorCode : uint8_t
@@ -29,4 +29,4 @@ private:
     AttitudeErrorCode _code;
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

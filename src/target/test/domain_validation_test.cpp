@@ -15,15 +15,15 @@
 #include <type_traits>
 #include <utility>
 
-namespace target
+namespace aesa_processor::target
 {
 namespace
 {
 
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
-using BeamType = beam::BeamType;
+using BeamType = aesa_processor::beam::BeamType;
 
 static_assert(std::is_const_v<decltype(TargetConfig::maxAssociationSpeed)>);
 static_assert(std::is_const_v<decltype(TargetConfig::maxInitialDopplerDifference)>);
@@ -42,19 +42,19 @@ static_assert(std::is_const_v<decltype(TargetPrediction::timestamp)>);
 static_assert(std::is_const_v<decltype(TargetTrackingState::sphericalPosition)>);
 static_assert(std::is_const_v<decltype(TargetTrackingState::power_db)>);
 static_assert(std::is_same_v<decltype(std::declval<const Target&>().sphericalPosition()),
-    const math::SphericalPosition&>);
+    const aesa_processor::math::SphericalPosition&>);
 static_assert(std::is_same_v<decltype(std::declval<const Target&>().trackingState()),
     const std::shared_ptr<const TargetTrackingState>&>);
 
-math::SphericalPosition position(math::Length range = 1000_m)
+aesa_processor::math::SphericalPosition position(aesa_processor::math::Length range = 1000_m)
 {
-    return math::SphericalPosition(range, math::SphericalDirection(0_deg, 0_deg));
+    return aesa_processor::math::SphericalPosition(range, aesa_processor::math::SphericalDirection(0_deg, 0_deg));
 }
 
 Target observation(
     Time time = 0ms,
-    math::Length range = 1000_m,
-    math::LinearVelocity doppler = 0_mps,
+    aesa_processor::math::Length range = 1000_m,
+    aesa_processor::math::LinearVelocity doppler = 0_mps,
     std::shared_ptr<const ITrackingAlgorithm> algorithm = std::make_shared<ConstantVelocityAlgorithm>())
 {
     return Target(position(range), doppler, -10.0f, time, std::move(algorithm));
@@ -63,8 +63,8 @@ Target observation(
 TargetTrackingState state(Time time = 100ms, float power = -10.0f)
 {
     return TargetTrackingState(position(), 0_mps, power, time,
-        math::CartesianPosition(0_m, 1000_m, 0_m),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps));
+        aesa_processor::math::CartesianPosition(0_m, 1000_m, 0_m),
+        aesa_processor::math::CartesianVelocity(0_mps, 0_mps, 0_mps));
 }
 
 DetectionEvent result(BeamType type, std::uint32_t id, Time time, bool detected = true)
@@ -168,12 +168,12 @@ TEST(DomainValidationTest, PredictionAndTrackingStateValidateTheirOwnConstructio
     EXPECT_THROW(state(-1ms), std::invalid_argument);
     EXPECT_THROW(state(100ms, std::numeric_limits<float>::quiet_NaN()), std::invalid_argument);
     EXPECT_THROW((TargetTrackingState(position(0_m), 0_mps, 0.0f, 0ms,
-        math::CartesianPosition(0_m, 0_m, 0_m),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps))), std::invalid_argument);
-    const auto maximum = math::LinearVelocity::fromMetersPerSecond(std::numeric_limits<double>::max());
+        aesa_processor::math::CartesianPosition(0_m, 0_m, 0_m),
+        aesa_processor::math::CartesianVelocity(0_mps, 0_mps, 0_mps))), std::invalid_argument);
+    const auto maximum = aesa_processor::math::LinearVelocity::fromMetersPerSecond(std::numeric_limits<double>::max());
     EXPECT_THROW((TargetTrackingState(position(), 0_mps, 0.0f, 0ms,
-        math::CartesianPosition(0_m, 1000_m, 0_m),
-        math::CartesianVelocity(maximum, maximum, 0_mps))), std::invalid_argument);
+        aesa_processor::math::CartesianPosition(0_m, 1000_m, 0_m),
+        aesa_processor::math::CartesianVelocity(maximum, maximum, 0_mps))), std::invalid_argument);
     EXPECT_NO_THROW(state());
     EXPECT_NO_THROW(TargetPrediction(0ms, position()));
 }
@@ -264,8 +264,8 @@ TEST(TargetConfigTest, RejectsInvalidSettingsDuringConstruction)
         case 5: confirmationDelay = 0ms; break;
         case 6: trackingInterval = -1ms; break;
         case 7: maxConsecutiveTrackingMisses = 0; break;
-        case 8: measurementStandardDeviation = math::Length::fromMeters(1e308); break;
-        case 9: measurementStandardDeviation = math::Length::fromMeters(1e-300); break;
+        case 8: measurementStandardDeviation = aesa_processor::math::Length::fromMeters(1e308); break;
+        case 9: measurementStandardDeviation = aesa_processor::math::Length::fromMeters(1e-300); break;
         }
         SCOPED_TRACE(option);
         EXPECT_THROW((TargetConfig(maxAssociationSpeed, maxInitialDopplerDifference,
@@ -360,4 +360,4 @@ TEST(DomainValidationTest, InvalidPlotBatchDoesNotPartiallyRegisterCandidates)
 }
 
 } // namespace
-} // namespace target
+} // namespace aesa_processor::target

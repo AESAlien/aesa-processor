@@ -20,42 +20,42 @@ namespace
 
 using namespace std::chrono_literals;
 
-beam::TransmitBeamCommand makeBeamCommand(
+aesa_processor::beam::TransmitBeamCommand makeBeamCommand(
     std::chrono::milliseconds transmitTime = 1234ms,
     double azimuthBeamWidth = 3.25
 )
 {
-    return beam::TransmitBeamCommand(
-        beam::BeamType::TRACKING,
+    return aesa_processor::beam::TransmitBeamCommand(
+        aesa_processor::beam::BeamType::TRACKING,
         transmitTime,
         21,
         7,
-        math::SphericalDirection(
-            math::Angle::fromDegrees(10.5),
-            math::Angle::fromDegrees(-4.5)),
-        math::Angle::fromDegrees(azimuthBeamWidth),
-        math::Angle::fromDegrees(2.75));
+        aesa_processor::math::SphericalDirection(
+            aesa_processor::math::Angle::fromDegrees(10.5),
+            aesa_processor::math::Angle::fromDegrees(-4.5)),
+        aesa_processor::math::Angle::fromDegrees(azimuthBeamWidth),
+        aesa_processor::math::Angle::fromDegrees(2.75));
 }
 
-target::TrackEvent makeTrackEvent(
+aesa_processor::target::TrackEvent makeTrackEvent(
     std::chrono::milliseconds timestamp = 5678ms,
     double slantRangeKilometers = 12.5
 )
 {
-    return target::TrackEvent(
+    return aesa_processor::target::TrackEvent(
         42,
-        target::TrackEvent::TrackState::TRACKING,
-        math::Length::fromKilometers(slantRangeKilometers),
-        math::Length::fromKilometers(10.25),
-        math::Angle::fromDegrees(15.5),
-        math::Angle::fromDegrees(6.25),
-        math::LinearVelocity::fromMetersPerSecond(-120.5),
-        math::Angle::fromDegrees(37.5),
-        math::Angle::fromDegrees(127.25),
-        math::Length::fromKilometers(2.5),
-        math::LinearVelocity::fromMetersPerSecond(250.75),
-        math::Angle::fromDegrees(45.5),
-        math::Angle::fromDegrees(-2.25),
+        aesa_processor::target::TrackEvent::TrackState::TRACKING,
+        aesa_processor::math::Length::fromKilometers(slantRangeKilometers),
+        aesa_processor::math::Length::fromKilometers(10.25),
+        aesa_processor::math::Angle::fromDegrees(15.5),
+        aesa_processor::math::Angle::fromDegrees(6.25),
+        aesa_processor::math::LinearVelocity::fromMetersPerSecond(-120.5),
+        aesa_processor::math::Angle::fromDegrees(37.5),
+        aesa_processor::math::Angle::fromDegrees(127.25),
+        aesa_processor::math::Length::fromKilometers(2.5),
+        aesa_processor::math::LinearVelocity::fromMetersPerSecond(250.75),
+        aesa_processor::math::Angle::fromDegrees(45.5),
+        aesa_processor::math::Angle::fromDegrees(-2.25),
         timestamp);
 }
 
@@ -78,43 +78,43 @@ Value readValue(
 // 방위각은 SphericalDirection이 [0, 360)으로 정규화하며, 시뮬레이터 규격도 0-360이다.
 float encodeAzimuthToWire(double azimuthDegrees)
 {
-    const beam::TransmitBeamCommand command(
-        beam::BeamType::TRACKING,
+    const aesa_processor::beam::TransmitBeamCommand command(
+        aesa_processor::beam::BeamType::TRACKING,
         1234ms,
         21,
         7,
-        math::SphericalDirection(
-            math::Angle::fromDegrees(azimuthDegrees),
-            math::Angle::fromDegrees(-4.5)),
-        math::Angle::fromDegrees(3.25),
-        math::Angle::fromDegrees(2.75));
+        aesa_processor::math::SphericalDirection(
+            aesa_processor::math::Angle::fromDegrees(azimuthDegrees),
+            aesa_processor::math::Angle::fromDegrees(-4.5)),
+        aesa_processor::math::Angle::fromDegrees(3.25),
+        aesa_processor::math::Angle::fromDegrees(2.75));
 
-    const comm::EncodeResult result = comm::encodeBeamCommand(command);
-    if (result.error != comm::EncodingError::NONE || !result.bytes.has_value())
+    const aesa_processor::comm::EncodeResult result = aesa_processor::comm::encodeBeamCommand(command);
+    if (result.error != aesa_processor::comm::EncodingError::NONE || !result.bytes.has_value())
     {
         throw std::runtime_error("failed to encode beam command");
     }
 
-    return readValue<comm::protocol::ST_BeamTxMsg>(*result.bytes).beam_cmd.beam_az_deg;
+    return readValue<aesa_processor::comm::protocol::ST_BeamTxMsg>(*result.bytes).beam_cmd.beam_az_deg;
 }
 
 } // namespace
 
 TEST(MessageEncoderTest, EncodesBeamCommand)
 {
-    const comm::EncodeResult result =
-        comm::encodeBeamCommand(makeBeamCommand());
+    const aesa_processor::comm::EncodeResult result =
+        aesa_processor::comm::encodeBeamCommand(makeBeamCommand());
 
-    ASSERT_EQ(result.error, comm::EncodingError::NONE);
+    ASSERT_EQ(result.error, aesa_processor::comm::EncodingError::NONE);
     ASSERT_TRUE(result.bytes.has_value());
-    ASSERT_EQ(result.bytes->size(), sizeof(comm::protocol::ST_BeamTxMsg));
+    ASSERT_EQ(result.bytes->size(), sizeof(aesa_processor::comm::protocol::ST_BeamTxMsg));
 
-    const comm::protocol::ST_BeamTxMsg message =
-        readValue<comm::protocol::ST_BeamTxMsg>(*result.bytes);
+    const aesa_processor::comm::protocol::ST_BeamTxMsg message =
+        readValue<aesa_processor::comm::protocol::ST_BeamTxMsg>(*result.bytes);
 
     EXPECT_EQ(
         message.msgHeader.message_Id,
-        static_cast<uint16_t>(comm::protocol::MessageId::BeamTransmit));
+        static_cast<uint16_t>(aesa_processor::comm::protocol::MessageId::BeamTransmit));
     EXPECT_EQ(message.msgHeader.block_size, sizeof(message));
     EXPECT_EQ(message.msgHeader.version, 0);
     EXPECT_EQ(message.msgHeader.timeSec, 0u);
@@ -124,7 +124,7 @@ TEST(MessageEncoderTest, EncodesBeamCommand)
 
     EXPECT_EQ(
         message.beam_cmd.beamType,
-        static_cast<uint8_t>(beam::BeamType::TRACKING));
+        static_cast<uint8_t>(aesa_processor::beam::BeamType::TRACKING));
     EXPECT_EQ(message.beam_cmd.timestamp, 1234u);
     EXPECT_EQ(message.beam_cmd.beamID, 21u);
     EXPECT_EQ(message.beam_cmd.commandCount, 7u);
@@ -170,27 +170,27 @@ TEST(MessageEncoderTest, KeepsAzimuthAlreadyInRangeOnWire)
 
 TEST(MessageEncoderTest, EncodesTrackEventsUsingActualMessageSize)
 {
-    const std::vector<target::TrackEvent> events
+    const std::vector<aesa_processor::target::TrackEvent> events
     {
         makeTrackEvent()
     };
 
-    const comm::EncodeResult result = comm::encodeTrackEvents(events);
+    const aesa_processor::comm::EncodeResult result = aesa_processor::comm::encodeTrackEvents(events);
 
-    ASSERT_EQ(result.error, comm::EncodingError::NONE);
+    ASSERT_EQ(result.error, aesa_processor::comm::EncodingError::NONE);
     ASSERT_TRUE(result.bytes.has_value());
 
     const std::size_t expectedSize =
-        sizeof(comm::protocol::ST_MsgHeader) +
-        sizeof(comm::protocol::ST_TrkHeader) +
-        sizeof(comm::protocol::ST_Trk);
+        sizeof(aesa_processor::comm::protocol::ST_MsgHeader) +
+        sizeof(aesa_processor::comm::protocol::ST_TrkHeader) +
+        sizeof(aesa_processor::comm::protocol::ST_Trk);
     ASSERT_EQ(result.bytes->size(), expectedSize);
 
-    const comm::protocol::ST_MsgHeader header =
-        readValue<comm::protocol::ST_MsgHeader>(*result.bytes);
+    const aesa_processor::comm::protocol::ST_MsgHeader header =
+        readValue<aesa_processor::comm::protocol::ST_MsgHeader>(*result.bytes);
     EXPECT_EQ(
         header.message_Id,
-        static_cast<uint16_t>(comm::protocol::MessageId::TrackInformation));
+        static_cast<uint16_t>(aesa_processor::comm::protocol::MessageId::TrackInformation));
     EXPECT_EQ(header.block_size, expectedSize);
     EXPECT_EQ(header.version, 0);
     EXPECT_EQ(header.timeSec, 0u);
@@ -199,23 +199,23 @@ TEST(MessageEncoderTest, EncodesTrackEventsUsingActualMessageSize)
     EXPECT_EQ(header.dest_id, 0);
 
     const std::size_t trackHeaderOffset =
-        sizeof(comm::protocol::ST_MsgHeader);
-    const comm::protocol::ST_TrkHeader trackHeader =
-        readValue<comm::protocol::ST_TrkHeader>(
+        sizeof(aesa_processor::comm::protocol::ST_MsgHeader);
+    const aesa_processor::comm::protocol::ST_TrkHeader trackHeader =
+        readValue<aesa_processor::comm::protocol::ST_TrkHeader>(
             *result.bytes,
             trackHeaderOffset);
     EXPECT_EQ(trackHeader.number, 1);
 
     const std::size_t trackOffset =
-        trackHeaderOffset + sizeof(comm::protocol::ST_TrkHeader);
-    const comm::protocol::ST_Trk track =
-        readValue<comm::protocol::ST_Trk>(*result.bytes, trackOffset);
+        trackHeaderOffset + sizeof(aesa_processor::comm::protocol::ST_TrkHeader);
+    const aesa_processor::comm::protocol::ST_Trk track =
+        readValue<aesa_processor::comm::protocol::ST_Trk>(*result.bytes, trackOffset);
 
     EXPECT_EQ(track.ID, 42);
     EXPECT_EQ(
         track.type,
         static_cast<uint8_t>(
-            target::TrackEvent::TrackState::TRACKING));
+            aesa_processor::target::TrackEvent::TrackState::TRACKING));
     EXPECT_EQ(track.memFlag, 0);
     EXPECT_FLOAT_EQ(track.slantR_km, 12.5F);
     EXPECT_FLOAT_EQ(track.groundR_km, 10.25F);
@@ -240,27 +240,27 @@ TEST(MessageEncoderTest, EncodesTrackEventsUsingActualMessageSize)
 
 TEST(MessageEncoderTest, RejectsMoreThanOneHundredTracks)
 {
-    const std::vector<target::TrackEvent> events(
+    const std::vector<aesa_processor::target::TrackEvent> events(
         101,
         makeTrackEvent());
 
-    const comm::EncodeResult result = comm::encodeTrackEvents(events);
+    const aesa_processor::comm::EncodeResult result = aesa_processor::comm::encodeTrackEvents(events);
 
-    EXPECT_EQ(result.error, comm::EncodingError::TOO_MANY_TRACKS);
+    EXPECT_EQ(result.error, aesa_processor::comm::EncodingError::TOO_MANY_TRACKS);
     EXPECT_FALSE(result.bytes.has_value());
 }
 
 TEST(MessageEncoderTest, AcceptsOneHundredTracks)
 {
-    const std::vector<target::TrackEvent> events(
+    const std::vector<aesa_processor::target::TrackEvent> events(
         100,
         makeTrackEvent());
 
-    const comm::EncodeResult result = comm::encodeTrackEvents(events);
+    const aesa_processor::comm::EncodeResult result = aesa_processor::comm::encodeTrackEvents(events);
 
-    ASSERT_EQ(result.error, comm::EncodingError::NONE);
+    ASSERT_EQ(result.error, aesa_processor::comm::EncodingError::NONE);
     ASSERT_TRUE(result.bytes.has_value());
-    EXPECT_EQ(result.bytes->size(), sizeof(comm::protocol::ST_TrkMsg));
+    EXPECT_EQ(result.bytes->size(), sizeof(aesa_processor::comm::protocol::ST_TrkMsg));
 }
 
 TEST(MessageEncoderTest, RejectsTimestampOutsideProtocolRange)
@@ -269,18 +269,18 @@ TEST(MessageEncoderTest, RejectsTimestampOutsideProtocolRange)
         static_cast<std::chrono::milliseconds::rep>(
             std::numeric_limits<uint32_t>::max()) + 1};
 
-    const comm::EncodeResult beamResult =
-        comm::encodeBeamCommand(makeBeamCommand(invalidTimestamp));
-    const comm::EncodeResult trackResult = comm::encodeTrackEvents(
+    const aesa_processor::comm::EncodeResult beamResult =
+        aesa_processor::comm::encodeBeamCommand(makeBeamCommand(invalidTimestamp));
+    const aesa_processor::comm::EncodeResult trackResult = aesa_processor::comm::encodeTrackEvents(
         {makeTrackEvent(-1ms)});
 
     EXPECT_EQ(
         beamResult.error,
-        comm::EncodingError::TYPE_CONVERSION_ERROR);
+        aesa_processor::comm::EncodingError::TYPE_CONVERSION_ERROR);
     EXPECT_FALSE(beamResult.bytes.has_value());
     EXPECT_EQ(
         trackResult.error,
-        comm::EncodingError::TYPE_CONVERSION_ERROR);
+        aesa_processor::comm::EncodingError::TYPE_CONVERSION_ERROR);
     EXPECT_FALSE(trackResult.bytes.has_value());
 }
 
@@ -289,17 +289,17 @@ TEST(MessageEncoderTest, RejectsValueOutsideFloatRange)
     const double invalidAngle =
         static_cast<double>(std::numeric_limits<float>::max()) * 2.0;
 
-    const comm::EncodeResult beamResult =
-        comm::encodeBeamCommand(makeBeamCommand(1234ms, invalidAngle));
-    const comm::EncodeResult trackResult = comm::encodeTrackEvents(
+    const aesa_processor::comm::EncodeResult beamResult =
+        aesa_processor::comm::encodeBeamCommand(makeBeamCommand(1234ms, invalidAngle));
+    const aesa_processor::comm::EncodeResult trackResult = aesa_processor::comm::encodeTrackEvents(
         {makeTrackEvent(5678ms, invalidAngle)});
 
     EXPECT_EQ(
         beamResult.error,
-        comm::EncodingError::TYPE_CONVERSION_ERROR);
+        aesa_processor::comm::EncodingError::TYPE_CONVERSION_ERROR);
     EXPECT_FALSE(beamResult.bytes.has_value());
     EXPECT_EQ(
         trackResult.error,
-        comm::EncodingError::TYPE_CONVERSION_ERROR);
+        aesa_processor::comm::EncodingError::TYPE_CONVERSION_ERROR);
     EXPECT_FALSE(trackResult.bytes.has_value());
 }

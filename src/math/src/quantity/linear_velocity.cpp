@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace math
+namespace aesa_processor::math
 {
 using namespace literals;
 

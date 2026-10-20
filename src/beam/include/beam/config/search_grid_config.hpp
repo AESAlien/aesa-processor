@@ -4,9 +4,9 @@
 
 #include <cstddef>
 
-namespace beam
+namespace aesa_processor::beam
 {
-using math::literals::operator""_deg;
+using aesa_processor::math::literals::operator""_deg;
 
 class SearchGridConfig
 {
@@ -16,47 +16,47 @@ public:
     public:
         Builder& azimuthCount(std::size_t value)    { _azimuthCount = value; return *this; }
         Builder& elevationCount(std::size_t value)  { _elevationCount = value; return *this; }
-        Builder& azimuthStart(math::Angle value)    { _azimuthStart = value; return *this; }
-        Builder& azimuthStep(math::Angle value)     { _azimuthStep = value; return *this; }
-        Builder& elevationStart(math::Angle value)  { _elevationStart = value; return *this; }
-        Builder& elevationStep(math::Angle value)   { _elevationStep = value; return *this; }
-        Builder& beamWidth(math::Angle value)       { _beamWidth = value; return *this; }
+        Builder& azimuthStart(aesa_processor::math::Angle value)    { _azimuthStart = value; return *this; }
+        Builder& azimuthStep(aesa_processor::math::Angle value)     { _azimuthStep = value; return *this; }
+        Builder& elevationStart(aesa_processor::math::Angle value)  { _elevationStart = value; return *this; }
+        Builder& elevationStep(aesa_processor::math::Angle value)   { _elevationStep = value; return *this; }
+        Builder& beamWidth(aesa_processor::math::Angle value)       { _beamWidth = value; return *this; }
 
         SearchGridConfig build() const;
 
     private:
         std::size_t _azimuthCount = 21;
         std::size_t _elevationCount = 9;
-        math::Angle _azimuthStart = -42_deg;
-        math::Angle _azimuthStep = 4.2_deg;
-        math::Angle _elevationStart = 3_deg;
-        math::Angle _elevationStep = 4.4_deg;
-        math::Angle _beamWidth = 6_deg;
+        aesa_processor::math::Angle _azimuthStart = -42_deg;
+        aesa_processor::math::Angle _azimuthStep = 4.2_deg;
+        aesa_processor::math::Angle _elevationStart = 3_deg;
+        aesa_processor::math::Angle _elevationStep = 4.4_deg;
+        aesa_processor::math::Angle _beamWidth = 6_deg;
     }; // class Builder
 
     SearchGridConfig();
     SearchGridConfig(std::size_t azimuthCount, std::size_t elevationCount,
-                     math::Angle azimuthStart, math::Angle azimuthStep,
-                     math::Angle elevationStart, math::Angle elevationStep,
-                     math::Angle beamWidth);
+                     aesa_processor::math::Angle azimuthStart, aesa_processor::math::Angle azimuthStep,
+                     aesa_processor::math::Angle elevationStart, aesa_processor::math::Angle elevationStep,
+                     aesa_processor::math::Angle beamWidth);
 
     std::size_t azimuthCount() const noexcept;
     std::size_t elevationCount() const noexcept;
-    math::Angle azimuthStart() const noexcept;
-    math::Angle azimuthStep() const noexcept;
-    math::Angle elevationStart() const noexcept;
-    math::Angle elevationStep() const noexcept;
-    math::Angle beamWidth() const noexcept;
+    aesa_processor::math::Angle azimuthStart() const noexcept;
+    aesa_processor::math::Angle azimuthStep() const noexcept;
+    aesa_processor::math::Angle elevationStart() const noexcept;
+    aesa_processor::math::Angle elevationStep() const noexcept;
+    aesa_processor::math::Angle beamWidth() const noexcept;
 private:
     void validate() const;
 
     std::size_t _azimuthCount;
     std::size_t _elevationCount;
-    math::Angle _azimuthStart;
-    math::Angle _azimuthStep;
-    math::Angle _elevationStart;
-    math::Angle _elevationStep;
-    math::Angle _beamWidth;
+    aesa_processor::math::Angle _azimuthStart;
+    aesa_processor::math::Angle _azimuthStep;
+    aesa_processor::math::Angle _elevationStart;
+    aesa_processor::math::Angle _elevationStep;
+    aesa_processor::math::Angle _beamWidth;
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

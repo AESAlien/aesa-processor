@@ -9,7 +9,7 @@
 #include <optional>
 #include <vector>
 
-namespace comm
+namespace aesa_processor::comm
 {
 
 #ifdef _WIN32
@@ -102,4 +102,4 @@ private:
     mutable PeerSynchro _scenarioSimulatorSynchro;
 };
 
-} // namespace comm
+} // namespace aesa_processor::comm

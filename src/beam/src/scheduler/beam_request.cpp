@@ -3,14 +3,14 @@
 #include <stdexcept>
 #include <utility>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 BeamRequest::BeamRequest(
     std::shared_ptr<const IRequestBeamPolicy> policy,
     std::chrono::milliseconds transmitTime,
     std::uint32_t requestId,
-    math::SphericalDirection direction_enu
+    aesa_processor::math::SphericalDirection direction_enu
 ) : _policy(std::move(policy)),
     _transmitTime(transmitTime),
     _requestId(requestId),
@@ -24,7 +24,7 @@ BeamType BeamRequest::transmitBeamType() const
     return _policy->transmitBeamType();
 }
 
-math::Angle BeamRequest::beamWidth() const
+aesa_processor::math::Angle BeamRequest::beamWidth() const
 {
     return _policy->beamWidth();
 }
@@ -44,7 +44,7 @@ std::uint32_t BeamRequest::requestId() const noexcept
     return _requestId;
 }
 
-const math::SphericalDirection& BeamRequest::direction_enu() const noexcept
+const aesa_processor::math::SphericalDirection& BeamRequest::direction_enu() const noexcept
 {
     return _direction_enu;
 }
@@ -67,4 +67,4 @@ void BeamRequest::validate() const
     }
 }
 
-} // namespace beam
+} // namespace aesa_processor::beam

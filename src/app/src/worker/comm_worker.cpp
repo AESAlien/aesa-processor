@@ -8,13 +8,13 @@
 #include <variant>
 #include <vector>
 
-namespace app
+namespace aesa_processor::app
 {
 CommWorker::CommWorker(
     CommChannel& commChannel,
     BeamChannel& beamChannel,
     TargetChannel& targetChannel,
-    comm::CommController& controller)
+    aesa_processor::comm::CommController& controller)
     : _commChannel(commChannel),
       _beamChannel(beamChannel),
       _targetChannel(targetChannel),
@@ -38,19 +38,19 @@ void CommWorker::runReceive()
             auto& message = *incoming;
 
             if (auto* attitude =
-                    std::get_if<beam::SetAttitudeCommand>(&message))
+                    std::get_if<aesa_processor::beam::SetAttitudeCommand>(&message))
             {
                 _beamChannel.write(std::move(*attitude));
             }
             else if (auto* state =
-                         std::get_if<beam::SetOperationStateCommand>(&message))
+                         std::get_if<aesa_processor::beam::SetOperationStateCommand>(&message))
             {
                 _beamChannel.write(std::move(*state));
             }
             else
             {
                 auto& detection =
-                    std::get<target::DetectionEvent>(message);
+                    std::get<aesa_processor::target::DetectionEvent>(message);
 
                 _targetChannel.write(std::move(detection));
             }
@@ -82,7 +82,7 @@ void CommWorker::runSendSimulator()
         tryWorkerAction("CommSendSimulator", [&]
         {
             const auto& command =
-                std::get<beam::TransmitBeamCommand>(*event);
+                std::get<aesa_processor::beam::TransmitBeamCommand>(*event);
 
             _controller.sendBeamCommand(command);
         });
@@ -96,10 +96,10 @@ void CommWorker::runSendConsole()
         tryWorkerAction("CommSendConsole", [&]
         {
             const auto& tracks =
-                std::get<std::vector<target::TrackEvent>>(*event);
+                std::get<std::vector<aesa_processor::target::TrackEvent>>(*event);
 
             _controller.sendTrackEvents(tracks);
         });
     }
 }
-} // namespace app
+} // namespace aesa_processor::app

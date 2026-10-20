@@ -5,9 +5,9 @@
 
 #include <optional>
 
-namespace app
+namespace aesa_processor::app
 {
-using TargetEvent = target::DetectionEvent;
+using TargetEvent = aesa_processor::target::DetectionEvent;
 
 class TargetChannel final
 {
@@ -21,4 +21,4 @@ public:
 private:
     MessageQueue<TargetEvent> _queue;
 };
-} // namespace app
+} // namespace aesa_processor::app

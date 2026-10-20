@@ -4,22 +4,22 @@
 #include <limits>
 #include <stdexcept>
 
-namespace beam
+namespace aesa_processor::beam
 {
 namespace
 {
-using namespace math::literals;
+using namespace aesa_processor::math::literals;
 
 // 축의 마지막 점(start + step * (count - 1))을 계산한다.
 // start와 step이 각각 유한해도 곱셈이나 덧셈에서 오버플로할 수 있고, 이때 Angle이 std::invalid_argument를 던진다.
 // 마지막 점이 유한하면 그 사이의 점도 모두 유한하다.
 // 계산식은 SearchGridConfig를 사용해 격자를 만드는 쪽의 각도 계산과 같아야 한다.
-math::Angle lastPoint(math::Angle start, math::Angle step, std::size_t count)
+aesa_processor::math::Angle lastPoint(aesa_processor::math::Angle start, aesa_processor::math::Angle step, std::size_t count)
 {
     return start + step * static_cast<double>(count - 1);
 }
 
-bool isWithinElevationRange(math::Angle elevation)
+bool isWithinElevationRange(aesa_processor::math::Angle elevation)
 {
     return elevation >= -90_deg && elevation <= 90_deg;
 }
@@ -32,11 +32,11 @@ SearchGridConfig::SearchGridConfig() : SearchGridConfig(Builder().build())
 SearchGridConfig::SearchGridConfig(
     std::size_t azimuthCount,
     std::size_t elevationCount,
-    math::Angle azimuthStart,
-    math::Angle azimuthStep,
-    math::Angle elevationStart,
-    math::Angle elevationStep,
-    math::Angle beamWidth
+    aesa_processor::math::Angle azimuthStart,
+    aesa_processor::math::Angle azimuthStep,
+    aesa_processor::math::Angle elevationStart,
+    aesa_processor::math::Angle elevationStep,
+    aesa_processor::math::Angle beamWidth
 ) : _azimuthCount(azimuthCount),
     _elevationCount(elevationCount),
     _azimuthStart(azimuthStart),
@@ -58,27 +58,27 @@ std::size_t SearchGridConfig::elevationCount() const noexcept
     return _elevationCount;
 }
 
-math::Angle SearchGridConfig::azimuthStart() const noexcept
+aesa_processor::math::Angle SearchGridConfig::azimuthStart() const noexcept
 {
     return _azimuthStart;
 }
 
-math::Angle SearchGridConfig::azimuthStep() const noexcept
+aesa_processor::math::Angle SearchGridConfig::azimuthStep() const noexcept
 {
     return _azimuthStep;
 }
 
-math::Angle SearchGridConfig::elevationStart() const noexcept
+aesa_processor::math::Angle SearchGridConfig::elevationStart() const noexcept
 {
     return _elevationStart;
 }
 
-math::Angle SearchGridConfig::elevationStep() const noexcept
+aesa_processor::math::Angle SearchGridConfig::elevationStep() const noexcept
 {
     return _elevationStep;
 }
 
-math::Angle SearchGridConfig::beamWidth() const noexcept
+aesa_processor::math::Angle SearchGridConfig::beamWidth() const noexcept
 {
     return _beamWidth;
 }
@@ -98,7 +98,7 @@ void SearchGridConfig::validate() const
 
     // 마지막 점 계산이 오버플로하면 Angle이 std::invalid_argument를 던진다.
     (void)lastPoint(_azimuthStart, _azimuthStep, _azimuthCount);
-    const math::Angle elevationLast = lastPoint(_elevationStart, _elevationStep, _elevationCount);
+    const aesa_processor::math::Angle elevationLast = lastPoint(_elevationStart, _elevationStep, _elevationCount);
 
     // 고각 축은 단조 증가 또는 감소이므로 양 끝이 범위 안이면 중간 점도 범위 안이다.
     // 방위각은 SphericalDirection이 [0, 360)으로 정규화하므로 범위를 검사하지 않는다.
@@ -125,4 +125,4 @@ SearchGridConfig SearchGridConfig::Builder::build() const
         _beamWidth);
 }
 
-} // namespace beam
+} // namespace aesa_processor::beam

@@ -16,29 +16,29 @@
 #include <optional>
 #include <stdexcept>
 
-namespace target
+namespace aesa_processor::target
 {
 namespace
 {
 
 constexpr std::size_t NDS_DIMENSION = 3;
 
-math::SquareMatrix measurementCovariance(const TargetConfig& config)
+aesa_processor::math::SquareMatrix measurementCovariance(const TargetConfig& config)
 {
     const double sigma = config.measurementStandardDeviation.m();
-    return math::SquareMatrix::identity(NDS_DIMENSION) * (sigma * sigma);
+    return aesa_processor::math::SquareMatrix::identity(NDS_DIMENSION) * (sigma * sigma);
 }
 
-math::SquareMatrix measurementDifferenceCovariance(const TargetConfig& config)
+aesa_processor::math::SquareMatrix measurementDifferenceCovariance(const TargetConfig& config)
 {
     const double sigma = config.measurementStandardDeviation.m();
-    return math::SquareMatrix::identity(NDS_DIMENSION) * (2.0 * sigma * sigma);
+    return aesa_processor::math::SquareMatrix::identity(NDS_DIMENSION) * (2.0 * sigma * sigma);
 }
 
-math::SquareMatrix innovationCovariance(
-    const std::optional<math::SquareMatrix>& positionCovariance,
-    const math::SquareMatrix& measurement,
-    const math::SquareMatrix& legacyDifference)
+aesa_processor::math::SquareMatrix innovationCovariance(
+    const std::optional<aesa_processor::math::SquareMatrix>& positionCovariance,
+    const aesa_processor::math::SquareMatrix& measurement,
+    const aesa_processor::math::SquareMatrix& legacyDifference)
 {
     // CV and existing strategy implementations may not estimate covariance.
     // Their explicit legacy fallback is two independent measurement errors, 2R.
@@ -48,12 +48,12 @@ math::SquareMatrix innovationCovariance(
 // Cartesian residual components are metres; covariance entries are square metres.
 // Returns the dimensionless squared distance r^T S^-1 r, not a gated decision.
 std::optional<double> calculateNds(
-    const math::Vector& residual,
-    const math::SquareMatrix& covariance)
+    const aesa_processor::math::Vector& residual,
+    const aesa_processor::math::SquareMatrix& covariance)
 {
     if (residual.size() != NDS_DIMENSION || covariance.size() != NDS_DIMENSION
         || !residual.isFinite()
-        || !covariance.isSymmetric(math::Tolerance{0.0, math::DEFAULT_RELATIVE_TOLERANCE}))
+        || !covariance.isSymmetric(aesa_processor::math::Tolerance{0.0, aesa_processor::math::DEFAULT_RELATIVE_TOLERANCE}))
     {
         return std::nullopt;
     }
@@ -78,7 +78,7 @@ std::optional<double> calculateNds(
 
     try
     {
-        const auto lower = math::cholesky(symmetricCovariance);
+        const auto lower = aesa_processor::math::cholesky(symmetricCovariance);
         const auto transformed = lower.solveLowerTriangular(residual);
 
         // Solve L y = r: ||y||^2 = r^T S^-1 r. norm() preserves tiny components.
@@ -122,7 +122,7 @@ std::optional<double> DetectionMatcher::matchesPosition(
         : other.sphericalPosition().toCartesian();
 
     const auto position = observation.sphericalPosition().toCartesian();
-    math::Vector residual(NDS_DIMENSION);
+    aesa_processor::math::Vector residual(NDS_DIMENSION);
     try
     {
         const auto displacement = position - referencePosition;
@@ -137,7 +137,7 @@ std::optional<double> DetectionMatcher::matchesPosition(
             // Retain the geometric motion allowance by shrinking the residual radially
             // before scoring it with the available position uncertainty.
             residual = distance <= maximumTravel
-                ? math::Vector(NDS_DIMENSION)
+                ? aesa_processor::math::Vector(NDS_DIMENSION)
                 : residual * ((distance - maximumTravel).m() / distance.m());
         }
     }
@@ -156,7 +156,7 @@ std::optional<double> DetectionMatcher::matchesPosition(
     {
         // Delayed searches compare against the latest stored position without
         // rewinding the filter, while retaining that position's uncertainty.
-        math::SquareMatrix positionCovariance(NDS_DIMENSION);
+        aesa_processor::math::SquareMatrix positionCovariance(NDS_DIMENSION);
         const auto& stateCovariance = *other.trackingState()->errorCovariance;
         for (std::size_t row = 0; row < NDS_DIMENSION; ++row)
         {
@@ -194,10 +194,10 @@ std::optional<double> DetectionMatcher::matchesConfirmation(
         // Ordered nonnegative times keep this integer subtraction within its range.
         const auto elapsed = std::chrono::duration<double>(time - tentative.initialTime());
         const auto speed = displacement.toVelocity(elapsed).speed();
-        if (speed.greaterThan(_config.maxAssociationSpeed, math::LinearVelocity::NONE_TOLERANCE)
+        if (speed.greaterThan(_config.maxAssociationSpeed, aesa_processor::math::LinearVelocity::NONE_TOLERANCE)
             || !observation.dopplerVelocity().equals(
                 tentative.dopplerVelocity(),
-                math::QuantityTolerance<math::LinearVelocity>{_config.maxInitialDopplerDifference, 0.0}))
+                aesa_processor::math::QuantityTolerance<aesa_processor::math::LinearVelocity>{_config.maxInitialDopplerDifference, 0.0}))
         {
             return std::nullopt;
         }
@@ -248,4 +248,4 @@ std::optional<double> DetectionMatcher::matchesTracking(
     }
 }
 
-} // namespace target
+} // namespace aesa_processor::target

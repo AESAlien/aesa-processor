@@ -4,7 +4,7 @@
 
 #include <chrono>
 
-namespace math
+namespace aesa_processor::math
 {
 
 struct CartesianDisplacement;

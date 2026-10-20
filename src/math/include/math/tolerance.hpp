@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-namespace math
+namespace aesa_processor::math
 {
 
 struct Tolerance

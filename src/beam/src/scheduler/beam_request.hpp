@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace beam
+namespace aesa_processor::beam
 {
 
 // beam 내부에서 쓰는 확인/추적 빔 요청. 생성된 이후에는 항상 유효한 값을 가진다.
@@ -27,16 +27,16 @@ public:
         std::shared_ptr<const IRequestBeamPolicy> policy,
         std::chrono::milliseconds transmitTime,
         std::uint32_t requestId,
-        math::SphericalDirection direction_enu);
+        aesa_processor::math::SphericalDirection direction_enu);
 
     // 아래 세 메서드는 정책에 위임한다.
     BeamType transmitBeamType() const;
-    math::Angle beamWidth() const;
+    aesa_processor::math::Angle beamWidth() const;
     int priority() const;
 
     std::chrono::milliseconds transmitTime() const noexcept;
     std::uint32_t requestId() const noexcept;
-    const math::SphericalDirection& direction_enu() const noexcept;
+    const aesa_processor::math::SphericalDirection& direction_enu() const noexcept;
 
 private:
     void validate() const;
@@ -44,7 +44,7 @@ private:
     std::shared_ptr<const IRequestBeamPolicy> _policy;
     std::chrono::milliseconds _transmitTime;
     std::uint32_t _requestId;
-    math::SphericalDirection _direction_enu;
+    aesa_processor::math::SphericalDirection _direction_enu;
 };
 
-} // namespace beam
+} // namespace aesa_processor::beam

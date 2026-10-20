@@ -3,7 +3,7 @@
 #include "calculation/association/detection_matcher.hpp"
 #include "repository/target_repository.hpp"
 
-namespace target
+namespace aesa_processor::target
 {
 
 TrackSelector::TrackSelector(
@@ -56,4 +56,4 @@ std::optional<std::size_t> TrackSelector::selectObservation(
     return bestIndex;
 }
 
-} // namespace target
+} // namespace aesa_processor::target
