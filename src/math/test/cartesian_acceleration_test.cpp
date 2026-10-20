@@ -20,6 +20,9 @@ static_assert(!std::is_copy_assignable_v<math::CartesianAcceleration>);
 static_assert(!std::is_move_assignable_v<math::CartesianAcceleration>);
 static_assert(!std::is_aggregate_v<math::CartesianAcceleration>);
 
+
+
+// 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(CartesianAccelerationTest, StoresCoordinatesAndSupportsCopyConstruction)
 {
     const math::CartesianAcceleration acceleration(-1_mps2, 2_mps2, 3_mps2);
@@ -30,6 +33,7 @@ TEST(CartesianAccelerationTest, StoresCoordinatesAndSupportsCopyConstruction)
     EXPECT_EQ(copy.z, 3_mps2);
 }
 
+// 계산 결과와 수치적 안정성을 검증한다.
 TEST(CartesianAccelerationTest, CalculatesVelocityFromElapsedTime)
 {
     const math::CartesianAcceleration acceleration(6_mps2, -8_mps2, 24_mps2);
@@ -40,6 +44,7 @@ TEST(CartesianAccelerationTest, CalculatesVelocityFromElapsedTime)
     EXPECT_EQ(velocity.z, 12_mps);
 }
 
+// 계산 결과와 수치적 안정성을 검증한다.
 TEST(CartesianAccelerationTest, PreservesElapsedTimeSign)
 {
     const math::CartesianAcceleration acceleration(1_mps2, -2_mps2, 3_mps2);
@@ -54,6 +59,7 @@ TEST(CartesianAccelerationTest, PreservesElapsedTimeSign)
     EXPECT_EQ(stopped.z, 0_mps);
 }
 
+// 계산 결과와 수치적 안정성을 검증한다.
 TEST(CartesianAccelerationTest, CalculatesMagnitude)
 {
     const math::CartesianAcceleration acceleration(3_mps2, -4_mps2, 12_mps2);
@@ -72,6 +78,7 @@ TEST(CartesianAccelerationTest, CalculatesMagnitude)
     }
 }
 
+// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianAccelerationTest, RejectsInvalidVelocityResult)
 {
     const auto maximum = math::LinearAcceleration::fromMetersPerSecondSquared(

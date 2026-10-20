@@ -6,9 +6,14 @@
 #include <stdexcept>
 #include <type_traits>
 
+using namespace math::literals;
+
 static_assert(!std::is_default_constructible_v<math::Length>);
 static_assert(!std::is_constructible_v<math::Length, double>);
 
+
+
+// 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(LengthTest, StoresSignedMeters)
 {
     const double values[] = {-1234.567, -0.0, 0.0, 0.001, 1234.567};
@@ -22,19 +27,43 @@ TEST(LengthTest, StoresSignedMeters)
     }
 }
 
+// 객체 생성과 상태 보존 규칙을 검증한다.
+TEST(LengthTest, CreatesLengthsFromMeterLiterals)
+{
+    using namespace math::literals;
+
+    static_assert(std::is_same_v<decltype(2_m), math::Length>);
+    static_assert(std::is_same_v<decltype(2.5_m), math::Length>);
+    EXPECT_DOUBLE_EQ((2_m).m(), 2.0);
+    EXPECT_DOUBLE_EQ((-2.5_m).m(), -2.5);
+}
+
+// 객체 생성과 상태 보존 규칙을 검증한다.
+TEST(LengthTest, CreatesLengthsFromKilometerLiterals)
+{
+    using namespace math::literals;
+
+    static_assert(std::is_same_v<decltype(2_km), math::Length>);
+    static_assert(std::is_same_v<decltype(2.5_km), math::Length>);
+    EXPECT_DOUBLE_EQ((2_km).km(), 2.0);
+    EXPECT_DOUBLE_EQ((-2.5_km).km(), -2.5);
+}
+
+// 값의 변환과 정규화 결과를 검증한다.
 TEST(LengthTest, ConvertsSignedKilometersToMeters)
 {
-    const auto negative = math::Length::fromKilometers(-1.25);
-    const auto positive = math::Length::fromKilometers(2.5);
+    const auto negative = -1.25_km;
+    const auto positive = 2.5_km;
 
     EXPECT_DOUBLE_EQ(negative.m(), -1250.0);
     EXPECT_DOUBLE_EQ(positive.m(), 2500.0);
 }
 
+// 계산 결과와 수치적 안정성을 검증한다.
 TEST(LengthTest, AddsAndSubtractsLengths)
 {
-    const auto left = math::Length::fromMeters(3.5);
-    const auto right = math::Length::fromMeters(1.25);
+    const auto left = 3.5_m;
+    const auto right = 1.25_m;
 
     static_assert(std::is_same_v<decltype(left + right), math::Length>);
     static_assert(std::is_same_v<decltype(left - right), math::Length>);
@@ -42,17 +71,10 @@ TEST(LengthTest, AddsAndSubtractsLengths)
     EXPECT_DOUBLE_EQ((left - right).m(), 2.25);
 }
 
-TEST(LengthTest, RejectsNonFiniteAdditionAndSubtractionResults)
-{
-    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
-
-    EXPECT_THROW(maximum + maximum, std::invalid_argument);
-    EXPECT_THROW(maximum - (-maximum), std::invalid_argument);
-}
-
+// 계산 결과와 수치적 안정성을 검증한다.
 TEST(LengthTest, MultipliesAndDividesByScalars)
 {
-    const auto length = math::Length::fromMeters(3.0);
+    const auto length = 3.0_m;
 
     static_assert(std::is_same_v<decltype(length * 2.0), math::Length>);
     static_assert(std::is_same_v<decltype(2.0 * length), math::Length>);
@@ -62,6 +84,54 @@ TEST(LengthTest, MultipliesAndDividesByScalars)
     EXPECT_DOUBLE_EQ((length / 2.0).m(), 1.5);
 }
 
+// 계산 결과와 수치적 안정성을 검증한다.
+TEST(LengthTest, AppliesCompoundArithmetic)
+{
+    auto length = 8.0_m;
+
+    EXPECT_EQ(&(length += 2.0_m), &length);
+    EXPECT_DOUBLE_EQ(length.m(), 10.0);
+    EXPECT_EQ(&(length -= 4.0_m), &length);
+    EXPECT_DOUBLE_EQ(length.m(), 6.0);
+    EXPECT_EQ(&(length *= -2.0), &length);
+    EXPECT_DOUBLE_EQ(length.m(), -12.0);
+    EXPECT_EQ(&(length /= 3.0), &length);
+    EXPECT_DOUBLE_EQ(length.m(), -4.0);
+}
+
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
+TEST(LengthTest, ComparesSignedValues)
+{
+    const auto negative = -1.0_m;
+    const auto zero = 0.0_m;
+    const auto positive = 1.0_m;
+
+    EXPECT_LT(negative, zero);
+    EXPECT_LT(zero, positive);
+    EXPECT_TRUE(negative.equals(
+        -1.25_m,
+        math::QuantityTolerance{0.25_m, 0.0}));
+}
+
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
+TEST(LengthTest, AbsPreservesLengthTypeAndReturnsNonnegativeValue)
+{
+    static_assert(std::is_same_v<
+        decltype(math::abs(-1.0_m)),
+        math::Length>);
+    EXPECT_DOUBLE_EQ(math::abs(-2.0_km).km(), 2.0);
+}
+
+// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
+TEST(LengthTest, RejectsNonFiniteAdditionAndSubtractionResults)
+{
+    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
+
+    EXPECT_THROW(maximum + maximum, std::invalid_argument);
+    EXPECT_THROW(maximum - (-maximum), std::invalid_argument);
+}
+
+// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LengthTest, RejectsInvalidScalarOperations)
 {
     const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
@@ -71,20 +141,7 @@ TEST(LengthTest, RejectsInvalidScalarOperations)
     EXPECT_THROW(maximum / -0.0, std::domain_error);
 }
 
-TEST(LengthTest, AppliesCompoundArithmetic)
-{
-    auto length = math::Length::fromMeters(8.0);
-
-    EXPECT_EQ(&(length += math::Length::fromMeters(2.0)), &length);
-    EXPECT_DOUBLE_EQ(length.m(), 10.0);
-    EXPECT_EQ(&(length -= math::Length::fromMeters(4.0)), &length);
-    EXPECT_DOUBLE_EQ(length.m(), 6.0);
-    EXPECT_EQ(&(length *= -2.0), &length);
-    EXPECT_DOUBLE_EQ(length.m(), -12.0);
-    EXPECT_EQ(&(length /= 3.0), &length);
-    EXPECT_DOUBLE_EQ(length.m(), -4.0);
-}
-
+// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LengthTest, CompoundArithmeticPreservesValueOnFailure)
 {
     const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
@@ -100,47 +157,7 @@ TEST(LengthTest, CompoundArithmeticPreservesValueOnFailure)
     EXPECT_EQ(length, maximum);
 }
 
-TEST(LengthTest, CreatesLengthsFromMeterLiterals)
-{
-    using namespace math::literals;
-
-    static_assert(std::is_same_v<decltype(2_m), math::Length>);
-    static_assert(std::is_same_v<decltype(2.5_m), math::Length>);
-    EXPECT_DOUBLE_EQ((2_m).m(), 2.0);
-    EXPECT_DOUBLE_EQ((-2.5_m).m(), -2.5);
-}
-
-TEST(LengthTest, CreatesLengthsFromKilometerLiterals)
-{
-    using namespace math::literals;
-
-    static_assert(std::is_same_v<decltype(2_km), math::Length>);
-    static_assert(std::is_same_v<decltype(2.5_km), math::Length>);
-    EXPECT_DOUBLE_EQ((2_km).km(), 2.0);
-    EXPECT_DOUBLE_EQ((-2.5_km).km(), -2.5);
-}
-
-TEST(LengthTest, ComparesSignedValues)
-{
-    const auto negative = math::Length::fromMeters(-1.0);
-    const auto zero = math::Length::fromMeters(0.0);
-    const auto positive = math::Length::fromMeters(1.0);
-
-    EXPECT_LT(negative, zero);
-    EXPECT_LT(zero, positive);
-    EXPECT_TRUE(negative.equals(
-        math::Length::fromMeters(-1.25),
-        math::QuantityTolerance{math::Length::fromMeters(0.25), 0.0}));
-}
-
-TEST(LengthTest, AbsPreservesLengthTypeAndReturnsNonnegativeValue)
-{
-    static_assert(std::is_same_v<
-        decltype(math::abs(math::Length::fromMeters(-1.0))),
-        math::Length>);
-    EXPECT_DOUBLE_EQ(math::abs(math::Length::fromKilometers(-2.0)).km(), 2.0);
-}
-
+// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LengthTest, RejectsNonFiniteValues)
 {
     for (double value : {
@@ -155,6 +172,7 @@ TEST(LengthTest, RejectsNonFiniteValues)
     }
 }
 
+// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LengthTest, RejectsOverflowDuringKilometerConversion)
 {
     const double maxValue = std::numeric_limits<double>::max();

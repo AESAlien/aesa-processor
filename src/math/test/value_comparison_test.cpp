@@ -12,6 +12,8 @@
 #include <stdexcept>
 #include <type_traits>
 
+using namespace math::literals;
+
 namespace
 {
 
@@ -36,6 +38,7 @@ class EqualsTest : public testing::Test
 using EqualsTypes = testing::Types<math::Matrix, math::SquareMatrix, math::Vector>;
 TYPED_TEST_SUITE(EqualsTest, EqualsTypes);
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(EqualsTest, HandlesRoundingAndDefaultTolerances)
 {
     const auto calculated = makeValue<TypeParam>(0.1 + 0.2, 1.0);
@@ -50,6 +53,7 @@ TYPED_TEST(EqualsTest, HandlesRoundingAndDefaultTolerances)
     EXPECT_TRUE(expected != makeValue<TypeParam>(0.4, 1.0));
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(EqualsTest, AbsoluteToleranceIncludesBoundary)
 {
     const auto zero = makeValue<TypeParam>(0.0, 0.0);
@@ -65,6 +69,7 @@ TYPED_TEST(EqualsTest, AbsoluteToleranceIncludesBoundary)
     EXPECT_FALSE(zero.equals(makeValue<TypeParam>(0.25, std::nextafter(0.25, 1.0)), absolute));
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(EqualsTest, RelativeToleranceIsSymmetricAndInclusive)
 {
     const auto value = makeValue<TypeParam>(4.0, 0.0);
@@ -79,7 +84,7 @@ TYPED_TEST(EqualsTest, RelativeToleranceIsSymmetricAndInclusive)
         makeValue<TypeParam>(1e-12, 0.0), math::Tolerance{0.0, 0.01}));
 }
 
-// 정책은 균일하지만 각 원소는 절대오차 또는 상대오차를 독립적으로 만족할 수 있다.
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(EqualsTest, CombinesAbsoluteAndRelativeTolerancePerElement)
 {
     const auto value = makeValue<TypeParam>(0.0, 1e6);
@@ -90,6 +95,7 @@ TYPED_TEST(EqualsTest, CombinesAbsoluteAndRelativeTolerancePerElement)
     EXPECT_TRUE(nearby == value);
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(EqualsTest, ChecksDimensionsAndSupportsEmptyValues)
 {
     const auto value = makeValue<TypeParam>(1.0, 2.0);
@@ -100,6 +106,7 @@ TYPED_TEST(EqualsTest, ChecksDimensionsAndSupportsEmptyValues)
     EXPECT_TRUE(TypeParam().equals(TypeParam(), math::Tolerance{0.0, 0.0}));
 }
 
+// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TYPED_TEST(EqualsTest, RejectsNonfiniteElements)
 {
     const auto finite = makeValue<TypeParam>(1.0, 2.0);
@@ -116,6 +123,7 @@ TYPED_TEST(EqualsTest, RejectsNonfiniteElements)
     }
 }
 
+// 계산 결과와 수치적 안정성을 검증한다.
 TYPED_TEST(EqualsTest, HandlesNumericLimits)
 {
     const double largest = std::numeric_limits<double>::max();
@@ -132,6 +140,7 @@ TYPED_TEST(EqualsTest, HandlesNumericLimits)
     EXPECT_FALSE(tiny.equals(twiceTiny, math::Tolerance{0.0, std::nextafter(0.5, 0.0)}));
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TEST(ToleranceTest, ComparesFiniteNumbersUsingItsPolicy)
 {
     const math::Tolerance combined{1e-12, 1e-9};
@@ -153,6 +162,7 @@ TEST(ToleranceTest, ComparesFiniteNumbersUsingItsPolicy)
     }
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TEST(ToleranceTest, NoneToleranceRequiresExactFiniteEquality)
 {
     EXPECT_DOUBLE_EQ(math::NONE_TOLERANCE.absolute, 0.0);
@@ -172,6 +182,7 @@ TEST(ToleranceTest, NoneToleranceRequiresExactFiniteEquality)
     }
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TEST(ToleranceTest, ValidatesScalarPolicyAtConstruction)
 {
     EXPECT_NO_THROW((math::Tolerance{-0.0, 0.0}));
@@ -186,6 +197,7 @@ TEST(ToleranceTest, ValidatesScalarPolicyAtConstruction)
     }
 }
 
+// 계산 결과와 수치적 안정성을 검증한다.
 TEST(ToleranceTest, PreservesUnitsAndSupportsConstantPolicies)
 {
     const math::Tolerance exact{0.0, 0.0};
@@ -199,15 +211,16 @@ TEST(ToleranceTest, PreservesUnitsAndSupportsConstantPolicies)
     EXPECT_TRUE((math::Matrix{{0.1 + 0.2}}).equals(math::Matrix{{0.3}}, math::DEFAULT_TOLERANCE));
 }
 
+// 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(ToleranceTest, OwnsAbsoluteValueAndPreservesItAfterCopyAndMove)
 {
-    auto absolute = math::Angle::fromDegrees(0.25);
+    auto absolute = 0.25_deg;
     const math::QuantityTolerance<math::Angle> original{absolute, 0.0};
-    absolute = math::Angle::fromDegrees(0.0);
+    absolute = 0.0_deg;
     auto source = original;
     const auto moved = std::move(source);
-    const auto zero = math::Angle::fromDegrees(0.0);
-    const auto boundary = math::Angle::fromDegrees(0.25);
+    const auto zero = 0.0_deg;
+    const auto boundary = 0.25_deg;
     EXPECT_TRUE(zero.equals(boundary, original));
     EXPECT_TRUE(zero.equals(boundary, source));
     EXPECT_TRUE(zero.equals(boundary, moved));
@@ -235,6 +248,7 @@ T makeQuantity(double value)
     }
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TEST(QuantityTest, SharesStorageAndChecksWithoutLosingUnitSafety)
 {
     static_assert(std::is_base_of_v<math::Quantity<math::Angle>, math::Angle>);
@@ -248,13 +262,13 @@ TEST(QuantityTest, SharesStorageAndChecksWithoutLosingUnitSafety)
     static_assert(!std::is_assignable_v<math::Quantity<math::Length>&, math::Length>);
     static_assert(!std::is_constructible_v<math::Angle, math::Length>);
 
-    const auto angle = math::Angle::fromDegrees(-90.0);
+    const auto angle = -90.0_deg;
     const math::Quantity<math::Angle>& quantity = angle;
     EXPECT_DOUBLE_EQ(quantity.value(), angle.deg());
     EXPECT_FALSE(quantity.isNonnegative());
-    EXPECT_DOUBLE_EQ(math::Length::fromKilometers(2.0).value(), 2000.0);
-    EXPECT_DOUBLE_EQ(math::LinearVelocity::fromMetersPerSecond(3.0).value(), 3.0);
-    EXPECT_DOUBLE_EQ(math::LinearAcceleration::fromMetersPerSecondSquared(4.0).value(), 4.0);
+    EXPECT_DOUBLE_EQ(2.0_km.value(), 2000.0);
+    EXPECT_DOUBLE_EQ(3.0_mps.value(), 3.0);
+    EXPECT_DOUBLE_EQ(4.0_mps2.value(), 4.0);
 }
 
 // 새 물리량도 단위별 분기 없이 공통 정책을 사용할 수 있다.
@@ -273,6 +287,7 @@ const math::QuantityTolerance<TestQuantity> TestQuantity::DEFAULT_TOLERANCE{
     TestQuantity(0.5), 0.0
 };
 
+// 계산 결과와 수치적 안정성을 검증한다.
 TEST(QuantityTest, NewQuantityInheritsFiniteStorageValidation)
 {
     const double INVALID_VALUES[] =
@@ -292,6 +307,7 @@ TEST(QuantityTest, NewQuantityInheritsFiniteStorageValidation)
     EXPECT_FALSE(TestQuantity(-std::numeric_limits<double>::denorm_min()).isNonnegative());
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TEST(QuantityTest, NewQuantityInheritsComparisonsAndUsesItsOwnDefaultTolerance)
 {
     const TestQuantity LOW(1.0);
@@ -343,6 +359,7 @@ void checkComparisonTypes()
         const math::QuantityTolerance<Right>&> == SAME_TYPE);
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TEST(QuantityToleranceTest, SupportsNewQuantitiesAndRestrictsComparisonTypes)
 {
     using AnglePolicy = math::QuantityTolerance<math::Angle>;
@@ -369,6 +386,7 @@ using QuantityTypes = testing::Types<
     math::LinearAcceleration>;
 TYPED_TEST_SUITE(QuantityComparisonTest, QuantityTypes);
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, NoneToleranceDisablesAbsoluteAndRelativeTolerance)
 {
     const auto& NONE = TypeParam::NONE_TOLERANCE;
@@ -392,6 +410,7 @@ TYPED_TEST(QuantityComparisonTest, NoneToleranceDisablesAbsoluteAndRelativeToler
     }
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, RestrictsComparisonsToMatchingQuantityTypes)
 {
     checkComparisonTypes<TypeParam, math::Angle>();
@@ -400,6 +419,7 @@ TYPED_TEST(QuantityComparisonTest, RestrictsComparisonsToMatchingQuantityTypes)
     checkComparisonTypes<TypeParam, math::LinearAcceleration>();
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, NamedInequalitySupportsExplicitTolerances)
 {
     const auto ZERO = makeQuantity<TypeParam>(0.0);
@@ -427,6 +447,7 @@ TYPED_TEST(QuantityComparisonTest, NamedInequalitySupportsExplicitTolerances)
     EXPECT_EQ(ZERO.notEquals(HIGH), ZERO != HIGH);
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, NamedOrderingUsesExplicitToleranceBoundaries)
 {
     const auto ZERO = makeQuantity<TypeParam>(0.0);
@@ -468,6 +489,7 @@ TYPED_TEST(QuantityComparisonTest, NamedOrderingUsesExplicitToleranceBoundaries)
     EXPECT_TRUE(ZERO.greaterThanOrEqual(ZERO, EXACT));
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, NamedOrderingMatchesDefaultOperators)
 {
     const double VALUES[] =
@@ -496,7 +518,7 @@ TYPED_TEST(QuantityComparisonTest, NamedOrderingMatchesDefaultOperators)
     }
 }
 
-// 모든 물리량은 계산 오차 범위에서 같은 값으로 판단하고 순서 연산자도 일치한다.
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, RoundingUsesSamePolicyForEqualityAndOrdering)
 {
     const auto calculated = makeQuantity<TypeParam>(0.1 + 0.2);
@@ -518,6 +540,7 @@ TYPED_TEST(QuantityComparisonTest, RoundingUsesSamePolicyForEqualityAndOrdering)
     EXPECT_FALSE(calculated.equals(expected, math::QuantityTolerance{makeQuantity<TypeParam>(0.0), 0.0}));
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, InequalityComplementsDefaultEquality)
 {
     const auto calculated = makeQuantity<TypeParam>(0.1 + 0.2);
@@ -530,7 +553,7 @@ TYPED_TEST(QuantityComparisonTest, InequalityComplementsDefaultEquality)
     EXPECT_TRUE(makeQuantity<TypeParam>(0.0) == makeQuantity<TypeParam>(-0.0));
 }
 
-// 단위가 있는 절대오차와 상대오차 중 하나를 만족하면 차이를 허용한다.
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, SupportsCombinedAbsoluteAndRelativeTolerance)
 {
     const auto zero = makeQuantity<TypeParam>(0.0);
@@ -552,6 +575,7 @@ TYPED_TEST(QuantityComparisonTest, SupportsCombinedAbsoluteAndRelativeTolerance)
     }
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, AcceptsUnitPreservingTolerancePolicy)
 {
     const auto zero = makeQuantity<TypeParam>(0.0);
@@ -576,6 +600,7 @@ TYPED_TEST(QuantityComparisonTest, AcceptsUnitPreservingTolerancePolicy)
     }
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, PolicyValidatesStoredUnitsExactly)
 {
     EXPECT_NO_THROW((math::QuantityTolerance<TypeParam>{makeQuantity<TypeParam>(0.0), 0.0}));
@@ -588,6 +613,7 @@ TYPED_TEST(QuantityComparisonTest, PolicyValidatesStoredUnitsExactly)
     }
 }
 
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, ChecksNonnegativity)
 {
     EXPECT_TRUE(makeQuantity<TypeParam>(-0.0).isNonnegative());
@@ -596,7 +622,7 @@ TYPED_TEST(QuantityComparisonTest, ChecksNonnegativity)
     EXPECT_FALSE(negative.isNonnegative());
 }
 
-// 절대오차 경계는 포함하고 바로 밖에서는 원래 순서를 유지한다.
+// 계산 결과와 수치적 안정성을 검증한다.
 TYPED_TEST(QuantityComparisonTest, AbsoluteBoundaryIsInclusive)
 {
     const auto zero = makeQuantity<TypeParam>(0.0);
@@ -622,7 +648,7 @@ TYPED_TEST(QuantityComparisonTest, AbsoluteBoundaryIsInclusive)
     EXPECT_FALSE(zero > negative);
 }
 
-// 큰 값에서는 절대오차보다 상대오차가 결정하며 양수와 음수에 대칭적으로 적용한다.
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, RelativeToleranceControlsLargeValues)
 {
     const auto value = makeQuantity<TypeParam>(1e6);
@@ -644,7 +670,7 @@ TYPED_TEST(QuantityComparisonTest, RelativeToleranceControlsLargeValues)
     EXPECT_TRUE(-outside < -value);
 }
 
-// 허용오차 유효성 검사는 근사 순서 비교를 사용하지 않아 아주 작은 음수도 거부한다.
+// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, ExplicitTolerancesRemainIndependentAndRejectTinyNegatives)
 {
     const auto zero = makeQuantity<TypeParam>(0.0);
@@ -657,7 +683,7 @@ TYPED_TEST(QuantityComparisonTest, ExplicitTolerancesRemainIndependentAndRejectT
     EXPECT_THROW(zero.equals(zero, math::QuantityTolerance{negativeTolerance, 0.0}), std::invalid_argument);
 }
 
-// 모든 구체 수량 타입은 생성 시 비유한 값을 거부한다.
+// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, RejectsNonfiniteValuesAtConstruction)
 {
     EXPECT_THROW(makeQuantity<TypeParam>(std::numeric_limits<double>::infinity()), std::invalid_argument);
@@ -665,6 +691,7 @@ TYPED_TEST(QuantityComparisonTest, RejectsNonfiniteValuesAtConstruction)
     EXPECT_THROW(makeQuantity<TypeParam>(std::numeric_limits<double>::quiet_NaN()), std::invalid_argument);
 }
 
+// 객체 생성과 상태 보존 규칙을 검증한다.
 TYPED_TEST(EqualsTest, DefaultsHandleExtremeFiniteValuesAndDimensions)
 {
     const double largest = std::numeric_limits<double>::max();
@@ -676,6 +703,7 @@ TYPED_TEST(EqualsTest, DefaultsHandleExtremeFiniteValuesAndDimensions)
     EXPECT_FALSE(value == TypeParam());
 }
 
+// 계산 결과와 수치적 안정성을 검증한다.
 TEST(MatrixEqualsTest, SupportsRectangularAndZeroDimensionShapes)
 {
     const math::Matrix value{{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}};
