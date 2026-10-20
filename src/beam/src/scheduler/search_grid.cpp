@@ -14,7 +14,7 @@ SearchGrid::SearchGrid(const AntEnuTransform& transform, const SearchGridConfig&
         for (std::size_t a = 0; a < config.azimuthCount(); ++a)
         {
             // 방위각은 SphericalDirection이 [0, 360)으로 정규화한다.
-            const math::SphericalDirection direction_ant = transform.enuToAnt(math::SphericalDirection(
+            const math::SphericalDirection direction_ant = transform.antToEnu(math::SphericalDirection(
                 config.azimuthStart() + config.azimuthStep() * static_cast<double>(a),
                 config.elevationStart() + config.elevationStep() * static_cast<double>(e)));
 
