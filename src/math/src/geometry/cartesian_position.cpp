@@ -41,12 +41,28 @@ SphericalPosition CartesianPosition::toSpherical() const
     }
 }
 
-CartesianDisplacement operator-(const CartesianPosition& left, const CartesianPosition& right)
+CartesianPosition CartesianPosition::operator+(const CartesianDisplacement& displacement) const
+{
+    return CartesianPosition(
+        x + displacement.x,
+        y + displacement.y,
+        z + displacement.z);
+}
+
+CartesianPosition CartesianPosition::operator-(const CartesianDisplacement& displacement) const
+{
+    return CartesianPosition(
+        x - displacement.x,
+        y - displacement.y,
+        z - displacement.z);
+}
+
+CartesianDisplacement CartesianPosition::operator-(const CartesianPosition& other) const
 {
     return CartesianDisplacement(
-        Length::fromMeters(left.x.m() - right.x.m()),
-        Length::fromMeters(left.y.m() - right.y.m()),
-        Length::fromMeters(left.z.m() - right.z.m()));
+        x - other.x,
+        y - other.y,
+        z - other.z);
 }
 
 }

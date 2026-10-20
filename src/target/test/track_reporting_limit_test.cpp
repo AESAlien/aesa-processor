@@ -23,7 +23,7 @@ using BeamType = beam::BeamType;
 
 math::Length range(std::uint32_t id)
 {
-    return math::Length::fromMeters(1000.0 + 100.0 * static_cast<double>(id - 1));
+    return 1000_m + 100_m * static_cast<double>(id - 1);
 }
 
 DetectionEvent result(BeamType type, std::uint32_t id, Time time, bool detected = true)

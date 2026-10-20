@@ -6,9 +6,8 @@
 #include <math/geometry/cartesian_position.hpp>
 #include <math/geometry/cartesian_velocity.hpp>
 #include <math/geometry/spherical_position.hpp>
-#include <math/linear_algebra/vector.hpp>
 
-#include <cmath>
+#include <stdexcept>
 
 namespace target
 {
@@ -90,22 +89,20 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
         return TargetPrediction{time, state.sphericalPosition};
     }
 
-    const math::Vector velocityVector{velocity.x.mps(), velocity.y.mps(), velocity.z.mps()};
-    const auto positionVector = math::Vector{
-        state.position.x.m(), state.position.y.m(), state.position.z.m()}
-        + velocityVector * elapsedSeconds(state.timestamp, time);
-    const double rangeMeters = positionVector.norm();
-    if (!positionVector.isFinite() || !std::isfinite(rangeMeters) || rangeMeters <= 0.0)
+    try
+    {
+        const auto displacement = velocity * (time - state.timestamp);
+        const auto predictedPosition = state.position + displacement;
+        return TargetPrediction{time, predictedPosition.toSpherical()};
+    }
+    catch (const std::invalid_argument&)
     {
         return std::nullopt;
     }
-
-    const math::CartesianPosition predictedPosition{
-        math::Length::fromMeters(positionVector[0]),
-        math::Length::fromMeters(positionVector[1]),
-        math::Length::fromMeters(positionVector[2])};
-    const auto position = predictedPosition.toSpherical();
-    return TargetPrediction{time, position};
+    catch (const std::overflow_error&)
+    {
+        return std::nullopt;
+    }
 }
 
 } // namespace target

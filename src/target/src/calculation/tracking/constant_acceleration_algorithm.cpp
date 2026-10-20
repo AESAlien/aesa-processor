@@ -7,6 +7,7 @@
 #include <math/geometry/cartesian_velocity.hpp>
 #include <math/geometry/spherical_position.hpp>
 #include <math/linear_algebra/matrix.hpp>
+#include <math/linear_algebra/vector.hpp>
 
 #include <cmath>
 #include <cstddef>
@@ -17,6 +18,8 @@ namespace target
 {
 namespace
 {
+
+using namespace math::literals;
 
 constexpr std::size_t POSITION_DIMENSION = 3;
 constexpr std::size_t VELOCITY_OFFSET = 3;
@@ -34,7 +37,7 @@ math::Vector stateVector(const TargetTrackingState& state)
 {
     return math::Vector{state.position.x.m(), state.position.y.m(), state.position.z.m(),
         state.velocity.x.mps(), state.velocity.y.mps(), state.velocity.z.mps(),
-        state.acceleration[0], state.acceleration[1], state.acceleration[2]};
+        state.acceleration.x.mps2(), state.acceleration.y.mps2(), state.acceleration.z.mps2()};
 }
 
 math::Matrix measurementMatrix()
@@ -55,9 +58,8 @@ std::optional<math::CartesianVelocity> initialVelocity(
     try
     {
         const auto velocity = (second - first).toVelocity(std::chrono::duration<double>(seconds));
-        const math::Vector components{velocity.x.mps(), velocity.y.mps(), velocity.z.mps()};
-        return std::isfinite(components.norm())
-            ? std::optional<math::CartesianVelocity>(velocity) : std::nullopt;
+        static_cast<void>(velocity.speed());
+        return velocity;
     }
     catch (const std::invalid_argument&)
     {
@@ -144,14 +146,39 @@ std::optional<PredictedState> predictState(
 
 std::optional<math::CartesianPosition> calculatedPosition(const math::Vector& values)
 {
-    const math::Vector position{values[0], values[1], values[2]};
-    const double range = position.norm();
-    if (!position.isFinite() || !std::isfinite(range) || range <= 0.0)
+    try
+    {
+        const math::CartesianPosition position(
+            math::Length::fromMeters(values[0]),
+            math::Length::fromMeters(values[1]),
+            math::Length::fromMeters(values[2]));
+        if (position.distance().equals(0_m, math::Length::NONE_TOLERANCE))
+        {
+            return std::nullopt;
+        }
+        return position;
+    }
+    catch (const std::invalid_argument&)
     {
         return std::nullopt;
     }
-    return math::CartesianPosition(math::Length::fromMeters(values[0]),
-        math::Length::fromMeters(values[1]), math::Length::fromMeters(values[2]));
+}
+
+std::optional<math::CartesianVelocity> calculatedVelocity(const math::Vector& values)
+{
+    try
+    {
+        const math::CartesianVelocity velocity(
+            math::LinearVelocity::fromMetersPerSecond(values[3]),
+            math::LinearVelocity::fromMetersPerSecond(values[4]),
+            math::LinearVelocity::fromMetersPerSecond(values[5]));
+        static_cast<void>(velocity.speed());
+        return velocity;
+    }
+    catch (const std::invalid_argument&)
+    {
+        return std::nullopt;
+    }
 }
 
 } // namespace
@@ -206,7 +233,7 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::initialize(
     }
     return TargetTrackingState(position.toSpherical(), second.dopplerVelocity(),
         second.power_db(), secondTime, position, *velocity,
-        math::Vector(POSITION_DIMENSION), std::move(initialCovariance));
+        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), std::move(initialCovariance));
 }
 
 std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
@@ -267,17 +294,18 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
         return std::nullopt;
     }
     const auto position = calculatedPosition(values);
-    const math::Vector velocityValues{values[3], values[4], values[5]};
-    if (!position || !std::isfinite(velocityValues.norm()))
+    const auto velocity = calculatedVelocity(values);
+    if (!position || !velocity)
     {
         return std::nullopt;
     }
-    const math::CartesianVelocity velocity(math::LinearVelocity::fromMetersPerSecond(values[3]),
-        math::LinearVelocity::fromMetersPerSecond(values[4]),
-        math::LinearVelocity::fromMetersPerSecond(values[5]));
     return TargetTrackingState(position->toSpherical(), observation.dopplerVelocity(),
-        observation.power_db(), time, *position, velocity,
-        math::Vector{values[6], values[7], values[8]}, std::move(*covariance));
+        observation.power_db(), time, *position, *velocity,
+        math::CartesianAcceleration(
+            math::LinearAcceleration::fromMetersPerSecondSquared(values[6]),
+            math::LinearAcceleration::fromMetersPerSecondSquared(values[7]),
+            math::LinearAcceleration::fromMetersPerSecondSquared(values[8])),
+        std::move(*covariance));
 }
 
 std::optional<TargetPrediction> ConstantAccelerationAlgorithm::predict(

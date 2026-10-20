@@ -69,7 +69,7 @@ private:
 Target seededTarget(
     math::CartesianPosition point,
     math::CartesianVelocity velocity,
-    math::Vector acceleration,
+    math::CartesianAcceleration acceleration,
     std::optional<math::SquareMatrix> covariance,
     Time time = 100ms)
 {
@@ -113,7 +113,12 @@ TEST_F(ConstantAccelerationAlgorithmTest, InitializesExactTwoPointCovarianceAndZ
     EXPECT_TRUE(covariance.isSymmetric(math::NONE_TOLERANCE));
     for (std::size_t axis = 0; axis < 3; ++axis)
     {
-        EXPECT_DOUBLE_EQ(state.acceleration[axis], 0.0);
+        const double accelerationComponents[] = {
+            state.acceleration.x.mps2(),
+            state.acceleration.y.mps2(),
+            state.acceleration.z.mps2()
+        };
+        EXPECT_DOUBLE_EQ(accelerationComponents[axis], 0.0);
         EXPECT_NEAR(covariance(axis, axis), 49.0, 1e-10);
         EXPECT_NEAR(covariance(axis, axis + 3), 490.0, 1e-10);
         EXPECT_NEAR(covariance(axis + 3, axis + 3), 9800.25, 1e-9);
@@ -172,7 +177,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, PredictsCaPositionAndPositionCovarianc
 TEST_F(ConstantAccelerationAlgorithmTest, UsesStoredAccelerationAndUnequalPredictionInterval)
 {
     const auto target = seededTarget(position(1000.0, 2000.0, 3000.0),
-        math::CartesianVelocity(10_mps, -20_mps, 30_mps), math::Vector{1.0, -2.0, 3.0},
+        math::CartesianVelocity(10_mps, -20_mps, 30_mps),
+        math::CartesianAcceleration(1_mps2, -2_mps2, 3_mps2),
         math::SquareMatrix::identity(9));
     const auto predicted = _algorithm->predict(target, 2600ms);
     ASSERT_TRUE(predicted);
@@ -186,9 +192,9 @@ TEST_F(ConstantAccelerationAlgorithmTest, UsesStoredAccelerationAndUnequalPredic
     EXPECT_NEAR(corrected->velocity.x.mps(), 12.5, 1e-8);
     EXPECT_NEAR(corrected->velocity.y.mps(), -25.0, 1e-8);
     EXPECT_NEAR(corrected->velocity.z.mps(), 37.5, 1e-8);
-    EXPECT_NEAR(corrected->acceleration[0], 1.0, 1e-8);
-    EXPECT_NEAR(corrected->acceleration[1], -2.0, 1e-8);
-    EXPECT_NEAR(corrected->acceleration[2], 3.0, 1e-8);
+    EXPECT_NEAR(corrected->acceleration.x.mps2(), 1.0, 1e-8);
+    EXPECT_NEAR(corrected->acceleration.y.mps2(), -2.0, 1e-8);
+    EXPECT_NEAR(corrected->acceleration.z.mps2(), 3.0, 1e-8);
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, MeasurementUpdateMatchesIndependentScalarClosedForm)
@@ -202,7 +208,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, MeasurementUpdateMatchesIndependentSca
     constexpr double INNOVATION_VARIANCE = 394.0;
     EXPECT_NEAR(updated->position.y.m(), 1000.0 + 3450.0 / INNOVATION_VARIANCE, 1e-9);
     EXPECT_NEAR(updated->velocity.y.mps(), 2970.0 / INNOVATION_VARIANCE, 1e-9);
-    EXPECT_NEAR(updated->acceleration[1], 1000.0 / INNOVATION_VARIANCE, 1e-9);
+    EXPECT_NEAR(updated->acceleration.y.mps2(), 1000.0 / INNOVATION_VARIANCE, 1e-9);
     EXPECT_NEAR(updated->position.x.m(), 0.0, 1e-9);
     EXPECT_NEAR(updated->position.z.m(), 0.0, 1e-9);
     EXPECT_EQ(updated->dopplerVelocity, -12_mps);
@@ -226,7 +232,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, PreservesCrossAxisCovarianceInTheGain)
     covariance(0, 1) = 0.5;
     covariance(1, 0) = 0.5;
     const auto target = seededTarget(position(1000.0, 2000.0, 3000.0),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps), math::Vector(3), covariance);
+        math::CartesianVelocity(0_mps, 0_mps, 0_mps),
+        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance);
     const auto updated = _algorithm->update(target,
         observation(position(1000.0, 2010.0, 3000.0), 1100ms, _algorithm));
     ASSERT_TRUE(updated);
@@ -251,7 +258,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, LearnsAccelerationWithZeroProcessNoise
         ASSERT_TRUE(target.update(observation(position(0.0, y, 0.0),
             Time(second * 1000), _algorithm)));
     }
-    EXPECT_NEAR(target.trackingState()->acceleration[1], 2.0, 0.001);
+    EXPECT_NEAR(target.trackingState()->acceleration.y.mps2(), 2.0, 0.001);
     EXPECT_NEAR(target.trackingState()->velocity.y.mps(), 70.0, 0.01);
     EXPECT_NEAR(target.trackingState()->position.y.m(), 2200.0, 0.1);
     EXPECT_LT((*target.trackingState()->errorCovariance)(7, 7), initialAccelerationVariance);
@@ -285,7 +292,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsUnavailableCovarianceAndNonIncr
     EXPECT_FALSE(_algorithm->predict(target, 99ms));
     EXPECT_TRUE(_algorithm->predict(target, 100ms));
     const auto withoutCovariance = seededTarget(position(0.0, 1000.0, 0.0),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps), math::Vector(3), std::nullopt);
+        math::CartesianVelocity(0_mps, 0_mps, 0_mps),
+        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), std::nullopt);
     EXPECT_FALSE(_algorithm->predict(withoutCovariance, 1100ms));
     EXPECT_FALSE(_algorithm->update(withoutCovariance,
         observation(position(0.0, 1000.0, 0.0), 1100ms, _algorithm)));
@@ -294,12 +302,15 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsUnavailableCovarianceAndNonIncr
 TEST_F(ConstantAccelerationAlgorithmTest, RejectsOriginAndNonfinitePredictionsWithoutChangingState)
 {
     const auto originTarget = seededTarget(position(0.0, 1000.0, 0.0),
-        math::CartesianVelocity(0_mps, -1000_mps, 0_mps), math::Vector(3),
+        math::CartesianVelocity(0_mps, -1000_mps, 0_mps),
+        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
         math::SquareMatrix::identity(9));
     EXPECT_FALSE(_algorithm->predict(originTarget, 1100ms));
     const double maximum = std::numeric_limits<double>::max();
     const auto overflowTarget = seededTarget(position(0.0, 1000.0, 0.0),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps), math::Vector{maximum, 0.0, 0.0},
+        math::CartesianVelocity(0_mps, 0_mps, 0_mps),
+        math::CartesianAcceleration(
+            math::LinearAcceleration::fromMetersPerSecondSquared(maximum), 0_mps2, 0_mps2),
         math::SquareMatrix::identity(9));
     const auto saved = overflowTarget.trackingState();
     EXPECT_FALSE(_algorithm->predict(overflowTarget, 10100ms));
@@ -312,7 +323,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, PropagatesInvalidInnovationCovarianceA
     covariance(0, 1) = 100.0;
     covariance(1, 0) = 100.0;
     const auto target = seededTarget(position(1000.0, 2000.0, 3000.0),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps), math::Vector(3), covariance);
+        math::CartesianVelocity(0_mps, 0_mps, 0_mps),
+        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance);
     const auto saved = target.trackingState();
     EXPECT_THROW(_algorithm->update(target,
         observation(position(1000.0, 2000.0, 3000.0), 1100ms, _algorithm)), std::domain_error);

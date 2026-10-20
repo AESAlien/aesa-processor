@@ -1,10 +1,10 @@
 #pragma once
 
 #include <math/geometry/cartesian_position.hpp>
+#include <math/geometry/cartesian_acceleration.hpp>
 #include <math/geometry/cartesian_velocity.hpp>
 #include <math/geometry/spherical_position.hpp>
 #include <math/linear_algebra/square_matrix.hpp>
-#include <math/linear_algebra/vector.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
 #include <chrono>
@@ -13,6 +13,8 @@
 
 namespace target
 {
+
+using math::literals::operator""_mps2;
 
 struct TargetPrediction
 {
@@ -36,7 +38,6 @@ private:
 
 struct TargetTrackingState
 {
-    static constexpr std::size_t ACCELERATION_DIMENSION = 3;
     static constexpr std::size_t STATE_DIMENSION = 9;
 
     TargetTrackingState(
@@ -46,7 +47,10 @@ struct TargetTrackingState
         std::chrono::milliseconds timestamp,
         math::CartesianPosition position,
         math::CartesianVelocity velocity,
-        math::Vector acceleration = math::Vector(ACCELERATION_DIMENSION),
+        math::CartesianAcceleration acceleration = math::CartesianAcceleration(
+            0_mps2,
+            0_mps2,
+            0_mps2),
         std::optional<math::SquareMatrix> errorCovariance = std::nullopt);
 
     const math::SphericalPosition sphericalPosition;
@@ -57,7 +61,7 @@ struct TargetTrackingState
     const math::CartesianPosition position;
     const math::CartesianVelocity velocity;
     // [ax, ay, az] in m/s^2 in the same antenna-fixed frame as position and velocity.
-    const math::Vector acceleration;
+    const math::CartesianAcceleration acceleration;
     // SI state order: [px, py, pz, vx, vy, vz, ax, ay, az].
     // Each entry has the product of its row/column state units (m, m/s, m/s^2).
     // Absence means the algorithm has not estimated covariance, not zero uncertainty.

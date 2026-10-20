@@ -1,4 +1,4 @@
-﻿#include "math/linear_algebra/vector.hpp"
+#include "math/linear_algebra/vector.hpp"
 #include "math/linear_algebra/square_matrix.hpp"
 
 #include <gtest/gtest.h>
@@ -20,7 +20,9 @@ static_assert(std::is_same_v<decltype(std::declval<const math::Vector&>().at(0))
 static_assert(std::is_same_v<decltype(std::declval<const math::Vector&>()(0)), const double&>);
 static_assert(std::is_same_v<decltype(std::declval<const math::Vector&>()[0]), const double&>);
 
-// 빈 벡터도 열 수 1을 유지하며 크기 생성과 평탄한 초기화 목록을 지원한다.
+
+
+// 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(VectorTest, ConstructsColumnVectors)
 {
     math::Vector empty;
@@ -44,32 +46,47 @@ TEST(VectorTest, ConstructsColumnVectors)
     EXPECT_TRUE(math::Vector(math::Matrix(0, 1)).empty());
 }
 
-// 모든 원소가 유한해야 하며 빈 벡터는 유한한 것으로 판단한다.
-TEST(VectorTest, ChecksWhetherAllElementsAreFinite)
+// 객체 생성과 상태 보존 규칙을 검증한다.
+TEST(VectorTest, CopyAndMovePreserveInvariants)
 {
-    math::Vector vector{1.0, -2.0, 3.0};
-    EXPECT_TRUE(vector.isFinite());
-    EXPECT_TRUE(math::Vector().isFinite());
-
-    vector(1) = std::numeric_limits<double>::infinity();
-    EXPECT_FALSE(vector.isFinite());
-    vector(1) = -std::numeric_limits<double>::infinity();
-    EXPECT_FALSE(vector.isFinite());
-    vector(1) = std::numeric_limits<double>::quiet_NaN();
-    EXPECT_FALSE(vector.isFinite());
+    math::Vector original{1.0, 2.0};
+    math::Vector copy = original;
+    EXPECT_DOUBLE_EQ(copy(0), 1.0);
+    copy = math::Vector{9.0};
+    EXPECT_DOUBLE_EQ(copy(0), 9.0);
+    EXPECT_DOUBLE_EQ(original(0), 1.0);
+    math::Vector assigned(1);
+    assigned = original;
+    EXPECT_EQ(assigned.size(), 2);
+    EXPECT_DOUBLE_EQ(assigned(1), 2.0);
+    math::Vector moved(std::move(original));
+    EXPECT_DOUBLE_EQ(moved(1), 2.0);
+    EXPECT_EQ(original.size(), 0);
+    EXPECT_EQ(original.asMatrix().columns(), 1);
+    EXPECT_DOUBLE_EQ(original.norm(), 0.0);
+    EXPECT_THROW(original(0), std::out_of_range);
+    assigned = std::move(moved);
+    EXPECT_DOUBLE_EQ(assigned(1), 2.0);
+    EXPECT_TRUE(moved.empty());
+    EXPECT_EQ(moved.asMatrix().columns(), 1);
+    assigned = std::move(assigned);
+    EXPECT_DOUBLE_EQ(assigned(1), 2.0);
 }
 
-// 행벡터·다중 열·0×0 행렬은 열벡터 생성 시 거부한다.
-TEST(VectorTest, RejectsMatricesWithoutExactlyOneColumn)
+// 값의 변환과 정규화 결과를 검증한다.
+TEST(VectorTest, TransposesToRowMatrix)
 {
-    EXPECT_THROW((math::Vector(math::Matrix(1, 3))), std::invalid_argument);
-    EXPECT_THROW((math::Vector(math::Matrix(3, 2))), std::invalid_argument);
-    EXPECT_THROW((math::Vector(math::Matrix(0, 0))), std::invalid_argument);
-    EXPECT_THROW((math::Vector(math::Matrix(0, 2))), std::invalid_argument);
-    EXPECT_THROW((math::Vector(math::Matrix(3, 0))), std::invalid_argument);
+    auto transposed = math::transpose(math::Vector{1.0, 2.0, 3.0});
+    static_assert(std::is_same_v<decltype(transposed), math::Matrix>);
+    EXPECT_EQ(transposed.rows(), 1);
+    ASSERT_EQ(transposed.columns(), 3);
+    EXPECT_DOUBLE_EQ(transposed(0, 2), 3.0);
+    auto empty = math::transpose(math::Vector());
+    EXPECT_EQ(empty.rows(), 1);
+    EXPECT_EQ(empty.columns(), 0);
 }
 
-// 인덱스 접근자로 원소를 수정하고 범위 밖 접근은 거부한다.
+// 계산 결과와 수치적 안정성을 검증한다.
 TEST(VectorTest, AccessorsReadWriteAndCheckBounds)
 {
     math::Vector vector(3);
@@ -94,7 +111,7 @@ TEST(VectorTest, AccessorsReadWriteAndCheckBounds)
     EXPECT_THROW(constant[3], std::out_of_range);
 }
 
-// 벡터 산술은 결과 타입을 보존하며 길이 불일치와 0 나눗셈을 거부한다.
+// 계산 결과와 수치적 안정성을 검증한다.
 TEST(VectorTest, ArithmeticPreservesTypeAndValues)
 {
     math::Vector left{1.0, -2.0, 3.0};
@@ -120,7 +137,7 @@ TEST(VectorTest, ArithmeticPreservesTypeAndValues)
     EXPECT_EQ((empty * 2.0).asMatrix().columns(), 1);
 }
 
-// 내적과 노름을 알려진 결과와 비교하고 큰 값·작은 값에서도 노름을 보존한다.
+// 계산 결과와 수치적 안정성을 검증한다.
 TEST(VectorTest, ComputesDotProductAndStableNorm)
 {
     math::Vector left{1.0, -2.0, 3.0};
@@ -137,20 +154,7 @@ TEST(VectorTest, ComputesDotProductAndStableNorm)
     EXPECT_NEAR((math::Vector{3e-200, 4e-200}).norm() / 1e-200, 5.0, 1e-14);
 }
 
-// 벡터 전치는 행벡터 형태의 일반 행렬을 반환한다.
-TEST(VectorTest, TransposesToRowMatrix)
-{
-    auto transposed = math::transpose(math::Vector{1.0, 2.0, 3.0});
-    static_assert(std::is_same_v<decltype(transposed), math::Matrix>);
-    EXPECT_EQ(transposed.rows(), 1);
-    ASSERT_EQ(transposed.columns(), 3);
-    EXPECT_DOUBLE_EQ(transposed(0, 2), 3.0);
-    auto empty = math::transpose(math::Vector());
-    EXPECT_EQ(empty.rows(), 1);
-    EXPECT_EQ(empty.columns(), 0);
-}
-
-// 일반 행렬·정방행렬과의 곱은 올바른 크기와 값의 벡터를 반환한다.
+// 계산 결과와 수치적 안정성을 검증한다.
 TEST(VectorTest, MultipliesWithMatrices)
 {
     math::Matrix matrix{{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}};
@@ -176,29 +180,27 @@ TEST(VectorTest, MultipliesWithMatrices)
     EXPECT_EQ(empty.asMatrix().columns(), 1);
 }
 
-// 복사는 독립적이며 이동한 원본도 유효한 빈 열벡터로 사용할 수 있다.
-TEST(VectorTest, CopyAndMovePreserveInvariants)
+// 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
+TEST(VectorTest, ChecksWhetherAllElementsAreFinite)
 {
-    math::Vector original{1.0, 2.0};
-    math::Vector copy = original;
-    EXPECT_DOUBLE_EQ(copy(0), 1.0);
-    copy = math::Vector{9.0};
-    EXPECT_DOUBLE_EQ(copy(0), 9.0);
-    EXPECT_DOUBLE_EQ(original(0), 1.0);
-    math::Vector assigned(1);
-    assigned = original;
-    EXPECT_EQ(assigned.size(), 2);
-    EXPECT_DOUBLE_EQ(assigned(1), 2.0);
-    math::Vector moved(std::move(original));
-    EXPECT_DOUBLE_EQ(moved(1), 2.0);
-    EXPECT_EQ(original.size(), 0);
-    EXPECT_EQ(original.asMatrix().columns(), 1);
-    EXPECT_DOUBLE_EQ(original.norm(), 0.0);
-    EXPECT_THROW(original(0), std::out_of_range);
-    assigned = std::move(moved);
-    EXPECT_DOUBLE_EQ(assigned(1), 2.0);
-    EXPECT_TRUE(moved.empty());
-    EXPECT_EQ(moved.asMatrix().columns(), 1);
-    assigned = std::move(assigned);
-    EXPECT_DOUBLE_EQ(assigned(1), 2.0);
+    math::Vector vector{1.0, -2.0, 3.0};
+    EXPECT_TRUE(vector.isFinite());
+    EXPECT_TRUE(math::Vector().isFinite());
+
+    vector(1) = std::numeric_limits<double>::infinity();
+    EXPECT_FALSE(vector.isFinite());
+    vector(1) = -std::numeric_limits<double>::infinity();
+    EXPECT_FALSE(vector.isFinite());
+    vector(1) = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_FALSE(vector.isFinite());
+}
+
+// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
+TEST(VectorTest, RejectsMatricesWithoutExactlyOneColumn)
+{
+    EXPECT_THROW((math::Vector(math::Matrix(1, 3))), std::invalid_argument);
+    EXPECT_THROW((math::Vector(math::Matrix(3, 2))), std::invalid_argument);
+    EXPECT_THROW((math::Vector(math::Matrix(0, 0))), std::invalid_argument);
+    EXPECT_THROW((math::Vector(math::Matrix(0, 2))), std::invalid_argument);
+    EXPECT_THROW((math::Vector(math::Matrix(3, 0))), std::invalid_argument);
 }

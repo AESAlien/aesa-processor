@@ -99,6 +99,69 @@ public:
         return greaterThanOrEqual(other);
     }
 
+    Derived operator+() const noexcept
+    {
+        return static_cast<const Derived&>(*this);
+    }
+
+    Derived operator-() const noexcept
+    {
+        return Derived(-_value);
+    }
+
+    Derived operator+(const Derived& other) const
+    {
+        return Derived(_value + other.value());
+    }
+
+    Derived operator-(const Derived& other) const
+    {
+        return Derived(_value - other.value());
+    }
+
+    Derived operator*(double scalar) const
+    {
+        return Derived(_value * scalar);
+    }
+
+    Derived operator/(double scalar) const
+    {
+        if (scalar == 0.0)
+        {
+            throw std::domain_error("Cannot divide a quantity by zero");
+        }
+        return Derived(_value / scalar);
+    }
+
+    Derived& operator+=(const Derived& other)
+    {
+        return static_cast<Derived&>(*this) = Derived(_value + other.value());
+    }
+
+    Derived& operator-=(const Derived& other)
+    {
+        return static_cast<Derived&>(*this) = Derived(_value - other.value());
+    }
+
+    Derived& operator*=(double scalar)
+    {
+        return static_cast<Derived&>(*this) = Derived(_value * scalar);
+    }
+
+    Derived& operator/=(double scalar)
+    {
+        if (scalar == 0.0)
+        {
+            throw std::domain_error("Cannot divide a quantity by zero");
+        }
+        return static_cast<Derived&>(*this) = Derived(_value / scalar);
+    }
+
+    friend Derived operator*(double scalar, const Derived& quantity)
+    {
+        return quantity * scalar;
+    }
+
 protected:
     Quantity(const Quantity&) noexcept = default;
     Quantity(Quantity&&) noexcept = default;

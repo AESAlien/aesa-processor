@@ -18,6 +18,11 @@ public:
     // 행 길이가 서로 다르면 std::invalid_argument를 던진다.
     Matrix(std::initializer_list<std::initializer_list<double>> values);
 
+    Matrix(const Matrix&) = default;
+    Matrix& operator=(const Matrix&) = default;
+    Matrix(Matrix&& other) noexcept;
+    Matrix& operator=(Matrix&& other) noexcept;
+
     std::size_t rows() const noexcept;
     std::size_t columns() const noexcept;
     // 행 또는 열의 수가 0이면 true를 반환한다.

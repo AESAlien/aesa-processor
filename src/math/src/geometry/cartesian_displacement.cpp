@@ -16,6 +16,14 @@ CartesianDisplacement::CartesianDisplacement(Length x, Length y, Length z) noexc
 {
 }
 
+CartesianDisplacement CartesianDisplacement::operator+(const CartesianDisplacement& other) const
+{
+    return CartesianDisplacement(
+        x + other.x,
+        y + other.y,
+        z + other.z);
+}
+
 Length CartesianDisplacement::distance() const
 {
     return Length::fromMeters(std::hypot(x.m(), y.m(), z.m()));
@@ -35,9 +43,9 @@ CartesianVelocity CartesianDisplacement::toVelocity(std::chrono::duration<double
     }
 
     return CartesianVelocity(
-        LinearVelocity::fromMetersPerSecond(x.m() / seconds),
-        LinearVelocity::fromMetersPerSecond(y.m() / seconds),
-        LinearVelocity::fromMetersPerSecond(z.m() / seconds));
+        x / elapsed,
+        y / elapsed,
+        z / elapsed);
 }
 
 }

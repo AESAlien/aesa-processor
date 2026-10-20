@@ -28,33 +28,15 @@ public:
         const QuantityTolerance<Angle>& tolerance = DEFAULT_TOLERANCE
     ) const noexcept;
 
-    Angle operator+() const noexcept;
-    Angle operator-() const noexcept;
-
-    Angle operator+(const Angle& other) const;
-    Angle operator-(const Angle& other) const;
-
-    Angle operator*(double scalar) const;
-    // 0으로 나누면 std::domain_error를 던진다.
-    Angle operator/(double scalar) const;
-
-    // 결과가 유한하지 않으면 원본을 변경하지 않고 std::invalid_argument를 던진다.
-    Angle& operator+=(const Angle& other);
-    // 결과가 유한하지 않으면 원본을 변경하지 않고 std::invalid_argument를 던진다.
-    Angle& operator-=(const Angle& other);
-    // 결과가 유한하지 않으면 원본을 변경하지 않고 std::invalid_argument를 던진다.
-    Angle& operator*=(double scalar);
-    // 0으로 나누면 원본을 유지하고 std::domain_error를 던진다.
-    Angle& operator/=(double scalar);
-
 private:
+    friend class Quantity<Angle>;
+
     explicit Angle(double degrees);
 };
 
 Angle abs(Angle angle) noexcept;
 Angle wrap180(Angle angle) noexcept;
 Angle wrap360(Angle angle) noexcept;
-Angle operator*(double scalar, const Angle& angle);
 
 namespace literals
 {

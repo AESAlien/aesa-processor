@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace math
 {
@@ -41,6 +42,25 @@ Matrix::Matrix(std::initializer_list<std::initializer_list<double>> values)
 
         _values.insert(_values.end(), row.begin(), row.end());
     }
+}
+
+Matrix::Matrix(Matrix&& other) noexcept
+{
+    std::swap(_rows, other._rows);
+    std::swap(_columns, other._columns);
+    std::swap(_values, other._values);
+}
+
+Matrix& Matrix::operator=(Matrix&& other) noexcept
+{
+    if (this != &other)
+    {
+        Matrix moved(std::move(other));
+        std::swap(_rows, moved._rows);
+        std::swap(_columns, moved._columns);
+        std::swap(_values, moved._values);
+    }
+    return *this;
 }
 
 std::size_t Matrix::rows() const noexcept

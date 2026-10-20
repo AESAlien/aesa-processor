@@ -74,9 +74,9 @@ math::CartesianPosition trajectory(double seconds)
 {
     // True antenna-frame motion: p0=(3000,10000,1000), v0=(80,-40,10), a=(6,3,-2).
     return math::CartesianPosition(
-        math::Length::fromMeters(3000.0 + 80.0 * seconds + 3.0 * seconds * seconds),
-        math::Length::fromMeters(10000.0 - 40.0 * seconds + 1.5 * seconds * seconds),
-        math::Length::fromMeters(1000.0 + 10.0 * seconds - seconds * seconds));
+        3000_m + 80_m * seconds + 3_m * seconds * seconds,
+        10000_m - 40_m * seconds + 1.5_m * seconds * seconds,
+        1000_m + 10_m * seconds - 1_m * seconds * seconds);
 }
 
 TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInsteadOfTheRawPlot)
@@ -150,10 +150,11 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
         const double seconds = std::chrono::duration<double>(observationTime).count();
         const auto truth = trajectory(seconds);
         // Fixed Cartesian errors scaled by the configured 7 m per-axis measurement noise.
-        const math::CartesianPosition measured(
-            math::Length::fromMeters(truth.x.m() + 7.0 * noise[0]),
-            math::Length::fromMeters(truth.y.m() + 7.0 * noise[1]),
-            math::Length::fromMeters(truth.z.m() + 7.0 * noise[2]));
+        const math::CartesianDisplacement measurementError(
+            7_m * noise[0],
+            7_m * noise[1],
+            7_m * noise[2]);
+        const auto measured = truth + measurementError;
         const auto next = controller.handleDetection(result(BeamType::TRACKING,
             tracking->requestId, observationTime, {measured}));
         ASSERT_TRUE(next) << "Update at " << observationTime.count() << " ms";

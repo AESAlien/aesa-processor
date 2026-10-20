@@ -51,7 +51,7 @@ TargetTrackingState::TargetTrackingState(
     std::chrono::milliseconds timestamp,
     math::CartesianPosition position,
     math::CartesianVelocity velocity,
-    math::Vector acceleration,
+    math::CartesianAcceleration acceleration,
     std::optional<math::SquareMatrix> errorCovariance)
     : sphericalPosition(std::move(sphericalPosition))
     , dopplerVelocity(dopplerVelocity)
@@ -77,11 +77,6 @@ void TargetTrackingState::validate() const
 
     // Finite components may still produce an unrepresentable total speed.
     static_cast<void>(velocity.speed());
-
-    if (acceleration.size() != ACCELERATION_DIMENSION || !acceleration.isFinite())
-    {
-        throw std::invalid_argument("Tracking acceleration requires three finite m/s^2 components");
-    }
 
     if (errorCovariance)
     {
