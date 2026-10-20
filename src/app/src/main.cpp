@@ -19,18 +19,7 @@
 #include <thread>
 #include <utility>
 
-<<<<<<< HEAD
 namespace
-=======
-using namespace math::literals;
-
-namespace demo
-{
-
-using BeamType = beam::BeamType;
-
-struct Result
->>>>>>> origin/main
 {
 
 constexpr std::chrono::milliseconds BEAM_PERIOD{10};
@@ -54,55 +43,7 @@ void runWorker(const char* name, Action action)
         action();
         app::reportWorkerError(name, "Worker returned unexpectedly");
     }
-<<<<<<< HEAD
     catch (const std::exception& error)
-=======
-}
-
-target::DetectionEvent makeStationaryDetection(
-    const beam::TransmitBeamCommand& command)
-{
-    std::vector<target::DetectionEvent::Plot> plots;
-
-    // 거리 12km, 방위각 0도, 고각 0도의 정지 표적을
-    // 탐지했다고 가정하는 테스트 입력이다.
-    //
-    // 실제 빔 범위나 모의기의 탐지 과정은 구현하지 않는다.
-    plots.emplace_back(
-        12000_m,
-        0_deg,
-        0_deg,
-        0_mps,
-        30.0f);
-
-    // 확인/추적 결과는 해당 빔 명령의 ID를 그대로 반환한다.
-    // 현재 스케줄러는 요청의 requestId를 beamId에 넣는다.
-    return target::DetectionEvent(
-        command.beamType,
-        command.beamId,
-        command.transmitTime,
-        std::move(plots));
-}
-
-void handleResult(
-    beam::BeamController& beamController,
-    target::TargetController& targetController,
-    const beam::TransmitBeamCommand& command,
-    Result& result)
-{
-    std::cout
-        << "[DETECTION INPUT]"
-        << " type=" << static_cast<int>(command.beamType)
-        << ", requestId=" << command.beamId
-        << ", time(ms)=" << command.transmitTime.count()
-        << '\n';
-
-    // 실제 Target 모듈에서 탐지정보를 처리한다.
-    auto request = targetController.handleDetection(
-        makeStationaryDetection(command));
-
-    if (request)
->>>>>>> origin/main
     {
         app::reportWorkerError(name, error.what());
     }
