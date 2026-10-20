@@ -266,9 +266,9 @@ TEST(QuantityTest, SharesStorageAndChecksWithoutLosingUnitSafety)
     const math::Quantity<math::Angle>& quantity = angle;
     EXPECT_DOUBLE_EQ(quantity.value(), angle.deg());
     EXPECT_FALSE(quantity.isNonnegative());
-    EXPECT_DOUBLE_EQ(2.0_km.value(), 2000.0);
-    EXPECT_DOUBLE_EQ(3.0_mps.value(), 3.0);
-    EXPECT_DOUBLE_EQ(4.0_mps2.value(), 4.0);
+    EXPECT_DOUBLE_EQ((2.0_km).value(), 2000.0);
+    EXPECT_DOUBLE_EQ((3.0_mps).value(), 3.0);
+    EXPECT_DOUBLE_EQ((4.0_mps2).value(), 4.0);
 }
 
 // 새 물리량도 단위별 분기 없이 공통 정책을 사용할 수 있다.

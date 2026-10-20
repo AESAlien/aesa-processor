@@ -88,23 +88,23 @@ TEST(AngleTest, WrapsToUnsignedDegreeRange)
 // 값의 변환과 정규화 결과를 검증한다.
 TEST(AngleTest, ConvertsRepresentativeDegreesToRadians)
 {
-    EXPECT_DOUBLE_EQ(0.0_deg.rad(), 0.0);
-    EXPECT_NEAR(45.0_deg.rad(), math::PI / 4.0, 1e-15);
-    EXPECT_NEAR(90.0_deg.rad(), math::PI / 2.0, 1e-15);
-    EXPECT_NEAR(180.0_deg.rad(), math::PI, 1e-15);
-    EXPECT_NEAR(-90.0_deg.rad(), -math::PI / 2.0, 1e-15);
-    EXPECT_NEAR(-180.0_deg.rad(), -math::PI, 1e-15);
+    EXPECT_DOUBLE_EQ((0.0_deg).rad(), 0.0);
+    EXPECT_NEAR((45.0_deg).rad(), math::PI / 4.0, 1e-15);
+    EXPECT_NEAR((90.0_deg).rad(), math::PI / 2.0, 1e-15);
+    EXPECT_NEAR((180.0_deg).rad(), math::PI, 1e-15);
+    EXPECT_NEAR((-90.0_deg).rad(), -math::PI / 2.0, 1e-15);
+    EXPECT_NEAR((-180.0_deg).rad(), -math::PI, 1e-15);
 
     const auto multipleTurns = -720.0_deg;
     EXPECT_DOUBLE_EQ(multipleTurns.deg(), -720.0);
     EXPECT_NEAR(multipleTurns.rad(), -4.0 * math::PI, 1e-15);
-    EXPECT_DOUBLE_EQ(450.0_deg.deg(), 450.0);
+    EXPECT_DOUBLE_EQ((450.0_deg).deg(), 450.0);
 }
 
 // 값의 변환과 정규화 결과를 검증한다.
 TEST(AngleTest, ConvertsRepresentativeRadiansToDegrees)
 {
-    EXPECT_DOUBLE_EQ(0.0_rad.deg(), 0.0);
+    EXPECT_DOUBLE_EQ((0.0_rad).deg(), 0.0);
     EXPECT_NEAR(math::Angle::fromRadians(math::PI / 4.0).deg(), 45.0, 1e-12);
     EXPECT_NEAR(math::Angle::fromRadians(math::PI / 2.0).deg(), 90.0, 1e-12);
     EXPECT_NEAR(math::Angle::fromRadians(math::PI).deg(), 180.0, 1e-12);
@@ -170,10 +170,10 @@ TEST(AngleTest, PeriodicEquivalenceWrapsFullTurnsWhileDefaultComparisonUsesStore
     EXPECT_TRUE(zero != fullTurn);
     EXPECT_TRUE(zero.notEquals(negative, math::QuantityTolerance{0.0_deg, 0.0}));
     EXPECT_TRUE(zero != negative);
-    EXPECT_FALSE(359.75_deg.equals(
+    EXPECT_FALSE((359.75_deg).equals(
         0.25_deg,
         math::QuantityTolerance{0.5_deg, 0.0}));
-    EXPECT_TRUE(359.75_deg.isEquivalentTo(
+    EXPECT_TRUE((359.75_deg).isEquivalentTo(
         0.25_deg,
         math::QuantityTolerance{0.5_deg, 0.0}));
     EXPECT_TRUE(calculated.equals(expected));
@@ -218,7 +218,7 @@ TEST(AngleTest, EqualsUsesInclusiveRelativeTolerance)
     EXPECT_TRUE(nearby.equals(value, math::QuantityTolerance<math::Angle>{0.0_deg, 0.125}));
     EXPECT_FALSE(value.equals(nearby, math::QuantityTolerance<math::Angle>{0.0_deg, 0.124}));
     EXPECT_TRUE((-value).equals(-nearby, math::QuantityTolerance<math::Angle>{0.0_deg, 0.125}));
-    EXPECT_TRUE(1.0_deg.equals(0.875_deg, math::QuantityTolerance<math::Angle>{0.0_deg, 0.125}));
+    EXPECT_TRUE((1.0_deg).equals(0.875_deg, math::QuantityTolerance<math::Angle>{0.0_deg, 0.125}));
 
     const auto zero = 0.0_deg;
     const auto tiny = 1e-10_deg;

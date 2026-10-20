@@ -165,7 +165,7 @@ TEST(LinearVelocityTest, EqualsUsesInclusiveRelativeTolerance)
     EXPECT_TRUE(nearby.equals(value, math::QuantityTolerance<math::LinearVelocity>{0.0_mps, 0.125}));
     EXPECT_FALSE(value.equals(nearby, math::QuantityTolerance<math::LinearVelocity>{0.0_mps, 0.124}));
     EXPECT_TRUE((-value).equals(-nearby, math::QuantityTolerance<math::LinearVelocity>{0.0_mps, 0.125}));
-    EXPECT_TRUE(1.0_mps.equals(0.875_mps, math::QuantityTolerance<math::LinearVelocity>{0.0_mps, 0.125}));
+    EXPECT_TRUE((1.0_mps).equals(0.875_mps, math::QuantityTolerance<math::LinearVelocity>{0.0_mps, 0.125}));
 
     const auto zero = 0.0_mps;
     const auto tiny = 1e-10_mps;
