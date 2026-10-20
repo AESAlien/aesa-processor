@@ -123,45 +123,62 @@ TEST(SearchGridTest, GridOrderStartsLowElevationLeftAzimuth)
     EXPECT_EQ(beams[188].direction_enu.elevation, 38.2_deg);
 }
 
-TEST(SearchGridTest, YawShiftsAzimuthsByOppositeAngle)
+TEST(SearchGridTest, YawShiftsAzimuthsBySameAngle)
 {
-    // 안테나가 yaw 만큼 돌아가 있으면 고정 그리드는 안테나 기준으로 -yaw 만큼 이동
+    // 격자는 안테나 정면 기준이므로 안테나가 yaw 만큼 돌아가 있으면 ENU 방위각도 +yaw 만큼 이동
     const std::vector<beam::SearchBeam> beams = takeAllBeams(makeValidTransform(0_deg, 0_deg, 10_deg));
 
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
-        EXPECT_TRUE(beams[beamIndex].direction_enu.azimuth.isEquivalentTo(gridAzimuth(beamIndex) - 10_deg))
+        EXPECT_TRUE(beams[beamIndex].direction_enu.azimuth.isEquivalentTo(gridAzimuth(beamIndex) + 10_deg))
             << "beamIndex=" << beamIndex;
         EXPECT_EQ(beams[beamIndex].direction_enu.elevation, gridElevation(beamIndex))
             << "beamIndex=" << beamIndex;
     }
 }
 
-TEST(SearchGridTest, GridMatchesAnglesConvertedToAntFrame)
+TEST(SearchGridTest, GridMatchesAnglesConvertedToEnuFrame)
 {
     const beam::AntEnuTransform transform = makeValidTransform(10_deg, 20_deg, 30_deg);
     const std::vector<beam::SearchBeam> beams = takeAllBeams(transform);
 
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
-        const math::SphericalDirection direction_ant = transform.enuToAnt(
+        const math::SphericalDirection direction_enu = transform.antToEnu(
             math::SphericalDirection(gridAzimuth(beamIndex), gridElevation(beamIndex)));
-        EXPECT_TRUE(beams[beamIndex].direction_enu.azimuth.isEquivalentTo(direction_ant.azimuth)) << "beamIndex=" << beamIndex;
-        EXPECT_EQ(beams[beamIndex].direction_enu.elevation, direction_ant.elevation) << "beamIndex=" << beamIndex;
+        EXPECT_TRUE(beams[beamIndex].direction_enu.azimuth.isEquivalentTo(direction_enu.azimuth)) << "beamIndex=" << beamIndex;
+        EXPECT_EQ(beams[beamIndex].direction_enu.elevation, direction_enu.elevation) << "beamIndex=" << beamIndex;
     }
 }
 
-TEST(SearchGridTest, BeamsConvertedBackToFixedFrameRestoreGrid)
+TEST(SearchGridTest, BeamsConvertedBackToAntennaFrameRestoreGrid)
 {
     const beam::AntEnuTransform transform = makeValidTransform(10_deg, 20_deg, 30_deg);
     const std::vector<beam::SearchBeam> beams = takeAllBeams(transform);
 
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
-        const math::SphericalDirection direction_enu = transform.antToEnu(beams[beamIndex].direction_enu);
-        EXPECT_TRUE(direction_enu.azimuth.isEquivalentTo(math::wrap360(gridAzimuth(beamIndex)))) << "beamIndex=" << beamIndex;
-        EXPECT_EQ(direction_enu.elevation, gridElevation(beamIndex)) << "beamIndex=" << beamIndex;
+        const math::SphericalDirection direction_ant = transform.enuToAnt(beams[beamIndex].direction_enu);
+        EXPECT_TRUE(direction_ant.azimuth.isEquivalentTo(math::wrap360(gridAzimuth(beamIndex)))) << "beamIndex=" << beamIndex;
+        EXPECT_EQ(direction_ant.elevation, gridElevation(beamIndex)) << "beamIndex=" << beamIndex;
     }
+}
+
+TEST(SearchGridTest, ScenarioAttitudeMatchesReferenceBeamAngles)
+{
+    // 멘토 코드(DPMS_SIM) 로그의 탐색 빔 각도와 비교한다. 시나리오 자세는 roll 0, pitch 0, yaw 13.02429도이다.
+    // 로그 값: BeamID 0 = 331.024292도, 10 = 13.024290도, 20 = 55.024288도 (고각 3도), 188 = 55.024288도 (고각 38.2도)
+    // 멘토 BeamID는 0부터, 우리 beamId는 1부터 시작하므로 인덱스가 같은 빔끼리 비교한다.
+    const std::vector<beam::SearchBeam> beams = takeAllBeams(makeValidTransform(0_deg, 0_deg, 13.02429_deg));
+
+    EXPECT_TRUE(beams[0].direction_enu.azimuth.isEquivalentTo(331.02429_deg));
+    EXPECT_EQ(beams[0].direction_enu.elevation, 3_deg);
+    EXPECT_TRUE(beams[10].direction_enu.azimuth.isEquivalentTo(13.02429_deg));
+    EXPECT_EQ(beams[10].direction_enu.elevation, 3_deg);
+    EXPECT_TRUE(beams[20].direction_enu.azimuth.isEquivalentTo(55.02429_deg));
+    EXPECT_EQ(beams[20].direction_enu.elevation, 3_deg);
+    EXPECT_TRUE(beams[188].direction_enu.azimuth.isEquivalentTo(55.02429_deg));
+    EXPECT_EQ(beams[188].direction_enu.elevation, 38.2_deg);
 }
 
 TEST(SearchGridTest, DifferentAttitudeProducesDifferentGrid)
