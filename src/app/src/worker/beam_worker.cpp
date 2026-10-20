@@ -6,6 +6,7 @@
 
 namespace app
 {
+
 BeamWorker::BeamWorker(
     BeamChannel& beamChannel,
     CommChannel& commChannel,
@@ -53,4 +54,5 @@ void BeamWorker::run()
         });
     }
 }
+
 } // namespace app

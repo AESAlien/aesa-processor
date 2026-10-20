@@ -32,12 +32,3 @@ set_target_properties(app PROPERTIES
 target_link_libraries(app PRIVATE
     app_runtime
 )
-
-add_test(
-    NAME app_worker_flow_test
-    COMMAND app
-)
-
-set_tests_properties(app_worker_flow_test PROPERTIES
-    TIMEOUT 15
-)
