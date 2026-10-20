@@ -1,7 +1,6 @@
 #include <app/worker/beam_worker.hpp>
 #include <app/worker/worker_error.hpp>
 
-#include <optional>
 #include <utility>
 #include <variant>
 
@@ -20,8 +19,6 @@ BeamWorker::BeamWorker(
 
 void BeamWorker::run()
 {
-    std::optional<beam::SetAttitudeCommand> latestAttitude;
-
     while (auto event = _beamChannel.read())
     {
         tryWorkerAction("BeamWorker", [&]
@@ -37,23 +34,10 @@ void BeamWorker::run()
                          std::get_if<beam::SetOperationStateCommand>(&message))
             {
                 _controller.setOperationState(*state);
-
-                if (state->powerState == beam::OperationState::OFF)
-                {
-                    latestAttitude.reset();
-                }
-                else if (latestAttitude)
-                {
-                    _controller.setAttitude(*latestAttitude);
-
-                    latestAttitude.reset();
-                }
             }
             else if (auto* attitude =
                          std::get_if<beam::SetAttitudeCommand>(&message))
             {
-                latestAttitude.emplace(*attitude);
-
                 _controller.setAttitude(*attitude);
             }
             else if (auto* tick =
