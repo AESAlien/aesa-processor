@@ -16,7 +16,7 @@ TransmitBeamCommand makeSearchCommand(
         .transmitTime(currentTime)
         .beamId(searchBeam.beamId)
         .commandCount(commandCount)
-        .direction_ant(searchBeam.direction_ant)
+        .direction_ant(searchBeam.direction_enu)
         .azimuthBeamWidth(searchBeam.azimuthBeamWidth)
         .elevationBeamWidth(searchBeam.elevationBeamWidth)
         .build();
@@ -33,7 +33,7 @@ TransmitBeamCommand makeRequestCommand(
         .transmitTime(currentTime)
         .beamId(request.requestId())
         .commandCount(commandCount)
-        .direction_ant(request.direction_ant())
+        .direction_ant(request.direction_enu())
         .azimuthBeamWidth(width)
         .elevationBeamWidth(width)
         .build();

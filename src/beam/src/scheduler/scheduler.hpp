@@ -41,7 +41,7 @@ public:
 
     // 준비 상태(ON이고 SearchGrid가 있음)가 아니면 무시한다.
     // 요청 값의 검증은 BeamRequest 생성 시 끝나 있다.
-    // 요청의 방향은 안테나 좌표계로 간주하며, 범위(추적 영역) 검증은 하지 않는다.
+    // 요청의 방향은 ENU 기준으로 간주하며, 범위(추적 영역) 검증은 하지 않는다.
     void addRequest(const BeamRequest& request);
 
     // 준비 상태가 아니면 std::nullopt를 반환한다.

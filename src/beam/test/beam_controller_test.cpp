@@ -92,8 +92,8 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
         const beam::SearchBeam& expected = expectedGrid.nextBeam();
 
         ASSERT_TRUE(command.has_value());
-        EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(expected.direction_ant.azimuth)) << "index=" << index;
-        EXPECT_EQ(command->direction_ant.elevation, expected.direction_ant.elevation) << "index=" << index;
+        EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(expected.direction_enu.azimuth)) << "index=" << index;
+        EXPECT_EQ(command->direction_ant.elevation, expected.direction_enu.elevation) << "index=" << index;
     }
 }
 

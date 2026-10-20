@@ -12,7 +12,8 @@ namespace beam
 {
 
 // 시나리오 모의기로 송신할 빔 명령.
-// direction_ant는 안테나 좌표계 빔 지향 방향이다.
+// direction_ant는 이름과 달리 ENU 기준 빔 지향 방향이다. 시나리오 모의기는 이 값을 ENU로 해석한다.
+// (필드 이름 변경은 comm/target과 합의 후 진행한다.)
 struct TransmitBeamCommand
 {
     const BeamType beamType;

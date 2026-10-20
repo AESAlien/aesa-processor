@@ -14,13 +14,13 @@ SearchGrid::SearchGrid(const AntEnuTransform& transform, const SearchGridConfig&
         for (std::size_t a = 0; a < config.azimuthCount(); ++a)
         {
             // 방위각은 SphericalDirection이 [0, 360)으로 정규화한다.
-            const math::SphericalDirection direction_ant = transform.antToEnu(math::SphericalDirection(
+            const math::SphericalDirection direction_enu = transform.antToEnu(math::SphericalDirection(
                 config.azimuthStart() + config.azimuthStep() * static_cast<double>(a),
                 config.elevationStart() + config.elevationStep() * static_cast<double>(e)));
 
             _beams.push_back(SearchBeam{
                 static_cast<uint32_t>(_beams.size() + 1),
-                direction_ant,
+                direction_enu,
                 config.beamWidth(),
                 config.beamWidth()});
         }

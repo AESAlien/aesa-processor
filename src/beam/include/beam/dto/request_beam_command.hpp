@@ -11,7 +11,8 @@ namespace beam
 {
 
 // 확인/추적 빔 송신 요청. target이 만들어 BeamController::requestBeam으로 전달한다.
-// - direction_ant는 안테나 좌표계 방향이며, 변환 없이 TransmitBeamCommand로 그대로 전달된다.
+// - direction_ant는 이름과 달리 ENU 기준 방향이며, 변환 없이 TransmitBeamCommand로 그대로 전달된다.
+//   (필드 이름 변경은 comm/target과 합의 후 진행한다.)
 // - 좌표 변환과 추적 영역 범위 검증은 요청을 만드는 쪽의 책임이다.
 // - 이 DTO는 값을 검사하지 않는다. transmitTime과 requestId의 검증은 BeamController::requestBeam에서
 //   내부 요청(BeamRequest)을 만들 때 한다.

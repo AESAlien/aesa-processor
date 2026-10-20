@@ -1,7 +1,7 @@
 // SearchGrid 내용을 CSV로 출력하는 시각화용 도구
 //
 // 사용법: beam_table_dump [--matrix] [roll_deg pitch_deg yaw_deg]
-// 출력  : idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg   (안테나 기준 각도)
+// 출력  : idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg   (ENU 기준 각도)
 //
 // visualize_beam_table.py 가 이 프로그램을 실행해서 결과를 그린다.
 
@@ -77,7 +77,7 @@ int main(int argc, char** argv)
         {
             const beam::SearchBeam& b = grid.nextBeam();
             std::printf("%zu,%u,%.6f,%.6f,%.2f,%.2f\n",
-                        i, b.beamId, b.direction_ant.azimuth.deg(), b.direction_ant.elevation.deg(),
+                        i, b.beamId, b.direction_enu.azimuth.deg(), b.direction_enu.elevation.deg(),
                         b.azimuthBeamWidth.deg(), b.elevationBeamWidth.deg());
         }
     }

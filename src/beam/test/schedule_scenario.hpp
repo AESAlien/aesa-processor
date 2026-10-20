@@ -159,8 +159,8 @@ inline void markSent(
     {
         const bool sameType = spec.request.transmitBeamType() == command.beamType;
         if (spec.sentTick_ms < 0 && sameType &&
-            sameAngle(spec.request.direction_ant().azimuth, command.direction_ant.azimuth) &&
-            sameAngle(spec.request.direction_ant().elevation, command.direction_ant.elevation))
+            sameAngle(spec.request.direction_enu().azimuth, command.direction_ant.azimuth) &&
+            sameAngle(spec.request.direction_enu().elevation, command.direction_ant.elevation))
         {
             spec.sentTick_ms = tick_ms;
             return;
