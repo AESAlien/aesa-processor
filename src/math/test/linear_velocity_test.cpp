@@ -41,6 +41,50 @@ TEST(LinearVelocityTest, PreservesSignedMetersPerSecond)
     }
 }
 
+TEST(LinearVelocityTest, AddsAndSubtractsVelocities)
+{
+    using namespace math::literals;
+
+    static_assert(std::is_same_v<decltype(3_mps + 2_mps), math::LinearVelocity>);
+    static_assert(std::is_same_v<decltype(3_mps - 2_mps), math::LinearVelocity>);
+    EXPECT_EQ(3_mps + 2_mps, 5_mps);
+    EXPECT_EQ(3_mps - 2_mps, 1_mps);
+}
+
+TEST(LinearVelocityTest, MultipliesAndDividesByScalars)
+{
+    using namespace math::literals;
+
+    static_assert(std::is_same_v<decltype(3_mps * 2.0), math::LinearVelocity>);
+    static_assert(std::is_same_v<decltype(2.0 * 3_mps), math::LinearVelocity>);
+    static_assert(std::is_same_v<decltype(3_mps / 2.0), math::LinearVelocity>);
+    EXPECT_EQ(3_mps * 2.0, 6_mps);
+    EXPECT_EQ(2.0 * 3_mps, 6_mps);
+    EXPECT_EQ(3_mps / 2.0, 1.5_mps);
+}
+
+TEST(LinearVelocityTest, CalculatesLengthFromVelocityAndDuration)
+{
+    using namespace math::literals;
+    using namespace std::chrono_literals;
+
+    static_assert(std::is_same_v<decltype(2_mps * 500ms), math::Length>);
+    EXPECT_EQ(2_mps * 500ms, 1_m);
+    EXPECT_EQ(-2_mps * 3s, -6_m);
+    EXPECT_EQ(2_mps * -3s, -6_m);
+}
+
+TEST(LinearVelocityTest, RejectsInvalidVelocityDurationProducts)
+{
+    using namespace math::literals;
+
+    const auto maximum = math::LinearVelocity::fromMetersPerSecond(
+        std::numeric_limits<double>::max());
+    EXPECT_THROW(maximum * std::chrono::seconds{2}, std::invalid_argument);
+    EXPECT_THROW(1_mps * std::chrono::duration<double>{
+        std::numeric_limits<double>::quiet_NaN()}, std::invalid_argument);
+}
+
 
 TEST(LinearVelocityTest, AbsPreservesLinearVelocityTypeAndReturnsNonnegativeValue)
 {

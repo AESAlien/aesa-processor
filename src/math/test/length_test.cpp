@@ -31,6 +31,75 @@ TEST(LengthTest, ConvertsSignedKilometersToMeters)
     EXPECT_DOUBLE_EQ(positive.m(), 2500.0);
 }
 
+TEST(LengthTest, AddsAndSubtractsLengths)
+{
+    const auto left = math::Length::fromMeters(3.5);
+    const auto right = math::Length::fromMeters(1.25);
+
+    static_assert(std::is_same_v<decltype(left + right), math::Length>);
+    static_assert(std::is_same_v<decltype(left - right), math::Length>);
+    EXPECT_DOUBLE_EQ((left + right).m(), 4.75);
+    EXPECT_DOUBLE_EQ((left - right).m(), 2.25);
+}
+
+TEST(LengthTest, RejectsNonFiniteAdditionAndSubtractionResults)
+{
+    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
+
+    EXPECT_THROW(maximum + maximum, std::invalid_argument);
+    EXPECT_THROW(maximum - (-maximum), std::invalid_argument);
+}
+
+TEST(LengthTest, MultipliesAndDividesByScalars)
+{
+    const auto length = math::Length::fromMeters(3.0);
+
+    static_assert(std::is_same_v<decltype(length * 2.0), math::Length>);
+    static_assert(std::is_same_v<decltype(2.0 * length), math::Length>);
+    static_assert(std::is_same_v<decltype(length / 2.0), math::Length>);
+    EXPECT_DOUBLE_EQ((length * -2.0).m(), -6.0);
+    EXPECT_DOUBLE_EQ((-2.0 * length).m(), -6.0);
+    EXPECT_DOUBLE_EQ((length / 2.0).m(), 1.5);
+}
+
+TEST(LengthTest, RejectsInvalidScalarOperations)
+{
+    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
+
+    EXPECT_THROW(maximum * 2.0, std::invalid_argument);
+    EXPECT_THROW(maximum / 0.0, std::domain_error);
+    EXPECT_THROW(maximum / -0.0, std::domain_error);
+}
+
+TEST(LengthTest, AppliesCompoundArithmetic)
+{
+    auto length = math::Length::fromMeters(8.0);
+
+    EXPECT_EQ(&(length += math::Length::fromMeters(2.0)), &length);
+    EXPECT_DOUBLE_EQ(length.m(), 10.0);
+    EXPECT_EQ(&(length -= math::Length::fromMeters(4.0)), &length);
+    EXPECT_DOUBLE_EQ(length.m(), 6.0);
+    EXPECT_EQ(&(length *= -2.0), &length);
+    EXPECT_DOUBLE_EQ(length.m(), -12.0);
+    EXPECT_EQ(&(length /= 3.0), &length);
+    EXPECT_DOUBLE_EQ(length.m(), -4.0);
+}
+
+TEST(LengthTest, CompoundArithmeticPreservesValueOnFailure)
+{
+    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
+    auto length = maximum;
+
+    EXPECT_THROW(length += maximum, std::invalid_argument);
+    EXPECT_EQ(length, maximum);
+    EXPECT_THROW(length -= -maximum, std::invalid_argument);
+    EXPECT_EQ(length, maximum);
+    EXPECT_THROW(length *= 2.0, std::invalid_argument);
+    EXPECT_EQ(length, maximum);
+    EXPECT_THROW(length /= 0.0, std::domain_error);
+    EXPECT_EQ(length, maximum);
+}
+
 TEST(LengthTest, CreatesLengthsFromMeterLiterals)
 {
     using namespace math::literals;

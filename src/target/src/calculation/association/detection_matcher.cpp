@@ -125,31 +125,26 @@ std::optional<double> DetectionMatcher::matchesPosition(
     math::Vector residual(NDS_DIMENSION);
     try
     {
-        residual = (position - referencePosition).toVector();
+        const auto displacement = position - referencePosition;
+        residual = displacement.toVector();
+        if (other.state() == TargetState::TENTATIVE || pastTracking)
+        {
+            // Older search results use the latest stored position without rewinding the filter.
+            const auto elapsed = std::chrono::abs(observationTime - referenceTime);
+            const auto distance = displacement.distance();
+            const auto maximumTravel = _config.maxAssociationSpeed * elapsed;
+
+            // Retain the geometric motion allowance by shrinking the residual radially
+            // before scoring it with the available position uncertainty.
+            residual = distance <= maximumTravel
+                ? math::Vector(NDS_DIMENSION)
+                : residual * ((distance - maximumTravel).m() / distance.m());
+        }
     }
     catch (const std::invalid_argument&)
     {
         // Valid positions can still have an unrepresentable displacement.
         return std::nullopt;
-    }
-    if (other.state() == TargetState::TENTATIVE || pastTracking)
-    {
-        // Older search results use the latest stored position without rewinding the filter.
-        const auto elapsed = observationTime >= referenceTime
-            ? observationTime - referenceTime : referenceTime - observationTime;
-        const double seconds = std::chrono::duration<double>(elapsed).count();
-        const double distanceMeters = residual.norm();
-        const double maximumTravelMeters = _config.maxAssociationSpeed.mps() * seconds;
-        if (!std::isfinite(distanceMeters) || !std::isfinite(maximumTravelMeters))
-        {
-            return std::nullopt;
-        }
-
-        // Retain the geometric motion allowance by shrinking the residual radially
-        // before scoring it with the available position uncertainty.
-        residual = distanceMeters <= maximumTravelMeters
-            ? math::Vector(NDS_DIMENSION)
-            : residual * ((distanceMeters - maximumTravelMeters) / distanceMeters);
     }
     auto covariance = _measurementDifferenceCovariance;
     if (prediction)

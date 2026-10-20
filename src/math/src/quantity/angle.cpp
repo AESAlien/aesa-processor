@@ -84,77 +84,6 @@ Angle wrap360(Angle angle) noexcept
     return Angle::fromDegrees(degrees);
 }
 
-Angle Angle::operator+() const noexcept
-{
-    return *this;
-}
-
-Angle Angle::operator-() const noexcept
-{
-    return Angle(-value());
-}
-
-Angle Angle::operator+(const Angle& other) const
-{
-    Angle result(*this);
-
-    return result += other;
-}
-
-Angle Angle::operator-(const Angle& other) const
-{
-    Angle result(*this);
-
-    return result -= other;
-}
-
-Angle Angle::operator*(double scalar) const
-{
-    Angle result(*this);
-
-    return result *= scalar;
-}
-
-Angle Angle::operator/(double scalar) const
-{
-    Angle result(*this);
-
-    return result /= scalar;
-}
-
-Angle& Angle::operator+=(const Angle& other)
-{
-    *this = Angle(value() + other.value());
-
-    return *this;
-}
-
-Angle& Angle::operator-=(const Angle& other)
-{
-    *this = Angle(value() - other.value());
-
-    return *this;
-}
-
-Angle& Angle::operator*=(double scalar)
-{
-    *this = Angle(value() * scalar);
-
-    return *this;
-}
-
-Angle& Angle::operator/=(double scalar)
-{
-    if (scalar == 0.0)
-    {
-        throw std::domain_error("Cannot divide an angle by zero");
-    }
-
-    *this = Angle(value() / scalar);
-
-    return *this;
-}
-
 Angle::Angle(double degrees)
     : Quantity<Angle>(degrees)
 {
@@ -163,11 +92,6 @@ Angle::Angle(double degrees)
 Angle abs(Angle angle) noexcept
 {
     return Angle::fromDegrees(std::abs(angle.deg()));
-}
-
-Angle operator*(double scalar, const Angle& angle)
-{
-    return angle * scalar;
 }
 
 namespace literals

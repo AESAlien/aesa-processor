@@ -186,9 +186,9 @@ TEST(CartesianGeometryTest, ConvertsExtremeFinitePositionScales)
     for (double scale : {1e-200, 1e200})
     {
         const math::CartesianPosition original(
-            math::Length::fromMeters(3.0 * scale),
-            math::Length::fromMeters(-4.0 * scale),
-            math::Length::fromMeters(12.0 * scale));
+            3_m * scale,
+            -4_m * scale,
+            12_m * scale);
         const math::SphericalPosition spherical = original.toSpherical();
         const math::CartesianPosition restored = spherical.toCartesian();
 

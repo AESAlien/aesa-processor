@@ -20,6 +20,97 @@ static_assert(!std::is_copy_assignable_v<math::CartesianDisplacement>);
 static_assert(!std::is_move_assignable_v<math::CartesianDisplacement>);
 static_assert(!std::is_aggregate_v<math::CartesianDisplacement>);
 
+TEST(CartesianDisplacementTest, AddsDisplacementToPosition)
+{
+    const math::CartesianPosition position(1_m, -2_m, 3_m);
+    const math::CartesianDisplacement displacement(4_m, -6_m, 15_m);
+    const math::CartesianPosition result = position + displacement;
+
+    EXPECT_EQ(result.x, 5_m);
+    EXPECT_EQ(result.y, -8_m);
+    EXPECT_EQ(result.z, 18_m);
+}
+
+TEST(CartesianDisplacementTest, RejectsAdditionOverflow)
+{
+    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
+    const math::CartesianPosition position(maximum, 0_m, 0_m);
+    const math::CartesianDisplacement displacement(maximum, 0_m, 0_m);
+
+    EXPECT_THROW(position + displacement, std::invalid_argument);
+}
+
+TEST(CartesianDisplacementTest, SubtractsDisplacementFromPosition)
+{
+    const math::CartesianPosition position(5_m, -8_m, 18_m);
+    const math::CartesianDisplacement displacement(4_m, -6_m, 15_m);
+    const math::CartesianPosition result = position - displacement;
+
+    EXPECT_EQ(result.x, 1_m);
+    EXPECT_EQ(result.y, -2_m);
+    EXPECT_EQ(result.z, 3_m);
+}
+
+TEST(CartesianDisplacementTest, RejectsPositionDisplacementSubtractionOverflow)
+{
+    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
+    const math::CartesianPosition position(-maximum, 0_m, 0_m);
+    const math::CartesianDisplacement displacement(maximum, 0_m, 0_m);
+
+    EXPECT_THROW(position - displacement, std::invalid_argument);
+}
+
+
+TEST(CartesianDisplacementTest, AddsDisplacements)
+{
+    const math::CartesianDisplacement left(1_m, -2_m, 3_m);
+    const math::CartesianDisplacement right(4_m, -6_m, 15_m);
+    const math::CartesianDisplacement result = left + right;
+
+    EXPECT_EQ(result.x, 5_m);
+    EXPECT_EQ(result.y, -8_m);
+    EXPECT_EQ(result.z, 18_m);
+}
+
+TEST(CartesianDisplacementTest, RejectsDisplacementAdditionOverflow)
+{
+    const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
+    const math::CartesianDisplacement left(maximum, 0_m, 0_m);
+    const math::CartesianDisplacement right(maximum, 0_m, 0_m);
+
+    EXPECT_THROW(left + right, std::invalid_argument);
+}
+TEST(CartesianDisplacementTest, CalculatesDisplacementFromVelocityAndElapsedTime)
+{
+    const math::CartesianVelocity velocity(6_mps, -8_mps, 24_mps);
+    const math::CartesianDisplacement displacement = velocity * std::chrono::milliseconds{500};
+
+    EXPECT_EQ(displacement.x, 3_m);
+    EXPECT_EQ(displacement.y, -4_m);
+    EXPECT_EQ(displacement.z, 12_m);
+}
+
+TEST(CartesianDisplacementTest, PreservesElapsedTimeSign)
+{
+    const math::CartesianVelocity velocity(6_mps, -8_mps, 24_mps);
+    const math::CartesianDisplacement displacement = velocity * std::chrono::seconds{-2};
+
+    EXPECT_EQ(displacement.x, -12_m);
+    EXPECT_EQ(displacement.y, 16_m);
+    EXPECT_EQ(displacement.z, -48_m);
+}
+
+TEST(CartesianDisplacementTest, RejectsInvalidVelocityTimeProduct)
+{
+    const auto maximum = math::LinearVelocity::fromMetersPerSecond(
+        std::numeric_limits<double>::max());
+    const math::CartesianVelocity velocity(maximum, 0_mps, 0_mps);
+
+    EXPECT_THROW(velocity * std::chrono::seconds{2}, std::invalid_argument);
+    EXPECT_THROW(velocity * std::chrono::duration<double>{
+        std::numeric_limits<double>::quiet_NaN()}, std::invalid_argument);
+}
+
 TEST(CartesianDisplacementTest, SubtractsPositionsInCorrectDirection)
 {
     const math::CartesianPosition previous(1_m, -2_m, 3_m);
@@ -111,9 +202,9 @@ TEST(CartesianDisplacementTest, CalculatesDistanceAtExtremeFiniteScales)
     for (double scale : {1e-200, 1e200})
     {
         const math::CartesianDisplacement displacement(
-            math::Length::fromMeters(3.0 * scale),
-            math::Length::fromMeters(-4.0 * scale),
-            math::Length::fromMeters(12.0 * scale));
+            3_m * scale,
+            -4_m * scale,
+            12_m * scale);
 
         EXPECT_NEAR(displacement.distance().m() / scale, 13.0, 1e-12);
     }

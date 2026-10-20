@@ -36,11 +36,6 @@ double Length::km() const noexcept
     return value() / 1000.0;
 }
 
-Length Length::operator-() const noexcept
-{
-    return Length(-value());
-}
-
 Length::Length(double meters)
     : Quantity<Length>(meters)
 {

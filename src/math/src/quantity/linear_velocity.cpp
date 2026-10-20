@@ -26,11 +26,6 @@ double LinearVelocity::mps() const noexcept
     return value();
 }
 
-LinearVelocity LinearVelocity::operator-() const noexcept
-{
-    return LinearVelocity(-value());
-}
-
 LinearVelocity::LinearVelocity(double metersPerSecond)
     : Quantity<LinearVelocity>(metersPerSecond)
 {

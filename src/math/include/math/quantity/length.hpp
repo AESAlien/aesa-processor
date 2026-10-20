@@ -20,9 +20,9 @@ public:
     double m() const noexcept;
     double km() const noexcept;
 
-    Length operator-() const noexcept;
-
 private:
+    friend class Quantity<Length>;
+
     explicit Length(double meters);
 };
 

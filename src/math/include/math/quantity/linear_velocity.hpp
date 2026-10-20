@@ -13,6 +13,8 @@ namespace math
 class LinearVelocity : public Quantity<LinearVelocity>
 {
 public:
+    using Quantity<LinearVelocity>::operator*;
+
     static const QuantityTolerance<LinearVelocity> DEFAULT_TOLERANCE;
     // 절대·상대 허용오차 없이 비교한다.
     static const QuantityTolerance<LinearVelocity> NONE_TOLERANCE;
@@ -22,9 +24,17 @@ public:
 
     double mps() const noexcept;
 
-    LinearVelocity operator-() const noexcept;
+    template <typename Rep, typename Period>
+    Length operator*(const std::chrono::duration<Rep, Period>& duration) const
+    {
+        const auto seconds = std::chrono::duration<long double>(duration).count();
+        return Length::fromMeters(
+            static_cast<double>(static_cast<long double>(mps()) * seconds));
+    }
 
 private:
+    friend class Quantity<LinearVelocity>;
+
     explicit LinearVelocity(double metersPerSecond);
 };
 
