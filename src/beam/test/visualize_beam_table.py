@@ -1,30 +1,32 @@
 #!/usr/bin/env python3
 """SearchGrid 변환 시각화 / 검증 도구.
 
-처리부는 "고정좌표계로 정의된 탐색 그리드(189개)"를 안테나 자세정보로
-"안테나 좌표계 각도"로 바꿔서 SearchGrid 에 보관한다. 이 도구는 그 과정을 3단계로 보여준다.
+처리부는 "안테나 정면 기준으로 정의된 탐색 그리드(189개)"를 안테나 자세정보로
+"ENU 기준 각도"로 바꿔서 SearchGrid 에 보관하고, 그 값을 빔 명령으로 시나리오 모의기에 보낸다.
+(모의기는 빔 명령 각도를 ENU 로 해석한다. 멘토 코드 DPMS_SIM 과 같은 방식이다.)
+이 도구는 그 과정을 3단계로 보여준다.
 
-  (1) 왼쪽 그림  : 각도 값 비교. 점선 박스 = 처리부 고정좌표계로 정의된 탐색 영역
-                   (방위각 +-45, 고각 0~41.2도), 주황 점 = 그 189개 빔을 안테나 좌표계로
+  (1) 왼쪽 그림  : 각도 값 비교. 파란 점선 박스 = 안테나 정면 기준으로 정의된 탐색 영역
+                   (방위각 +-45, 고각 0~41.2도), 주황 점 = 그 189개 빔을 ENU 로
                    변환해 SearchGrid 에 저장한 각도. 대표 빔은 회색 화살표로
-                   "고정 값 -> 안테나 값" 이동을 보여준다 (별 = 안테나 정면 (0, 0))
-  (2) 가운데 3D  : (1)과 같은 비교를 3D 방향으로. 파란 점선 = 고정좌표계 탐색 영역의 윤곽,
-                   주황 점 = SearchGrid 의 안테나 각도를 방향으로 그린 것, 회색 화살표 = 대표 빔의
-                   "고정 값 -> 안테나 값" 이동 (별 = 안테나 (0, 0) 방향)
-  (3) 오른쪽 표  : 대표 빔(ID 1, 21, 95, 169, 189)의 "고정 (방위각, 고각) -> 안테나 (방위각, 고각)".
-                   안테나 각도가 SearchGrid 에 저장되어 빔 명령으로 나간다.
+                   "안테나 값 -> ENU 값" 이동을 보여준다 (별 = 안테나 정면이 ENU 에서 가리키는 방향)
+  (2) 가운데 3D  : ENU 공간에서 본 방향. 파란 점선 = 안테나 기준 탐색 영역을 자세 0 으로 둔 윤곽,
+                   주황 점선 = 같은 영역을 자세만큼 돌린 실제 윤곽, 주황 점 = SearchGrid 의 ENU 방향,
+                   회색 선 = 대표 빔의 "안테나 값 -> ENU 값" 이동 (별 = 안테나 정면)
+  (3) 오른쪽 표  : 대표 빔(ID 1, 21, 95, 169, 189)의 "안테나 (방위각, 고각) -> ENU (방위각, 고각)".
+                   ENU 각도가 SearchGrid 에 저장되어 빔 명령으로 나간다.
                    표 아래에 C++ 가 계산한 회전 행렬 R 을 같이 표시한다.
-                   (안테나 각도 = R^T x 고정 방향)
+                   (ENU 각도 = R x 안테나 방향)
 
-값의 출처: SearchGrid 각도(주황 점, 표의 antenna 열)와 회전 행렬 R 은 C++ 코드의 출력이다.
-고정좌표계 값(점선 박스, 표의 fixed 열)은 문서의 그리드 규칙으로 이 스크립트가 만든 기준값이고,
+값의 출처: SearchGrid 각도(주황 점, 표의 ENU 열)와 회전 행렬 R 은 C++ 코드의 출력이다.
+안테나 기준 값(파란 점선 박스, 표의 antenna 열)은 문서의 그리드 규칙으로 이 스크립트가 만든 기준값이고,
 numpy 계산은 C++ 결과를 검증하기 위한 독립 구현이다.
 
-왼쪽 제목의 "round trip" 은 C++ 결과(안테나 각도)를 numpy로 다시 고정좌표계로
+왼쪽 제목의 "round trip" 은 C++ 결과(ENU 각도)를 numpy로 다시 안테나 기준으로
 되돌렸을 때 원래 그리드와 얼마나 같은지(오차)를 나타낸다.
 --verify 를 주면 numpy로 독립 계산한 변환 결과와도 비교하고,
 오차가 허용치를 넘으면 종료 코드 1로 끝난다.
---csv 를 주면 189개 전체의 "고정 각도 / 안테나 각도"를 CSV로 저장한다 (자세별 파일).
+--csv 를 주면 189개 전체의 "안테나 각도 / ENU 각도"를 CSV로 저장한다 (자세별 파일).
 
 저장 위치
   기본값: <aesa-processor 의 상위 폴더>/document/testImage/<오늘 날짜>/beam_table.png
@@ -36,7 +38,7 @@ numpy 계산은 C++ 결과를 검증하기 위한 독립 구현이다.
   cmake --build build --target beam_table_dump
   python3 src/beam/test/visualize_beam_table.py --binary build/src/beam/beam_table_dump
   python3 src/beam/test/visualize_beam_table.py --binary build/src/beam/beam_table_dump \
-          --att 0,0,0 --att 10,20,30 --verify --out beam_table.png
+          --att 0,0,13.02429 --att 10,20,30 --verify --out beam_table.png
 """
 
 import argparse
@@ -56,7 +58,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (3D 축 등록)
 
-# ----- 고정 그리드 (docs: 방위각 21개 x 고각 9개) -----------------------------
+# ----- 안테나 기준 그리드 (docs: 방위각 21개 x 고각 9개) ------------------------
 AZ_COUNT, EL_COUNT = 21, 9
 AZ_START, AZ_STEP = -42.0, 4.2
 EL_START, EL_STEP = 3.0, 4.4
@@ -66,17 +68,17 @@ BEAM_HALF_DEG = 3.0   # 탐색 빔 폭 6도의 절반 (그리드 중심 -> 영�
 # 변환 결과를 표/그림에 강조해서 보여줄 대표 빔 (1부터 시작하는 beamID): 네 모서리와 중심
 LANDMARK_IDS = [1, 21, 95, 169, 189]
 
-# ----- 색: 범주 슬롯 1(파랑)/2(주황), 텍스트는 중립색 --------------------------
-C_FIXED = "#2a78d6"
-C_ANT = "#eb6834"
+# ----- 색: 범주 슬롯 1(파랑 = 안테나 기준 값)/2(주황 = ENU 값), 텍스트는 중립색 ---------
+C_GRIDV = "#2a78d6"
+C_ENU = "#eb6834"
 C_TEXT = "#0b0b0b"
 C_MUTED = "#52514e"
 C_GRID = "#e4e3df"
 C_SURFACE = "#fcfcfb"
 
 
-def fixed_grid():
-    """고정좌표계 그리드: idx = 고각 인덱스 * 21 + 방위각 인덱스."""
+def antenna_grid():
+    """안테나 정면 기준 그리드: idx = 고각 인덱스 * 21 + 방위각 인덱스."""
     idx = np.arange(AZ_COUNT * EL_COUNT)
     az = AZ_START + AZ_STEP * (idx % AZ_COUNT)
     el = EL_START + EL_STEP * (idx // AZ_COUNT)
@@ -128,18 +130,19 @@ def to_aed(v):
     return az, el
 
 
-def fixed_to_ant(az, el, att):
-    """고정좌표계 각도 -> 안테나 좌표계 각도 (역변환 = 전치)."""
+def enu_to_ant(az, el, att):
+    """ENU 각도 -> 안테나 기준 각도 (역변환 = 전치)."""
     return to_aed(body_to_enu(*att).T @ to_vec(az, el))
 
 
-def ant_to_fixed(az, el, att):
-    """안테나 좌표계 각도 -> 고정좌표계 각도."""
+def ant_to_enu(az, el, att):
+    """안테나 기준 각도 -> ENU 각도."""
     return to_aed(body_to_enu(*att) @ to_vec(az, el))
 
 
 def expected_table(att):
-    return fixed_to_ant(*fixed_grid(), att)
+    """SearchGrid 에 저장되어야 하는 ENU 각도 (numpy 독립 계산)."""
+    return ant_to_enu(*antenna_grid(), att)
 
 
 def angle_diff(a, b):
@@ -162,62 +165,64 @@ def style_axis(ax, title):
     ax.set_aspect("equal", adjustable="box")
 
 
-def draw_fixed_panel(ax, att, az_f, el_f, az_a, el_a, rt_err):
-    """(1) 각도 값 비교: 고정좌표계 탐색 영역(점선 박스) vs SearchGrid 의 안테나 각도(점)."""
-    style_axis(ax, "(1) Angle values: fixed frame vs antenna frame\n"
-                   f"round trip (antenna -> fixed) vs grid: {rt_err:.1e} deg")
+def draw_values_panel(ax, att, az_g, el_g, az_e, el_e, rt_err):
+    """(1) 각도 값 비교: 안테나 기준 탐색 영역(점선 박스) vs SearchGrid 의 ENU 각도(점)."""
+    style_axis(ax, "(1) Angle values: antenna-frame grid vs ENU values in SearchGrid\n"
+                   f"round trip (ENU -> antenna) vs grid: {rt_err:.1e} deg")
     ax.set_xlabel("azimuth value (deg)", color=C_MUTED, fontsize=9)
     ax.set_ylabel("elevation value (deg)", color=C_MUTED, fontsize=9)
 
-    # 고정좌표계 탐색 영역 = 그리드 중심 +- 빔 반폭(3도)  ->  방위각 +-45, 고각 0~41.2
-    x0, x1 = az_f.min() - BEAM_HALF_DEG, az_f.max() + BEAM_HALF_DEG
-    y0, y1 = el_f.min() - BEAM_HALF_DEG, el_f.max() + BEAM_HALF_DEG
-    ax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, fill=False, edgecolor=C_FIXED,
+    # 안테나 기준 탐색 영역 = 그리드 중심 +- 빔 반폭(3도)  ->  방위각 +-45, 고각 0~41.2
+    x0, x1 = az_g.min() - BEAM_HALF_DEG, az_g.max() + BEAM_HALF_DEG
+    y0, y1 = el_g.min() - BEAM_HALF_DEG, el_g.max() + BEAM_HALF_DEG
+    ax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, fill=False, edgecolor=C_GRIDV,
                            linewidth=1.6, linestyle=(0, (5, 3)), zorder=2))
 
-    # 대표 빔: 고정 값(속 빈 파란 원) -> 안테나 값(주황 점) 이동
+    # 대표 빔: 안테나 값(속 빈 파란 원) -> ENU 값(주황 점) 이동
     for bid in LANDMARK_IDS:
         i = bid - 1
-        ax.annotate("", xy=(az_a[i], el_a[i]), xytext=(az_f[i], el_f[i]),
+        ax.annotate("", xy=(az_e[i], el_e[i]), xytext=(az_g[i], el_g[i]),
                     arrowprops=dict(arrowstyle="->", color=C_MUTED, linewidth=0.8,
                                     alpha=0.7, shrinkA=3, shrinkB=3), zorder=3)
-        ax.scatter(az_f[i], el_f[i], s=46, facecolor=C_SURFACE, edgecolor=C_FIXED,
+        ax.scatter(az_g[i], el_g[i], s=46, facecolor=C_SURFACE, edgecolor=C_GRIDV,
                    linewidth=1.4, zorder=4)
 
-    ax.plot(az_a, el_a, color=C_ANT, linewidth=0.5, alpha=0.35, zorder=1)
-    ax.scatter(az_a, el_a, s=14, color=C_ANT, edgecolor=C_SURFACE, linewidth=0.8, zorder=5)
-    ax.scatter([0], [0], s=110, marker="*", color=C_TEXT, edgecolor=C_SURFACE,
+    ax.plot(az_e, el_e, color=C_ENU, linewidth=0.5, alpha=0.35, zorder=1)
+    ax.scatter(az_e, el_e, s=14, color=C_ENU, edgecolor=C_SURFACE, linewidth=0.8, zorder=5)
+    # 안테나 정면(안테나 (0, 0))이 ENU 에서 가리키는 방향
+    bore_az, bore_el = ant_to_enu(np.array([0.0]), np.array([0.0]), att)
+    ax.scatter(bore_az, bore_el, s=110, marker="*", color=C_TEXT, edgecolor=C_SURFACE,
                linewidth=0.8, zorder=6)
     for bid in LANDMARK_IDS:
         i = bid - 1
-        ax.annotate(str(bid), (az_a[i], el_a[i]), xytext=(7, 5), textcoords="offset points",
+        ax.annotate(str(bid), (az_e[i], el_e[i]), xytext=(7, 5), textcoords="offset points",
                     fontsize=8, color=C_TEXT, zorder=7)
 
     handles = [
-        Line2D([0], [0], color=C_FIXED, linewidth=1.6, linestyle=(0, (5, 3))),
+        Line2D([0], [0], color=C_GRIDV, linewidth=1.6, linestyle=(0, (5, 3))),
         Line2D([0], [0], marker="o", linestyle="", markerfacecolor=C_SURFACE,
-               markeredgecolor=C_FIXED, markeredgewidth=1.4, markersize=6),
-        Line2D([0], [0], marker="o", linestyle="", color=C_ANT, markersize=4),
+               markeredgecolor=C_GRIDV, markeredgewidth=1.4, markersize=6),
+        Line2D([0], [0], marker="o", linestyle="", color=C_ENU, markersize=4),
         Line2D([0], [0], marker="*", linestyle="", color=C_TEXT, markersize=9),
     ]
     labels = [
-        "fixed-frame values: search area (az +-45, el 0~41.2) processor wants to scan",
-        "sample beams' fixed values  (gray arrow -> their antenna values)",
-        "antenna-frame values: 189 beams stored in SearchGrid",
-        "antenna boresight = antenna (0, 0)",
+        "antenna-frame values: search area (az +-45, el 0~41.2) defined around boresight",
+        "sample beams' antenna values  (gray arrow -> their ENU values)",
+        "ENU values: 189 beams stored in SearchGrid (sent to the simulator)",
+        "antenna boresight in ENU",
     ]
     ax.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.0, -0.17), ncol=1,
               fontsize=7, frameon=False, labelcolor=C_MUTED)
 
-    xs = np.concatenate([[x0, x1], az_a, [0]])
-    ys = np.concatenate([[y0, y1], el_a, [0]])
+    xs = np.concatenate([[x0, x1], az_e, bore_az])
+    ys = np.concatenate([[y0, y1], el_e, bore_el])
     ax.set_xlim(xs.min() - 8, xs.max() + 8)
     ax.set_ylim(ys.min() - 8, ys.max() + 8)
 
 
-def draw_axes_panel(ax, att, az_f, el_f, az_a, el_a):
-    """(2) 3D: (1)과 같은 비교. 고정 영역 윤곽(점선) vs SearchGrid 각도(점)."""
-    ax.set_title("(2) Same comparison in 3D (unit-sphere directions)", loc="left",
+def draw_axes_panel(ax, att, az_g, el_g, az_e, el_e):
+    """(2) 3D: ENU 공간의 방향. 자세 0 윤곽(파란 점선) vs 자세만큼 돌린 윤곽(주황 점선)과 SearchGrid 방향(점)."""
+    ax.set_title("(2) Directions in ENU (unit sphere)", loc="left",
                  fontsize=10, color=C_TEXT)
 
     # 기준 축 (동/북/위) 과 지평선(고각 0도 원)
@@ -228,43 +233,49 @@ def draw_axes_panel(ax, att, az_f, el_f, az_a, el_a):
     h = to_vec(t, np.zeros_like(t))
     ax.plot(h[0], h[1], h[2], color=C_GRID, linewidth=1.0)
 
-    # 고정좌표계 탐색 영역 윤곽 (방위각 +-45, 고각 0~41.2)
-    x0, x1 = az_f.min() - BEAM_HALF_DEG, az_f.max() + BEAM_HALF_DEG
-    y0, y1 = el_f.min() - BEAM_HALF_DEG, el_f.max() + BEAM_HALF_DEG
+    # 안테나 기준 탐색 영역 윤곽 (방위각 +-45, 고각 0~41.2)
+    x0, x1 = az_g.min() - BEAM_HALF_DEG, az_g.max() + BEAM_HALF_DEG
+    y0, y1 = el_g.min() - BEAM_HALF_DEG, el_g.max() + BEAM_HALF_DEG
     n = 40
     ea = np.concatenate([np.linspace(x0, x1, n), np.full(n, x1), np.linspace(x1, x0, n), np.full(n, x0)])
     ee = np.concatenate([np.full(n, y0), np.linspace(y0, y1, n), np.full(n, y1), np.linspace(y1, y0, n)])
     o = to_vec(ea, ee)
-    ax.plot(o[0], o[1], o[2], color=C_FIXED, linewidth=1.6, linestyle=(0, (5, 3)))
+    # 파란 점선: 자세가 0 일 때의 윤곽 (= 안테나 기준 값을 그대로 ENU 로 본 것)
+    ax.plot(o[0], o[1], o[2], color=C_GRIDV, linewidth=1.6, linestyle=(0, (5, 3)))
+    # 주황 점선: 같은 윤곽을 자세만큼 돌린 실제 탐색 영역
+    r = body_to_enu(*att) @ o
+    ax.plot(r[0], r[1], r[2], color=C_ENU, linewidth=1.2, linestyle=(0, (5, 3)))
 
-    # SearchGrid 각도(안테나 값) 189개를 방향으로 표시
-    v = to_vec(az_a, el_a)
-    ax.plot(v[0], v[1], v[2], color=C_ANT, linewidth=0.5, alpha=0.35)
-    ax.scatter(v[0], v[1], v[2], s=8, color=C_ANT, depthshade=False)
+    # SearchGrid 각도(ENU 값) 189개를 방향으로 표시
+    v = to_vec(az_e, el_e)
+    ax.plot(v[0], v[1], v[2], color=C_ENU, linewidth=0.5, alpha=0.35)
+    ax.scatter(v[0], v[1], v[2], s=8, color=C_ENU, depthshade=False)
 
-    # 대표 빔: 고정 값 -> 안테나 값
+    # 대표 빔: 안테나 값 -> ENU 값
     for bid in LANDMARK_IDS:
         i = bid - 1
-        f = to_vec(az_f[i], el_f[i])
+        f = to_vec(az_g[i], el_g[i])
         a = v[:, i]
         ax.plot([f[0], a[0]], [f[1], a[1]], [f[2], a[2]], color=C_MUTED, linewidth=0.8, alpha=0.8)
-        ax.scatter(f[0], f[1], f[2], s=30, facecolor=C_SURFACE, edgecolor=C_FIXED,
+        ax.scatter(f[0], f[1], f[2], s=30, facecolor=C_SURFACE, edgecolor=C_GRIDV,
                    linewidth=1.3, depthshade=False)
         ax.text(a[0], a[1], a[2] + 0.07, str(bid), color=C_TEXT, fontsize=7)
 
-    # 안테나 정면 = 안테나 (0, 0) 방향
-    ax.scatter([0], [1], [0], s=90, marker="*", color=C_TEXT, depthshade=False)
+    # 안테나 정면 = 안테나 (0, 0) 을 ENU 로 돌린 방향
+    bore = body_to_enu(*att) @ to_vec(0.0, 0.0)
+    ax.scatter([bore[0]], [bore[1]], [bore[2]], s=90, marker="*", color=C_TEXT, depthshade=False)
 
     ax.set_xlim(-1, 1); ax.set_ylim(-1, 1); ax.set_zlim(-0.45, 1)
     ax.set_box_aspect((1, 1, 0.72))
     ax.view_init(elev=24, azim=-58)
     ax.set_xticks([]); ax.set_yticks([]); ax.set_zticks([])
     ax.set_facecolor(C_SURFACE)
-    ax.text2D(0.0, -0.06, "blue dashed: fixed-frame search area   orange: SearchGrid angles   "
-                          "star: antenna (0, 0)", transform=ax.transAxes, fontsize=7, color=C_MUTED)
+    ax.text2D(0.0, -0.06, "blue dashed: search area at zero attitude   orange dashed: rotated by attitude\n"
+                          "orange dots: SearchGrid ENU directions   star: antenna boresight",
+              transform=ax.transAxes, fontsize=7, color=C_MUTED)
 
 
-def draw_table_panel(ax, att, az_f, el_f, az_a, el_a, R):
+def draw_table_panel(ax, att, az_g, el_g, az_e, el_e, R):
     """(3) 대표 빔 변환 표 + 회전 행렬."""
     roll, pitch, yaw = att
     ax.axis("off")
@@ -276,11 +287,11 @@ def draw_table_panel(ax, att, az_f, el_f, az_a, el_a, R):
     for bid in LANDMARK_IDS:
         i = bid - 1
         rows.append([str(bid),
-                     f"({az_f[i]:6.1f}, {el_f[i]:5.1f})",
+                     f"({az_g[i]:6.1f}, {el_g[i]:5.1f})",
                      "->",
-                     f"({az_a[i]:6.1f}, {el_a[i]:5.1f})"])
+                     f"({az_e[i]:6.1f}, {el_e[i]:5.1f})"])
     table = ax.table(cellText=rows,
-                     colLabels=["beam ID", "fixed (az, el)", "", "antenna (az, el)"],
+                     colLabels=["beam ID", "antenna (az, el)", "", "ENU (az, el)"],
                      colWidths=[0.16, 0.33, 0.08, 0.35], loc="upper center", cellLoc="center")
     table.auto_set_font_size(False)
     table.set_fontsize(8)
@@ -293,11 +304,11 @@ def draw_table_panel(ax, att, az_f, el_f, az_a, el_a, R):
             cell.get_text().set_fontweight("bold")   # SearchGrid 에 저장되는 값
 
     mat = "\n".join("[ " + "  ".join(f"{v:6.3f}" for v in row) + " ]" for row in R)
-    ax.text(0.0, 0.34, "R (antenna -> fixed), computed by the C++ code:", transform=ax.transAxes,
+    ax.text(0.0, 0.34, "R (antenna -> ENU), computed by the C++ code:", transform=ax.transAxes,
             fontsize=8, color=C_MUTED, va="top")
     ax.text(0.0, 0.29, mat, transform=ax.transAxes, fontsize=8, color=C_TEXT, va="top",
             family="monospace")
-    ax.text(0.0, 0.13, "antenna angle = R^T x fixed direction\n"
+    ax.text(0.0, 0.13, "ENU angle = R x antenna direction\n"
                        "(bold column = values stored in SearchGrid)",
             transform=ax.transAxes, fontsize=8, color=C_MUTED, va="top")
 
@@ -316,12 +327,12 @@ def parse_att(text):
     return (r, p, y)
 
 
-def write_csv(path, att, az_f, el_f, ids, az_a, el_a):
+def write_csv(path, att, az_g, el_g, ids, az_e, el_e):
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["beamID", "fixed_az_deg", "fixed_el_deg", "antenna_az_deg", "antenna_el_deg"])
+        w.writerow(["beamID", "antenna_az_deg", "antenna_el_deg", "enu_az_deg", "enu_el_deg"])
         for k in range(len(ids)):
-            w.writerow([ids[k], f"{az_f[k]:.4f}", f"{el_f[k]:.4f}", f"{az_a[k]:.6f}", f"{el_a[k]:.6f}"])
+            w.writerow([ids[k], f"{az_g[k]:.4f}", f"{el_g[k]:.4f}", f"{az_e[k]:.6f}", f"{el_e[k]:.6f}"])
 
 
 def main():
@@ -333,7 +344,7 @@ def main():
     ap.add_argument("--out-dir", type=Path, default=None,
                     help="저장 폴더 (기본: <aesa-processor 상위>/document/testImage/<오늘 날짜>)")
     ap.add_argument("--csv", metavar="PREFIX",
-                    help="189개 전체 변환값을 PREFIX_roll_pitch_yaw.csv 로 저장")
+                    help="189개 전체 변환값(안테나 각도 / ENU 각도)을 PREFIX_roll_pitch_yaw.csv 로 저장")
     ap.add_argument("--verify", action="store_true",
                     help="numpy 독립 계산과 비교 (허용 오차 초과 시 exit 1)")
     ap.add_argument("--tol", type=float, default=1e-3, help="허용 오차(deg)")
@@ -345,7 +356,7 @@ def main():
     fig.patch.set_facecolor(C_SURFACE)
     gs = fig.add_gridspec(len(atts), 3, width_ratios=[1.5, 1.0, 1.25])
 
-    az_f, el_f = fixed_grid()
+    az_g, el_g = antenna_grid()
     failed = False
     for row, att in enumerate(atts):
         ids, az, el = run_dump(args.binary, *att)
@@ -354,14 +365,14 @@ def main():
         assert len(ids) == AZ_COUNT * EL_COUNT, f"expected 189 beams, got {len(ids)}"
         assert list(ids) == list(range(1, 190)), "beamID must be 1..189"
 
-        # C++ 결과(안테나 각도)를 다시 고정좌표계로 되돌려 원래 그리드와 비교
-        az_back, el_back = ant_to_fixed(az, el, att)
-        rt_err = max(np.abs(angle_diff(az_back, az_f)).max(), np.abs(el_back - el_f).max())
+        # C++ 결과(ENU 각도)를 다시 안테나 기준으로 되돌려 원래 그리드와 비교
+        az_back, el_back = enu_to_ant(az, el, att)
+        rt_err = max(np.abs(angle_diff(az_back, az_g)).max(), np.abs(el_back - el_g).max())
         failed |= rt_err > args.tol
 
-        b_az, b_el = ant_to_fixed(np.array([0.0]), np.array([0.0]), att)
+        b_az, b_el = ant_to_enu(np.array([0.0]), np.array([0.0]), att)
         line = (f"att(roll,pitch,yaw)=({att[0]:g},{att[1]:g},{att[2]:g})  beams=189  "
-                f"antenna boresight in fixed frame=(az {b_az[0]:.1f}, el {b_el[0]:.1f})  "
+                f"antenna boresight in ENU=(az {b_az[0] % 360.0:.1f}, el {b_el[0]:.1f})  "
                 f"round-trip err={rt_err:.2e} deg [{'OK' if rt_err <= args.tol else 'FAIL'}]")
 
         if args.verify:
@@ -375,14 +386,17 @@ def main():
 
         if args.csv:
             path = f"{args.csv}_{att[0]:g}_{att[1]:g}_{att[2]:g}.csv"
-            write_csv(path, att, az_f, el_f, ids, az, el)
+            write_csv(path, att, az_g, el_g, ids, az, el)
             print(f"saved: {path}")
 
-        draw_fixed_panel(fig.add_subplot(gs[row, 0]), att, az_f, el_f, az, el, rt_err)
-        draw_axes_panel(fig.add_subplot(gs[row, 1], projection="3d"), att, az_f, el_f, az, el)
-        draw_table_panel(fig.add_subplot(gs[row, 2]), att, az_f, el_f, az, el, R_cpp)
+        # C++ 는 방위각을 [0, 360) 으로 준다. 그림에서는 0도 근처가 끊기지 않도록 (-180, 180] 으로 바꿔 그린다.
+        # 표에는 모의기로 나가는 값 그대로([0, 360))를 쓴다.
+        az_signed = angle_diff(az, 0.0)
+        draw_values_panel(fig.add_subplot(gs[row, 0]), att, az_g, el_g, az_signed, el, rt_err)
+        draw_axes_panel(fig.add_subplot(gs[row, 1], projection="3d"), att, az_g, el_g, az_signed, el)
+        draw_table_panel(fig.add_subplot(gs[row, 2]), att, az_g, el_g, az, el, R_cpp)
 
-    fig.suptitle("SearchGrid: attitude -> rotation -> fixed-frame search grid converted to antenna angles",
+    fig.suptitle("SearchGrid: attitude -> rotation -> antenna-frame search grid converted to ENU angles",
                  x=0.01, ha="left", fontsize=12, color=C_TEXT)
     out_path = Path(args.out) if args.out else (args.out_dir or default_out_dir()) / "beam_table.png"
     out_path.parent.mkdir(parents=True, exist_ok=True)

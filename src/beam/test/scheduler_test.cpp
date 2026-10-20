@@ -245,14 +245,14 @@ TEST(SchedulerTest, SearchBeamTransmitTimeIsCurrentTime)
 
 TEST(SchedulerTest, SearchBeamsFollowAttitude)
 {
-    // 안테나가 yaw 만큼 돌아가 있으면 고정 그리드는 안테나 기준으로 -yaw 만큼 이동한다.
+    // 격자는 안테나 정면 기준이므로 안테나가 yaw 만큼 돌아가 있으면 ENU 방위각도 +yaw 만큼 이동한다.
     beam::Scheduler scheduler;
     makeReady(scheduler, makeAttitude(0_deg, 0_deg, 10_deg));
 
     const auto command = scheduler.next(0ms);
 
     ASSERT_TRUE(command.has_value());
-    EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0) - 10_deg));
+    EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0) + 10_deg));
     EXPECT_EQ(command->direction_ant.elevation, gridElevation(0));
 }
 

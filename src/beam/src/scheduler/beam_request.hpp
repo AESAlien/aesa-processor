@@ -27,7 +27,7 @@ public:
         std::shared_ptr<const IRequestBeamPolicy> policy,
         std::chrono::milliseconds transmitTime,
         std::uint32_t requestId,
-        math::SphericalDirection direction_ant);
+        math::SphericalDirection direction_enu);
 
     // 아래 세 메서드는 정책에 위임한다.
     BeamType transmitBeamType() const;
@@ -36,7 +36,7 @@ public:
 
     std::chrono::milliseconds transmitTime() const noexcept;
     std::uint32_t requestId() const noexcept;
-    const math::SphericalDirection& direction_ant() const noexcept;
+    const math::SphericalDirection& direction_enu() const noexcept;
 
 private:
     void validate() const;
@@ -44,7 +44,7 @@ private:
     std::shared_ptr<const IRequestBeamPolicy> _policy;
     std::chrono::milliseconds _transmitTime;
     std::uint32_t _requestId;
-    math::SphericalDirection _direction_ant;
+    math::SphericalDirection _direction_enu;
 };
 
 } // namespace beam

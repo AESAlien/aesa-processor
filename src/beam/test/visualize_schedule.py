@@ -15,7 +15,8 @@ beam_schedule_dump 가 Scheduler 를 시나리오로 실행해 틱(10ms)마다 �
       - 위: 핵심 숫자 4개
       - 아래: 탐색 빔 번호가 시간에 따라 올라가는 그래프 (점선 = 요청이 없을 때, 실선 = 실제)
   <접두어>_mixed_map.png   (--map 을 줄 때만, mixed 시나리오에만 있다)
-      - 빔이 가리키는 방향(안테나 좌표계)과 나간 시각. 나간 순서대로 이어서 요청 빔이 끼어드는 곳을 보인다.
+      - 빔이 가리키는 방향(ENU 기준, 모의기로 나가는 값)과 나간 시각. 나간 순서대로 이어서 요청 빔이 끼어드는 곳을 보인다.
+        방위각은 0도 근처에서 끊기지 않도록 (-180, 180] 으로 바꿔 그린다.
 
 --verify 를 주면 출력이 설계 규칙과 맞는지 검사하고, 어긋나면 종료 코드 1로 끝난다
   (명령 카운트 연속, 탐색 번호 순환, 요청은 원한 시각보다 일찍 나가지 않고 폐기 없이 모두 송신, 준비 전에는 송신 없음 등).
@@ -129,15 +130,20 @@ def run_dump(binary, scenario, att):
     def number(text, cast=float):
         return cast(text) if text != "" else None
 
+    def azimuth(text):
+        # C++ 는 방위각을 [0, 360) 으로 준다. 그림이 0도 근처에서 끊기지 않도록 (-180, 180] 으로 바꾼다.
+        value = number(text)
+        return None if value is None else (value + 180.0) % 360.0 - 180.0
+
     ticks = [dict(t=int(r["tick_ms"]), status=r["status"], type=r["type"],
                   beam_id=number(r["beamID"], int), count=number(r["commandCount"], int),
-                  az=number(r["az_deg"]), el=number(r["el_deg"]),
+                  az=azimuth(r["az_deg"]), el=number(r["el_deg"]),
                   az_w=number(r["az_width_deg"]), el_w=number(r["el_width_deg"]))
              for r in rows("ticks")]
     requests = [dict(name=r["name"], type=r["type"], ts=int(r["timestamp_ms"]),
-                     az=float(r["az_deg"]), el=float(r["el_deg"]), sent=int(r["sent_tick_ms"]))
+                     az=azimuth(r["az_deg"]), el=float(r["el_deg"]), sent=int(r["sent_tick_ms"]))
                 for r in rows("requests")]
-    grid = [dict(idx=int(r["idx"]), beam_id=int(r["beamID"]), az=float(r["az_deg"]), el=float(r["el_deg"]))
+    grid = [dict(idx=int(r["idx"]), beam_id=int(r["beamID"]), az=azimuth(r["az_deg"]), el=float(r["el_deg"]))
             for r in rows("grid")]
     return dict(ticks=ticks, requests=requests, grid=grid)
 
@@ -178,8 +184,9 @@ def verify(scenario, data):
         if tk["type"] == "SEARCH" and not (tk["az_w"] == 6.0 and tk["el_w"] == 6.0):
             failures.append(f"search beam width is not 6 deg at {tk['t']}ms")
             break
+        # 요청 빔의 beamID 는 요청 ID(1 이상)를 그대로 쓴다.
         if tk["type"] in ("CONFIRMATION", "TRACKING") and not (
-                tk["beam_id"] == 0 and tk["az_w"] == 3.0 and tk["el_w"] == 3.0):
+                tk["beam_id"] >= 1 and tk["az_w"] == 3.0 and tk["el_w"] == 3.0):
             failures.append(f"request beam fields are wrong at {tk['t']}ms")
             break
 
@@ -440,7 +447,7 @@ def draw_sky_mixed(data, att):
     ticks, requests, grid = data["ticks"], data["requests"], data["grid"]
     fig, ax = plt.subplots(figsize=(11, 7.8), layout="constrained")
     fig.patch.set_facecolor(C_SURFACE)
-    style_axis(ax, "빔이 가리키는 방향과 나간 시각 (안테나 좌표계)")
+    style_axis(ax, "빔이 가리키는 방향과 나간 시각 (ENU 기준)")
     ax.set_xlabel("방위각 (deg)", color=C_MUTED, fontsize=10)
     ax.set_ylabel("고각 (deg)", color=C_MUTED, fontsize=10)
     ax.set_aspect("equal", adjustable="box")

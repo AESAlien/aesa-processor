@@ -10,11 +10,11 @@ BeamRequest::BeamRequest(
     std::shared_ptr<const IRequestBeamPolicy> policy,
     std::chrono::milliseconds transmitTime,
     std::uint32_t requestId,
-    math::SphericalDirection direction_ant
+    math::SphericalDirection direction_enu
 ) : _policy(std::move(policy)),
     _transmitTime(transmitTime),
     _requestId(requestId),
-    _direction_ant(direction_ant)
+    _direction_enu(direction_enu)
 {
     validate();
 }
@@ -44,9 +44,9 @@ std::uint32_t BeamRequest::requestId() const noexcept
     return _requestId;
 }
 
-const math::SphericalDirection& BeamRequest::direction_ant() const noexcept
+const math::SphericalDirection& BeamRequest::direction_enu() const noexcept
 {
-    return _direction_ant;
+    return _direction_enu;
 }
 
 void BeamRequest::validate() const
