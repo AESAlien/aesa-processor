@@ -8,7 +8,7 @@ TargetRepository 하나가 vector<Target>으로 Tentative와 Tracking 표적을 
 
 공개 메서드와 DTO 선언은 유지한다.
 
-    std::optional<beam::BeamRequest> handleDetection(DetectionEvent detection);
+    std::optional<beam::RequestBeamCommand> handleDetection(DetectionEvent detection);
     std::vector<TrackEvent> nextTrackEvents() const;
 
 DetectionEvent 하나는 완료된 빔 하나의 결과다.
@@ -28,7 +28,7 @@ math 좌표 생성자가 음수 거리·고각 범위를 검사하고, Target �
 Selector, Matcher, Repository, 도메인 및 추적 알고리즘은 DetectionEvent를 포함하거나 사용하지 않는다.
 이미 생성된 Target은 유효한 객체로 신뢰하며, Matcher와 Selector에서 값의 유효성을 반복 검사하지 않는다.
 
-반환값은 빔 요청 0개(nullopt) 또는 1개다. BeamRequest.requestId에는 등록된 Target ID를 넣는다.
+반환값은 빔 요청 0개(nullopt) 또는 1개다. RequestBeamCommand.requestId에는 등록된 Target ID를 넣는다.
 메시지 파싱·패키징·직렬화는 Comm의 역할이다.
 TrackEvent 변환도 Controller의 출력 경계에서만 수행한다.
 
@@ -44,7 +44,7 @@ Repository는 전달받은 복사본에 순차 ID를 부여하고 Tentative로 �
       → Plot마다 UNREGISTERED Target 생성
       → 저장 Target과 Matcher로 연관
       → 신규 하나만 add() / 기존 Target은 confirm() 또는 update()
-      → BeamRequest 생성
+      → RequestBeamCommand 생성
 
 등록 과정의 registerAs()는 private이며 Repository만 호출할 수 있다.
 이미 등록된 Target의 재등록은 거부한다.
@@ -57,7 +57,7 @@ Repository는 전달받은 복사본에 순차 ID를 부여하고 Tentative로 �
 
 | 객체 | 역할과 주요 메서드 |
 |---|---|
-| TargetController | 입력 검증·Target 변환, 빔 타입별 처리 연결, BeamRequest·TrackEvent 생성 |
+| TargetController | 입력 검증·Target 변환, 빔 타입별 처리 연결, RequestBeamCommand·TrackEvent 생성 |
 | TentativeSelector | selectNewCandidate(targets): 저장된 Tentative·Tracking 모두와 비교하여 첫 신규 Target 인덱스 선택 |
 | TrackSelector | selectObservation(requestId, resultTime, targets): 요청 표적을 조회하고 Matcher로 수신 Target 하나 선택 |
 | DetectionMatcher | matchesPosition: 탐색 중복 비교. matchesConfirmation: 확인 연관. matchesTracking: 추적 연관 |

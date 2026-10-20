@@ -1,6 +1,6 @@
 #pragma once
 
-#include <beam/dto/beam_command.hpp>
+#include <beam/dto/transmit_beam_command.hpp>
 #include <comm/error/comm_error.hpp>
 #include <comm/dto/incoming_dto.hpp>
 #include <target/dto/track_event.hpp>
@@ -47,7 +47,7 @@ public:
     std::optional<IncomingDto> receiveData();
 
     void sendBeamCommand(
-        const beam::BeamCommand& command
+        const beam::TransmitBeamCommand& command
     );
 
     void sendTrackEvents(

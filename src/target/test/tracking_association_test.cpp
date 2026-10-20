@@ -26,7 +26,7 @@ namespace
 using namespace math::literals;
 using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
-using BeamType = beam::BeamCommand::BeamType;
+using BeamType = beam::BeamType;
 
 math::SphericalPosition position(math::Length range)
 {

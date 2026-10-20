@@ -19,7 +19,7 @@ namespace
 using namespace math::literals;
 using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
-using BeamType = beam::BeamCommand::BeamType;
+using BeamType = beam::BeamType;
 
 math::Length range(std::uint32_t id)
 {
@@ -44,7 +44,7 @@ void addCandidates(TargetController& controller, std::uint32_t count)
     {
         const auto request = controller.handleDetection(result(BeamType::SEARCH, id, 0ms));
         ASSERT_TRUE(request) << "Candidate " << id;
-        EXPECT_EQ(request->beamType, beam::BeamRequest::BeamType::CONFIRMATION);
+        EXPECT_EQ(request->beamType, beam::RequestBeamType::CONFIRMATION);
         EXPECT_EQ(request->requestId, id);
         EXPECT_EQ(request->transmitTime, 100ms);
     }
@@ -56,7 +56,7 @@ void confirm(TargetController& controller, std::uint32_t first, std::uint32_t la
     {
         const auto request = controller.handleDetection(result(BeamType::CONFIRMATION, id, 100ms));
         ASSERT_TRUE(request) << "Confirmation " << id;
-        EXPECT_EQ(request->beamType, beam::BeamRequest::BeamType::TRACKING);
+        EXPECT_EQ(request->beamType, beam::RequestBeamType::TRACKING);
         EXPECT_EQ(request->requestId, id);
         EXPECT_EQ(request->transmitTime, 1100ms);
     }

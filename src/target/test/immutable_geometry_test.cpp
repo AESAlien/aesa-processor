@@ -55,7 +55,7 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
 
 TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
 {
-    using BeamType = beam::BeamCommand::BeamType;
+    using BeamType = beam::BeamType;
     for (double displacement : {0.0, 1.0})
     {
         target::TargetController controller(target::TargetConfig{});

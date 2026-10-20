@@ -1,12 +1,19 @@
 #include <beam/controller/beam_controller.hpp>
 
 #include "attitude/radar_attitude.hpp"
+#include "scheduler/beam_request_factory.hpp"
 #include "scheduler/scheduler.hpp"
 
 namespace beam
 {
 
-BeamController::BeamController() : _scheduler(std::make_unique<Scheduler>())
+BeamController::BeamController() : BeamController(BeamConfig{})
+{
+}
+
+BeamController::BeamController(const BeamConfig& config)
+    : _scheduler(std::make_unique<Scheduler>(config)),
+      _requestFactory(std::make_unique<BeamRequestFactory>(config.requestBeam()))
 {
 }
 
@@ -23,23 +30,23 @@ void BeamController::setOperationState(SetOperationStateCommand command)
 
 void BeamController::setAttitude(SetAttitudeCommand command)
 {
-    RadarAttitude attitude{};
-    attitude.latitude = command.latitude;
-    attitude.longitude = command.longitude;
-    attitude.altitude = command.altitude;
-    attitude.roll = command.roll;
-    attitude.pitch = command.pitch;
-    attitude.yaw = command.yaw;
-
-    _scheduler->setAttitude(attitude);
+    // 잘못된 자세정보이면 RadarAttitude 생성자가 AttitudeError를 던진다.
+    _scheduler->setAttitude(RadarAttitude(
+        command.latitude,
+        command.longitude,
+        command.altitude,
+        command.roll,
+        command.pitch,
+        command.yaw));
 }
 
-void BeamController::requestBeam(BeamRequest beamRequest)
+void BeamController::requestBeam(RequestBeamCommand command)
 {
-    _scheduler->addRequest(beamRequest);
+    // 잘못된 요청이면 팩토리가 std::invalid_argument를 던진다.
+    _scheduler->addRequest(_requestFactory->create(command));
 }
 
-std::optional<BeamCommand> BeamController::nextBeamCommand(std::chrono::milliseconds currentTime)
+std::optional<TransmitBeamCommand> BeamController::nextBeamCommand(std::chrono::milliseconds currentTime)
 {
     return _scheduler->next(currentTime);
 }

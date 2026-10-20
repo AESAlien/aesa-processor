@@ -39,7 +39,7 @@ double Angle::rad() const noexcept
     return value() * (PI / 180.0);
 }
 
-bool Angle::equals(
+bool Angle::isEquivalentTo(
     const Angle& other,
     const QuantityTolerance<Angle>& tolerance
 ) const noexcept {
@@ -49,23 +49,6 @@ bool Angle::equals(
     }
 
     return tolerance.isWithin(wrap180(*this), wrap180(other));
-}
-
-bool Angle::notEquals(
-    const Angle& other,
-    const QuantityTolerance<Angle>& tolerance
-) const noexcept {
-    return !equals(other, tolerance);
-}
-
-bool Angle::operator==(const Angle& other) const noexcept
-{
-    return equals(other);
-}
-
-bool Angle::operator!=(const Angle& other) const noexcept
-{
-    return notEquals(other);
 }
 
 Angle wrap180(Angle angle) noexcept

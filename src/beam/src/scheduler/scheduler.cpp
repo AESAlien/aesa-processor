@@ -1,91 +1,39 @@
 #include "scheduler/scheduler.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
-#include "beam/config/beam_config.hpp"
-
-#include <stdexcept>
 
 namespace beam
 {
 namespace
 {
-using namespace math::literals;
-
-void validate(const RequestBeamConfig& config)
-{
-    if (config.confirmationBeamWidth <= 0_deg || config.trackingBeamWidth <= 0_deg)
-    {
-        throw std::invalid_argument("RequestBeamConfig: beam width must be greater than 0");
-    }
-}
-
-void validate(const BeamRequest& request)
-{
-    if (request.beamType != BeamRequest::BeamType::CONFIRMATION &&
-        request.beamType != BeamRequest::BeamType::TRACKING)
-    {
-        throw std::invalid_argument("Unknown beam request type");
-    }
-}
-
-BeamCommand::BeamType toCommandBeamType(BeamRequest::BeamType beamType)
-{
-    switch (beamType)
-    {
-    case BeamRequest::BeamType::CONFIRMATION:
-        return BeamCommand::BeamType::CONFIRMATION;
-
-    case BeamRequest::BeamType::TRACKING:
-        return BeamCommand::BeamType::TRACKING;
-    }
-
-    throw std::invalid_argument("Unknown beam request type");
-}
-
-math::Angle requestBeamWidth(const RequestBeamConfig& config, BeamRequest::BeamType beamType)
-{
-    switch (beamType)
-    {
-    case BeamRequest::BeamType::CONFIRMATION:
-        return config.confirmationBeamWidth;
-    case BeamRequest::BeamType::TRACKING:
-        return config .trackingBeamWidth;
-    }
-
-    throw std::invalid_argument("Unkown beam request type");
-}
-
-BeamCommand makeSearchCommand(
-    const BeamInfo& beamInfo,
+TransmitBeamCommand makeSearchCommand(
+    const SearchBeam& searchBeam,
     std::chrono::milliseconds currentTime,
     std::uint32_t commandCount
 ) {
-    return BeamCommand::Builder()
-        .beamType(BeamCommand::BeamType::SEARCH)
+    return TransmitBeamCommand::Builder()
+        .beamType(BeamType::SEARCH)
         .transmitTime(currentTime)
-        .beamId(beamInfo.beamId)
+        .beamId(searchBeam.beamId)
         .commandCount(commandCount)
-        .azimuth_ant(beamInfo.azimuth_ant)
-        .elevation_ant(beamInfo.elevation_ant)
-        .azimuthBeamWidth(beamInfo.azimuthBeamWidth)
-        .elevationBeamWidth(beamInfo.elevationBeamWidth)
+        .direction_ant(searchBeam.direction_ant)
+        .azimuthBeamWidth(searchBeam.azimuthBeamWidth)
+        .elevationBeamWidth(searchBeam.elevationBeamWidth)
         .build();
 }
 
-BeamCommand makeRequestCommand(
+TransmitBeamCommand makeRequestCommand(
     const BeamRequest& request,
-    const RequestBeamConfig& config,
     std::chrono::milliseconds currentTime,
     std::uint32_t commandCount
 ) {
-    math::Angle width = requestBeamWidth(config, request.beamType);
-    return BeamCommand::Builder()
-        .beamType(toCommandBeamType(request.beamType))
+    const math::Angle width = request.beamWidth();
+    return TransmitBeamCommand::Builder()
+        .beamType(request.transmitBeamType())
         .transmitTime(currentTime)
-        .beamId(request.requestId)
+        .beamId(request.requestId())
         .commandCount(commandCount)
-        .azimuth_ant(request.azimuth_ant)
-        .elevation_ant(request.elevation_ant)
+        .direction_ant(request.direction_ant())
         .azimuthBeamWidth(width)
         .elevationBeamWidth(width)
         .build();
@@ -94,7 +42,6 @@ BeamCommand makeRequestCommand(
 
 Scheduler::Scheduler(const BeamConfig& config) : _config(config)
 {
-    validate(_config.requestBeam);
 }
 
 void Scheduler::setOperationState(OperationState state)
@@ -113,14 +60,16 @@ void Scheduler::setOperationState(OperationState state)
 
 void Scheduler::setAttitude(const RadarAttitude& attitude)
 {
-    if (_operationState != OperationState::ON || _beamTable.has_value())
+    // 설정에 의존하는 검증(짐벌락)도 운용 상태와 관계없이 수행해야 하므로 상태 확인보다 먼저 변환을 만든다.
+    // 예외가 발생해도 상태는 변하지 않는다.
+    const AntEnuTransform transform(attitude, _config.attitude());
+
+    if (_operationState != OperationState::ON || _searchGrid.has_value())
     {
         return;
     }
 
-    // 생성 중 예외가 발생하면 _beamTable은 비어 있는 채로 유지된다.
-    const AntEnuTransform transform(attitude, _config.attitude);
-    _beamTable.emplace(transform, _config.searchGrid);
+    _searchGrid.emplace(transform, _config.searchGrid());
 }
 
 void Scheduler::addRequest(const BeamRequest& request)
@@ -130,11 +79,10 @@ void Scheduler::addRequest(const BeamRequest& request)
         return;
     }
 
-    validate(request);
     _requestQueue.add(request);
 }
 
-std::optional<BeamCommand> Scheduler::next(std::chrono::milliseconds currentTime)
+std::optional<TransmitBeamCommand> Scheduler::next(std::chrono::milliseconds currentTime)
 {
     if (!isReady())
     {
@@ -145,24 +93,21 @@ std::optional<BeamCommand> Scheduler::next(std::chrono::milliseconds currentTime
 
     if (const std::optional<BeamRequest> request = _requestQueue.popNextDue(currentTime))
     {
-        return makeRequestCommand(*request, _config.requestBeam, currentTime, _commandCount);
+        return makeRequestCommand(*request, currentTime, _commandCount);
     }
 
-    const BeamInfo& beamInfo = _beamTable->get(_searchCursor);
-    _searchCursor = (_searchCursor + 1) % _beamTable->size();
-    return makeSearchCommand(beamInfo, currentTime, _commandCount);
+    return makeSearchCommand(_searchGrid->nextBeam(), currentTime, _commandCount);
 }
 
 bool Scheduler::isReady() const
 {
-    return _operationState == OperationState::ON && _beamTable.has_value();
+    return _operationState == OperationState::ON && _searchGrid.has_value();
 }
 
 void Scheduler::reset()
 {
-    _beamTable.reset();
+    _searchGrid.reset();
     _requestQueue.clear();
-    _searchCursor = 0;
     _commandCount = 0;
 }
 

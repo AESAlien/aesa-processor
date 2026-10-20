@@ -23,7 +23,7 @@ namespace
 using namespace math::literals;
 using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
-using BeamType = beam::BeamCommand::BeamType;
+using BeamType = beam::BeamType;
 
 static_assert(std::is_const_v<decltype(TargetConfig::maxAssociationSpeed)>);
 static_assert(std::is_const_v<decltype(TargetConfig::maxInitialDopplerDifference)>);

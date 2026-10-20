@@ -5,7 +5,7 @@ namespace beam
 
 void RequestQueue::add(const BeamRequest& request)
 {
-    _requests.emplace(request.transmitTime, request);
+    _requests.emplace(request.transmitTime(), request);
 }
 
 std::optional<BeamRequest> RequestQueue::popNextDue(std::chrono::milliseconds currentTime)
@@ -18,15 +18,14 @@ std::optional<BeamRequest> RequestQueue::popNextDue(std::chrono::milliseconds cu
         return std::nullopt;
     }
 
-    // 가장 이른 시각의 요청들 중 확인 빔이 있으면 그것을, 없으면 먼저 들어온 요청을 고른다.
-    const auto [first, last] = _requests.equal_range(_requests.begin()->first);
-    auto selected = first;
-    for (auto it = first; it != last; ++it)
+    // 가장 이른 시각의 요청들 중 우선순위가 가장 높은 요청을 고른다. 우선순위가 같으면 먼저 들어온 요청을 고른다.
+    const auto [earliestBegin, earliestEnd] = _requests.equal_range(_requests.begin()->first);
+    auto selected = earliestBegin;
+    for (auto candidate = earliestBegin; candidate != earliestEnd; ++candidate)
     {
-        if (it->second.beamType == BeamRequest::BeamType::CONFIRMATION)
+        if (candidate->second.priority() > selected->second.priority())
         {
-            selected = it;
-            break;
+            selected = candidate;
         }
     }
 
@@ -38,16 +37,6 @@ std::optional<BeamRequest> RequestQueue::popNextDue(std::chrono::milliseconds cu
 void RequestQueue::clear()
 {
     _requests.clear();
-}
-
-std::size_t RequestQueue::size() const
-{
-    return _requests.size();
-}
-
-bool RequestQueue::empty() const
-{
-    return _requests.empty();
 }
 
 } // namespace beam
