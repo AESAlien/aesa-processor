@@ -88,7 +88,8 @@ std::string validConfigText()
         "# Non-default values verify every mapping.\n"
         "BEAM_MAX_ABS_PITCH_DEG=60\n"
         "BEAM_MOUNT_ANT_TO_BODY_ROTATION=1, 0, 0, 0, 1, 0, 0, 0, 1\n"
-        "BEAM_MOUNT_ORTHOGONAL_TOLERANCE=0.00001\n"
+        "MOUNT_ORTHOGONAL_ABSOLUTE_TOLERANCE=0.00001\n"
+        "MOUNT_ORTHOGONAL_RELATIVE_TOLERANCE=0.00002\n"
         "BEAM_SEARCH_AZIMUTH_COUNT=3\n"
         "BEAM_SEARCH_ELEVATION_COUNT=2\n"
         "BEAM_SEARCH_AZIMUTH_START_DEG=-10\n"
@@ -165,8 +166,11 @@ TEST(AppConfigTest, LoadsEveryConfigurationValue)
 
     EXPECT_EQ(config.beamConfig.attitude.maxAbsPitch, 60_deg);
     EXPECT_DOUBLE_EQ(
-        config.beamConfig.attitude.mountOrthogonalTolerance,
+        config.beamConfig.attitude.mountOrthogonalTolerance.absolute,
         0.00001);
+    EXPECT_DOUBLE_EQ(
+        config.beamConfig.attitude.mountOrthogonalTolerance.relative,
+        0.00002);
     EXPECT_EQ(
         config.beamConfig.attitude.mountAntToBodyRotation,
         math::SquareMatrix::identity(3));
@@ -228,6 +232,16 @@ TEST(AppConfigTest, LoadsConfigurationFromEnvFilePath)
     EXPECT_EQ(config.beamConfig.searchGrid.azimuthCount, 3u);
     EXPECT_EQ(config.targetConfig.maxReportedTrackCount, 75u);
     EXPECT_EQ(config.commConfig.server.port, 43200);
+}
+
+TEST(AppConfigTest, MissingRelativeMountOrthogonalToleranceThrows)
+{
+    const std::string content = removeKey(
+        validConfigText(),
+        "MOUNT_ORTHOGONAL_RELATIVE_TOLERANCE");
+    const TemporaryEnvFile file(content);
+
+    EXPECT_THROW(loadConfig(file.path()), std::runtime_error);
 }
 
 TEST(AppConfigTest, ParsesQuotedValuesAndInlineComments)

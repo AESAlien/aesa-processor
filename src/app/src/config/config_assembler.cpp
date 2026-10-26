@@ -3,6 +3,7 @@
 #include <math/quantity/angle.hpp>
 #include <math/quantity/length.hpp>
 #include <math/quantity/linear_velocity.hpp>
+#include <math/tolerance.hpp>
 
 #include <chrono>
 #include <cstddef>
@@ -36,24 +37,40 @@ beam::BeamConfig ConfigAssembler::createBeamConfig()
 {
     try
     {
-        const double MAX_ABS_PITCH_DEG = _reader.requireDouble("BEAM_MAX_ABS_PITCH_DEG");
-        const math::SquareMatrix MOUNT_ANT_TO_BODY_ROTATION = _reader.requireSquareMatrix("BEAM_MOUNT_ANT_TO_BODY_ROTATION", 3);
-        const double MOUNT_ORTHOGONAL_TOLERANCE = _reader.requireDouble("BEAM_MOUNT_ORTHOGONAL_TOLERANCE");
-        const std::size_t SEARCH_AZIMUTH_COUNT = _reader.requireUnsigned<std::size_t>("BEAM_SEARCH_AZIMUTH_COUNT");
-        const std::size_t SEARCH_ELEVATION_COUNT = _reader.requireUnsigned<std::size_t>("BEAM_SEARCH_ELEVATION_COUNT");
-        const double SEARCH_AZIMUTH_START_DEG = _reader.requireDouble("BEAM_SEARCH_AZIMUTH_START_DEG");
-        const double SEARCH_AZIMUTH_STEP_DEG = _reader.requireDouble("BEAM_SEARCH_AZIMUTH_STEP_DEG");
-        const double SEARCH_ELEVATION_START_DEG = _reader.requireDouble("BEAM_SEARCH_ELEVATION_START_DEG");
-        const double SEARCH_ELEVATION_STEP_DEG = _reader.requireDouble("BEAM_SEARCH_ELEVATION_STEP_DEG");
-        const double SEARCH_WIDTH_DEG = _reader.requireDouble("BEAM_SEARCH_WIDTH_DEG");
-        const double CONFIRMATION_WIDTH_DEG = _reader.requireDouble("BEAM_CONFIRMATION_WIDTH_DEG");
-        const double TRACKING_WIDTH_DEG = _reader.requireDouble("BEAM_TRACKING_WIDTH_DEG");
+        const double MAX_ABS_PITCH_DEG =
+            _reader.requireDouble("BEAM_MAX_ABS_PITCH_DEG");
+        const math::SquareMatrix MOUNT_ANT_TO_BODY_ROTATION =
+            _reader.requireSquareMatrix("BEAM_MOUNT_ANT_TO_BODY_ROTATION", 3);
+        const double MOUNT_ORTHOGONAL_ABSOLUTE_TOLERANCE =
+            _reader.requireDouble("MOUNT_ORTHOGONAL_ABSOLUTE_TOLERANCE");
+        const double MOUNT_ORTHOGONAL_RELATIVE_TOLERANCE =
+            _reader.requireDouble("MOUNT_ORTHOGONAL_RELATIVE_TOLERANCE");
+        const std::size_t SEARCH_AZIMUTH_COUNT =
+            _reader.requireUnsigned<std::size_t>("BEAM_SEARCH_AZIMUTH_COUNT");
+        const std::size_t SEARCH_ELEVATION_COUNT =
+            _reader.requireUnsigned<std::size_t>("BEAM_SEARCH_ELEVATION_COUNT");
+        const double SEARCH_AZIMUTH_START_DEG =
+            _reader.requireDouble("BEAM_SEARCH_AZIMUTH_START_DEG");
+        const double SEARCH_AZIMUTH_STEP_DEG =
+            _reader.requireDouble("BEAM_SEARCH_AZIMUTH_STEP_DEG");
+        const double SEARCH_ELEVATION_START_DEG =
+            _reader.requireDouble("BEAM_SEARCH_ELEVATION_START_DEG");
+        const double SEARCH_ELEVATION_STEP_DEG =
+            _reader.requireDouble("BEAM_SEARCH_ELEVATION_STEP_DEG");
+        const double SEARCH_WIDTH_DEG =
+            _reader.requireDouble("BEAM_SEARCH_WIDTH_DEG");
+        const double CONFIRMATION_WIDTH_DEG =
+            _reader.requireDouble("BEAM_CONFIRMATION_WIDTH_DEG");
+        const double TRACKING_WIDTH_DEG =
+            _reader.requireDouble("BEAM_TRACKING_WIDTH_DEG");
 
         return beam::BeamConfig(
             beam::AttitudeConfig(
                 math::Angle::fromDegrees(MAX_ABS_PITCH_DEG),
                 MOUNT_ANT_TO_BODY_ROTATION,
-                MOUNT_ORTHOGONAL_TOLERANCE),
+                math::Tolerance{
+                    MOUNT_ORTHOGONAL_ABSOLUTE_TOLERANCE,
+                    MOUNT_ORTHOGONAL_RELATIVE_TOLERANCE}),
             beam::SearchGridConfig(
                 SEARCH_AZIMUTH_COUNT,
                 SEARCH_ELEVATION_COUNT,

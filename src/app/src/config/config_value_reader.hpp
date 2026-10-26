@@ -67,6 +67,7 @@ public:
     void ensureAllConsumed() const;
 
 private:
+    double parseDouble(const std::string& text, const char* key) const;
     unsigned long long requireUnsignedValue(const char* key);
 
     std::unordered_map<std::string, std::string> _configValues;

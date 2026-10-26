@@ -35,7 +35,13 @@ const std::string& ConfigValueReader::requireString(const char* key)
 
 double ConfigValueReader::requireDouble(const char* key)
 {
-    const std::string& text = requireString(key);
+    return parseDouble(requireString(key), key);
+}
+
+double ConfigValueReader::parseDouble(
+    const std::string& text,
+    const char* key) const
+{
     std::size_t parsedLength = 0;
     double value = 0.0;
     try

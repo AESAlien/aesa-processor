@@ -208,7 +208,8 @@ TEST(AttitudeConfigTest, DefaultsMatchOperationalValues)
     const beam::AttitudeConfig config;
 
     EXPECT_EQ(config.maxAbsPitch, 89_deg);
-    EXPECT_EQ(config.mountOrthogonalTolerance, 1e-6);
+    EXPECT_EQ(config.mountOrthogonalTolerance.absolute, 1e-6);
+    EXPECT_EQ(config.mountOrthogonalTolerance.relative, 0.0);
     ASSERT_EQ(config.mountAntToBodyRotation.size(), 3u);
     EXPECT_TRUE(config.mountAntToBodyRotation.isRotation(math::Tolerance{1e-12, 0.0}));
 }
@@ -219,11 +220,12 @@ TEST(AttitudeConfigTest, BuilderOverridesGivenValues)
     const beam::AttitudeConfig config = attitudeBuilder()
         .maxAbsPitch(80_deg)
         .mountAntToBodyRotation(mount)
-        .mountOrthogonalTolerance(1e-3)
+        .mountOrthogonalTolerance(math::Tolerance{1e-3, 2e-3})
         .build();
 
     EXPECT_EQ(config.maxAbsPitch, 80_deg);
-    EXPECT_EQ(config.mountOrthogonalTolerance, 1e-3);
+    EXPECT_EQ(config.mountOrthogonalTolerance.absolute, 1e-3);
+    EXPECT_EQ(config.mountOrthogonalTolerance.relative, 2e-3);
     EXPECT_EQ(config.mountAntToBodyRotation(0, 1), -1.0);
     EXPECT_EQ(config.mountAntToBodyRotation(1, 0), 1.0);
 }
@@ -277,19 +279,46 @@ TEST(AttitudeConfigTest, MountOrthogonalityUsesConfiguredTolerance)
 {
     const math::SquareMatrix skewed{{1, 0.1, 0}, {0, 1, 0}, {0, 0, 1}};
 
-    EXPECT_NO_THROW(attitudeBuilder().mountAntToBodyRotation(skewed).mountOrthogonalTolerance(0.2).build());
+    EXPECT_NO_THROW(attitudeBuilder()
+        .mountAntToBodyRotation(skewed)
+        .mountOrthogonalTolerance(math::Tolerance{0.2, 0.0})
+        .build());
     EXPECT_THROW(
-        attitudeBuilder().mountAntToBodyRotation(skewed).mountOrthogonalTolerance(0.05).build(),
+        attitudeBuilder()
+            .mountAntToBodyRotation(skewed)
+            .mountOrthogonalTolerance(math::Tolerance{0.05, 0.0})
+            .build(),
+        std::invalid_argument);
+}
+
+TEST(AttitudeConfigTest, MountRotationUsesRelativeTolerance)
+{
+    const math::SquareMatrix slightlyScaled{
+        {1.0005, 0, 0},
+        {0, 1, 0},
+        {0, 0, 1}};
+
+    EXPECT_NO_THROW(attitudeBuilder()
+        .mountAntToBodyRotation(slightlyScaled)
+        .mountOrthogonalTolerance(math::Tolerance{0.0, 0.002})
+        .build());
+    EXPECT_THROW(attitudeBuilder()
+        .mountAntToBodyRotation(slightlyScaled)
+        .mountOrthogonalTolerance(math::Tolerance{0.0, 0.0})
+        .build(),
         std::invalid_argument);
 }
 
 TEST(AttitudeConfigTest, InvalidMountOrthogonalToleranceThrows)
 {
-    EXPECT_NO_THROW(attitudeBuilder().mountOrthogonalTolerance(0.0).build());
+    EXPECT_NO_THROW(
+        attitudeBuilder().mountOrthogonalTolerance(math::Tolerance{0.0, 0.0}).build());
 
     for (double tolerance : {-1.0, NAN_VALUE, INF_VALUE})
     {
-        EXPECT_THROW(attitudeBuilder().mountOrthogonalTolerance(tolerance).build(), std::invalid_argument)
+        EXPECT_THROW((math::Tolerance{tolerance, 0.0}), std::invalid_argument)
+            << "tolerance=" << tolerance;
+        EXPECT_THROW((math::Tolerance{0.0, tolerance}), std::invalid_argument)
             << "tolerance=" << tolerance;
     }
 }
@@ -310,13 +339,26 @@ TEST(AttitudeConfigTest, MaxAbsPitchRejectsAnglesEquivalentToNinetyDegreesByPeri
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(450_deg).build(), std::invalid_argument);
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(810_deg).build(), std::invalid_argument);
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(-270_deg).build(), std::invalid_argument);
-    EXPECT_THROW(beam::AttitudeConfig(450_deg, math::SquareMatrix::identity(3), 1e-6), std::invalid_argument);
+    EXPECT_THROW(
+        beam::AttitudeConfig(
+            450_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        std::invalid_argument);
 }
 
 TEST(AttitudeConfigTest, ConstructorValidatesLikeBuilder)
 {
-    EXPECT_NO_THROW(beam::AttitudeConfig(89_deg, math::SquareMatrix::identity(3), 1e-6));
-    EXPECT_THROW(beam::AttitudeConfig(89_deg, math::SquareMatrix::identity(2), 1e-6), std::invalid_argument);
+    EXPECT_NO_THROW(beam::AttitudeConfig(
+        89_deg,
+        math::SquareMatrix::identity(3),
+        math::Tolerance{1e-6, 0.0}));
+    EXPECT_THROW(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(2),
+            math::Tolerance{1e-6, 0.0}),
+        std::invalid_argument);
 }
 
 // ================================================================ RequestBeamConfig
