@@ -1,4 +1,5 @@
 add_library(comm STATIC
+    src/config/comm_config.cpp
     src/controller/comm_controller.cpp
     src/controller/comm_error_handler.cpp
     src/network/message_decoder/message_decoder.cpp
@@ -42,6 +43,13 @@ if(BUILD_TESTING)
 
     find_package(GTest REQUIRED)
     include(GoogleTest)
+
+    add_executable(comm_config_test test/comm_config_test.cpp)
+    target_link_libraries(comm_config_test PRIVATE
+        comm
+        GTest::gtest_main
+    )
+    gtest_discover_tests(comm_config_test)
 
     add_executable(comm_error_handler_test test/comm_error_handler_test.cpp)
     target_include_directories(comm_error_handler_test PRIVATE

@@ -62,8 +62,8 @@ private:
 } // namespace
 
 RequestBeamPolicyFactory::RequestBeamPolicyFactory(const RequestBeamConfig& config)
-    : _confirmationPolicy(std::make_shared<const ConfirmationBeamPolicy>(config.confirmationBeamWidth())),
-      _trackingPolicy(std::make_shared<const TrackingBeamPolicy>(config.trackingBeamWidth()))
+    : _confirmationPolicy(std::make_shared<const ConfirmationBeamPolicy>(config.confirmationBeamWidth)),
+      _trackingPolicy(std::make_shared<const TrackingBeamPolicy>(config.trackingBeamWidth))
 {
 }
 

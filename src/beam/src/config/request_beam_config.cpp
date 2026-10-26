@@ -5,32 +5,20 @@
 namespace beam
 {
 
-RequestBeamConfig::RequestBeamConfig() : RequestBeamConfig(Builder().build())
-{
-}
+using namespace math::literals;
 
 RequestBeamConfig::RequestBeamConfig(
     math::Angle confirmationBeamWidth,
     math::Angle trackingBeamWidth
-) : _confirmationBeamWidth(confirmationBeamWidth),
-    _trackingBeamWidth(trackingBeamWidth)
+) : confirmationBeamWidth(confirmationBeamWidth),
+    trackingBeamWidth(trackingBeamWidth)
 {
     validate();
 }
 
-math::Angle RequestBeamConfig::confirmationBeamWidth() const noexcept
-{
-    return _confirmationBeamWidth;
-}
-
-math::Angle RequestBeamConfig::trackingBeamWidth() const noexcept
-{
-    return _trackingBeamWidth;
-}
-
 void RequestBeamConfig::validate() const
 {
-    if (_confirmationBeamWidth <= 0_deg || _trackingBeamWidth <= 0_deg)
+    if (confirmationBeamWidth <= 0_deg || trackingBeamWidth <= 0_deg)
     {
         throw std::invalid_argument("RequestBeamConfig: beam width must be greater than 0");
     }
@@ -38,7 +26,12 @@ void RequestBeamConfig::validate() const
 
 RequestBeamConfig RequestBeamConfig::Builder::build() const
 {
-    return RequestBeamConfig(_confirmationBeamWidth, _trackingBeamWidth);
+    if (!_confirmationBeamWidth || !_trackingBeamWidth)
+    {
+        throw std::logic_error("RequestBeamConfig::Builder requires every value");
+    }
+
+    return RequestBeamConfig(*_confirmationBeamWidth, *_trackingBeamWidth);
 }
 
 } // namespace beam

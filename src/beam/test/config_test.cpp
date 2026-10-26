@@ -3,16 +3,23 @@
 #include <beam/config/request_beam_config.hpp>
 #include <beam/config/search_grid_config.hpp>
 
+
 #include <gtest/gtest.h>
 
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <type_traits>
 
 using namespace math::literals;
 
 namespace
 {
+
+static_assert(!std::is_copy_assignable_v<beam::AttitudeConfig>);
+static_assert(!std::is_copy_assignable_v<beam::SearchGridConfig>);
+static_assert(!std::is_copy_assignable_v<beam::RequestBeamConfig>);
+static_assert(!std::is_copy_assignable_v<beam::BeamConfig>);
 
 const double NAN_VALUE = std::numeric_limits<double>::quiet_NaN();
 const double INF_VALUE = std::numeric_limits<double>::infinity();
@@ -23,48 +30,38 @@ const math::Angle MAX_ANGLE = math::Angle::fromDegrees(MAX_VALUE);
 
 beam::AttitudeConfig::Builder attitudeBuilder()
 {
-    return beam::AttitudeConfig::Builder();
+    return beam::AttitudeConfig::Builder()
+        .maxAbsPitch(89_deg)
+        .mountAntToBodyRotation(math::SquareMatrix::identity(3))
+        .mountOrthogonalTolerance(math::Tolerance{1e-6, 0.0});
 }
 
 beam::SearchGridConfig::Builder gridBuilder()
 {
-    return beam::SearchGridConfig::Builder();
+    return beam::SearchGridConfig::Builder()
+        .azimuthCount(21)
+        .elevationCount(9)
+        .azimuthStart(-42_deg)
+        .azimuthStep(4.2_deg)
+        .elevationStart(3_deg)
+        .elevationStep(4.4_deg)
+        .beamWidth(6_deg);
 }
 
 beam::RequestBeamConfig::Builder requestBuilder()
 {
-    return beam::RequestBeamConfig::Builder();
+    return beam::RequestBeamConfig::Builder()
+        .confirmationBeamWidth(3_deg)
+        .trackingBeamWidth(3_deg);
 }
 
 } // namespace
 
 // ================================================================ SearchGridConfig
 
-TEST(SearchGridConfigTest, DefaultsMatchOperationalGrid)
+TEST(SearchGridConfigTest, BuilderRequiresEveryValue)
 {
-    const beam::SearchGridConfig config;
-
-    EXPECT_EQ(config.azimuthCount(), 21u);
-    EXPECT_EQ(config.elevationCount(), 9u);
-    EXPECT_EQ(config.azimuthStart(), -42_deg);
-    EXPECT_EQ(config.azimuthStep(), 4.2_deg);
-    EXPECT_EQ(config.elevationStart(), 3_deg);
-    EXPECT_EQ(config.elevationStep(), 4.4_deg);
-    EXPECT_EQ(config.beamWidth(), 6_deg);
-}
-
-TEST(SearchGridConfigTest, BuilderDefaultsEqualDefaultConstructor)
-{
-    const beam::SearchGridConfig fromBuilder = gridBuilder().build();
-    const beam::SearchGridConfig fromDefault;
-
-    EXPECT_EQ(fromBuilder.azimuthCount(), fromDefault.azimuthCount());
-    EXPECT_EQ(fromBuilder.elevationCount(), fromDefault.elevationCount());
-    EXPECT_EQ(fromBuilder.azimuthStart(), fromDefault.azimuthStart());
-    EXPECT_EQ(fromBuilder.azimuthStep(), fromDefault.azimuthStep());
-    EXPECT_EQ(fromBuilder.elevationStart(), fromDefault.elevationStart());
-    EXPECT_EQ(fromBuilder.elevationStep(), fromDefault.elevationStep());
-    EXPECT_EQ(fromBuilder.beamWidth(), fromDefault.beamWidth());
+    EXPECT_THROW(beam::SearchGridConfig::Builder().build(), std::logic_error);
 }
 
 TEST(SearchGridConfigTest, BuilderOverridesOnlyGivenValues)
@@ -79,17 +76,17 @@ TEST(SearchGridConfigTest, BuilderOverridesOnlyGivenValues)
         .beamWidth(4_deg)
         .build();
 
-    EXPECT_EQ(config.azimuthCount(), 3u);
-    EXPECT_EQ(config.elevationCount(), 2u);
-    EXPECT_EQ(config.azimuthStart(), -10_deg);
-    EXPECT_EQ(config.azimuthStep(), 5_deg);
-    EXPECT_EQ(config.elevationStart(), 1_deg);
-    EXPECT_EQ(config.elevationStep(), 2_deg);
-    EXPECT_EQ(config.beamWidth(), 4_deg);
+    EXPECT_EQ(config.azimuthCount, 3u);
+    EXPECT_EQ(config.elevationCount, 2u);
+    EXPECT_EQ(config.azimuthStart, -10_deg);
+    EXPECT_EQ(config.azimuthStep, 5_deg);
+    EXPECT_EQ(config.elevationStart, 1_deg);
+    EXPECT_EQ(config.elevationStep, 2_deg);
+    EXPECT_EQ(config.beamWidth, 4_deg);
 
     const beam::SearchGridConfig partial = gridBuilder().azimuthCount(5).build();
-    EXPECT_EQ(partial.azimuthCount(), 5u);
-    EXPECT_EQ(partial.elevationCount(), 9u);
+    EXPECT_EQ(partial.azimuthCount, 5u);
+    EXPECT_EQ(partial.elevationCount, 9u);
 }
 
 TEST(SearchGridConfigTest, ConstructorValidatesLikeBuilder)
@@ -197,14 +194,9 @@ TEST(SearchGridConfigTest, AzimuthBeyondHalfTurnIsAccepted)
 
 // ================================================================ AttitudeConfig
 
-TEST(AttitudeConfigTest, DefaultsMatchOperationalValues)
+TEST(AttitudeConfigTest, BuilderRequiresEveryValue)
 {
-    const beam::AttitudeConfig config;
-
-    EXPECT_EQ(config.maxAbsPitch(), 89_deg);
-    EXPECT_EQ(config.mountOrthogonalTolerance(), 1e-6);
-    ASSERT_EQ(config.mountAntToBodyRotation().size(), 3u);
-    EXPECT_TRUE(config.mountAntToBodyRotation().isRotation(math::Tolerance{1e-12, 0.0}));
+    EXPECT_THROW(beam::AttitudeConfig::Builder().build(), std::logic_error);
 }
 
 TEST(AttitudeConfigTest, BuilderOverridesGivenValues)
@@ -213,13 +205,14 @@ TEST(AttitudeConfigTest, BuilderOverridesGivenValues)
     const beam::AttitudeConfig config = attitudeBuilder()
         .maxAbsPitch(80_deg)
         .mountAntToBodyRotation(mount)
-        .mountOrthogonalTolerance(1e-3)
+        .mountOrthogonalTolerance(math::Tolerance{1e-3, 2e-3})
         .build();
 
-    EXPECT_EQ(config.maxAbsPitch(), 80_deg);
-    EXPECT_EQ(config.mountOrthogonalTolerance(), 1e-3);
-    EXPECT_EQ(config.mountAntToBodyRotation()(0, 1), -1.0);
-    EXPECT_EQ(config.mountAntToBodyRotation()(1, 0), 1.0);
+    EXPECT_EQ(config.maxAbsPitch, 80_deg);
+    EXPECT_EQ(config.mountOrthogonalTolerance.absolute, 1e-3);
+    EXPECT_EQ(config.mountOrthogonalTolerance.relative, 2e-3);
+    EXPECT_EQ(config.mountAntToBodyRotation(0, 1), -1.0);
+    EXPECT_EQ(config.mountAntToBodyRotation(1, 0), 1.0);
 }
 
 TEST(AttitudeConfigTest, AcceptsRotationMount)
@@ -271,19 +264,46 @@ TEST(AttitudeConfigTest, MountOrthogonalityUsesConfiguredTolerance)
 {
     const math::SquareMatrix skewed{{1, 0.1, 0}, {0, 1, 0}, {0, 0, 1}};
 
-    EXPECT_NO_THROW(attitudeBuilder().mountAntToBodyRotation(skewed).mountOrthogonalTolerance(0.2).build());
+    EXPECT_NO_THROW(attitudeBuilder()
+        .mountAntToBodyRotation(skewed)
+        .mountOrthogonalTolerance(math::Tolerance{0.2, 0.0})
+        .build());
     EXPECT_THROW(
-        attitudeBuilder().mountAntToBodyRotation(skewed).mountOrthogonalTolerance(0.05).build(),
+        attitudeBuilder()
+            .mountAntToBodyRotation(skewed)
+            .mountOrthogonalTolerance(math::Tolerance{0.05, 0.0})
+            .build(),
+        std::invalid_argument);
+}
+
+TEST(AttitudeConfigTest, MountRotationUsesRelativeTolerance)
+{
+    const math::SquareMatrix slightlyScaled{
+        {1.0005, 0, 0},
+        {0, 1, 0},
+        {0, 0, 1}};
+
+    EXPECT_NO_THROW(attitudeBuilder()
+        .mountAntToBodyRotation(slightlyScaled)
+        .mountOrthogonalTolerance(math::Tolerance{0.0, 0.002})
+        .build());
+    EXPECT_THROW(attitudeBuilder()
+        .mountAntToBodyRotation(slightlyScaled)
+        .mountOrthogonalTolerance(math::Tolerance{0.0, 0.0})
+        .build(),
         std::invalid_argument);
 }
 
 TEST(AttitudeConfigTest, InvalidMountOrthogonalToleranceThrows)
 {
-    EXPECT_NO_THROW(attitudeBuilder().mountOrthogonalTolerance(0.0).build());
+    EXPECT_NO_THROW(
+        attitudeBuilder().mountOrthogonalTolerance(math::Tolerance{0.0, 0.0}).build());
 
     for (double tolerance : {-1.0, NAN_VALUE, INF_VALUE})
     {
-        EXPECT_THROW(attitudeBuilder().mountOrthogonalTolerance(tolerance).build(), std::invalid_argument)
+        EXPECT_THROW((math::Tolerance{tolerance, 0.0}), std::invalid_argument)
+            << "tolerance=" << tolerance;
+        EXPECT_THROW((math::Tolerance{0.0, tolerance}), std::invalid_argument)
             << "tolerance=" << tolerance;
     }
 }
@@ -304,23 +324,33 @@ TEST(AttitudeConfigTest, MaxAbsPitchRejectsAnglesEquivalentToNinetyDegreesByPeri
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(450_deg).build(), std::invalid_argument);
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(810_deg).build(), std::invalid_argument);
     EXPECT_THROW(attitudeBuilder().maxAbsPitch(-270_deg).build(), std::invalid_argument);
-    EXPECT_THROW(beam::AttitudeConfig(450_deg, math::SquareMatrix::identity(3), 1e-6), std::invalid_argument);
+    EXPECT_THROW(
+        beam::AttitudeConfig(
+            450_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        std::invalid_argument);
 }
 
 TEST(AttitudeConfigTest, ConstructorValidatesLikeBuilder)
 {
-    EXPECT_NO_THROW(beam::AttitudeConfig(89_deg, math::SquareMatrix::identity(3), 1e-6));
-    EXPECT_THROW(beam::AttitudeConfig(89_deg, math::SquareMatrix::identity(2), 1e-6), std::invalid_argument);
+    EXPECT_NO_THROW(beam::AttitudeConfig(
+        89_deg,
+        math::SquareMatrix::identity(3),
+        math::Tolerance{1e-6, 0.0}));
+    EXPECT_THROW(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(2),
+            math::Tolerance{1e-6, 0.0}),
+        std::invalid_argument);
 }
 
 // ================================================================ RequestBeamConfig
 
-TEST(RequestBeamConfigTest, DefaultsAreThreeDegrees)
+TEST(RequestBeamConfigTest, BuilderRequiresEveryValue)
 {
-    const beam::RequestBeamConfig config;
-
-    EXPECT_EQ(config.confirmationBeamWidth(), 3_deg);
-    EXPECT_EQ(config.trackingBeamWidth(), 3_deg);
+    EXPECT_THROW(beam::RequestBeamConfig::Builder().build(), std::logic_error);
 }
 
 TEST(RequestBeamConfigTest, BuilderOverridesGivenValues)
@@ -330,8 +360,8 @@ TEST(RequestBeamConfigTest, BuilderOverridesGivenValues)
         .trackingBeamWidth(4_deg)
         .build();
 
-    EXPECT_EQ(config.confirmationBeamWidth(), 2_deg);
-    EXPECT_EQ(config.trackingBeamWidth(), 4_deg);
+    EXPECT_EQ(config.confirmationBeamWidth, 2_deg);
+    EXPECT_EQ(config.trackingBeamWidth, 4_deg);
 }
 
 TEST(RequestBeamConfigTest, NonPositiveBeamWidthThrows)
@@ -350,26 +380,25 @@ TEST(RequestBeamConfigTest, ConstructorValidatesLikeBuilder)
 
 // ================================================================ BeamConfig
 
-TEST(BeamConfigTest, DefaultsComposeDefaultSubConfigs)
+TEST(BeamConfigTest, BuilderRequiresEveryValue)
 {
-    const beam::BeamConfig config;
-
-    EXPECT_EQ(config.attitude().maxAbsPitch(), 89_deg);
-    EXPECT_EQ(config.searchGrid().azimuthCount(), 21u);
-    EXPECT_EQ(config.requestBeam().trackingBeamWidth(), 3_deg);
+    EXPECT_THROW(beam::BeamConfig::Builder().build(), std::logic_error);
 }
 
 TEST(BeamConfigTest, BuilderReplacesOnlyGivenSubConfigs)
 {
     const beam::BeamConfig config = beam::BeamConfig::Builder()
+        .attitudeConfig(attitudeBuilder().build())
+        .searchGridConfig(gridBuilder().build())
+        .requestBeamConfig(requestBuilder().build())
         .searchGridConfig(gridBuilder().azimuthCount(5).build())
         .requestBeamConfig(requestBuilder().trackingBeamWidth(4_deg).build())
         .build();
 
-    EXPECT_EQ(config.searchGrid().azimuthCount(), 5u);
-    EXPECT_EQ(config.requestBeam().trackingBeamWidth(), 4_deg);
-    EXPECT_EQ(config.requestBeam().confirmationBeamWidth(), 3_deg);
-    EXPECT_EQ(config.attitude().maxAbsPitch(), 89_deg);
+    EXPECT_EQ(config.searchGrid.azimuthCount, 5u);
+    EXPECT_EQ(config.requestBeam.trackingBeamWidth, 4_deg);
+    EXPECT_EQ(config.requestBeam.confirmationBeamWidth, 3_deg);
+    EXPECT_EQ(config.attitude.maxAbsPitch, 89_deg);
 }
 
 TEST(BeamConfigTest, ConstructorKeepsGivenSubConfigs)
@@ -379,7 +408,7 @@ TEST(BeamConfigTest, ConstructorKeepsGivenSubConfigs)
         gridBuilder().elevationCount(4).build(),
         requestBuilder().confirmationBeamWidth(2_deg).build());
 
-    EXPECT_EQ(config.attitude().maxAbsPitch(), 70_deg);
-    EXPECT_EQ(config.searchGrid().elevationCount(), 4u);
-    EXPECT_EQ(config.requestBeam().confirmationBeamWidth(), 2_deg);
+    EXPECT_EQ(config.attitude.maxAbsPitch, 70_deg);
+    EXPECT_EQ(config.searchGrid.elevationCount, 4u);
+    EXPECT_EQ(config.requestBeam.confirmationBeamWidth, 2_deg);
 }

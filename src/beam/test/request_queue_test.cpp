@@ -16,7 +16,8 @@ beam::BeamRequest makeRequest(
     std::chrono::milliseconds transmitTime,
     math::Angle azimuth = 0_deg
 ) {
-    static const beam::RequestBeamPolicyFactory factory{beam::RequestBeamConfig{}};
+    static const beam::RequestBeamPolicyFactory factory{
+        beam::RequestBeamConfig(3_deg, 3_deg)};
     return beam::BeamRequest(factory.create(beamType), transmitTime, 1, math::SphericalDirection(azimuth, 0_deg));
 }
 

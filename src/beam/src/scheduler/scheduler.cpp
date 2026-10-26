@@ -62,14 +62,14 @@ void Scheduler::setAttitude(const RadarAttitude& attitude)
 {
     // 설정에 의존하는 검증(짐벌락)도 운용 상태와 관계없이 수행해야 하므로 상태 확인보다 먼저 변환을 만든다.
     // 예외가 발생해도 상태는 변하지 않는다.
-    const AntEnuTransform transform(attitude, _config.attitude());
+    const AntEnuTransform transform(attitude, _config.attitude);
 
     if (_operationState != OperationState::ON || _searchGrid.has_value())
     {
         return;
     }
 
-    _searchGrid.emplace(transform, _config.searchGrid());
+    _searchGrid.emplace(transform, _config.searchGrid);
 }
 
 void Scheduler::addRequest(const BeamRequest& request)

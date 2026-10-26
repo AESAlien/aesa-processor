@@ -21,6 +21,8 @@ beam::BeamRequestFactory makeFactory()
 {
     return beam::BeamRequestFactory(
         beam::RequestBeamConfig::Builder()
+            .confirmationBeamWidth(3_deg)
+            .trackingBeamWidth(3_deg)
             .confirmationBeamWidth(4_deg)
             .trackingBeamWidth(2_deg)
             .build());

@@ -19,13 +19,19 @@ namespace
 constexpr std::size_t AZIMUTH_COUNT = 21;
 constexpr std::size_t ELEVATION_COUNT = 9;
 
-const beam::SearchGridConfig DEFAULT_GRID_CONFIG{};
+const beam::SearchGridConfig DEFAULT_GRID_CONFIG(
+    21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg);
 
 beam::AntEnuTransform makeValidTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     const beam::RadarAttitude attitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
 
-    return beam::AntEnuTransform(attitude, beam::AttitudeConfig{});
+    return beam::AntEnuTransform(
+        attitude,
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}));
 }
 
 // 새 격자를 처음부터 한 바퀴 돌며 모든 빔을 탐색 순서대로 꺼낸다.
@@ -34,7 +40,7 @@ std::vector<beam::SearchBeam> takeAllBeams(
     const beam::SearchGridConfig& config = DEFAULT_GRID_CONFIG
 ) {
     beam::SearchGrid grid(transform, config);
-    const std::size_t beamCount = config.azimuthCount() * config.elevationCount();
+    const std::size_t beamCount = config.azimuthCount * config.elevationCount;
 
     std::vector<beam::SearchBeam> beams;
     beams.reserve(beamCount);
@@ -203,6 +209,13 @@ TEST(SearchGridTest, DifferentAttitudeProducesDifferentGrid)
 TEST(SearchGridTest, CustomGridChangesBeamCountAndIds)
 {
     const beam::SearchGridConfig config = beam::SearchGridConfig::Builder()
+        .azimuthCount(21)
+        .elevationCount(9)
+        .azimuthStart(-42_deg)
+        .azimuthStep(4.2_deg)
+        .elevationStart(3_deg)
+        .elevationStep(4.4_deg)
+        .beamWidth(6_deg)
         .azimuthCount(3)
         .elevationCount(2)
         .build();
@@ -220,6 +233,13 @@ TEST(SearchGridTest, CustomGridChangesBeamCountAndIds)
 TEST(SearchGridTest, CustomGridUsesConfiguredStartStepAndWidth)
 {
     const beam::SearchGridConfig config = beam::SearchGridConfig::Builder()
+        .azimuthCount(21)
+        .elevationCount(9)
+        .azimuthStart(-42_deg)
+        .azimuthStep(4.2_deg)
+        .elevationStart(3_deg)
+        .elevationStep(4.4_deg)
+        .beamWidth(6_deg)
         .azimuthCount(3)
         .elevationCount(2)
         .azimuthStart(-10_deg)
@@ -255,6 +275,13 @@ TEST(SearchGridTest, LargeStepWithSingleBeamPerAxisIsAccepted)
 
     // count가 1이면 step은 쓰이지 않으므로 큰 step도 문제없다.
     const beam::SearchGridConfig config = beam::SearchGridConfig::Builder()
+        .azimuthCount(21)
+        .elevationCount(9)
+        .azimuthStart(-42_deg)
+        .azimuthStep(4.2_deg)
+        .elevationStart(3_deg)
+        .elevationStep(4.4_deg)
+        .beamWidth(6_deg)
         .azimuthCount(1)
         .azimuthStep(maxAngle)
         .elevationCount(1)
@@ -270,6 +297,13 @@ TEST(SearchGridTest, LargeStepWithSingleBeamPerAxisIsAccepted)
 TEST(SearchGridTest, LargeAzimuthStartWithSingleBeamPreservesWrappedDirection)
 {
     const beam::SearchGridConfig config = beam::SearchGridConfig::Builder()
+        .azimuthCount(21)
+        .elevationCount(9)
+        .azimuthStart(-42_deg)
+        .azimuthStep(4.2_deg)
+        .elevationStart(3_deg)
+        .elevationStep(4.4_deg)
+        .beamWidth(6_deg)
         .azimuthCount(1)
         .elevationCount(1)
         .azimuthStart(math::Angle::fromDegrees(1e18))
@@ -297,6 +331,13 @@ TEST(SearchGridTest, NextBeamWrapsToTheFirstBeamAfterTheLastOne)
 TEST(SearchGridTest, SingleBeamGridReturnsTheSameBeamEveryTime)
 {
     const beam::SearchGridConfig config = beam::SearchGridConfig::Builder()
+        .azimuthCount(21)
+        .elevationCount(9)
+        .azimuthStart(-42_deg)
+        .azimuthStep(4.2_deg)
+        .elevationStart(3_deg)
+        .elevationStep(4.4_deg)
+        .beamWidth(6_deg)
         .azimuthCount(1)
         .elevationCount(1)
         .build();

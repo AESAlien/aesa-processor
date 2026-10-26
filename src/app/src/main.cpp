@@ -1,6 +1,7 @@
 #include <app/channel/beam_channel.hpp>
 #include <app/channel/comm_channel.hpp>
 #include <app/channel/target_channel.hpp>
+#include "config_loader.hpp"
 #include <app/worker/beam_worker.hpp>
 #include <app/worker/comm_worker.hpp>
 #include <app/worker/target_worker.hpp>
@@ -8,7 +9,6 @@
 
 #include <beam/controller/beam_controller.hpp>
 #include <comm/controller/comm_controller.hpp>
-#include <target/config/target_config.hpp>
 #include <target/controller/target_controller.hpp>
 
 #include <array>
@@ -24,15 +24,16 @@ namespace
 
 constexpr std::chrono::milliseconds BEAM_PERIOD{10};
 
-comm::CommConfiguration makeConfiguration()
+void printEndpoint(
+    const char* label,
+    const comm::CommEndpoint& endpoint)
 {
-    // 외부 프로그램은 자신의 source IP/port를 아래 endpoint에 맞춰 bind해야 한다.
-    return
-    {
-        {"192.168.10.20", 3200},  // 이 프로그램의 TCP 서버
-        {"192.168.10.10", 3100},  // 운용 콘솔
-        {"192.168.10.100", 3300}  // 모의기
-    };
+    std::cout
+        << label
+        << endpoint.address
+        << ':'
+        << endpoint.port
+        << '\n';
 }
 
 template <typename Action>
@@ -68,15 +69,17 @@ int main()
 
     try
     {
+        const app::Config config = app::ConfigLoader::load(".env");
+
         // 1. 채널 3개. CommChannel 내부에는 목적지별 큐 2개가 있다.
         app::BeamChannel beamChannel;
         app::TargetChannel targetChannel;
         app::CommChannel commChannel;
 
         // 2. 실제 구현된 컨트롤러.
-        beam::BeamController beamController;
-        target::TargetController targetController(target::TargetConfig{});
-        comm::CommController commController(makeConfiguration());
+        beam::BeamController beamController(config.beamConfig);
+        target::TargetController targetController(config.targetConfig);
+        comm::CommController commController(config.commConfig);
 
         // 다른 스레드가 컨트롤러를 사용하기 전에 서버를 연다.
         commController.openServer();
@@ -124,9 +127,16 @@ int main()
 
             std::cout
                 << "[START] 5 worker threads running; beam tick = 10ms\n"
-                << "[SERVER] 192.168.10.20:3200\n"
-                << "[CONSOLE SOURCE] 192.168.10.10:3100\n"
-                << "[SIMULATOR SOURCE] 192.168.10.100:3300\n"
+                << "[SERVER] "
+                << config.commConfig.server.address
+                << ':'
+                << config.commConfig.server.port
+                << '\n';
+            printEndpoint(
+                "[CONSOLE SOURCE] ", config.commConfig.operatorConsole);
+            printEndpoint(
+                "[SIMULATOR SOURCE] ", config.commConfig.scenarioSimulator);
+            std::cout
                 << "Send ON, then attitude, then detection messages.\n"
                 << "Ctrl+C terminates the process; graceful receive shutdown is not implemented."
                 << std::endl;

@@ -99,7 +99,8 @@ protected:
         return target;
     }
 
-    const TargetConfig _config;
+    const TargetConfig _config{
+        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100};
     const std::shared_ptr<const ConstantAccelerationAlgorithm> _algorithm =
         std::make_shared<ConstantAccelerationAlgorithm>(_config);
 };
@@ -336,18 +337,20 @@ TEST(ConstantAccelerationConfigTest, ValidatesInitialAccelerationVarianceAndSing
     for (double sigma : {0.0, -1.0, std::numeric_limits<double>::quiet_NaN(),
              std::numeric_limits<double>::infinity(), std::numeric_limits<double>::max(), 1e-300})
     {
-        EXPECT_THROW(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, sigma),
+        EXPECT_THROW(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, sigma, 100),
             std::invalid_argument);
     }
     EXPECT_THROW(TargetConfig(1000_mps, 30_mps, math::Length::fromMeters(1.2e-162),
-        11.345, 100ms, 1000ms, 3), std::invalid_argument);
-    const TargetConfig compatible(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3);
+        11.345, 100ms, 1000ms, 3, 10.0, 100), std::invalid_argument);
+    const TargetConfig compatible(
+        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
     EXPECT_DOUBLE_EQ(compatible.initialAccelerationStandardDeviation, 10.0);
 }
 
 TEST(ConstantAccelerationConfigTest, UsesInjectedInitialAccelerationUncertainty)
 {
-    const TargetConfig config(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 2.0);
+    const TargetConfig config(
+        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 2.0, 100);
     const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(config);
     const auto state = algorithm->initialize(observation(position(0.0, 1000.0, 0.0), 0ms, algorithm),
         observation(position(0.0, 1000.0, 0.0), 100ms, algorithm));

@@ -21,8 +21,6 @@ class Scheduler;
 class BeamController
 {
 public:
-    // 기본 설정(BeamConfig{})으로 만든다.
-    BeamController();
     // 주어진 설정으로 만든다. 설정은 BeamConfig 생성 시 이미 검증되어 있다.
     explicit BeamController(const BeamConfig& config);
     ~BeamController();

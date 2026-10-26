@@ -54,14 +54,28 @@ beam::RequestBeamCommand makeRequestCommand(
 
 TEST(BeamControllerTest, ReturnsNothingBeforeStart)
 {
-    beam::BeamController controller;
+    beam::BeamController controller(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
+        beam::RequestBeamConfig(3_deg, 3_deg)));
 
     EXPECT_FALSE(controller.nextBeamCommand(0ms).has_value());
 }
 
 TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
 {
-    beam::BeamController controller;
+    beam::BeamController controller(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
+        beam::RequestBeamConfig(3_deg, 3_deg)));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -79,12 +93,26 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
     const math::Angle pitch = 20_deg;
     const math::Angle yaw = 30_deg;
 
-    beam::BeamController controller;
+    beam::BeamController controller(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
+        beam::RequestBeamConfig(3_deg, 3_deg)));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(roll, pitch, yaw));
 
     const beam::RadarAttitude attitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
-    beam::SearchGrid expectedGrid(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}), beam::SearchGridConfig{});
+    beam::SearchGrid expectedGrid(
+        beam::AntEnuTransform(
+            attitude,
+            beam::AttitudeConfig(
+                89_deg,
+                math::SquareMatrix::identity(3),
+                math::Tolerance{1e-6, 0.0})),
+        beam::SearchGridConfig(21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg));
 
     for (std::size_t index = 0; index < 5; ++index)
     {
@@ -99,7 +127,14 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
 
 TEST(BeamControllerTest, RequestBeamIsDeliveredToScheduler)
 {
-    beam::BeamController controller;
+    beam::BeamController controller(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
+        beam::RequestBeamConfig(3_deg, 3_deg)));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -117,7 +152,14 @@ TEST(BeamControllerTest, RequestBeamIsDeliveredToScheduler)
 
 TEST(BeamControllerTest, RequestWhileOffIsIgnored)
 {
-    beam::BeamController controller;
+    beam::BeamController controller(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
+        beam::RequestBeamConfig(3_deg, 3_deg)));
     controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
@@ -127,7 +169,14 @@ TEST(BeamControllerTest, RequestWhileOffIsIgnored)
 
 TEST(BeamControllerTest, InvalidRequestThrowsEvenWhileOff)
 {
-    beam::BeamController controller;
+    beam::BeamController controller(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
+        beam::RequestBeamConfig(3_deg, 3_deg)));
 
     EXPECT_THROW(
         controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 7.5_deg, 15.5_deg)),
@@ -142,7 +191,14 @@ TEST(BeamControllerTest, InvalidRequestThrowsEvenWhileOff)
 
 TEST(BeamControllerTest, InvalidRequestIsNotQueued)
 {
-    beam::BeamController controller;
+    beam::BeamController controller(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
+        beam::RequestBeamConfig(3_deg, 3_deg)));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -159,7 +215,14 @@ TEST(BeamControllerTest, InvalidRequestIsNotQueued)
 
 TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
 {
-    beam::BeamController controller;
+    beam::BeamController controller(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
+        beam::RequestBeamConfig(3_deg, 3_deg)));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
@@ -179,7 +242,14 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
 
 TEST(BeamControllerTest, MovedControllerKeepsState)
 {
-    beam::BeamController controller;
+    beam::BeamController controller(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
+        beam::RequestBeamConfig(3_deg, 3_deg)));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
@@ -193,33 +263,24 @@ TEST(BeamControllerTest, MovedControllerKeepsState)
 
 // ---------- 설정 주입 ----------
 
-TEST(BeamControllerTest, DefaultConstructorUsesDefaultConfig)
-{
-    beam::BeamController defaultController;
-    beam::BeamController explicitController{beam::BeamConfig{}};
-    for (beam::BeamController* controller : {&defaultController, &explicitController})
-    {
-        controller->setOperationState(makeOperationState(beam::OperationState::ON));
-        controller->setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
-    }
-
-    for (std::size_t index = 0; index < 30; ++index)
-    {
-        const auto expected = explicitController.nextBeamCommand(std::chrono::milliseconds(10 * index));
-        const auto actual = defaultController.nextBeamCommand(std::chrono::milliseconds(10 * index));
-
-        ASSERT_TRUE(actual.has_value());
-        ASSERT_TRUE(expected.has_value());
-        EXPECT_EQ(actual->beamId, expected->beamId);
-        EXPECT_TRUE(actual->direction_ant.azimuth.isEquivalentTo(expected->direction_ant.azimuth));
-        EXPECT_EQ(actual->direction_ant.elevation, expected->direction_ant.elevation);
-    }
-}
-
 TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
 {
     const beam::BeamConfig config = beam::BeamConfig::Builder()
+        .attitudeConfig(beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}))
+        .searchGridConfig(beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg))
+        .requestBeamConfig(beam::RequestBeamConfig(3_deg, 3_deg))
         .searchGridConfig(beam::SearchGridConfig::Builder()
+            .azimuthCount(21)
+            .elevationCount(9)
+            .azimuthStart(-42_deg)
+            .azimuthStep(4.2_deg)
+            .elevationStart(3_deg)
+            .elevationStep(4.4_deg)
+            .beamWidth(6_deg)
             .azimuthCount(3)
             .elevationCount(1)
             .beamWidth(4_deg)
@@ -244,7 +305,16 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
 TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
 {
     const beam::BeamConfig config = beam::BeamConfig::Builder()
+        .attitudeConfig(beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}))
+        .searchGridConfig(beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg))
+        .requestBeamConfig(beam::RequestBeamConfig(3_deg, 3_deg))
         .requestBeamConfig(beam::RequestBeamConfig::Builder()
+            .confirmationBeamWidth(3_deg)
+            .trackingBeamWidth(3_deg)
             .trackingBeamWidth(4_deg)
             .build())
         .build();
@@ -264,7 +334,16 @@ TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
 TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
 {
     const beam::BeamConfig config = beam::BeamConfig::Builder()
+        .attitudeConfig(beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}))
+        .searchGridConfig(beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg))
+        .requestBeamConfig(beam::RequestBeamConfig(3_deg, 3_deg))
         .requestBeamConfig(beam::RequestBeamConfig::Builder()
+            .confirmationBeamWidth(3_deg)
+            .trackingBeamWidth(3_deg)
             .confirmationBeamWidth(5_deg)
             .trackingBeamWidth(4_deg)
             .build())
@@ -285,7 +364,17 @@ TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
 TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
 {
     const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .attitudeConfig(beam::AttitudeConfig::Builder().maxAbsPitch(60_deg).build())
+        .attitudeConfig(beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}))
+        .searchGridConfig(beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg))
+        .requestBeamConfig(beam::RequestBeamConfig(3_deg, 3_deg))
+        .attitudeConfig(beam::AttitudeConfig(
+            60_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}))
         .build();
     beam::BeamController controller(config);
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
@@ -309,7 +398,17 @@ TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
 TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
 {
     const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .attitudeConfig(beam::AttitudeConfig::Builder().maxAbsPitch(60_deg).build())
+        .attitudeConfig(beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}))
+        .searchGridConfig(beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg))
+        .requestBeamConfig(beam::RequestBeamConfig(3_deg, 3_deg))
+        .attitudeConfig(beam::AttitudeConfig(
+            60_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}))
         .build();
     beam::BeamController controller(config);
 
@@ -326,7 +425,14 @@ TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
 
 TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
 {
-    beam::BeamController controller;
+    beam::BeamController controller(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
+        beam::RequestBeamConfig(3_deg, 3_deg)));
 
     // 위도 95도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
     const beam::SetAttitudeCommand command(95_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg);
@@ -344,7 +450,15 @@ TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
 TEST(BeamControllerTest, ControllerWithInjectedConfigCanBeMoved)
 {
     const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .searchGridConfig(beam::SearchGridConfig::Builder().azimuthCount(2).elevationCount(1).build())
+        .attitudeConfig(beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}))
+        .searchGridConfig(beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg))
+        .requestBeamConfig(beam::RequestBeamConfig(3_deg, 3_deg))
+        .searchGridConfig(beam::SearchGridConfig(
+            2, 1, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg))
         .build();
     beam::BeamController controller(config);
     controller.setOperationState(makeOperationState(beam::OperationState::ON));

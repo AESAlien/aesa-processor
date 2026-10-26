@@ -31,7 +31,7 @@ namespace beam
 class Scheduler
 {
 public:
-    explicit Scheduler(const BeamConfig& config = BeamConfig{});
+    explicit Scheduler(const BeamConfig& config);
 
     void setOperationState(OperationState state);
 

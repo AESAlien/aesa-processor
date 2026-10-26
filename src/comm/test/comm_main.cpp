@@ -50,7 +50,7 @@ const char* beamTypeName(beam::BeamType beamType)
     return "unknown";
 }
 
-comm::CommConfiguration makeConfiguration()
+comm::CommConfig makeConfiguration()
 {
     return
     {

@@ -14,6 +14,8 @@ beam::RequestBeamPolicyFactory makeFactory()
 {
     return beam::RequestBeamPolicyFactory(
         beam::RequestBeamConfig::Builder()
+            .confirmationBeamWidth(3_deg)
+            .trackingBeamWidth(3_deg)
             .confirmationBeamWidth(4_deg)
             .trackingBeamWidth(2_deg)
             .build());
@@ -51,7 +53,8 @@ TEST(RequestBeamPolicyTest, TrackingUsesInjectedTrackingBeamWidth)
 
 TEST(RequestBeamPolicyTest, DefaultConfigGivesDefaultBeamWidths)
 {
-    const beam::RequestBeamPolicyFactory factory{beam::RequestBeamConfig{}};
+    const beam::RequestBeamPolicyFactory factory{
+        beam::RequestBeamConfig(3_deg, 3_deg)};
 
     EXPECT_EQ(factory.create(beam::RequestBeamType::CONFIRMATION)->beamWidth(), 3_deg);
     EXPECT_EQ(factory.create(beam::RequestBeamType::TRACKING)->beamWidth(), 3_deg);

@@ -15,7 +15,6 @@ struct TargetConfig
     // Maximum console message capacity; a smaller reporting limit can be injected.
     static constexpr std::size_t MAXIMUM_REPORTED_TRACK_COUNT = 100;
 
-    TargetConfig();
     TargetConfig(
         math::LinearVelocity maxAssociationSpeed,
         math::LinearVelocity maxInitialDopplerDifference,
@@ -24,8 +23,8 @@ struct TargetConfig
         std::chrono::milliseconds confirmationDelay,
         std::chrono::milliseconds trackingInterval,
         std::uint32_t maxConsecutiveTrackingMisses,
-        double initialAccelerationStandardDeviation = 10.0,
-        std::size_t maxReportedTrackCount = MAXIMUM_REPORTED_TRACK_COUNT);
+        double initialAccelerationStandardDeviation,
+        std::size_t maxReportedTrackCount);
 
     const math::LinearVelocity maxAssociationSpeed;
     const math::LinearVelocity maxInitialDopplerDifference;

@@ -15,7 +15,7 @@ class Target;
 class DetectionMatcher
 {
 public:
-    explicit DetectionMatcher(TargetConfig config = TargetConfig{});
+    explicit DetectionMatcher(TargetConfig config);
     // Return an NDS score inside the search duplicate gate; nullopt means unassociated.
     // Tentative scores use the residual beyond maxAssociationSpeed * elapsed time.
     // Tracking scores use predicted position covariance + measurement covariance.

@@ -7,13 +7,9 @@
 namespace beam
 {
 
-BeamController::BeamController() : BeamController(BeamConfig{})
-{
-}
-
 BeamController::BeamController(const BeamConfig& config)
     : _scheduler(std::make_unique<Scheduler>(config)),
-      _requestFactory(std::make_unique<BeamRequestFactory>(config.requestBeam()))
+      _requestFactory(std::make_unique<BeamRequestFactory>(config.requestBeam))
 {
 }
 
