@@ -17,9 +17,18 @@
 #include <stdexcept>
 #include <string>
 #include <system_error>
+#include <type_traits>
+#include <utility>
 
 namespace
 {
+
+static_assert(std::is_const_v<decltype(
+    std::declval<app::Config>().beamConfig)>);
+static_assert(std::is_const_v<decltype(
+    std::declval<app::Config>().targetConfig)>);
+static_assert(std::is_const_v<decltype(
+    std::declval<app::Config>().commConfig)>);
 
 using namespace math::literals;
 using namespace std::chrono_literals;
@@ -154,22 +163,22 @@ TEST(AppConfigTest, LoadsEveryConfigurationValue)
     const TemporaryEnvFile file(validConfigText());
     const app::Config config = loadConfig(file.path());
 
-    EXPECT_EQ(config.beamConfig.attitude().maxAbsPitch(), 60_deg);
+    EXPECT_EQ(config.beamConfig.attitude.maxAbsPitch, 60_deg);
     EXPECT_DOUBLE_EQ(
-        config.beamConfig.attitude().mountOrthogonalTolerance(),
+        config.beamConfig.attitude.mountOrthogonalTolerance,
         0.00001);
     EXPECT_EQ(
-        config.beamConfig.attitude().mountAntToBodyRotation(),
+        config.beamConfig.attitude.mountAntToBodyRotation,
         math::SquareMatrix::identity(3));
-    EXPECT_EQ(config.beamConfig.searchGrid().azimuthCount(), 3u);
-    EXPECT_EQ(config.beamConfig.searchGrid().elevationCount(), 2u);
-    EXPECT_EQ(config.beamConfig.searchGrid().azimuthStart(), -10_deg);
-    EXPECT_EQ(config.beamConfig.searchGrid().azimuthStep(), 5_deg);
-    EXPECT_EQ(config.beamConfig.searchGrid().elevationStart(), 1_deg);
-    EXPECT_EQ(config.beamConfig.searchGrid().elevationStep(), 2_deg);
-    EXPECT_EQ(config.beamConfig.searchGrid().beamWidth(), 4_deg);
-    EXPECT_EQ(config.beamConfig.requestBeam().confirmationBeamWidth(), 2_deg);
-    EXPECT_EQ(config.beamConfig.requestBeam().trackingBeamWidth(), 5_deg);
+    EXPECT_EQ(config.beamConfig.searchGrid.azimuthCount, 3u);
+    EXPECT_EQ(config.beamConfig.searchGrid.elevationCount, 2u);
+    EXPECT_EQ(config.beamConfig.searchGrid.azimuthStart, -10_deg);
+    EXPECT_EQ(config.beamConfig.searchGrid.azimuthStep, 5_deg);
+    EXPECT_EQ(config.beamConfig.searchGrid.elevationStart, 1_deg);
+    EXPECT_EQ(config.beamConfig.searchGrid.elevationStep, 2_deg);
+    EXPECT_EQ(config.beamConfig.searchGrid.beamWidth, 4_deg);
+    EXPECT_EQ(config.beamConfig.requestBeam.confirmationBeamWidth, 2_deg);
+    EXPECT_EQ(config.beamConfig.requestBeam.trackingBeamWidth, 5_deg);
 
     EXPECT_EQ(config.targetConfig.maxAssociationSpeed, 900_mps);
     EXPECT_EQ(config.targetConfig.maxInitialDopplerDifference, 25_mps);
@@ -183,12 +192,27 @@ TEST(AppConfigTest, LoadsEveryConfigurationValue)
         8.0);
     EXPECT_EQ(config.targetConfig.maxReportedTrackCount, 75u);
 
-    EXPECT_EQ(config.commConfiguration.server.address, "127.0.0.1");
-    EXPECT_EQ(config.commConfiguration.server.port, 43200);
-    EXPECT_EQ(config.commConfiguration.operatorConsole.address, "127.0.0.2");
-    EXPECT_EQ(config.commConfiguration.operatorConsole.port, 43201);
-    EXPECT_EQ(config.commConfiguration.scenarioSimulator.address, "127.0.0.3");
-    EXPECT_EQ(config.commConfiguration.scenarioSimulator.port, 43202);
+    EXPECT_EQ(config.commConfig.server.address, "127.0.0.1");
+    EXPECT_EQ(config.commConfig.server.port, 43200);
+    EXPECT_EQ(config.commConfig.operatorConsole.address, "127.0.0.2");
+    EXPECT_EQ(config.commConfig.operatorConsole.port, 43201);
+    EXPECT_EQ(config.commConfig.scenarioSimulator.address, "127.0.0.3");
+    EXPECT_EQ(config.commConfig.scenarioSimulator.port, 43202);
+}
+
+TEST(AppConfigTest, RejectsDisabledCommunicationPeer)
+{
+    std::string content = replaceValue(
+        validConfigText(),
+        "COMM_OPERATOR_CONSOLE_ADDRESS",
+        "");
+    content = replaceValue(
+        std::move(content),
+        "COMM_OPERATOR_CONSOLE_PORT",
+        "0");
+
+    const TemporaryEnvFile file(content);
+    EXPECT_THROW(loadConfig(file.path()), std::invalid_argument);
 }
 
 TEST(AppConfigTest, ExampleConfigurationLoads)
@@ -201,9 +225,9 @@ TEST(AppConfigTest, LoadsConfigurationFromEnvFilePath)
     const TemporaryEnvFile file(validConfigText());
     const app::Config config = app::ConfigFactory::create(file.path());
 
-    EXPECT_EQ(config.beamConfig.searchGrid().azimuthCount(), 3u);
+    EXPECT_EQ(config.beamConfig.searchGrid.azimuthCount, 3u);
     EXPECT_EQ(config.targetConfig.maxReportedTrackCount, 75u);
-    EXPECT_EQ(config.commConfiguration.server.port, 43200);
+    EXPECT_EQ(config.commConfig.server.port, 43200);
 }
 
 TEST(AppConfigTest, ParsesQuotedValuesAndInlineComments)
@@ -224,9 +248,9 @@ TEST(AppConfigTest, ParsesQuotedValuesAndInlineComments)
     const TemporaryEnvFile file(content);
     const app::Config config = loadConfig(file.path());
 
-    EXPECT_EQ(config.beamConfig.attitude().maxAbsPitch(), 60_deg);
+    EXPECT_EQ(config.beamConfig.attitude.maxAbsPitch, 60_deg);
     EXPECT_EQ(config.targetConfig.maxAssociationSpeed, 900_mps);
-    EXPECT_EQ(config.commConfiguration.server.address, "127.0.0.1");
+    EXPECT_EQ(config.commConfig.server.address, "127.0.0.1");
 }
 
 TEST(AppConfigTest, LoadedConfigurationCanBeInjectedIntoEveryController)
@@ -259,7 +283,7 @@ TEST(AppConfigTest, LoadedConfigurationCanBeInjectedIntoEveryController)
     ASSERT_TRUE(confirmation.has_value());
     EXPECT_EQ(confirmation->transmitTime, 1150ms);
 
-    EXPECT_NO_THROW(comm::CommController(config.commConfiguration));
+    EXPECT_NO_THROW(comm::CommController(config.commConfig));
 }
 
 TEST(AppConfigTest, MissingFileOrRequiredKeyThrows)

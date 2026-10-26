@@ -71,7 +71,7 @@ int main(int argc, char** argv)
     {
         const beam::SearchGridConfig config{};
         beam::SearchGrid grid(xform, config);
-        const std::size_t beamCount = config.azimuthCount() * config.elevationCount();
+        const std::size_t beamCount = config.azimuthCount * config.elevationCount;
         std::printf("idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg\n");
         for (std::size_t i = 0; i < beamCount; ++i)
         {

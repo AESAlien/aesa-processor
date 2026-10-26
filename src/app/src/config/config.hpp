@@ -12,11 +12,11 @@ struct Config
     Config(
         beam::BeamConfig beamConfig,
         target::TargetConfig targetConfig,
-        comm::CommConfiguration commConfiguration);
+        comm::CommConfig commConfig);
 
     const beam::BeamConfig beamConfig;
     const target::TargetConfig targetConfig;
-    const comm::CommConfiguration commConfiguration;
+    const comm::CommConfig commConfig;
 };
 
 } // namespace app

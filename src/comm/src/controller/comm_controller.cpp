@@ -18,10 +18,10 @@ namespace
 
 constexpr std::chrono::milliseconds RECEIVE_POLL_TIMEOUT{100};
 
-NetworkEndpoint toNetworkEndpoint(CommEndpoint endpoint)
+NetworkEndpoint toNetworkEndpoint(const CommEndpoint& endpoint)
 {
     return NetworkEndpoint{
-        std::move(endpoint.address),
+        endpoint.address,
         endpoint.port
     };
 }
@@ -31,11 +31,11 @@ NetworkEndpoint toNetworkEndpoint(CommEndpoint endpoint)
 class CommController::Impl
 {
 public:
-    explicit Impl(CommConfiguration configuration)
+    explicit Impl(CommConfig configuration)
         : _networkManager(
-            toNetworkEndpoint(std::move(configuration.server)),
-            toNetworkEndpoint(std::move(configuration.operatorConsole)),
-            toNetworkEndpoint(std::move(configuration.scenarioSimulator)))
+            toNetworkEndpoint(configuration.server),
+            toNetworkEndpoint(configuration.operatorConsole),
+            toNetworkEndpoint(configuration.scenarioSimulator))
     {
     }
 
@@ -237,7 +237,7 @@ private:
     std::deque<IncomingDto> _pendingMessages;
 };
 
-CommController::CommController(CommConfiguration configuration)
+CommController::CommController(CommConfig configuration)
     : _impl(std::make_unique<Impl>(std::move(configuration)))
 {
 }

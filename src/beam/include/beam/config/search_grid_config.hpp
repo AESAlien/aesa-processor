@@ -8,7 +8,7 @@ namespace beam
 {
 using math::literals::operator""_deg;
 
-class SearchGridConfig
+struct SearchGridConfig
 {
 public:
     class Builder
@@ -40,23 +40,16 @@ public:
                      math::Angle elevationStart, math::Angle elevationStep,
                      math::Angle beamWidth);
 
-    std::size_t azimuthCount() const noexcept;
-    std::size_t elevationCount() const noexcept;
-    math::Angle azimuthStart() const noexcept;
-    math::Angle azimuthStep() const noexcept;
-    math::Angle elevationStart() const noexcept;
-    math::Angle elevationStep() const noexcept;
-    math::Angle beamWidth() const noexcept;
+    const std::size_t azimuthCount;
+    const std::size_t elevationCount;
+    const math::Angle azimuthStart;
+    const math::Angle azimuthStep;
+    const math::Angle elevationStart;
+    const math::Angle elevationStep;
+    const math::Angle beamWidth;
+
 private:
     void validate() const;
-
-    std::size_t _azimuthCount;
-    std::size_t _elevationCount;
-    math::Angle _azimuthStart;
-    math::Angle _azimuthStep;
-    math::Angle _elevationStart;
-    math::Angle _elevationStep;
-    math::Angle _beamWidth;
 };
 
 } // namespace beam

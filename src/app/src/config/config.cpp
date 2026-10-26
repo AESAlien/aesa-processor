@@ -8,10 +8,10 @@ namespace app
 Config::Config(
     beam::BeamConfig beamConfig,
     target::TargetConfig targetConfig,
-    comm::CommConfiguration commConfiguration)
+    comm::CommConfig commConfig)
     : beamConfig(std::move(beamConfig)),
       targetConfig(std::move(targetConfig)),
-      commConfiguration(std::move(commConfiguration))
+      commConfig(std::move(commConfig))
 {
 }
 

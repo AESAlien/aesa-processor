@@ -56,10 +56,6 @@ CommEndpoint::CommEndpoint(std::string address, std::uint16_t port)
     : address(std::move(address)),
       port(port)
 {
-    if (isDisabled())
-    {
-        return;
-    }
     if (this->address.empty() || this->port == 0)
     {
         throw std::invalid_argument(
@@ -72,12 +68,7 @@ CommEndpoint::CommEndpoint(std::string address, std::uint16_t port)
     }
 }
 
-bool CommEndpoint::isDisabled() const noexcept
-{
-    return address.empty() && port == 0;
-}
-
-CommConfiguration::CommConfiguration(
+CommConfig::CommConfig(
     CommEndpoint server,
     CommEndpoint operatorConsole,
     CommEndpoint scenarioSimulator)
@@ -85,19 +76,7 @@ CommConfiguration::CommConfiguration(
       operatorConsole(std::move(operatorConsole)),
       scenarioSimulator(std::move(scenarioSimulator))
 {
-    if (this->server.isDisabled())
-    {
-        throw std::invalid_argument("Comm server endpoint is required");
-    }
-    if (this->operatorConsole.isDisabled() &&
-        this->scenarioSimulator.isDisabled())
-    {
-        throw std::invalid_argument(
-            "At least one communication peer endpoint is required");
-    }
-    if (!this->operatorConsole.isDisabled() &&
-        !this->scenarioSimulator.isDisabled() &&
-        this->operatorConsole.address == this->scenarioSimulator.address &&
+    if (this->operatorConsole.address == this->scenarioSimulator.address &&
         this->operatorConsole.port == this->scenarioSimulator.port)
     {
         throw std::invalid_argument(

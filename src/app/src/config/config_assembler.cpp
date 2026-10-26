@@ -23,7 +23,7 @@ Config ConfigAssembler::assemble()
 {
     beam::BeamConfig beamConfig = createBeamConfig();
     target::TargetConfig targetConfig = createTargetConfig();
-    comm::CommConfiguration commConfig = createCommConfig();
+    comm::CommConfig commConfig = createCommConfig();
     _reader.ensureAllConsumed();
 
     return Config(
@@ -121,7 +121,7 @@ target::TargetConfig ConfigAssembler::createTargetConfig()
     }
 }
 
-comm::CommConfiguration ConfigAssembler::createCommConfig()
+comm::CommConfig ConfigAssembler::createCommConfig()
 {
     const std::string& SERVER_ADDRESS =
         _reader.requireString("COMM_SERVER_ADDRESS");
@@ -138,10 +138,12 @@ comm::CommConfiguration ConfigAssembler::createCommConfig()
         _reader.requireUnsigned<std::uint16_t>(
             "COMM_SCENARIO_SIMULATOR_PORT");
 
-    return comm::CommConfiguration(
+    return comm::CommConfig(
         comm::CommEndpoint(SERVER_ADDRESS, SERVER_PORT),
-        comm::CommEndpoint(OPERATOR_CONSOLE_ADDRESS, OPERATOR_CONSOLE_PORT),
-        comm::CommEndpoint(SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT));
+        comm::CommEndpoint(
+            OPERATOR_CONSOLE_ADDRESS, OPERATOR_CONSOLE_PORT),
+        comm::CommEndpoint(
+            SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT));
 }
 
 } // namespace app

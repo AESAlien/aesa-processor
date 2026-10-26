@@ -10,22 +10,20 @@ struct CommEndpoint
 {
     CommEndpoint(std::string address, std::uint16_t port);
 
-    bool isDisabled() const noexcept;
-
     const std::string address;
     const std::uint16_t port;
 };
 
-struct CommConfiguration
+struct CommConfig
 {
-    CommConfiguration(
+    CommConfig(
         CommEndpoint server,
         CommEndpoint operatorConsole,
         CommEndpoint scenarioSimulator);
 
-    CommEndpoint server;
-    CommEndpoint operatorConsole;
-    CommEndpoint scenarioSimulator;
+    const CommEndpoint server;
+    const CommEndpoint operatorConsole;
+    const CommEndpoint scenarioSimulator;
 };
 
 } // namespace comm

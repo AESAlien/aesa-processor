@@ -222,7 +222,7 @@ TEST(SchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
     makeReady(scheduler);
 
     const beam::SearchGridConfig gridConfig{};
-    const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
+    const std::size_t beamCount = gridConfig.azimuthCount * gridConfig.elevationCount;
     for (std::size_t index = 0; index < beamCount; ++index)
     {
         ASSERT_TRUE(scheduler.next(std::chrono::milliseconds(10 * index)).has_value());

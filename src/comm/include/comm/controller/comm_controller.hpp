@@ -16,7 +16,7 @@ namespace comm
 class CommController
 {
 public:
-    explicit CommController(CommConfiguration configuration);
+    explicit CommController(CommConfig configuration);
     ~CommController();
 
     CommController(const CommController&) = delete;

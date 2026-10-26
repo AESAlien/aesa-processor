@@ -24,6 +24,18 @@ namespace
 
 constexpr std::chrono::milliseconds BEAM_PERIOD{10};
 
+void printEndpoint(
+    const char* label,
+    const comm::CommEndpoint& endpoint)
+{
+    std::cout
+        << label
+        << endpoint.address
+        << ':'
+        << endpoint.port
+        << '\n';
+}
+
 template <typename Action>
 void runWorker(const char* name, Action action)
 {
@@ -67,7 +79,7 @@ int main()
         // 2. 실제 구현된 컨트롤러.
         beam::BeamController beamController(config.beamConfig);
         target::TargetController targetController(config.targetConfig);
-        comm::CommController commController(config.commConfiguration);
+        comm::CommController commController(config.commConfig);
 
         // 다른 스레드가 컨트롤러를 사용하기 전에 서버를 연다.
         commController.openServer();
@@ -116,18 +128,15 @@ int main()
             std::cout
                 << "[START] 5 worker threads running; beam tick = 10ms\n"
                 << "[SERVER] "
-                << config.commConfiguration.server.address
+                << config.commConfig.server.address
                 << ':'
-                << config.commConfiguration.server.port
-                << "\n[CONSOLE SOURCE] "
-                << config.commConfiguration.operatorConsole.address
-                << ':'
-                << config.commConfiguration.operatorConsole.port
-                << "\n[SIMULATOR SOURCE] "
-                << config.commConfiguration.scenarioSimulator.address
-                << ':'
-                << config.commConfiguration.scenarioSimulator.port
-                << '\n'
+                << config.commConfig.server.port
+                << '\n';
+            printEndpoint(
+                "[CONSOLE SOURCE] ", config.commConfig.operatorConsole);
+            printEndpoint(
+                "[SIMULATOR SOURCE] ", config.commConfig.scenarioSimulator);
+            std::cout
                 << "Send ON, then attitude, then detection messages.\n"
                 << "Ctrl+C terminates the process; graceful receive shutdown is not implemented."
                 << std::endl;

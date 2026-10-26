@@ -21,7 +21,7 @@ public:
 private:
     beam::BeamConfig createBeamConfig();
     target::TargetConfig createTargetConfig();
-    comm::CommConfiguration createCommConfig();
+    comm::CommConfig createCommConfig();
 
     ConfigValueReader _reader;
 };

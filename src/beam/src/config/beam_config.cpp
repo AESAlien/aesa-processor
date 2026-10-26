@@ -14,30 +14,18 @@ BeamConfig::BeamConfig(
     AttitudeConfig attitude,
     SearchGridConfig searchGrid,
     RequestBeamConfig requestBeam
-) : _attitude(std::move(attitude)),
-    _searchGrid(std::move(searchGrid)),
-    _requestBeam(std::move(requestBeam))
+) : attitude(std::move(attitude)),
+    searchGrid(std::move(searchGrid)),
+    requestBeam(std::move(requestBeam))
 {
-}
-
-const AttitudeConfig& BeamConfig::attitude() const noexcept
-{
-    return _attitude;
-}
-
-const SearchGridConfig& BeamConfig::searchGrid() const noexcept
-{
-    return _searchGrid;
-}
-
-const RequestBeamConfig& BeamConfig::requestBeam() const noexcept
-{
-    return _requestBeam;
 }
 
 BeamConfig BeamConfig::Builder::build() const
 {
-    return BeamConfig(_attitude, _searchGrid, _requestBeam);
+    return BeamConfig(
+        _attitude.value_or(AttitudeConfig{}),
+        _searchGrid.value_or(SearchGridConfig{}),
+        _requestBeam.value_or(RequestBeamConfig{}));
 }
 
 } // namespace beam

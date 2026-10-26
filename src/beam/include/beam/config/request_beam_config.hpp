@@ -9,7 +9,7 @@ namespace beam
 
 using math::literals::operator""_deg;
 
-class RequestBeamConfig
+struct RequestBeamConfig
 {
 public:
     class Builder
@@ -28,13 +28,11 @@ public:
     RequestBeamConfig(math::Angle confirmationBeamWidth,
                       math::Angle trackingBeamWidth);
     
-    math::Angle confirmationBeamWidth() const noexcept;
-    math::Angle trackingBeamWidth() const noexcept;
+    const math::Angle confirmationBeamWidth;
+    const math::Angle trackingBeamWidth;
+
 private:
     void validate() const;
-
-    math::Angle _confirmationBeamWidth;
-    math::Angle _trackingBeamWidth;
 };
 
 } // namespace beam

@@ -157,7 +157,7 @@ int main(int argc, char** argv)
         std::printf("idx,beamID,az_deg,el_deg\n");
         const beam::SearchGridConfig gridConfig{};
         beam::SearchGrid grid(beam::AntEnuTransform(attitude, beam::AttitudeConfig{}), gridConfig);
-        const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
+        const std::size_t beamCount = gridConfig.azimuthCount * gridConfig.elevationCount;
         for (std::size_t index = 0; index < beamCount; ++index)
         {
             const beam::SearchBeam& info = grid.nextBeam();
