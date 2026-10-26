@@ -1,31 +1,17 @@
 #pragma once
 
 #include <beam/dto/transmit_beam_command.hpp>
-#include <comm/error/comm_error.hpp>
+#include <comm/config/comm_config.hpp>
 #include <comm/dto/incoming_dto.hpp>
+#include <comm/error/comm_error.hpp>
 #include <target/dto/track_event.hpp>
 
-#include <cstdint>
 #include <memory>
 #include <optional>
-#include <string>
 #include <vector>
 
 namespace comm
 {
-
-struct CommEndpoint
-{
-    std::string address;
-    uint16_t port = 0;
-};
-
-struct CommConfiguration
-{
-    CommEndpoint server;
-    CommEndpoint operatorConsole;
-    CommEndpoint scenarioSimulator;
-};
 
 class CommController
 {
