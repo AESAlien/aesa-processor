@@ -1,4 +1,4 @@
-#include "env_file.hpp"
+#include "env_file_reader.hpp"
 
 #include <cctype>
 #include <cstddef>
@@ -117,12 +117,12 @@ std::unordered_map<std::string, std::string> parse(std::istream& input)
 
 } // namespace
 
-EnvFile::EnvFile(std::filesystem::path path)
+EnvFileReader::EnvFileReader(std::filesystem::path path)
     : _path(std::move(path))
 {
 }
 
-std::unordered_map<std::string, std::string> EnvFile::load() const
+std::unordered_map<std::string, std::string> EnvFileReader::read() const
 {
     std::ifstream file(_path);
     if (!file.is_open())

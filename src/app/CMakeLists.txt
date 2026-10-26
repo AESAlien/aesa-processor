@@ -7,9 +7,9 @@ add_library(app_runtime STATIC
 
     src/config/config.cpp
     src/config/config_assembler.cpp
-    src/config/config_factory.cpp
+    src/config/config_loader.cpp
     src/config/config_value_reader.cpp
-    src/config/env_file.cpp
+    src/config/env_file_reader.cpp
 
     src/worker/beam_worker.cpp
     src/worker/comm_worker.cpp

@@ -1,7 +1,7 @@
 #include <app/channel/beam_channel.hpp>
 #include <app/channel/comm_channel.hpp>
 #include <app/channel/target_channel.hpp>
-#include "config_factory.hpp"
+#include "config_loader.hpp"
 #include <app/worker/beam_worker.hpp>
 #include <app/worker/comm_worker.hpp>
 #include <app/worker/target_worker.hpp>
@@ -69,7 +69,7 @@ int main()
 
     try
     {
-        const app::Config config = app::ConfigFactory::create(".env");
+        const app::Config config = app::ConfigLoader::load(".env");
 
         // 1. 채널 3개. CommChannel 내부에는 목적지별 큐 2개가 있다.
         app::BeamChannel beamChannel;

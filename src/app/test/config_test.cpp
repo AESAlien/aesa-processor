@@ -1,4 +1,4 @@
-#include "config_factory.hpp"
+#include "config_loader.hpp"
 
 #include <beam/controller/beam_controller.hpp>
 #include <beam/domain/operation_state.hpp>
@@ -50,7 +50,7 @@ std::filesystem::path temporaryPath()
 
 app::Config loadConfig(const std::filesystem::path& path)
 {
-    return app::ConfigFactory::create(path);
+    return app::ConfigLoader::load(path);
 }
 
 class TemporaryEnvFile
@@ -227,7 +227,7 @@ TEST(AppConfigTest, ExampleConfigurationLoads)
 TEST(AppConfigTest, LoadsConfigurationFromEnvFilePath)
 {
     const TemporaryEnvFile file(validConfigText());
-    const app::Config config = app::ConfigFactory::create(file.path());
+    const app::Config config = app::ConfigLoader::load(file.path());
 
     EXPECT_EQ(config.beamConfig.searchGrid.azimuthCount, 3u);
     EXPECT_EQ(config.targetConfig.maxReportedTrackCount, 75u);

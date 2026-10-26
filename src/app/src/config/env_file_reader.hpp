@@ -7,12 +7,12 @@
 namespace app
 {
 
-class EnvFile final
+class EnvFileReader final
 {
 public:
-    explicit EnvFile(std::filesystem::path path);
+    explicit EnvFileReader(std::filesystem::path path);
 
-    std::unordered_map<std::string, std::string> load() const;
+    std::unordered_map<std::string, std::string> read() const;
 
 private:
     const std::filesystem::path _path;

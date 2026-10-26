@@ -7,10 +7,10 @@
 namespace app
 {
 
-class ConfigFactory final
+class ConfigLoader final
 {
 public:
-    static Config create(const std::filesystem::path& path);
+    static Config load(const std::filesystem::path& path);
 };
 
 } // namespace app
