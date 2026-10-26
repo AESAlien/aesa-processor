@@ -8,12 +8,6 @@ namespace target
 
 using namespace math::literals;
 
-TargetConfig::TargetConfig()
-    : TargetConfig(1000.0_mps, 30.0_mps, 7.0_m, 11.345,
-          std::chrono::milliseconds(100), std::chrono::milliseconds(1000), 3)
-{
-}
-
 TargetConfig::TargetConfig(
     math::LinearVelocity maxAssociationSpeed,
     math::LinearVelocity maxInitialDopplerDifference,

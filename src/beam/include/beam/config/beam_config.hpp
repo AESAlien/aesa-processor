@@ -10,8 +10,6 @@
 
 namespace beam
 {
-using math::literals::operator""_deg;
-
 struct BeamConfig
 {
 public:
@@ -29,7 +27,6 @@ public:
         std::optional<RequestBeamConfig> _requestBeam;
     }; // class Builder
 
-    BeamConfig();
     BeamConfig(AttitudeConfig attitude,
                SearchGridConfig searchGrid,
                RequestBeamConfig requestBeam);

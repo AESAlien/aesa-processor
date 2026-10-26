@@ -100,7 +100,7 @@ void expire(TargetController& controller, std::uint32_t id, Time firstMiss)
 
 TEST(TrackReportingLimitTest, HandlesZeroNinetyNineOneHundredAndOneHundredOneTrackingTargets)
 {
-    TargetController controller(TargetConfig{});
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
     addCandidates(controller, 103);
     // The first and last repository entries stay Tentative and never consume
     // a reporting slot. There are initially zero Tracking entries.
@@ -117,7 +117,7 @@ TEST(TrackReportingLimitTest, HandlesZeroNinetyNineOneHundredAndOneHundredOneTra
 
 TEST(TrackReportingLimitTest, UnreportedTargetCanUpdateAndExpireWithoutAffectingTheFirstHundred)
 {
-    TargetController controller(TargetConfig{});
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
     addCandidates(controller, 101);
     confirm(controller, 1, 101);
     expectReportedIds(controller, 100, 1);
@@ -139,7 +139,7 @@ TEST(TrackReportingLimitTest, UnreportedTargetCanUpdateAndExpireWithoutAffecting
 
 TEST(TrackReportingLimitTest, RevealsTheNextStoredTrackingTargetWhenAReportedTargetExpires)
 {
-    TargetController controller(TargetConfig{});
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
     addCandidates(controller, 101);
     confirm(controller, 1, 101);
     expectReportedIds(controller, 100, 1);
@@ -169,7 +169,6 @@ TEST(TrackReportingLimitTest, UsesInjectedLimitWithoutLimitingTentativeOrHiddenT
 
 TEST(TrackReportingLimitTest, ValidatesConfiguredCountAgainstTheMessageMaximum)
 {
-    EXPECT_EQ(TargetConfig{}.maxReportedTrackCount, 100u);
     EXPECT_EQ(TargetConfig::MAXIMUM_REPORTED_TRACK_COUNT, 100u);
     for (std::size_t count : {std::size_t{1}, std::size_t{100}})
     {

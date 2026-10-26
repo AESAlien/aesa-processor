@@ -45,7 +45,12 @@ int main(int argc, char** argv)
         try
         {
             const beam::RadarAttitude att(37_deg, 127_deg, 0.1_km, roll, pitch, yaw);
-            return beam::AntEnuTransform(att, beam::AttitudeConfig{});
+            return beam::AntEnuTransform(
+                att,
+                beam::AttitudeConfig(
+                    89_deg,
+                    math::SquareMatrix::identity(3),
+                    math::Tolerance{1e-6, 0.0}));
         }
         catch (const beam::AttitudeError& e)
         {
@@ -69,7 +74,8 @@ int main(int argc, char** argv)
 
     try
     {
-        const beam::SearchGridConfig config{};
+        const beam::SearchGridConfig config(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg);
         beam::SearchGrid grid(xform, config);
         const std::size_t beamCount = config.azimuthCount * config.elevationCount;
         std::printf("idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg\n");

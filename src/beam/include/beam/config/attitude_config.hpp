@@ -4,13 +4,12 @@
 #include <math/linear_algebra/square_matrix.hpp>
 #include <math/tolerance.hpp>
 
-#include <utility>
 #include <cstddef>
+#include <optional>
+#include <utility>
 
 namespace beam
 {
-using math::literals::operator""_deg;
-
 struct AttitudeConfig
 {
 public:
@@ -19,22 +18,16 @@ public:
     public:
         Builder& maxAbsPitch(math::Angle value)                     { _maxAbsPitch = value; return *this; }
         Builder& mountAntToBodyRotation(math::SquareMatrix value)   { _mountAntToBodyRotation = std::move(value); return *this; }
-        Builder& mountOrthogonalTolerance(const math::Tolerance& value) {
-            _mountOrthogonalAbsoluteTolerance = value.absolute;
-            _mountOrthogonalRelativeTolerance = value.relative;
-            return *this;
-        }
+        Builder& mountOrthogonalTolerance(const math::Tolerance& value) { _mountOrthogonalTolerance.emplace(value); return *this; }
 
         AttitudeConfig build() const;
 
     private:
-        math::Angle _maxAbsPitch = 89_deg;
-        math::SquareMatrix _mountAntToBodyRotation = math::SquareMatrix::identity(3);
-        double _mountOrthogonalAbsoluteTolerance = 1e-6;
-        double _mountOrthogonalRelativeTolerance = 0.0;
+        std::optional<math::Angle> _maxAbsPitch;
+        std::optional<math::SquareMatrix> _mountAntToBodyRotation;
+        std::optional<math::Tolerance> _mountOrthogonalTolerance;
     }; // class Builder
 
-    AttitudeConfig();
     AttitudeConfig(math::Angle maxAbsPitch,
                    math::SquareMatrix mountAntToBodyRotation,
                    math::Tolerance mountOrthogonalTolerance);

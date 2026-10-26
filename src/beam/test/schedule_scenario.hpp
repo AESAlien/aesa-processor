@@ -22,6 +22,7 @@
 namespace schedule_scenario
 {
 
+using namespace math::literals;
 using namespace std::chrono_literals;
 
 constexpr std::chrono::milliseconds TICK_PERIOD = 10ms;
@@ -72,7 +73,8 @@ inline RequestSpec makeRequestSpec(
     double elevation_deg
 ) {
     // Scheduler가 기본 설정으로 동작하므로 요청의 정책도 기본 설정의 팩토리로 고른다.
-    static const beam::RequestBeamPolicyFactory factory{beam::RequestBeamConfig{}};
+    static const beam::RequestBeamPolicyFactory factory{
+        beam::RequestBeamConfig(3_deg, 3_deg)};
     return RequestSpec{
         name,
         beam::BeamRequest(
@@ -174,7 +176,14 @@ inline void markSent(
 inline Result run(Scenario scenario, const beam::RadarAttitude& attitude)
 {
     Result result;
-    beam::Scheduler scheduler;
+    beam::Scheduler scheduler(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
+        beam::RequestBeamConfig(3_deg, 3_deg)));
     Status status = Status::OFF;
 
     for (auto time = 0ms; time <= scenario.duration; time += TICK_PERIOD)

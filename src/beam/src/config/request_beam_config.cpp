@@ -5,9 +5,7 @@
 namespace beam
 {
 
-RequestBeamConfig::RequestBeamConfig() : RequestBeamConfig(Builder().build())
-{
-}
+using namespace math::literals;
 
 RequestBeamConfig::RequestBeamConfig(
     math::Angle confirmationBeamWidth,
@@ -28,7 +26,12 @@ void RequestBeamConfig::validate() const
 
 RequestBeamConfig RequestBeamConfig::Builder::build() const
 {
-    return RequestBeamConfig(_confirmationBeamWidth, _trackingBeamWidth);
+    if (!_confirmationBeamWidth || !_trackingBeamWidth)
+    {
+        throw std::logic_error("RequestBeamConfig::Builder requires every value");
+    }
+
+    return RequestBeamConfig(*_confirmationBeamWidth, *_trackingBeamWidth);
 }
 
 } // namespace beam

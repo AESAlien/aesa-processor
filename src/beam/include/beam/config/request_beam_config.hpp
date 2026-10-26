@@ -3,11 +3,10 @@
 #include <math/quantity/angle.hpp>
 
 #include <cstddef>
+#include <optional>
 
 namespace beam
 {
-
-using math::literals::operator""_deg;
 
 struct RequestBeamConfig
 {
@@ -20,11 +19,10 @@ public:
 
         RequestBeamConfig build() const;
     private:
-        math::Angle _confirmationBeamWidth = 3_deg;
-        math::Angle _trackingBeamWidth = 3_deg;
+        std::optional<math::Angle> _confirmationBeamWidth;
+        std::optional<math::Angle> _trackingBeamWidth;
     }; // class Builder
 
-    RequestBeamConfig();
     RequestBeamConfig(math::Angle confirmationBeamWidth,
                       math::Angle trackingBeamWidth);
     

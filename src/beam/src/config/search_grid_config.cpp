@@ -6,27 +6,20 @@
 
 namespace beam
 {
-namespace
-{
 using namespace math::literals;
 
 // 축의 마지막 점(start + step * (count - 1))을 계산한다.
 // start와 step이 각각 유한해도 곱셈이나 덧셈에서 오버플로할 수 있고, 이때 Angle이 std::invalid_argument를 던진다.
 // 마지막 점이 유한하면 그 사이의 점도 모두 유한하다.
 // 계산식은 SearchGridConfig를 사용해 격자를 만드는 쪽의 각도 계산과 같아야 한다.
-math::Angle lastPoint(math::Angle start, math::Angle step, std::size_t count)
+static math::Angle lastPoint(math::Angle start, math::Angle step, std::size_t count)
 {
     return start + step * static_cast<double>(count - 1);
 }
 
-bool isWithinElevationRange(math::Angle elevation)
+static bool isWithinElevationRange(math::Angle elevation)
 {
     return elevation >= -90_deg && elevation <= 90_deg;
-}
-} // namespace
-
-SearchGridConfig::SearchGridConfig() : SearchGridConfig(Builder().build())
-{
 }
 
 SearchGridConfig::SearchGridConfig(
@@ -80,14 +73,20 @@ void SearchGridConfig::validate() const
 
 SearchGridConfig SearchGridConfig::Builder::build() const
 {
+    if (!_azimuthCount || !_elevationCount || !_azimuthStart || !_azimuthStep ||
+        !_elevationStart || !_elevationStep || !_beamWidth)
+    {
+        throw std::logic_error("SearchGridConfig::Builder requires every value");
+    }
+
     return SearchGridConfig(
-        _azimuthCount,
-        _elevationCount,
-        _azimuthStart,
-        _azimuthStep,
-        _elevationStart,
-        _elevationStep,
-        _beamWidth);
+        *_azimuthCount,
+        *_elevationCount,
+        *_azimuthStart,
+        *_azimuthStep,
+        *_elevationStart,
+        *_elevationStep,
+        *_beamWidth);
 }
 
 } // namespace beam

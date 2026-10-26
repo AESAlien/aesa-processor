@@ -3,11 +3,10 @@
 #include <math/quantity/angle.hpp>
 
 #include <cstddef>
+#include <optional>
 
 namespace beam
 {
-using math::literals::operator""_deg;
-
 struct SearchGridConfig
 {
 public:
@@ -25,16 +24,15 @@ public:
         SearchGridConfig build() const;
 
     private:
-        std::size_t _azimuthCount = 21;
-        std::size_t _elevationCount = 9;
-        math::Angle _azimuthStart = -42_deg;
-        math::Angle _azimuthStep = 4.2_deg;
-        math::Angle _elevationStart = 3_deg;
-        math::Angle _elevationStep = 4.4_deg;
-        math::Angle _beamWidth = 6_deg;
+        std::optional<std::size_t> _azimuthCount;
+        std::optional<std::size_t> _elevationCount;
+        std::optional<math::Angle> _azimuthStart;
+        std::optional<math::Angle> _azimuthStep;
+        std::optional<math::Angle> _elevationStart;
+        std::optional<math::Angle> _elevationStep;
+        std::optional<math::Angle> _beamWidth;
     }; // class Builder
 
-    SearchGridConfig();
     SearchGridConfig(std::size_t azimuthCount, std::size_t elevationCount,
                      math::Angle azimuthStart, math::Angle azimuthStep,
                      math::Angle elevationStart, math::Angle elevationStep,

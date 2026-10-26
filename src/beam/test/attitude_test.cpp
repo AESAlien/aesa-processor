@@ -30,7 +30,12 @@ beam::RadarAttitude makeAttitude(math::Angle roll, math::Angle pitch, math::Angl
 
 beam::AntEnuTransform makeValidTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    return beam::AntEnuTransform(makeAttitude(roll, pitch, yaw), beam::AttitudeConfig{});
+    return beam::AntEnuTransform(
+        makeAttitude(roll, pitch, yaw),
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}));
 }
 
 } // namespace
@@ -138,7 +143,10 @@ TEST(RadarAttitudeTest, AttitudeErrorIsInvalidArgument)
 
 TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
 {
-    const beam::AttitudeConfig config;
+    const beam::AttitudeConfig config(
+        89_deg,
+        math::SquareMatrix::identity(3),
+        math::Tolerance{1e-6, 0.0});
 
     EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(makeAttitude(0_deg, 89_deg, 0_deg), config), beam::AttitudeErrorCode::GIMBAL_LOCK);
     EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(makeAttitude(0_deg, -95_deg, 0_deg), config), beam::AttitudeErrorCode::GIMBAL_LOCK);
@@ -148,6 +156,9 @@ TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
 TEST(AttitudeTransformTest, AcceptsRotationMount)
 {
     const beam::AttitudeConfig config = beam::AttitudeConfig::Builder()
+        .maxAbsPitch(89_deg)
+        .mountAntToBodyRotation(math::SquareMatrix::identity(3))
+        .mountOrthogonalTolerance(math::Tolerance{1e-6, 0.0})
         .mountAntToBodyRotation(math::SquareMatrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}}) // z축 90도 회전
         .build();
 
@@ -157,6 +168,9 @@ TEST(AttitudeTransformTest, AcceptsRotationMount)
 TEST(AttitudeTransformTest, MountRotationIsAppliedToAntDirection)
 {
     const beam::AttitudeConfig config = beam::AttitudeConfig::Builder()
+        .maxAbsPitch(89_deg)
+        .mountAntToBodyRotation(math::SquareMatrix::identity(3))
+        .mountOrthogonalTolerance(math::Tolerance{1e-6, 0.0})
         .mountAntToBodyRotation(math::SquareMatrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}})
         .build();
     const beam::AntEnuTransform transform(makeAttitude(0_deg, 0_deg, 0_deg), config);
@@ -169,7 +183,11 @@ TEST(AttitudeTransformTest, MountRotationIsAppliedToAntDirection)
 
 TEST(AttitudeTransformTest, MaxAbsPitchFromConfigIsUsedForGimbalLock)
 {
-    const beam::AttitudeConfig config = beam::AttitudeConfig::Builder().maxAbsPitch(60_deg).build();
+    const beam::AttitudeConfig config = beam::AttitudeConfig::Builder()
+        .maxAbsPitch(60_deg)
+        .mountAntToBodyRotation(math::SquareMatrix::identity(3))
+        .mountOrthogonalTolerance(math::Tolerance{1e-6, 0.0})
+        .build();
 
     EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(makeAttitude(0_deg, 60_deg, 0_deg), config), beam::AttitudeErrorCode::GIMBAL_LOCK);
     EXPECT_NO_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 59.9_deg, 0_deg), config));
@@ -177,7 +195,14 @@ TEST(AttitudeTransformTest, MaxAbsPitchFromConfigIsUsedForGimbalLock)
 
 TEST(AttitudeTransformTest, AttitudeErrorIsInvalidArgument)
 {
-    EXPECT_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 95_deg, 0_deg), beam::AttitudeConfig{}), std::invalid_argument);
+    EXPECT_THROW(
+        beam::AntEnuTransform(
+            makeAttitude(0_deg, 95_deg, 0_deg),
+            beam::AttitudeConfig(
+                89_deg,
+                math::SquareMatrix::identity(3),
+                math::Tolerance{1e-6, 0.0})),
+        std::invalid_argument);
 }
 
 // ---------------------------------------------------------------- 각도 변환

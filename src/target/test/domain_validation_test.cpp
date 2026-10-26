@@ -246,7 +246,8 @@ TEST(TargetConfigTest, RejectsInvalidSettingsDuringConstruction)
 {
     for (int option = 0; option < 10; ++option)
     {
-        const TargetConfig defaults;
+        const TargetConfig defaults(
+            1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
         auto maxAssociationSpeed = defaults.maxAssociationSpeed;
         auto maxInitialDopplerDifference = defaults.maxInitialDopplerDifference;
         auto measurementStandardDeviation = defaults.measurementStandardDeviation;
@@ -270,7 +271,8 @@ TEST(TargetConfigTest, RejectsInvalidSettingsDuringConstruction)
         SCOPED_TRACE(option);
         EXPECT_THROW((TargetConfig(maxAssociationSpeed, maxInitialDopplerDifference,
             measurementStandardDeviation, positionNdsThreshold,
-            confirmationDelay, trackingInterval, maxConsecutiveTrackingMisses)),
+            confirmationDelay, trackingInterval, maxConsecutiveTrackingMisses,
+            10.0, 100)),
             std::invalid_argument);
     }
 }
@@ -280,27 +282,36 @@ TEST(TargetConfigTest, MatcherUsesInjectedSpeedDopplerNoiseAndGate)
     TargetRepository repository;
     const auto id = repository.add(observation());
     const auto& tentative = *repository.find(id);
-    const TargetConfig speedConfig(100_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3);
+    const TargetConfig speedConfig(100_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
     EXPECT_FALSE(DetectionMatcher(speedConfig).matchesPosition(observation(100ms, 1100_m), tentative));
-    EXPECT_TRUE(DetectionMatcher().matchesPosition(observation(100ms, 1100_m), tentative));
+    EXPECT_TRUE(DetectionMatcher(TargetConfig(
+        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100))
+        .matchesPosition(observation(100ms, 1100_m), tentative));
     EXPECT_FALSE(DetectionMatcher(speedConfig).matchesConfirmation(observation(100ms, 1100_m), tentative));
-    EXPECT_TRUE(DetectionMatcher().matchesConfirmation(observation(100ms, 1100_m), tentative));
+    EXPECT_TRUE(DetectionMatcher(TargetConfig(
+        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100))
+        .matchesConfirmation(observation(100ms, 1100_m), tentative));
 
-    const TargetConfig dopplerConfig(1000_mps, 2_mps, 7_m, 11.345, 100ms, 1000ms, 3);
+    const TargetConfig dopplerConfig(1000_mps, 2_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
     EXPECT_FALSE(DetectionMatcher(dopplerConfig).matchesConfirmation(observation(100ms, 1000_m, 3_mps), tentative));
-    EXPECT_TRUE(DetectionMatcher().matchesConfirmation(observation(100ms, 1000_m, 3_mps), tentative));
+    EXPECT_TRUE(DetectionMatcher(TargetConfig(
+        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100))
+        .matchesConfirmation(observation(100ms, 1000_m, 3_mps), tentative));
 
-    const TargetConfig noiseConfig(1000_mps, 30_mps, 1_m, 11.345, 100ms, 1000ms, 3);
+    const TargetConfig noiseConfig(1000_mps, 30_mps, 1_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
     EXPECT_FALSE(DetectionMatcher(noiseConfig).matchesPosition(observation(0ms, 1010_m), tentative));
-    EXPECT_TRUE(DetectionMatcher().matchesPosition(observation(0ms, 1010_m), tentative));
-    const TargetConfig gateConfig(1000_mps, 30_mps, 7_m, 0.0, 100ms, 1000ms, 3);
+    EXPECT_TRUE(DetectionMatcher(TargetConfig(
+        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100))
+        .matchesPosition(observation(0ms, 1010_m), tentative));
+    const TargetConfig gateConfig(1000_mps, 30_mps, 7_m, 0.0, 100ms, 1000ms, 3, 10.0, 100);
     EXPECT_TRUE(DetectionMatcher(gateConfig).matchesPosition(observation(), tentative));
     EXPECT_FALSE(DetectionMatcher(gateConfig).matchesPosition(observation(0ms, 1001_m), tentative));
 }
 
 TEST(TargetConfigTest, ControllerOwnsTemporaryConfigAndUsesInjectedIntervalsAndMissLimit)
 {
-    TargetController controller{TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 250ms, 400ms, 2)};
+    TargetController controller{TargetConfig(
+        1000_mps, 30_mps, 7_m, 11.345, 250ms, 400ms, 2, 10.0, 100)};
 
     const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 1000ms));
     ASSERT_TRUE(confirmation);
@@ -335,7 +346,7 @@ TEST(TargetConfigTest, ControllerPassesInjectedSpeedLimitToConfirmationMatcher)
     {
         SCOPED_TRACE(restricted);
         const TargetConfig config(restricted ? 100_mps : 1000_mps,
-            30_mps, 7_m, 11.345, 100ms, 1000ms, 3);
+            30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
         TargetController controller(config);
         const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 1000ms));
         ASSERT_TRUE(confirmation);
@@ -350,7 +361,7 @@ TEST(TargetConfigTest, ControllerPassesInjectedSpeedLimitToConfirmationMatcher)
 
 TEST(DomainValidationTest, InvalidPlotBatchDoesNotPartiallyRegisterCandidates)
 {
-    TargetController controller(TargetConfig{});
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
     EXPECT_THROW(controller.handleDetection(DetectionEvent(BeamType::SEARCH, 1, 0ms,
         {{1000_m, 0_deg, 0_deg, 0_mps, -10.0f},
             {0_m, 0_deg, 0_deg, 0_mps, -10.0f}})), std::invalid_argument);

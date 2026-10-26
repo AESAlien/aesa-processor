@@ -8,9 +8,7 @@
 namespace beam
 {
 
-AttitudeConfig::AttitudeConfig() : AttitudeConfig(Builder().build())
-{
-}
+using namespace math::literals;
 
 AttitudeConfig::AttitudeConfig(
     math::Angle maxAbsPitch,
@@ -41,12 +39,16 @@ void AttitudeConfig::validate() const
 
 AttitudeConfig AttitudeConfig::Builder::build() const
 {
+    if (!_maxAbsPitch || !_mountAntToBodyRotation ||
+        !_mountOrthogonalTolerance)
+    {
+        throw std::logic_error("AttitudeConfig::Builder requires every value");
+    }
+
     return AttitudeConfig(
-        _maxAbsPitch,
-        _mountAntToBodyRotation,
-        math::Tolerance{
-            _mountOrthogonalAbsoluteTolerance,
-            _mountOrthogonalRelativeTolerance});
+        *_maxAbsPitch,
+        *_mountAntToBodyRotation,
+        *_mountOrthogonalTolerance);
 }
 
 } // namespace beam
