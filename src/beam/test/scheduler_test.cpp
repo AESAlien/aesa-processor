@@ -1,4 +1,4 @@
-﻿#include "scheduler/scheduler.hpp"
+#include "scheduler/scheduler.hpp"
 #include "scheduler/beam_request_factory.hpp"
 
 #include "attitude/ant_enu_transform.hpp"

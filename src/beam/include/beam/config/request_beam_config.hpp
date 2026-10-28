@@ -2,7 +2,6 @@
 
 #include <beam/domain/beam_width.hpp>
 
-#include <cstddef>
 #include <optional>
 
 namespace beam
@@ -26,7 +25,7 @@ public:
     RequestBeamConfig(
         BeamWidth confirmationBeamWidth,
         BeamWidth trackingBeamWidth);
-    
+
     BeamWidth confirmationBeamWidth;
     BeamWidth trackingBeamWidth;
 };

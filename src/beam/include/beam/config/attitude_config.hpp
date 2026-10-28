@@ -4,7 +4,6 @@
 #include <math/linear_algebra/square_matrix.hpp>
 #include <math/tolerance.hpp>
 
-#include <cstddef>
 #include <optional>
 #include <utility>
 
