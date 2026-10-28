@@ -19,18 +19,18 @@ struct DetectionEvent
 {
     struct Plot;
 
-    const beam::BeamType beamType;
-    const uint32_t requestId;
-    const std::chrono::milliseconds transmitTime;
-    const std::vector<Plot> plots;
+    beam::BeamType beamType;
+    uint32_t requestId;
+    std::chrono::milliseconds transmitTime;
+    std::vector<Plot> plots;
 
     struct Plot
     {
-        const math::Length slantRange;
-        const math::Azimuth azimuth;
-        const math::Elevation elevation;
-        const math::LinearVelocity dopplerVelocity;
-        const float power_db;
+        math::Length slantRange;
+        math::Azimuth azimuth;
+        math::Elevation elevation;
+        math::LinearVelocity dopplerVelocity;
+        float power_db;
 
         Plot(
             math::Length slantRange,

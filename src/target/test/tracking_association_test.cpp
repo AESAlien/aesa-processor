@@ -96,7 +96,7 @@ public:
             return std::nullopt;
         }
         const double seconds = std::chrono::duration<double>(time - current.lastObservationTime()).count();
-        return TargetPrediction(time, prediction->sphericalPosition,
+        return TargetPrediction(time, prediction->sphericalPosition(),
             _positionCovariance * (1.0 + _growthPerSecond * seconds));
     }
 
@@ -116,9 +116,9 @@ private:
                 covariance(row, column) = _positionCovariance(row, column);
             }
         }
-        return TargetTrackingState(state->sphericalPosition, state->dopplerVelocity,
-            state->power_db, state->timestamp, state->position, state->velocity,
-            state->acceleration, std::move(covariance));
+        return TargetTrackingState(state->sphericalPosition(), state->dopplerVelocity(),
+            state->power_db(), state->timestamp(), state->position(), state->velocity(),
+            state->acceleration(), std::move(covariance));
     }
 
     const math::SquareMatrix _positionCovariance;

@@ -18,8 +18,8 @@ struct SphericalDirection
     // 벡터의 크기를 무시하고 방향을 반환한다. 3차원이 아니거나 무한대·NaN 원소를 포함하거나 영벡터이면 std::invalid_argument를 던진다.
     static SphericalDirection fromCartesianUnitVector(const Vector& vector);
 
-    const Azimuth azimuth;
-    const Elevation elevation;
+    Azimuth azimuth;
+    Elevation elevation;
 };
 
 }

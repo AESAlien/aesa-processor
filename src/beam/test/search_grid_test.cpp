@@ -40,7 +40,7 @@ std::vector<beam::SearchBeam> takeAllBeams(
     const beam::SearchGridConfig& config = DEFAULT_GRID_CONFIG
 ) {
     beam::SearchGrid grid(transform, config);
-    const std::size_t beamCount = config.azimuthCount * config.elevationCount;
+    const std::size_t beamCount = config.azimuthCount() * config.elevationCount();
 
     std::vector<beam::SearchBeam> beams;
     beams.reserve(beamCount);

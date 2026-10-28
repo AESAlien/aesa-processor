@@ -8,15 +8,25 @@
 namespace math
 {
 SphericalPosition::SphericalPosition(Length radius, SphericalDirection direction)
-    : radius(radius),
-      direction(direction)
+    : _radius(radius),
+      _direction(direction)
 {
     validate();
 }
 
+const Length& SphericalPosition::radius() const noexcept
+{
+    return _radius;
+}
+
+const SphericalDirection& SphericalPosition::direction() const noexcept
+{
+    return _direction;
+}
+
 void SphericalPosition::validate() const
 {
-    if (!radius.isNonnegative())
+    if (!_radius.isNonnegative())
     {
         throw std::invalid_argument("Spherical position radius must be non-negative");
     }
@@ -24,7 +34,7 @@ void SphericalPosition::validate() const
 
 CartesianPosition SphericalPosition::toCartesian() const
 {
-    const Vector position = direction.toCartesianUnitVector() * radius.m();
+    const Vector position = _direction.toCartesianUnitVector() * _radius.m();
     return CartesianPosition(
         Length::fromMeters(position[0]),
         Length::fromMeters(position[1]),
@@ -36,9 +46,9 @@ bool SphericalPosition::equals(
     const QuantityTolerance<Length>& rangeTolerance,
     const QuantityTolerance<Angle>& angleTolerance) const noexcept
 {
-    return radius.equals(other.radius, rangeTolerance)
-        && direction.azimuth.isEquivalentTo(other.direction.azimuth, angleTolerance)
-        && direction.elevation.equals(other.direction.elevation, angleTolerance);
+    return _radius.equals(other._radius, rangeTolerance)
+        && _direction.azimuth.isEquivalentTo(other._direction.azimuth, angleTolerance)
+        && _direction.elevation.equals(other._direction.elevation, angleTolerance);
 }
 
 bool SphericalPosition::operator==(const SphericalPosition& other) const noexcept

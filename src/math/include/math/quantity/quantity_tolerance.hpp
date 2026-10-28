@@ -29,7 +29,7 @@ public:
 
     double relative() const noexcept
     {
-        return _numericTolerance.relative;
+        return _numericTolerance.relative();
     }
 
     // 지정한 절대오차 또는 상대오차 범위 안이면 true를 반환한다.

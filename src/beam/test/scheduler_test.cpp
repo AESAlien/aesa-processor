@@ -311,7 +311,7 @@ TEST(SchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
 
     const beam::SearchGridConfig gridConfig(
         21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
-    const std::size_t beamCount = gridConfig.azimuthCount * gridConfig.elevationCount;
+    const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
     for (std::size_t index = 0; index < beamCount; ++index)
     {
         ASSERT_TRUE(scheduler.next(std::chrono::milliseconds(10 * index)).has_value());

@@ -16,10 +16,10 @@ using namespace math::literals;
 namespace
 {
 
-static_assert(!std::is_copy_assignable_v<beam::AttitudeConfig>);
-static_assert(!std::is_copy_assignable_v<beam::SearchGridConfig>);
-static_assert(!std::is_copy_assignable_v<beam::RequestBeamConfig>);
-static_assert(!std::is_copy_assignable_v<beam::BeamConfig>);
+static_assert(std::is_copy_assignable_v<beam::AttitudeConfig>);
+static_assert(std::is_copy_assignable_v<beam::SearchGridConfig>);
+static_assert(std::is_copy_assignable_v<beam::RequestBeamConfig>);
+static_assert(std::is_copy_assignable_v<beam::BeamConfig>);
 
 const double NAN_VALUE = std::numeric_limits<double>::quiet_NaN();
 const double INF_VALUE = std::numeric_limits<double>::infinity();
@@ -76,18 +76,18 @@ TEST(SearchGridConfigTest, BuilderOverridesOnlyGivenValues)
         .beamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg)))
         .build();
 
-    EXPECT_EQ(config.azimuthCount, 3u);
-    EXPECT_EQ(config.elevationCount, 2u);
-    EXPECT_TRUE(config.azimuthStart.isEquivalentTo(-10_deg));
-    EXPECT_EQ(config.azimuthStep, 5_deg);
-    EXPECT_EQ(config.elevationStart, 1_deg);
-    EXPECT_EQ(config.elevationStep, 2_deg);
-    EXPECT_EQ(config.beamWidth.azimuth, 4_deg);
-    EXPECT_EQ(config.beamWidth.elevation, 4_deg);
+    EXPECT_EQ(config.azimuthCount(), 3u);
+    EXPECT_EQ(config.elevationCount(), 2u);
+    EXPECT_TRUE(config.azimuthStart().isEquivalentTo(-10_deg));
+    EXPECT_EQ(config.azimuthStep(), 5_deg);
+    EXPECT_EQ(config.elevationStart(), 1_deg);
+    EXPECT_EQ(config.elevationStep(), 2_deg);
+    EXPECT_EQ(config.beamWidth().azimuth, 4_deg);
+    EXPECT_EQ(config.beamWidth().elevation, 4_deg);
 
     const beam::SearchGridConfig partial = gridBuilder().azimuthCount(5).build();
-    EXPECT_EQ(partial.azimuthCount, 5u);
-    EXPECT_EQ(partial.elevationCount, 9u);
+    EXPECT_EQ(partial.azimuthCount(), 5u);
+    EXPECT_EQ(partial.elevationCount(), 9u);
 }
 
 TEST(SearchGridConfigTest, ConstructorValidatesLikeBuilder)
@@ -130,11 +130,14 @@ TEST(SearchGridConfigTest, GridAngleOverflowThrows)
 
     // start + step * (count - 1)에서 오버플로
     EXPECT_THROW(
-        gridBuilder().azimuthCount(2).azimuthStart(math::Azimuth(MAX_ANGLE)).azimuthStep(MAX_ANGLE).build(),
-        std::invalid_argument);
-    EXPECT_THROW(
         gridBuilder().elevationCount(2).elevationStart(math::Elevation(90_deg)).elevationStep(MAX_ANGLE).build(),
         std::invalid_argument);
+}
+
+TEST(SearchGridConfigTest, WrapsLargeFiniteAzimuthStep)
+{
+    EXPECT_NO_THROW(
+        gridBuilder().azimuthCount(2).azimuthStart(math::Azimuth(MAX_ANGLE)).azimuthStep(MAX_ANGLE).build());
 }
 
 TEST(SearchGridConfigTest, LargeStepWithSingleBeamPerAxisIsAccepted)
@@ -214,11 +217,11 @@ TEST(AttitudeConfigTest, BuilderOverridesGivenValues)
         .mountOrthogonalTolerance(math::Tolerance{1e-3, 2e-3})
         .build();
 
-    EXPECT_EQ(config.maxAbsPitch, 80_deg);
-    EXPECT_EQ(config.mountOrthogonalTolerance.absolute, 1e-3);
-    EXPECT_EQ(config.mountOrthogonalTolerance.relative, 2e-3);
-    EXPECT_EQ(config.mountAntToBodyRotation(0, 1), -1.0);
-    EXPECT_EQ(config.mountAntToBodyRotation(1, 0), 1.0);
+    EXPECT_EQ(config.maxAbsPitch(), 80_deg);
+    EXPECT_EQ(config.mountOrthogonalTolerance().absolute(), 1e-3);
+    EXPECT_EQ(config.mountOrthogonalTolerance().relative(), 2e-3);
+    EXPECT_EQ(config.mountAntToBodyRotation()(0, 1), -1.0);
+    EXPECT_EQ(config.mountAntToBodyRotation()(1, 0), 1.0);
 }
 
 TEST(AttitudeConfigTest, AcceptsRotationMount)
@@ -403,12 +406,12 @@ TEST(BeamConfigTest, BuilderReplacesOnlyGivenSubConfigs)
         .requestBeamConfig(requestBuilder().trackingBeamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))).build())
         .build();
 
-    EXPECT_EQ(config.searchGrid.azimuthCount, 5u);
+    EXPECT_EQ(config.searchGrid.azimuthCount(), 5u);
     EXPECT_EQ(config.requestBeam.trackingBeamWidth.azimuth, 4_deg);
     EXPECT_EQ(config.requestBeam.trackingBeamWidth.elevation, 4_deg);
     EXPECT_EQ(config.requestBeam.confirmationBeamWidth.azimuth, 3_deg);
     EXPECT_EQ(config.requestBeam.confirmationBeamWidth.elevation, 3_deg);
-    EXPECT_EQ(config.attitude.maxAbsPitch, 89_deg);
+    EXPECT_EQ(config.attitude.maxAbsPitch(), 89_deg);
 }
 
 TEST(BeamConfigTest, ConstructorKeepsGivenSubConfigs)
@@ -418,8 +421,8 @@ TEST(BeamConfigTest, ConstructorKeepsGivenSubConfigs)
         gridBuilder().elevationCount(4).build(),
         requestBuilder().confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(2_deg), math::AngularWidth(2_deg))).build());
 
-    EXPECT_EQ(config.attitude.maxAbsPitch, 70_deg);
-    EXPECT_EQ(config.searchGrid.elevationCount, 4u);
+    EXPECT_EQ(config.attitude.maxAbsPitch(), 70_deg);
+    EXPECT_EQ(config.searchGrid.elevationCount(), 4u);
     EXPECT_EQ(config.requestBeam.confirmationBeamWidth.azimuth, 2_deg);
     EXPECT_EQ(config.requestBeam.confirmationBeamWidth.elevation, 2_deg);
 }

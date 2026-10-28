@@ -12,12 +12,9 @@
 
 using namespace math::literals;
 
-static_assert(std::is_const_v<decltype(math::CartesianDisplacement::x)>);
-static_assert(std::is_const_v<decltype(math::CartesianDisplacement::y)>);
-static_assert(std::is_const_v<decltype(math::CartesianDisplacement::z)>);
 static_assert(std::is_copy_constructible_v<math::CartesianDisplacement>);
-static_assert(!std::is_copy_assignable_v<math::CartesianDisplacement>);
-static_assert(!std::is_move_assignable_v<math::CartesianDisplacement>);
+static_assert(std::is_copy_assignable_v<math::CartesianDisplacement>);
+static_assert(std::is_move_assignable_v<math::CartesianDisplacement>);
 static_assert(!std::is_aggregate_v<math::CartesianDisplacement>);
 
 

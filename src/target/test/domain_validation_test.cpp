@@ -25,22 +25,11 @@ using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
 using BeamType = beam::BeamType;
 
-static_assert(std::is_const_v<decltype(TargetConfig::maxAssociationSpeed)>);
-static_assert(std::is_const_v<decltype(TargetConfig::maxInitialDopplerDifference)>);
-static_assert(std::is_const_v<decltype(TargetConfig::measurementStandardDeviation)>);
-static_assert(std::is_const_v<decltype(TargetConfig::positionNdsThreshold)>);
-static_assert(std::is_const_v<decltype(TargetConfig::confirmationDelay)>);
-static_assert(std::is_const_v<decltype(TargetConfig::trackingInterval)>);
-static_assert(std::is_const_v<decltype(TargetConfig::maxConsecutiveTrackingMisses)>);
-static_assert(std::is_const_v<decltype(TargetConfig::initialAccelerationStandardDeviation)>);
-static_assert(std::is_const_v<decltype(TargetConfig::maxReportedTrackCount)>);
+static_assert(std::is_copy_assignable_v<TargetConfig>);
 static_assert(!std::is_default_constructible_v<TargetController>);
 static_assert(!std::is_convertible_v<TargetConfig, TargetController>);
-static_assert(!std::is_copy_assignable_v<TargetPrediction>);
-static_assert(!std::is_copy_assignable_v<TargetTrackingState>);
-static_assert(std::is_const_v<decltype(TargetPrediction::timestamp)>);
-static_assert(std::is_const_v<decltype(TargetTrackingState::sphericalPosition)>);
-static_assert(std::is_const_v<decltype(TargetTrackingState::power_db)>);
+static_assert(std::is_copy_assignable_v<TargetPrediction>);
+static_assert(std::is_copy_assignable_v<TargetTrackingState>);
 static_assert(std::is_same_v<decltype(std::declval<const Target&>().sphericalPosition()),
     const math::SphericalPosition&>);
 static_assert(std::is_same_v<decltype(std::declval<const Target&>().trackingState()),
@@ -131,9 +120,9 @@ private:
         if (fault == Fault::WRONG_TIME && calculated)
         {
             const auto previous = *calculated;
-            calculated.emplace(previous.sphericalPosition, previous.dopplerVelocity,
-                previous.power_db, previous.timestamp + 1ms,
-                previous.position, previous.velocity);
+            calculated.emplace(previous.sphericalPosition(), previous.dopplerVelocity(),
+                previous.power_db(), previous.timestamp() + 1ms,
+                previous.position(), previous.velocity());
         }
         return calculated;
     }
@@ -143,7 +132,7 @@ private:
 
 TEST(DomainValidationTest, MathOriginIsAllowedButTargetOriginIsRejectedAtCreation)
 {
-    EXPECT_EQ(position(0_m).radius, 0_m);
+    EXPECT_EQ(position(0_m).radius(), 0_m);
     EXPECT_THROW(observation(0ms, 0_m), std::invalid_argument);
     EXPECT_THROW(observation(-1ms), std::invalid_argument);
     EXPECT_THROW(observation(0ms, 1000_m, 0_mps, nullptr), std::invalid_argument);
@@ -214,7 +203,7 @@ TEST(DomainValidationTest, RejectedUpdatePreservesStateAndMissHistory)
         EXPECT_EQ(target.lastObservationTime(), 100ms);
         EXPECT_EQ(target.lastResultTime(), 1100ms);
         EXPECT_EQ(target.consecutiveMissCount(), 1u);
-        EXPECT_EQ(target.sphericalPosition().radius, 1000_m);
+        EXPECT_EQ(target.sphericalPosition().radius(), 1000_m);
     }
     algorithm->fault = FaultAlgorithm::Fault::NONE;
     ASSERT_TRUE(target.update(observation(2100ms)));
@@ -248,13 +237,13 @@ TEST(TargetConfigTest, RejectsInvalidSettingsDuringConstruction)
     {
         const TargetConfig defaults(
             1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
-        auto maxAssociationSpeed = defaults.maxAssociationSpeed;
-        auto maxInitialDopplerDifference = defaults.maxInitialDopplerDifference;
-        auto measurementStandardDeviation = defaults.measurementStandardDeviation;
-        auto positionNdsThreshold = defaults.positionNdsThreshold;
-        auto confirmationDelay = defaults.confirmationDelay;
-        auto trackingInterval = defaults.trackingInterval;
-        auto maxConsecutiveTrackingMisses = defaults.maxConsecutiveTrackingMisses;
+        auto maxAssociationSpeed = defaults.maxAssociationSpeed();
+        auto maxInitialDopplerDifference = defaults.maxInitialDopplerDifference();
+        auto measurementStandardDeviation = defaults.measurementStandardDeviation();
+        auto positionNdsThreshold = defaults.positionNdsThreshold();
+        auto confirmationDelay = defaults.confirmationDelay();
+        auto trackingInterval = defaults.trackingInterval();
+        auto maxConsecutiveTrackingMisses = defaults.maxConsecutiveTrackingMisses();
         switch (option)
         {
         case 0: maxAssociationSpeed = -1_mps; break;

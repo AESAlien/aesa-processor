@@ -40,8 +40,8 @@ DetectionEvent result(
     for (const auto& position : positions)
     {
         const auto spherical = position.toSpherical();
-        plots.emplace_back(spherical.radius, spherical.direction.azimuth,
-            spherical.direction.elevation, 0_mps, -10.0f);
+        plots.emplace_back(spherical.radius(), spherical.direction().azimuth,
+            spherical.direction().elevation, 0_mps, -10.0f);
     }
     return DetectionEvent(type, id, time, std::move(plots));
 }
@@ -187,8 +187,8 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
             EXPECT_EQ(retry->requestId, tracking->requestId);
             EXPECT_EQ(retry->transmitTime, resultTime + 1000ms);
             const auto truth = trajectory(std::chrono::duration<double>(retry->transmitTime).count()).toSpherical();
-            EXPECT_NEAR(retry->direction_ant.azimuth.deg(), truth.direction.azimuth.deg(), 0.05);
-            EXPECT_NEAR(retry->direction_ant.elevation.deg(), truth.direction.elevation.deg(), 0.05);
+            EXPECT_NEAR(retry->direction_ant.azimuth.deg(), truth.direction().azimuth.deg(), 0.05);
+            EXPECT_NEAR(retry->direction_ant.elevation.deg(), truth.direction().elevation.deg(), 0.05);
             const auto events = controller.nextTrackEvents();
             ASSERT_EQ(events.size(), 1u);
             EXPECT_EQ(events[0].timestamp, observationTime);

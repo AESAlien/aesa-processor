@@ -171,7 +171,7 @@ int main(int argc, char** argv)
                     math::SquareMatrix::identity(3),
                     math::Tolerance{1e-6, 0.0})),
             gridConfig);
-        const std::size_t beamCount = gridConfig.azimuthCount * gridConfig.elevationCount;
+        const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
         for (std::size_t index = 0; index < beamCount; ++index)
         {
             const beam::SearchBeam& info = grid.nextBeam();

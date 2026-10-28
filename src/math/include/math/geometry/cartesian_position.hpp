@@ -26,9 +26,9 @@ struct CartesianPosition
     // 계산한 거리가 유한한 Length 범위를 넘으면 std::overflow_error를 던진다.
     SphericalPosition toSpherical() const;
 
-    const Length x;
-    const Length y;
-    const Length z;
+    Length x;
+    Length y;
+    Length z;
 };
 
 }

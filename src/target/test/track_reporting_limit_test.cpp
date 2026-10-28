@@ -174,7 +174,7 @@ TEST(TrackReportingLimitTest, ValidatesConfiguredCountAgainstTheMessageMaximum)
     {
         const TargetConfig config(1000_mps, 30_mps, 7_m, 11.345,
             100ms, 1000ms, 3, 10.0, count);
-        EXPECT_EQ(config.maxReportedTrackCount, count);
+        EXPECT_EQ(config.maxReportedTrackCount(), count);
     }
     for (std::size_t count : {std::size_t{0}, std::size_t{101},
              std::numeric_limits<std::size_t>::max()})

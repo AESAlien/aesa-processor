@@ -10,7 +10,7 @@
 
 namespace beam
 {
-struct AttitudeConfig
+class AttitudeConfig
 {
 public:
     class Builder
@@ -32,11 +32,14 @@ public:
                    math::SquareMatrix mountAntToBodyRotation,
                    math::Tolerance mountOrthogonalTolerance);
 
-    const math::Angle maxAbsPitch;
-    const math::SquareMatrix mountAntToBodyRotation;
-    const math::Tolerance mountOrthogonalTolerance;
+    const math::Angle& maxAbsPitch() const noexcept;
+    const math::SquareMatrix& mountAntToBodyRotation() const noexcept;
+    const math::Tolerance& mountOrthogonalTolerance() const noexcept;
 
 private:
+    math::Angle _maxAbsPitch;
+    math::SquareMatrix _mountAntToBodyRotation;
+    math::Tolerance _mountOrthogonalTolerance;
     void validate() const;
 };
 

@@ -9,10 +9,10 @@ namespace beam
 
 struct SearchBeam
 {
-    const uint32_t beamId;
+    uint32_t beamId;
     // ENU 기준 빔 지향 방향. 생성 시점에 범위가 검증된다.
-    const math::SphericalDirection direction_enu;
-    const BeamWidth beamWidth;
+    math::SphericalDirection direction_enu;
+    BeamWidth beamWidth;
 
     SearchBeam(
         uint32_t beamId,

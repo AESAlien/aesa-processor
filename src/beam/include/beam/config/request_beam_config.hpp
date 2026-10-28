@@ -27,8 +27,8 @@ public:
         BeamWidth confirmationBeamWidth,
         BeamWidth trackingBeamWidth);
     
-    const BeamWidth confirmationBeamWidth;
-    const BeamWidth trackingBeamWidth;
+    BeamWidth confirmationBeamWidth;
+    BeamWidth trackingBeamWidth;
 };
 
 } // namespace beam

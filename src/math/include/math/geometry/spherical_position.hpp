@@ -8,8 +8,9 @@ namespace math
 
 struct CartesianPosition;
 
-struct SphericalPosition
+class SphericalPosition
 {
+public:
     // 반지름은 유한하고 0 이상이어야 한다. 조건을 만족하지 않으면 std::invalid_argument를 던진다.
     SphericalPosition(Length radius, SphericalDirection direction);
 
@@ -26,10 +27,12 @@ struct SphericalPosition
     bool operator==(const SphericalPosition& other) const noexcept;
     bool operator!=(const SphericalPosition& other) const noexcept;
 
-    const Length radius;
-    const SphericalDirection direction;
+    const Length& radius() const noexcept;
+    const SphericalDirection& direction() const noexcept;
 
 private:
+    Length _radius;
+    SphericalDirection _direction;
     void validate() const;
 };
 

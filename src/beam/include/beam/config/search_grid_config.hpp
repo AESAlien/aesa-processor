@@ -11,7 +11,7 @@
 
 namespace beam
 {
-struct SearchGridConfig
+class SearchGridConfig
 {
 public:
     class Builder
@@ -42,15 +42,22 @@ public:
                      math::Elevation elevationStart, math::Angle elevationStep,
                      BeamWidth beamWidth);
 
-    const std::size_t azimuthCount;
-    const std::size_t elevationCount;
-    const math::Azimuth azimuthStart;
-    const math::Angle azimuthStep;
-    const math::Elevation elevationStart;
-    const math::Angle elevationStep;
-    const BeamWidth beamWidth;
+    std::size_t azimuthCount() const noexcept;
+    std::size_t elevationCount() const noexcept;
+    const math::Azimuth& azimuthStart() const noexcept;
+    const math::Angle& azimuthStep() const noexcept;
+    const math::Elevation& elevationStart() const noexcept;
+    const math::Angle& elevationStep() const noexcept;
+    const BeamWidth& beamWidth() const noexcept;
 
 private:
+    std::size_t _azimuthCount;
+    std::size_t _elevationCount;
+    math::Azimuth _azimuthStart;
+    math::Angle _azimuthStep;
+    math::Elevation _elevationStart;
+    math::Angle _elevationStep;
+    BeamWidth _beamWidth;
     void validate() const;
 };
 

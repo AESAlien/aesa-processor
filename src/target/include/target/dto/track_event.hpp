@@ -16,21 +16,21 @@ struct TrackEvent
 {
     enum class TrackState;
 
-    const uint16_t id;
-    const TrackState state;
-    const math::Length slantRange;
-    const math::Length groundRange;
-    const math::Azimuth azimuth;
-    const math::Elevation elevation;
-    const math::LinearVelocity dopplerVelocity;
-    const math::Angle latitude;
-    const math::Angle longitude;
-    const math::Length altitude;
-    const math::LinearVelocity velocity;
-    const math::Angle heading;
-    const math::Angle flightPathAngle;
+    uint16_t id;
+    TrackState state;
+    math::Length slantRange;
+    math::Length groundRange;
+    math::Azimuth azimuth;
+    math::Elevation elevation;
+    math::LinearVelocity dopplerVelocity;
+    math::Angle latitude;
+    math::Angle longitude;
+    math::Length altitude;
+    math::LinearVelocity velocity;
+    math::Angle heading;
+    math::Angle flightPathAngle;
     // Elapsed time since the shared start at 0 ms.
-    const std::chrono::milliseconds timestamp;
+    std::chrono::milliseconds timestamp;
 
     enum class TrackState
     {

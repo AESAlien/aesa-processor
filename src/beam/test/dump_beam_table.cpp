@@ -83,7 +83,7 @@ int main(int argc, char** argv)
             4.4_deg,
             beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
         beam::SearchGrid grid(xform, config);
-        const std::size_t beamCount = config.azimuthCount * config.elevationCount;
+        const std::size_t beamCount = config.azimuthCount() * config.elevationCount();
         std::printf("idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg\n");
         for (std::size_t i = 0; i < beamCount; ++i)
         {

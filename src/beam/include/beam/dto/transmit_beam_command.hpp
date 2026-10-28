@@ -16,12 +16,12 @@ namespace beam
 // (필드 이름 변경은 comm/target과 합의 후 진행한다.)
 struct TransmitBeamCommand
 {
-    const BeamType beamType;
-    const std::chrono::milliseconds transmitTime;
-    const uint32_t beamId;
-    const uint32_t commandCount;
-    const math::SphericalDirection direction_ant;
-    const BeamWidth beamWidth;
+    BeamType beamType;
+    std::chrono::milliseconds transmitTime;
+    uint32_t beamId;
+    uint32_t commandCount;
+    math::SphericalDirection direction_ant;
+    BeamWidth beamWidth;
 
     TransmitBeamCommand(
         BeamType beamType,

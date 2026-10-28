@@ -9,15 +9,12 @@
 using namespace math::literals;
 using namespace std::chrono_literals;
 
-static_assert(std::is_const_v<decltype(math::CartesianAcceleration::x)>);
-static_assert(std::is_const_v<decltype(math::CartesianAcceleration::y)>);
-static_assert(std::is_const_v<decltype(math::CartesianAcceleration::z)>);
 static_assert(std::is_same_v<
-    std::remove_const_t<decltype(math::CartesianAcceleration::x)>,
+    decltype(math::CartesianAcceleration::x),
     math::LinearAcceleration>);
 static_assert(std::is_copy_constructible_v<math::CartesianAcceleration>);
-static_assert(!std::is_copy_assignable_v<math::CartesianAcceleration>);
-static_assert(!std::is_move_assignable_v<math::CartesianAcceleration>);
+static_assert(std::is_copy_assignable_v<math::CartesianAcceleration>);
+static_assert(std::is_move_assignable_v<math::CartesianAcceleration>);
 static_assert(!std::is_aggregate_v<math::CartesianAcceleration>);
 
 
