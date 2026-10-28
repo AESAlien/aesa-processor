@@ -1,6 +1,7 @@
 #pragma once
 
 #include <math/quantity/length.hpp>
+#include <math/quantity/linear_acceleration.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
 #include <chrono>
@@ -24,8 +25,9 @@ public:
         std::chrono::milliseconds confirmationDelay,
         std::chrono::milliseconds trackingInterval,
         std::uint32_t maxConsecutiveTrackingMisses,
-        double initialAccelerationStandardDeviation,
-        std::size_t maxReportedTrackCount);
+        math::LinearAcceleration initialAccelerationStandardDeviation,
+        std::size_t maxReportedTrackCount,
+        math::LinearAcceleration processAccelerationStandardDeviation);
 
     const math::LinearVelocity& maxAssociationSpeed() const noexcept;
     const math::LinearVelocity& maxInitialDopplerDifference() const noexcept;
@@ -36,8 +38,10 @@ public:
     std::chrono::milliseconds trackingInterval() const noexcept;
     std::uint32_t maxConsecutiveTrackingMisses() const noexcept;
     // Per-axis initial acceleration uncertainty in m/s^2; a tunable starting value.
-    double initialAccelerationStandardDeviation() const noexcept;
+    const math::LinearAcceleration& initialAccelerationStandardDeviation() const noexcept;
     std::size_t maxReportedTrackCount() const noexcept;
+    // Per-axis acceleration disturbance (1 sigma) for each prediction interval.
+    const math::LinearAcceleration& processAccelerationStandardDeviation() const noexcept;
 
 private:
     // Throws std::invalid_argument when a setting cannot be used by Target.
@@ -48,8 +52,9 @@ private:
     std::chrono::milliseconds _confirmationDelay;
     std::chrono::milliseconds _trackingInterval;
     std::uint32_t _maxConsecutiveTrackingMisses;
-    double _initialAccelerationStandardDeviation;
+    math::LinearAcceleration _initialAccelerationStandardDeviation;
     std::size_t _maxReportedTrackCount;
+    math::LinearAcceleration _processAccelerationStandardDeviation;
     void validate() const;
 };
 

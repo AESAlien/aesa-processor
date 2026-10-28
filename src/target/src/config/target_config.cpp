@@ -16,8 +16,9 @@ TargetConfig::TargetConfig(
     std::chrono::milliseconds confirmationDelay,
     std::chrono::milliseconds trackingInterval,
     std::uint32_t maxConsecutiveTrackingMisses,
-    double initialAccelerationStandardDeviation,
-    std::size_t maxReportedTrackCount)
+    math::LinearAcceleration initialAccelerationStandardDeviation,
+    std::size_t maxReportedTrackCount,
+    math::LinearAcceleration processAccelerationStandardDeviation)
     : _maxAssociationSpeed(maxAssociationSpeed)
     , _maxInitialDopplerDifference(maxInitialDopplerDifference)
     , _measurementStandardDeviation(measurementStandardDeviation)
@@ -27,6 +28,7 @@ TargetConfig::TargetConfig(
     , _maxConsecutiveTrackingMisses(maxConsecutiveTrackingMisses)
     , _initialAccelerationStandardDeviation(initialAccelerationStandardDeviation)
     , _maxReportedTrackCount(maxReportedTrackCount)
+    , _processAccelerationStandardDeviation(processAccelerationStandardDeviation)
 {
     validate();
 }
@@ -66,7 +68,7 @@ std::uint32_t TargetConfig::maxConsecutiveTrackingMisses() const noexcept
     return _maxConsecutiveTrackingMisses;
 }
 
-double TargetConfig::initialAccelerationStandardDeviation() const noexcept
+const math::LinearAcceleration& TargetConfig::initialAccelerationStandardDeviation() const noexcept
 {
     return _initialAccelerationStandardDeviation;
 }
@@ -76,13 +78,20 @@ std::size_t TargetConfig::maxReportedTrackCount() const noexcept
     return _maxReportedTrackCount;
 }
 
+const math::LinearAcceleration& TargetConfig::processAccelerationStandardDeviation() const noexcept
+{
+    return _processAccelerationStandardDeviation;
+}
+
 void TargetConfig::validate() const
 {
     const double sigma = _measurementStandardDeviation.m();
     const double variance = sigma * sigma;
     const double differenceVariance = 2.0 * variance;
-    const double accelerationVariance = _initialAccelerationStandardDeviation
-        * _initialAccelerationStandardDeviation;
+    const double accelerationSigma = _initialAccelerationStandardDeviation.mps2();
+    const double accelerationVariance = accelerationSigma * accelerationSigma;
+    const double processSigma = _processAccelerationStandardDeviation.mps2();
+    const double processVariance = processSigma * processSigma;
     if (_maxAssociationSpeed.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         || _maxInitialDopplerDifference.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         || sigma <= 0.0 || !std::isfinite(variance) || variance <= 0.0
@@ -90,9 +99,10 @@ void TargetConfig::validate() const
         || !std::isfinite(_positionNdsThreshold) || _positionNdsThreshold < 0.0
         || _confirmationDelay.count() <= 0 || _trackingInterval.count() <= 0
         || _maxConsecutiveTrackingMisses == 0
-        || !std::isfinite(_initialAccelerationStandardDeviation)
-        || _initialAccelerationStandardDeviation <= 0.0
+        || accelerationSigma <= 0.0
         || !std::isfinite(accelerationVariance) || accelerationVariance <= 0.0
+        || processSigma < 0.0 || !std::isfinite(processVariance)
+        || (processSigma > 0.0 && processVariance == 0.0)
         || _maxReportedTrackCount == 0 || _maxReportedTrackCount > MAXIMUM_REPORTED_TRACK_COUNT)
     {
         throw std::invalid_argument("Invalid Target configuration");

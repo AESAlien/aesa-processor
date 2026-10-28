@@ -5,6 +5,7 @@
 #include <math/geometry/azimuth.hpp>
 #include <math/geometry/elevation.hpp>
 #include <math/quantity/length.hpp>
+#include <math/quantity/linear_acceleration.hpp>
 #include <math/quantity/linear_velocity.hpp>
 #include <math/tolerance.hpp>
 
@@ -128,6 +129,9 @@ target::TargetConfig ConfigAssembler::createTargetConfig()
         const std::size_t MAX_REPORTED_TRACK_COUNT =
             _reader.requireUnsigned<std::size_t>(
                 "TARGET_MAX_REPORTED_TRACK_COUNT");
+        const double PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2 =
+            _reader.requireDouble(
+                "TARGET_PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2");
 
         return target::TargetConfig(
             math::LinearVelocity::fromMetersPerSecond(MAX_ASSOCIATION_SPEED_MPS),
@@ -137,8 +141,11 @@ target::TargetConfig ConfigAssembler::createTargetConfig()
             CONFIRMATION_DELAY,
             TRACKING_INTERVAL,
             MAX_CONSECUTIVE_TRACKING_MISSES,
-            INITIAL_ACCELERATION_STANDARD_DEVIATION_MPS2,
-            MAX_REPORTED_TRACK_COUNT);
+            math::LinearAcceleration::fromMetersPerSecondSquared(
+                INITIAL_ACCELERATION_STANDARD_DEVIATION_MPS2),
+            MAX_REPORTED_TRACK_COUNT,
+            math::LinearAcceleration::fromMetersPerSecondSquared(
+                PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2));
     }
     catch (const std::invalid_argument& error)
     {

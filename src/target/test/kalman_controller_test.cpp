@@ -81,7 +81,7 @@ math::CartesianPosition trajectory(double seconds)
 
 TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInsteadOfTheRawPlot)
 {
-    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
     EXPECT_EQ(tracking->beamType, beam::RequestBeamType::TRACKING);
@@ -108,7 +108,7 @@ TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInst
 
 TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAndIgnoresExtraPlots)
 {
-    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
     // Both 50 m and 200 m residuals fit the uncertain two-point forecast.
@@ -132,7 +132,7 @@ TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAnd
 
 TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsForecastingDuringMisses)
 {
-    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
     const auto tracking = beginTracking(controller, trajectory(0.0), trajectory(0.1));
     ASSERT_TRUE(tracking);
     const std::array<std::array<double, 3>, 12> noiseMultipliers{{
@@ -208,7 +208,8 @@ TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAn
     {
         SCOPED_TRACE(accelerationSigma);
         const TargetConfig config(1000_mps, 30_mps, 7_m, 11.345,
-            100ms, 1000ms, 3, accelerationSigma, 100);
+            100ms, 1000ms, 3,
+            math::LinearAcceleration::fromMetersPerSecondSquared(accelerationSigma), 100, 0_mps2);
         TargetController controller(config);
         const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
         ASSERT_TRUE(tracking);

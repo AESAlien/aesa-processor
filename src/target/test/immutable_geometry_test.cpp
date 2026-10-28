@@ -59,7 +59,7 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
     for (double displacement : {0.0, 1.0})
     {
         target::TargetController controller(target::TargetConfig(
-            1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
+            1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
         const auto confirmation = controller.handleDetection(target::DetectionEvent(
             BeamType::SEARCH, 1, 0ms, {{math::Distance(100_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, 1.0f}}));
         ASSERT_TRUE(confirmation.has_value());

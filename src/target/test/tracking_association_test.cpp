@@ -156,7 +156,7 @@ protected:
     const std::shared_ptr<const ITrackingAlgorithm> _algorithm = std::make_shared<ConstantVelocityAlgorithm>();
     TargetRepository _repository;
     DetectionMatcher _matcher{
-        TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100)};
+        TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2)};
     TrackSelector _selector{_repository, _matcher};
 };
 
@@ -218,13 +218,13 @@ TEST_F(TrackingAssociationTest, SharesConfiguredNdsGateAndAcceptsTheBoundary)
     const auto score = _matcher.matchesTracking(incoming, tracking);
     ASSERT_TRUE(score);
     const TargetConfig boundaryConfig(
-        1000_mps, 30_mps, 7_m, *score, 100ms, 1000ms, 3, 10.0, 100);
+        1000_mps, 30_mps, 7_m, *score, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2);
     const DetectionMatcher boundaryMatcher(boundaryConfig);
     EXPECT_TRUE(boundaryMatcher.matchesTracking(incoming, tracking));
     EXPECT_TRUE(boundaryMatcher.matchesPosition(incoming, tracking));
 
     const TargetConfig smallerConfig(1000_mps, 30_mps, 7_m,
-        std::nextafter(*score, 0.0), 100ms, 1000ms, 3, 10.0, 100);
+        std::nextafter(*score, 0.0), 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2);
     const DetectionMatcher smallerMatcher(smallerConfig);
     EXPECT_FALSE(smallerMatcher.matchesTracking(incoming, tracking));
     EXPECT_FALSE(smallerMatcher.matchesPosition(incoming, tracking));
@@ -235,7 +235,7 @@ TEST_F(TrackingAssociationTest, UsesInjectedMeasurementNoiseForScoreAndGate)
     const auto id = addTracking();
     const auto& tracking = *_repository.find(id);
     const TargetConfig config(
-        1000_mps, 30_mps, 2_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
+        1000_mps, 30_mps, 2_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2);
     const DetectionMatcher matcher(config);
     const auto score = matcher.matchesTracking(observation(1004_m, 1100ms), tracking);
     ASSERT_TRUE(score);
@@ -389,7 +389,7 @@ TEST_F(TrackingAssociationTest, ComparesOnlyTheRequestedIdAndMatchingResultTime)
 
 TEST(TrackingAssociationControllerTest, OutOfGatePlotsKeepRetryingUntilThreeMissesDeleteTheTarget)
 {
-    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
     const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 0ms, {1000_m}));
     ASSERT_TRUE(confirmation);
     const auto tracking = controller.handleDetection(result(BeamType::CONFIRMATION,
@@ -423,7 +423,7 @@ TEST(TrackingAssociationControllerTest, OutOfGatePlotsKeepRetryingUntilThreeMiss
 
 TEST(TrackingAssociationControllerTest, NearestSuccessResetsMissesAndPreservesOtherIdsWithoutRegisteringExtraPlots)
 {
-    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
     const auto firstConfirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 0ms, {1000_m}));
     ASSERT_TRUE(firstConfirmation);
     ASSERT_TRUE(controller.handleDetection(result(BeamType::CONFIRMATION,

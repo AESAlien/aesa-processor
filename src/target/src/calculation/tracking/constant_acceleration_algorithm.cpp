@@ -111,9 +111,36 @@ struct PredictedState
     math::SquareMatrix covariance;
 };
 
+math::SquareMatrix processNoiseCovariance(
+    double seconds,
+    math::LinearAcceleration standardDeviation)
+{
+    if (seconds == 0.0
+        || standardDeviation.equals(0_mps2, math::LinearAcceleration::NONE_TOLERANCE))
+    {
+        return math::SquareMatrix(STATE_DIMENSION);
+    }
+
+    // Independent acceleration disturbances: Q = G (sigma^2 I) G^T.
+    // G = [dt^2/2 I; dt I; I] in the [px,py,pz,vx,vy,vz,ax,ay,az] order.
+    math::Matrix disturbanceMapping(STATE_DIMENSION, POSITION_DIMENSION);
+    for (std::size_t axis = 0; axis < POSITION_DIMENSION; ++axis)
+    {
+        disturbanceMapping(axis, axis) = 0.5 * seconds * seconds;
+        disturbanceMapping(axis + VELOCITY_OFFSET, axis) = seconds;
+        disturbanceMapping(axis + ACCELERATION_OFFSET, axis) = 1.0;
+    }
+    const double sigma = standardDeviation.mps2();
+    const auto disturbanceCovariance = math::SquareMatrix::identity(POSITION_DIMENSION)
+        * (sigma * sigma);
+    return math::SquareMatrix(disturbanceMapping * disturbanceCovariance.asMatrix()
+        * math::transpose(disturbanceMapping));
+}
+
 std::optional<PredictedState> predictState(
     const TargetTrackingState& state,
-    std::chrono::milliseconds time)
+    std::chrono::milliseconds time,
+    math::LinearAcceleration processAccelerationStandardDeviation)
 {
     if (!state.errorCovariance() || time < state.timestamp())
     {
@@ -135,12 +162,12 @@ std::optional<PredictedState> predictState(
     }
     auto values = transition * stateVector(state);
     auto covariance = symmetricCovariance(
-        transition * *state.errorCovariance() * math::transpose(transition));
+        transition * *state.errorCovariance() * math::transpose(transition)
+        + processNoiseCovariance(seconds, processAccelerationStandardDeviation));
     if (!values.isFinite() || !covariance)
     {
         return std::nullopt;
     }
-    // Q is zero: no process-noise covariance is added during prediction.
     return PredictedState{std::move(values), std::move(*covariance)};
 }
 
@@ -209,8 +236,8 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::initialize(
     }
     const double sigma = _config.measurementStandardDeviation().m();
     const double measurementVariance = sigma * sigma;
-    const double accelerationVariance = _config.initialAccelerationStandardDeviation()
-        * _config.initialAccelerationStandardDeviation();
+    const double accelerationSigma = _config.initialAccelerationStandardDeviation().mps2();
+    const double accelerationVariance = accelerationSigma * accelerationSigma;
     const double positionVelocityCovariance = measurementVariance / seconds;
     const double velocityVariance = 2.0 * measurementVariance / seconds / seconds
         + 0.25 * seconds * seconds * accelerationVariance;
@@ -246,7 +273,7 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
     {
         return std::nullopt;
     }
-    const auto predicted = predictState(*state, time);
+    const auto predicted = predictState(*state, time, _config.processAccelerationStandardDeviation());
     if (!predicted)
     {
         return std::nullopt;
@@ -317,7 +344,7 @@ std::optional<TargetPrediction> ConstantAccelerationAlgorithm::predict(
     {
         return std::nullopt;
     }
-    const auto predicted = predictState(*state, time);
+    const auto predicted = predictState(*state, time, _config.processAccelerationStandardDeviation());
     if (!predicted)
     {
         return std::nullopt;

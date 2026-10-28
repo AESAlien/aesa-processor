@@ -26,6 +26,10 @@ using Time = std::chrono::milliseconds;
 using BeamType = beam::BeamType;
 
 static_assert(std::is_copy_assignable_v<TargetConfig>);
+static_assert(std::is_same_v<decltype(std::declval<const TargetConfig&>().initialAccelerationStandardDeviation()),
+    const math::LinearAcceleration&>);
+static_assert(std::is_same_v<decltype(std::declval<const TargetConfig&>().processAccelerationStandardDeviation()),
+    const math::LinearAcceleration&>);
 static_assert(!std::is_default_constructible_v<TargetController>);
 static_assert(!std::is_convertible_v<TargetConfig, TargetController>);
 static_assert(std::is_copy_assignable_v<TargetPrediction>);
@@ -236,7 +240,7 @@ TEST(TargetConfigTest, RejectsInvalidSettingsDuringConstruction)
     for (int option = 0; option < 10; ++option)
     {
         const TargetConfig defaults(
-            1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
+            1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2);
         auto maxAssociationSpeed = defaults.maxAssociationSpeed();
         auto maxInitialDopplerDifference = defaults.maxInitialDopplerDifference();
         auto measurementStandardDeviation = defaults.measurementStandardDeviation();
@@ -261,7 +265,7 @@ TEST(TargetConfigTest, RejectsInvalidSettingsDuringConstruction)
         EXPECT_THROW((TargetConfig(maxAssociationSpeed, maxInitialDopplerDifference,
             measurementStandardDeviation, positionNdsThreshold,
             confirmationDelay, trackingInterval, maxConsecutiveTrackingMisses,
-            10.0, 100)),
+            10_mps2, 100, 0_mps2)),
             std::invalid_argument);
     }
 }
@@ -271,28 +275,28 @@ TEST(TargetConfigTest, MatcherUsesInjectedSpeedDopplerNoiseAndGate)
     TargetRepository repository;
     const auto id = repository.add(observation());
     const auto& tentative = *repository.find(id);
-    const TargetConfig speedConfig(100_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
+    const TargetConfig speedConfig(100_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2);
     EXPECT_FALSE(DetectionMatcher(speedConfig).matchesPosition(observation(100ms, 1100_m), tentative));
     EXPECT_TRUE(DetectionMatcher(TargetConfig(
-        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100))
+        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2))
         .matchesPosition(observation(100ms, 1100_m), tentative));
     EXPECT_FALSE(DetectionMatcher(speedConfig).matchesConfirmation(observation(100ms, 1100_m), tentative));
     EXPECT_TRUE(DetectionMatcher(TargetConfig(
-        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100))
+        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2))
         .matchesConfirmation(observation(100ms, 1100_m), tentative));
 
-    const TargetConfig dopplerConfig(1000_mps, 2_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
+    const TargetConfig dopplerConfig(1000_mps, 2_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2);
     EXPECT_FALSE(DetectionMatcher(dopplerConfig).matchesConfirmation(observation(100ms, 1000_m, 3_mps), tentative));
     EXPECT_TRUE(DetectionMatcher(TargetConfig(
-        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100))
+        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2))
         .matchesConfirmation(observation(100ms, 1000_m, 3_mps), tentative));
 
-    const TargetConfig noiseConfig(1000_mps, 30_mps, 1_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
+    const TargetConfig noiseConfig(1000_mps, 30_mps, 1_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2);
     EXPECT_FALSE(DetectionMatcher(noiseConfig).matchesPosition(observation(0ms, 1010_m), tentative));
     EXPECT_TRUE(DetectionMatcher(TargetConfig(
-        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100))
+        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2))
         .matchesPosition(observation(0ms, 1010_m), tentative));
-    const TargetConfig gateConfig(1000_mps, 30_mps, 7_m, 0.0, 100ms, 1000ms, 3, 10.0, 100);
+    const TargetConfig gateConfig(1000_mps, 30_mps, 7_m, 0.0, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2);
     EXPECT_TRUE(DetectionMatcher(gateConfig).matchesPosition(observation(), tentative));
     EXPECT_FALSE(DetectionMatcher(gateConfig).matchesPosition(observation(0ms, 1001_m), tentative));
 }
@@ -300,7 +304,7 @@ TEST(TargetConfigTest, MatcherUsesInjectedSpeedDopplerNoiseAndGate)
 TEST(TargetConfigTest, ControllerOwnsTemporaryConfigAndUsesInjectedIntervalsAndMissLimit)
 {
     TargetController controller{TargetConfig(
-        1000_mps, 30_mps, 7_m, 11.345, 250ms, 400ms, 2, 10.0, 100)};
+        1000_mps, 30_mps, 7_m, 11.345, 250ms, 400ms, 2, 10_mps2, 100, 0_mps2)};
 
     const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 1000ms));
     ASSERT_TRUE(confirmation);
@@ -335,7 +339,7 @@ TEST(TargetConfigTest, ControllerPassesInjectedSpeedLimitToConfirmationMatcher)
     {
         SCOPED_TRACE(restricted);
         const TargetConfig config(restricted ? 100_mps : 1000_mps,
-            30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);
+            30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2);
         TargetController controller(config);
         const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 1000ms));
         ASSERT_TRUE(confirmation);
@@ -350,7 +354,7 @@ TEST(TargetConfigTest, ControllerPassesInjectedSpeedLimitToConfirmationMatcher)
 
 TEST(DomainValidationTest, InvalidPlotBatchDoesNotPartiallyRegisterCandidates)
 {
-    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
     EXPECT_THROW(controller.handleDetection(DetectionEvent(BeamType::SEARCH, 1, 0ms,
         {{math::Distance(1000_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f},
             {math::Distance(0_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f}})), std::invalid_argument);
