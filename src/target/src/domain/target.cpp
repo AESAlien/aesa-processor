@@ -9,6 +9,7 @@
 
 namespace target
 {
+using namespace math::literals;
 
 Target::Target(
     math::SphericalPosition position,
@@ -28,14 +29,15 @@ Target::Target(
 
 void Target::validate() const
 {
-    using namespace math::literals;
     if (!_trackingAlgorithm)
     {
         throw std::invalid_argument("Tracking algorithm must not be null");
     }
 
     if (_initialTime.count() < 0
-        || !_initialPosition.radius.greaterThan(0.0_m, math::Length::NONE_TOLERANCE)
+        || !_initialPosition.radius.greaterThan(
+            0.0_m,
+            math::Length::NONE_TOLERANCE)
         || !std::isfinite(_initialPower_db))
     {
         throw std::invalid_argument("Target requires a valid observation and time");
@@ -56,34 +58,34 @@ TargetState Target::state() const
     return _trackingState ? TargetState::TRACKING : TargetState::TENTATIVE;
 }
 
-math::Length Target::slantRange() const
+math::Distance Target::slantRange() const
 {
     return sphericalPosition().radius;
 }
 
-math::Angle Target::azimuth() const
+math::Azimuth Target::azimuth() const
 {
     return sphericalPosition().direction.azimuth;
 }
 
-math::Angle Target::elevation() const
+math::Elevation Target::elevation() const
 {
     return sphericalPosition().direction.elevation;
 }
 
 const math::SphericalPosition& Target::sphericalPosition() const
 {
-    return _trackingState ? _trackingState->sphericalPosition : _initialPosition;
+    return _trackingState ? _trackingState->sphericalPosition() : _initialPosition;
 }
 
 math::LinearVelocity Target::dopplerVelocity() const
 {
-    return _trackingState ? _trackingState->dopplerVelocity : _initialDopplerVelocity;
+    return _trackingState ? _trackingState->dopplerVelocity() : _initialDopplerVelocity;
 }
 
 float Target::power_db() const
 {
-    return _trackingState ? _trackingState->power_db : _initialPower_db;
+    return _trackingState ? _trackingState->power_db() : _initialPower_db;
 }
 
 std::chrono::milliseconds Target::initialTime() const
@@ -93,7 +95,7 @@ std::chrono::milliseconds Target::initialTime() const
 
 std::chrono::milliseconds Target::lastObservationTime() const
 {
-    return _trackingState ? _trackingState->timestamp : _initialTime;
+    return _trackingState ? _trackingState->timestamp() : _initialTime;
 }
 
 std::chrono::milliseconds Target::lastResultTime() const
@@ -138,7 +140,7 @@ bool Target::update(const Target& observation)
     const auto time = observation.lastObservationTime();
     if (state() != TargetState::TRACKING
         || observation.state() != TargetState::UNREGISTERED
-        || time <= _lastResultTime || time <= _trackingState->timestamp)
+        || time <= _lastResultTime         || time <= _trackingState->timestamp())
     {
         return false;
     }
@@ -154,7 +156,7 @@ bool Target::applyTrackingState(
     {
         return false;
     }
-    if (state->timestamp != time)
+    if (state->timestamp() != time)
     {
         throw std::invalid_argument("Tracking state must use the observation time");
     }
@@ -194,7 +196,7 @@ bool Target::markResultProcessed(std::chrono::milliseconds time)
 
 std::optional<TargetPrediction> Target::predict(std::chrono::milliseconds time) const
 {
-    if (state() != TargetState::TRACKING || time < _trackingState->timestamp)
+    if (state() != TargetState::TRACKING || time < _trackingState->timestamp())
     {
         return std::nullopt;
     }
@@ -204,7 +206,7 @@ std::optional<TargetPrediction> Target::predict(std::chrono::milliseconds time) 
     {
         return std::nullopt;
     }
-    if (prediction->timestamp != time)
+    if (prediction->timestamp() != time)
     {
         throw std::invalid_argument("Prediction must use the requested time");
     }

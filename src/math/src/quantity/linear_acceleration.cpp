@@ -4,15 +4,16 @@
 
 namespace math
 {
+using namespace literals;
 
 const QuantityTolerance<LinearAcceleration> LinearAcceleration::NONE_TOLERANCE{
-    LinearAcceleration::fromMetersPerSecondSquared(0.0),
+    0.0_mps2,
     0.0
 };
 
 const QuantityTolerance<LinearAcceleration> LinearAcceleration::DEFAULT_TOLERANCE{
-    LinearAcceleration::fromMetersPerSecondSquared(DEFAULT_ABSOLUTE_TOLERANCE),
-    DEFAULT_RELATIVE_TOLERANCE
+    1e-12_mps2,
+    1e-9
 };
 
 LinearAcceleration LinearAcceleration::fromMetersPerSecondSquared(double metersPerSecondSquared)

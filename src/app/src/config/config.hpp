@@ -14,9 +14,9 @@ struct Config
         target::TargetConfig targetConfig,
         comm::CommConfig commConfig);
 
-    const beam::BeamConfig beamConfig;
-    const target::TargetConfig targetConfig;
-    const comm::CommConfig commConfig;
+    beam::BeamConfig beamConfig;
+    target::TargetConfig targetConfig;
+    comm::CommConfig commConfig;
 };
 
 } // namespace app

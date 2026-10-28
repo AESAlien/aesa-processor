@@ -1,4 +1,4 @@
-﻿// 시각화 도구(beam_schedule_dump, visualize_schedule.py)가 보여 주는 두 시나리오를 GTest로 고정한다.
+// 시각화 도구(beam_schedule_dump, visualize_schedule.py)가 보여 주는 두 시나리오를 GTest로 고정한다.
 // 시나리오 정의와 실행은 schedule_scenario.hpp 를 시각화 도구와 함께 쓴다.
 
 #include "schedule_scenario.hpp"
@@ -101,14 +101,14 @@ void expectCommonRules(const Result& result)
         EXPECT_EQ(command.transmitTime, std::chrono::milliseconds(tick.tick_ms));
         if (command.beamType == beam::BeamType::SEARCH)
         {
-            EXPECT_EQ(command.azimuthBeamWidth, 6_deg) << "tick " << tick.tick_ms << "ms";
-            EXPECT_EQ(command.elevationBeamWidth, 6_deg) << "tick " << tick.tick_ms << "ms";
+            EXPECT_EQ(command.beamWidth.azimuth, 6_deg) << "tick " << tick.tick_ms << "ms";
+            EXPECT_EQ(command.beamWidth.elevation, 6_deg) << "tick " << tick.tick_ms << "ms";
         }
         else
         {
             EXPECT_EQ(command.beamId, schedule_scenario::REQUEST_ID) << "tick " << tick.tick_ms << "ms";
-            EXPECT_EQ(command.azimuthBeamWidth, 3_deg) << "tick " << tick.tick_ms << "ms";
-            EXPECT_EQ(command.elevationBeamWidth, 3_deg) << "tick " << tick.tick_ms << "ms";
+            EXPECT_EQ(command.beamWidth.azimuth, 3_deg) << "tick " << tick.tick_ms << "ms";
+            EXPECT_EQ(command.beamWidth.elevation, 3_deg) << "tick " << tick.tick_ms << "ms";
         }
     }
 

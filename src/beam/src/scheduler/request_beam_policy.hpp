@@ -1,8 +1,7 @@
 #pragma once
 
 #include <beam/dto/beam_type.hpp>
-
-#include <math/quantity/angle.hpp>
+#include <beam/domain/beam_width.hpp>
 
 namespace beam
 {
@@ -18,8 +17,8 @@ public:
     // 송신 시 명령에 담는 빔 종류.
     virtual BeamType transmitBeamType() const = 0;
 
-    // 송신 빔의 방위각/고각 빔 폭.
-    virtual math::Angle beamWidth() const = 0;
+    // 송신 빔의 서로 독립적인 방위각/고각 빔 폭.
+    virtual BeamWidth beamWidth() const = 0;
 
     // 송신 시각이 같은 요청 중 어느 것을 먼저 보낼지 정한다. 값이 클수록 먼저 보낸다.
     virtual int priority() const = 0;

@@ -1,4 +1,4 @@
-﻿#include "scheduler/scheduler.hpp"
+#include "scheduler/scheduler.hpp"
 #include "scheduler/request_beam_policy_factory.hpp"
 
 #include "attitude/attitude_error.hpp"
@@ -50,7 +50,7 @@ beam::BeamRequest makeRequest(
     math::Angle elevation
 ) {
     return beam::BeamRequest(
-        factory.create(beamType), transmitTime, requestId, math::SphericalDirection(azimuth, elevation));
+        factory.create(beamType), transmitTime, requestId, math::SphericalDirection(math::Azimuth(azimuth), math::Elevation(elevation)));
 }
 
 beam::BeamRequest makeRequest(
@@ -61,7 +61,7 @@ beam::BeamRequest makeRequest(
     math::Angle elevation
 ) {
     static const beam::RequestBeamPolicyFactory factory{
-        beam::RequestBeamConfig(3_deg, 3_deg)};
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))};
     return makeRequest(factory, beamType, transmitTime, requestId, azimuth, elevation);
 }
 
@@ -88,8 +88,8 @@ TEST(SchedulerTest, ReturnsNothingInitially)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
 
     EXPECT_FALSE(scheduler.next(0ms).has_value());
 }
@@ -102,8 +102,8 @@ TEST(SchedulerTest, ReturnsNothingWhenOnButAttitudeNotReceived)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     scheduler.setOperationState(beam::OperationState::ON);
 
     EXPECT_FALSE(scheduler.next(0ms).has_value());
@@ -117,8 +117,8 @@ TEST(SchedulerTest, AttitudeReceivedWhileOffIsIgnored)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     scheduler.setAttitude(makeZeroAttitude());
     scheduler.setOperationState(beam::OperationState::ON);
 
@@ -133,8 +133,8 @@ TEST(SchedulerTest, AttitudeAfterOnMakesSchedulerReady)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
 
     EXPECT_TRUE(scheduler.next(0ms).has_value());
@@ -148,8 +148,8 @@ TEST(SchedulerTest, ReturnsNothingAfterTurnedOff)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
     ASSERT_TRUE(scheduler.next(0ms).has_value());
 
@@ -166,8 +166,8 @@ TEST(SchedulerTest, InvalidAttitudeThrowsAndLeavesSchedulerNotReady)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     scheduler.setOperationState(beam::OperationState::ON);
 
     EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg)), beam::AttitudeError);
@@ -186,8 +186,8 @@ TEST(SchedulerTest, GimbalLockAttitudeThrowsEvenWhileOff)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
 
     try
     {
@@ -214,8 +214,8 @@ TEST(SchedulerTest, GimbalLockAttitudeThrowsAfterSearchGridIsCreated)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler, makeZeroAttitude());
     ASSERT_TRUE(scheduler.next(0ms).has_value());
 
@@ -236,8 +236,8 @@ TEST(SchedulerTest, GimbalLockUsesPitchLimitFromConfig)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}))
         .searchGridConfig(beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg))
-        .requestBeamConfig(beam::RequestBeamConfig(3_deg, 3_deg))
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
+        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
         .attitudeConfig(beam::AttitudeConfig(
             60_deg,
             math::SquareMatrix::identity(3),
@@ -258,8 +258,8 @@ TEST(SchedulerTest, SecondAttitudeIsIgnored)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler, makeZeroAttitude());
 
     scheduler.setAttitude(makeAttitude(0_deg, 0_deg, 10_deg));
@@ -279,8 +279,8 @@ TEST(SchedulerTest, ReturnsSearchBeamsInGridOrderWhenNoRequests)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
 
     for (std::size_t index = 0; index < 30; ++index)
@@ -292,8 +292,8 @@ TEST(SchedulerTest, ReturnsSearchBeamsInGridOrderWhenNoRequests)
         EXPECT_EQ(command->beamId, static_cast<std::uint32_t>(index + 1)) << "index=" << index;
         EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(index))) << "index=" << index;
         EXPECT_EQ(command->direction_ant.elevation, gridElevation(index)) << "index=" << index;
-        EXPECT_EQ(command->azimuthBeamWidth, 6_deg);
-        EXPECT_EQ(command->elevationBeamWidth, 6_deg);
+        EXPECT_EQ(command->beamWidth.azimuth, 6_deg);
+        EXPECT_EQ(command->beamWidth.elevation, 6_deg);
     }
 }
 
@@ -305,13 +305,13 @@ TEST(SchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
 
     const beam::SearchGridConfig gridConfig(
-        21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg);
-    const std::size_t beamCount = gridConfig.azimuthCount * gridConfig.elevationCount;
+        21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
+    const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
     for (std::size_t index = 0; index < beamCount; ++index)
     {
         ASSERT_TRUE(scheduler.next(std::chrono::milliseconds(10 * index)).has_value());
@@ -331,8 +331,8 @@ TEST(SchedulerTest, SearchBeamTransmitTimeIsCurrentTime)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
 
     EXPECT_EQ(scheduler.next(1230ms)->transmitTime, 1230ms);
@@ -348,8 +348,8 @@ TEST(SchedulerTest, SearchBeamsFollowAttitude)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler, makeAttitude(0_deg, 0_deg, 10_deg));
 
     const auto command = scheduler.next(0ms);
@@ -369,8 +369,8 @@ TEST(SchedulerTest, ConfirmationRequestProducesConfirmationBeam)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::CONFIRMATION, 100ms, 20, 12.5_deg, 20.5_deg));
 
@@ -382,8 +382,8 @@ TEST(SchedulerTest, ConfirmationRequestProducesConfirmationBeam)
     EXPECT_EQ(command->transmitTime, 100ms);
     EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(12.5_deg));
     EXPECT_EQ(command->direction_ant.elevation, 20.5_deg);
-    EXPECT_EQ(command->azimuthBeamWidth, 3_deg);
-    EXPECT_EQ(command->elevationBeamWidth, 3_deg);
+    EXPECT_EQ(command->beamWidth.azimuth, 3_deg);
+    EXPECT_EQ(command->beamWidth.elevation, 3_deg);
 }
 
 TEST(SchedulerTest, TrackingRequestProducesTrackingBeam)
@@ -394,8 +394,8 @@ TEST(SchedulerTest, TrackingRequestProducesTrackingBeam)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 100ms, 100, -30_deg, 5_deg));
 
@@ -406,8 +406,8 @@ TEST(SchedulerTest, TrackingRequestProducesTrackingBeam)
     EXPECT_EQ(command->beamId, 100u);
     EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(-30_deg));
     EXPECT_EQ(command->direction_ant.elevation, 5_deg);
-    EXPECT_EQ(command->azimuthBeamWidth, 3_deg);
-    EXPECT_EQ(command->elevationBeamWidth, 3_deg);
+    EXPECT_EQ(command->beamWidth.azimuth, 3_deg);
+    EXPECT_EQ(command->beamWidth.elevation, 3_deg);
 }
 
 TEST(SchedulerTest, FutureRequestKeepsSearchingUntilItsTime)
@@ -418,8 +418,8 @@ TEST(SchedulerTest, FutureRequestKeepsSearchingUntilItsTime)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 30ms, 20, 1_deg, 2_deg));
 
@@ -437,8 +437,8 @@ TEST(SchedulerTest, RequestBeamDoesNotAdvanceSearchCursor)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
 
     EXPECT_EQ(scheduler.next(0ms)->beamId, 1u);
@@ -458,8 +458,8 @@ TEST(SchedulerTest, DelayedRequestUsesCurrentTimeAsTransmitTime)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 1005ms, 10, 1_deg, 2_deg));
 
@@ -479,8 +479,8 @@ TEST(SchedulerTest, VeryOldRequestIsStillSentAsRequestBeam)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 1000ms, 7, 1_deg, 2_deg));
 
@@ -506,8 +506,8 @@ TEST(SchedulerTest, CrowdedTicksFollowDesignedScenario)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 1005ms, 1, 1_deg, 0_deg));
     scheduler.addRequest(makeRequest(beam::RequestBeamType::CONFIRMATION, 1010ms, 2, 2_deg, 0_deg));
@@ -550,8 +550,8 @@ TEST(SchedulerTest, CommandCountStartsAtOneAndIncreasesPerCommand)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
 
     EXPECT_EQ(scheduler.next(0ms)->commandCount, 1u);
@@ -571,8 +571,8 @@ TEST(SchedulerTest, CommandCountDoesNotIncreaseWhenNothingIsSent)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     scheduler.setOperationState(beam::OperationState::ON);
 
     EXPECT_FALSE(scheduler.next(0ms).has_value());
@@ -592,8 +592,8 @@ TEST(SchedulerTest, RequestWhileOffIsIgnored)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 3, 1_deg, 2_deg));
     makeReady(scheduler);
 
@@ -608,8 +608,8 @@ TEST(SchedulerTest, RequestBeforeAttitudeIsIgnored)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     scheduler.setOperationState(beam::OperationState::ON);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 4, 1_deg, 2_deg));
     scheduler.setAttitude(makeZeroAttitude());
@@ -627,8 +627,8 @@ TEST(SchedulerTest, TurningOnAgainAfterOffResetsEverything)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler, makeAttitude(0_deg, 0_deg, 10_deg));
     scheduler.next(0ms);
     scheduler.next(10ms);
@@ -659,8 +659,8 @@ TEST(SchedulerTest, TurningOnWhileAlreadyOnKeepsState)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
     scheduler.next(0ms);
 
@@ -680,8 +680,8 @@ TEST(SchedulerTest, TurningOffWhileAlreadyOffDoesNothing)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     scheduler.setOperationState(beam::OperationState::OFF);
     makeReady(scheduler);
 
@@ -696,28 +696,32 @@ TEST(SchedulerTest, RequestBeamWidthFollowsPolicyOfEachRequest)
 {
     const beam::RequestBeamPolicyFactory factory(
         beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(3_deg)
-            .trackingBeamWidth(3_deg)
-            .confirmationBeamWidth(2_deg)
-            .trackingBeamWidth(4_deg)
+            .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
+            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
+            .confirmationBeamWidth(beam::BeamWidth(
+                math::AngularWidth(2_deg),
+                math::AngularWidth(3_deg)))
+            .trackingBeamWidth(beam::BeamWidth(
+                math::AngularWidth(4_deg),
+                math::AngularWidth(5_deg)))
             .build());
     beam::Scheduler scheduler(beam::BeamConfig(
         beam::AttitudeConfig(89_deg, math::SquareMatrix::identity(3), math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+        beam::SearchGridConfig(21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     makeReady(scheduler);
 
     scheduler.addRequest(makeRequest(factory, beam::RequestBeamType::CONFIRMATION, 0ms, 1, 1_deg, 5_deg));
     const auto confirmation = scheduler.next(0ms);
     ASSERT_TRUE(confirmation.has_value());
     EXPECT_EQ(confirmation->beamType, beam::BeamType::CONFIRMATION);
-    EXPECT_EQ(confirmation->azimuthBeamWidth, 2_deg);
-    EXPECT_EQ(confirmation->elevationBeamWidth, 2_deg);
+    EXPECT_EQ(confirmation->beamWidth.azimuth, 2_deg);
+    EXPECT_EQ(confirmation->beamWidth.elevation, 3_deg);
 
     scheduler.addRequest(makeRequest(factory, beam::RequestBeamType::TRACKING, 10ms, 2, 1_deg, 5_deg));
     const auto tracking = scheduler.next(10ms);
     ASSERT_TRUE(tracking.has_value());
     EXPECT_EQ(tracking->beamType, beam::BeamType::TRACKING);
-    EXPECT_EQ(tracking->azimuthBeamWidth, 4_deg);
-    EXPECT_EQ(tracking->elevationBeamWidth, 4_deg);
+    EXPECT_EQ(tracking->beamWidth.azimuth, 4_deg);
+    EXPECT_EQ(tracking->beamWidth.elevation, 5_deg);
 }

@@ -77,6 +77,8 @@ public:
     const Matrix& asMatrix() const noexcept;
 
 private:
+    void validate() const;
+
     Matrix _matrix;
 };
 

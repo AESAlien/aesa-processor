@@ -23,6 +23,11 @@ SquareMatrix::SquareMatrix(std::initializer_list<std::initializer_list<double>> 
 SquareMatrix::SquareMatrix(Matrix matrix)
     : _matrix(std::move(matrix))
 {
+    validate();
+}
+
+void SquareMatrix::validate() const
+{
     if (_matrix.rows() != _matrix.columns())
     {
         throw std::invalid_argument("SquareMatrix requires equal row and column counts");

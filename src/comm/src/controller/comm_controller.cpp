@@ -21,8 +21,8 @@ constexpr std::chrono::milliseconds RECEIVE_POLL_TIMEOUT{100};
 NetworkEndpoint toNetworkEndpoint(const CommEndpoint& endpoint)
 {
     return NetworkEndpoint{
-        endpoint.address,
-        endpoint.port
+        endpoint.address(),
+        endpoint.port()
     };
 }
 
@@ -33,9 +33,9 @@ class CommController::Impl
 public:
     explicit Impl(CommConfig configuration)
         : _networkManager(
-            toNetworkEndpoint(configuration.server),
-            toNetworkEndpoint(configuration.operatorConsole),
-            toNetworkEndpoint(configuration.scenarioSimulator))
+            toNetworkEndpoint(configuration.server()),
+            toNetworkEndpoint(configuration.operatorConsole()),
+            toNetworkEndpoint(configuration.scenarioSimulator()))
     {
     }
 

@@ -9,12 +9,12 @@ namespace beam
 
 struct SetAttitudeCommand
 {
-    const math::Angle latitude;
-    const math::Angle longitude;
-    const math::Length altitude;
-    const math::Angle roll;
-    const math::Angle pitch;
-    const math::Angle yaw;
+    math::Angle latitude;
+    math::Angle longitude;
+    math::Length altitude;
+    math::Angle roll;
+    math::Angle pitch;
+    math::Angle yaw;
 
     SetAttitudeCommand(
         math::Angle latitude,

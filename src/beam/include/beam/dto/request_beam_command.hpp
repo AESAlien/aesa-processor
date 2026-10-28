@@ -19,10 +19,10 @@ namespace beam
 // - requestId는 TransmitBeamCommand::beamId로 전달된다.
 struct RequestBeamCommand
 {
-    const RequestBeamType beamType;
-    const std::chrono::milliseconds transmitTime;
-    const uint32_t requestId;
-    const math::SphericalDirection direction_ant;
+    RequestBeamType beamType;
+    std::chrono::milliseconds transmitTime;
+    uint32_t requestId;
+    math::SphericalDirection direction_ant;
 
     RequestBeamCommand(
         RequestBeamType beamType,

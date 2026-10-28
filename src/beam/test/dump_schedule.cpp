@@ -135,8 +135,8 @@ int main(int argc, char** argv)
                 command.commandCount,
                 command.direction_ant.azimuth.deg(),
                 command.direction_ant.elevation.deg(),
-                command.azimuthBeamWidth.deg(),
-                command.elevationBeamWidth.deg());
+                command.beamWidth.azimuth.deg(),
+                command.beamWidth.elevation.deg());
         }
 
         std::printf("# requests\n");
@@ -156,7 +156,13 @@ int main(int argc, char** argv)
         std::printf("# grid\n");
         std::printf("idx,beamID,az_deg,el_deg\n");
         const beam::SearchGridConfig gridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg);
+            21,
+            9,
+            math::Azimuth(-42_deg),
+            4.2_deg,
+            math::Elevation(3_deg),
+            4.4_deg,
+            beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
         beam::SearchGrid grid(
             beam::AntEnuTransform(
                 attitude,
@@ -165,7 +171,7 @@ int main(int argc, char** argv)
                     math::SquareMatrix::identity(3),
                     math::Tolerance{1e-6, 0.0})),
             gridConfig);
-        const std::size_t beamCount = gridConfig.azimuthCount * gridConfig.elevationCount;
+        const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
         for (std::size_t index = 0; index < beamCount; ++index)
         {
             const beam::SearchBeam& info = grid.nextBeam();

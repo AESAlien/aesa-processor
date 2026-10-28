@@ -17,8 +17,7 @@ TransmitBeamCommand makeSearchCommand(
         .beamId(searchBeam.beamId)
         .commandCount(commandCount)
         .direction_ant(searchBeam.direction_enu)
-        .azimuthBeamWidth(searchBeam.azimuthBeamWidth)
-        .elevationBeamWidth(searchBeam.elevationBeamWidth)
+        .beamWidth(searchBeam.beamWidth)
         .build();
 }
 
@@ -27,15 +26,13 @@ TransmitBeamCommand makeRequestCommand(
     std::chrono::milliseconds currentTime,
     std::uint32_t commandCount
 ) {
-    const math::Angle width = request.beamWidth();
     return TransmitBeamCommand::Builder()
         .beamType(request.transmitBeamType())
         .transmitTime(currentTime)
         .beamId(request.requestId())
         .commandCount(commandCount)
         .direction_ant(request.direction_enu())
-        .azimuthBeamWidth(width)
-        .elevationBeamWidth(width)
+        .beamWidth(request.beamWidth())
         .build();
 }
 } // namespace

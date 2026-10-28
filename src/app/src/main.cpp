@@ -30,9 +30,9 @@ void printEndpoint(
 {
     std::cout
         << label
-        << endpoint.address
+        << endpoint.address()
         << ':'
-        << endpoint.port
+        << endpoint.port()
         << '\n';
 }
 
@@ -128,14 +128,14 @@ int main()
             std::cout
                 << "[START] 5 worker threads running; beam tick = 10ms\n"
                 << "[SERVER] "
-                << config.commConfig.server.address
+                << config.commConfig.server().address()
                 << ':'
-                << config.commConfig.server.port
+                << config.commConfig.server().port()
                 << '\n';
             printEndpoint(
-                "[CONSOLE SOURCE] ", config.commConfig.operatorConsole);
+                "[CONSOLE SOURCE] ", config.commConfig.operatorConsole());
             printEndpoint(
-                "[SIMULATOR SOURCE] ", config.commConfig.scenarioSimulator);
+                "[SIMULATOR SOURCE] ", config.commConfig.scenarioSimulator());
             std::cout
                 << "Send ON, then attitude, then detection messages.\n"
                 << "Ctrl+C terminates the process; graceful receive shutdown is not implemented."

@@ -61,12 +61,12 @@ std::optional<TargetTrackingState> ConstantVelocityAlgorithm::update(
 {
     const auto& currentState = current.trackingState();
     const auto time = observation.lastObservationTime();
-    if (!currentState || time <= currentState->timestamp)
+    if (!currentState || time <= currentState->timestamp())
     {
         return std::nullopt;
     }
 
-    return estimateTrackingState(currentState->position, currentState->timestamp, observation);
+    return estimateTrackingState(currentState->position(), currentState->timestamp(), observation);
 }
 
 std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
@@ -74,25 +74,25 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     std::chrono::milliseconds time) const
 {
     const auto& currentState = current.trackingState();
-    if (!currentState || time < currentState->timestamp)
+    if (!currentState || time < currentState->timestamp())
     {
         return std::nullopt;
     }
 
     const auto& state = *currentState;
     // Preserve a stationary measured position without conversion roundoff.
-    const auto& velocity = state.velocity;
+    const auto& velocity = state.velocity();
     if (velocity.x.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         && velocity.y.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         && velocity.z.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE))
     {
-        return TargetPrediction{time, state.sphericalPosition};
+        return TargetPrediction{time, state.sphericalPosition()};
     }
 
     try
     {
-        const auto displacement = velocity * (time - state.timestamp);
-        const auto predictedPosition = state.position + displacement;
+        const auto displacement = velocity * (time - state.timestamp());
+        const auto predictedPosition = state.position() + displacement;
         return TargetPrediction{time, predictedPosition.toSpherical()};
     }
     catch (const std::invalid_argument&)

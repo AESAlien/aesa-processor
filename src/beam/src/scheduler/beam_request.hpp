@@ -3,9 +3,9 @@
 #include "scheduler/request_beam_policy.hpp"
 
 #include <beam/dto/beam_type.hpp>
+#include <beam/domain/beam_width.hpp>
 
 #include <math/geometry/spherical_direction.hpp>
-#include <math/quantity/angle.hpp>
 #include <chrono>
 #include <cstdint>
 #include <memory>
@@ -31,7 +31,7 @@ public:
 
     // 아래 세 메서드는 정책에 위임한다.
     BeamType transmitBeamType() const;
-    math::Angle beamWidth() const;
+    BeamWidth beamWidth() const;
     int priority() const;
 
     std::chrono::milliseconds transmitTime() const noexcept;
