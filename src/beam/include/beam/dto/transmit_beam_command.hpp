@@ -1,9 +1,9 @@
 #pragma once
 
 #include <beam/dto/beam_type.hpp>
+#include <beam/domain/beam_width.hpp>
 
 #include <math/geometry/spherical_direction.hpp>
-#include <math/quantity/angle.hpp>
 #include <chrono>
 #include <cstdint>
 #include <optional>
@@ -21,8 +21,7 @@ struct TransmitBeamCommand
     const uint32_t beamId;
     const uint32_t commandCount;
     const math::SphericalDirection direction_ant;
-    const math::Angle azimuthBeamWidth;
-    const math::Angle elevationBeamWidth;
+    const BeamWidth beamWidth;
 
     TransmitBeamCommand(
         BeamType beamType,
@@ -30,15 +29,13 @@ struct TransmitBeamCommand
         uint32_t beamId,
         uint32_t commandCount,
         math::SphericalDirection direction_ant,
-        math::Angle azimuthBeamWidth,
-        math::Angle elevationBeamWidth
+        BeamWidth beamWidth
     ) : beamType(beamType),
         transmitTime(transmitTime),
         beamId(beamId),
         commandCount(commandCount),
         direction_ant(direction_ant),
-        azimuthBeamWidth(azimuthBeamWidth),
-        elevationBeamWidth(elevationBeamWidth)
+        beamWidth(beamWidth)
     {
     }
 
@@ -51,8 +48,7 @@ struct TransmitBeamCommand
         Builder& commandCount(uint32_t value) { _commandCount = value; return *this; }
         // SphericalDirection은 대입할 수 없으므로 emplace로 다시 만든다.
         Builder& direction_ant(math::SphericalDirection value) { _direction_ant.emplace(value); return *this; }
-        Builder& azimuthBeamWidth(math::Angle value) { _azimuthBeamWidth = value; return *this; }
-        Builder& elevationBeamWidth(math::Angle value) { _elevationBeamWidth = value; return *this; }
+        Builder& beamWidth(BeamWidth value) { _beamWidth = value; return *this; }
 
         TransmitBeamCommand build() const
         {
@@ -62,8 +58,7 @@ struct TransmitBeamCommand
                 _beamId.value(),
                 _commandCount.value(),
                 _direction_ant.value(),
-                _azimuthBeamWidth.value(),
-                _elevationBeamWidth.value());
+                _beamWidth.value());
         }
 
     private:
@@ -72,8 +67,7 @@ struct TransmitBeamCommand
         std::optional<uint32_t> _beamId;
         std::optional<uint32_t> _commandCount;
         std::optional<math::SphericalDirection> _direction_ant;
-        std::optional<math::Angle> _azimuthBeamWidth;
-        std::optional<math::Angle> _elevationBeamWidth;
+        std::optional<BeamWidth> _beamWidth;
     };
 };
 

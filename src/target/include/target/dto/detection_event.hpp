@@ -1,7 +1,8 @@
 #pragma once
 
 #include <beam/dto/beam_type.hpp>
-#include <math/quantity/angle.hpp>
+#include <math/geometry/azimuth.hpp>
+#include <math/geometry/elevation.hpp>
 #include <math/quantity/length.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
@@ -26,15 +27,15 @@ struct DetectionEvent
     struct Plot
     {
         const math::Length slantRange;
-        const math::Angle azimuth;
-        const math::Angle elevation;
+        const math::Azimuth azimuth;
+        const math::Elevation elevation;
         const math::LinearVelocity dopplerVelocity;
         const float power_db;
 
         Plot(
             math::Length slantRange,
-            math::Angle azimuth,
-            math::Angle elevation,
+            math::Azimuth azimuth,
+            math::Elevation elevation,
             math::LinearVelocity dopplerVelocity,
             float power_db
         ) : slantRange(slantRange),
@@ -49,8 +50,8 @@ struct DetectionEvent
         {
         public:
             Builder& slantRange(math::Length value) { _slantRange = value; return *this; }
-            Builder& azimuth(math::Angle value) { _azimuth = value; return *this; }
-            Builder& elevation(math::Angle value) { _elevation = value; return *this; }
+            Builder& azimuth(math::Azimuth value) { _azimuth = value; return *this; }
+            Builder& elevation(math::Elevation value) { _elevation = value; return *this; }
             Builder& dopplerVelocity(math::LinearVelocity value) { _dopplerVelocity = value; return *this; }
             Builder& power_db(float value) { _power_db = value; return *this; }
 
@@ -63,8 +64,8 @@ struct DetectionEvent
 
         private:
             std::optional<math::Length> _slantRange;
-            std::optional<math::Angle> _azimuth;
-            std::optional<math::Angle> _elevation;
+            std::optional<math::Azimuth> _azimuth;
+            std::optional<math::Elevation> _elevation;
             std::optional<math::LinearVelocity> _dopplerVelocity;
             std::optional<float> _power_db;
         };

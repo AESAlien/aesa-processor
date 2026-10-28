@@ -1,6 +1,6 @@
 #pragma once
 
-#include <math/quantity/angle.hpp>
+#include <beam/domain/beam_width.hpp>
 
 #include <cstddef>
 #include <optional>
@@ -14,23 +14,21 @@ public:
     class Builder
     {
     public:
-        Builder& confirmationBeamWidth(math::Angle value)   { _confirmationBeamWidth = value; return *this; }
-        Builder& trackingBeamWidth(math::Angle value)       { _trackingBeamWidth = value; return *this; }
+        Builder& confirmationBeamWidth(BeamWidth value) { _confirmationBeamWidth = value; return *this; }
+        Builder& trackingBeamWidth(BeamWidth value) { _trackingBeamWidth = value; return *this; }
 
         RequestBeamConfig build() const;
     private:
-        std::optional<math::Angle> _confirmationBeamWidth;
-        std::optional<math::Angle> _trackingBeamWidth;
+        std::optional<BeamWidth> _confirmationBeamWidth;
+        std::optional<BeamWidth> _trackingBeamWidth;
     }; // class Builder
 
-    RequestBeamConfig(math::Angle confirmationBeamWidth,
-                      math::Angle trackingBeamWidth);
+    RequestBeamConfig(
+        BeamWidth confirmationBeamWidth,
+        BeamWidth trackingBeamWidth);
     
-    const math::Angle confirmationBeamWidth;
-    const math::Angle trackingBeamWidth;
-
-private:
-    void validate() const;
+    const BeamWidth confirmationBeamWidth;
+    const BeamWidth trackingBeamWidth;
 };
 
 } // namespace beam

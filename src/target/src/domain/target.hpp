@@ -35,8 +35,8 @@ public:
     std::uint32_t id() const;
     TargetState state() const;
     math::Length slantRange() const;
-    math::Angle azimuth() const;
-    math::Angle elevation() const;
+    math::Azimuth azimuth() const;
+    math::Elevation elevation() const;
     const math::SphericalPosition& sphericalPosition() const;
     math::LinearVelocity dopplerVelocity() const;
     float power_db() const;

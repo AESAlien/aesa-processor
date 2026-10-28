@@ -176,13 +176,16 @@ TEST(AppConfigTest, LoadsEveryConfigurationValue)
         math::SquareMatrix::identity(3));
     EXPECT_EQ(config.beamConfig.searchGrid.azimuthCount, 3u);
     EXPECT_EQ(config.beamConfig.searchGrid.elevationCount, 2u);
-    EXPECT_EQ(config.beamConfig.searchGrid.azimuthStart, -10_deg);
+    EXPECT_TRUE(config.beamConfig.searchGrid.azimuthStart.isEquivalentTo(-10_deg));
     EXPECT_EQ(config.beamConfig.searchGrid.azimuthStep, 5_deg);
     EXPECT_EQ(config.beamConfig.searchGrid.elevationStart, 1_deg);
     EXPECT_EQ(config.beamConfig.searchGrid.elevationStep, 2_deg);
-    EXPECT_EQ(config.beamConfig.searchGrid.beamWidth, 4_deg);
-    EXPECT_EQ(config.beamConfig.requestBeam.confirmationBeamWidth, 2_deg);
-    EXPECT_EQ(config.beamConfig.requestBeam.trackingBeamWidth, 5_deg);
+    EXPECT_EQ(config.beamConfig.searchGrid.beamWidth.azimuth, 4_deg);
+    EXPECT_EQ(config.beamConfig.searchGrid.beamWidth.elevation, 4_deg);
+    EXPECT_EQ(config.beamConfig.requestBeam.confirmationBeamWidth.azimuth, 2_deg);
+    EXPECT_EQ(config.beamConfig.requestBeam.confirmationBeamWidth.elevation, 2_deg);
+    EXPECT_EQ(config.beamConfig.requestBeam.trackingBeamWidth.azimuth, 5_deg);
+    EXPECT_EQ(config.beamConfig.requestBeam.trackingBeamWidth.elevation, 5_deg);
 
     EXPECT_EQ(config.targetConfig.maxAssociationSpeed, 900_mps);
     EXPECT_EQ(config.targetConfig.maxInitialDopplerDifference, 25_mps);
@@ -284,8 +287,8 @@ TEST(AppConfigTest, LoadedConfigurationCanBeInjectedIntoEveryController)
         0_deg));
     const auto beamCommand = beamController.nextBeamCommand(0ms);
     ASSERT_TRUE(beamCommand.has_value());
-    EXPECT_EQ(beamCommand->azimuthBeamWidth, 4_deg);
-    EXPECT_EQ(beamCommand->elevationBeamWidth, 4_deg);
+    EXPECT_EQ(beamCommand->beamWidth.azimuth, 4_deg);
+    EXPECT_EQ(beamCommand->beamWidth.elevation, 4_deg);
 
     target::TargetController targetController(config.targetConfig);
     const auto confirmation = targetController.handleDetection(
@@ -293,7 +296,7 @@ TEST(AppConfigTest, LoadedConfigurationCanBeInjectedIntoEveryController)
             beam::BeamType::SEARCH,
             1,
             1000ms,
-            {{1000_m, 0_deg, 0_deg, 0_mps, -10.0f}}));
+            {{1000_m, math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f}}));
     ASSERT_TRUE(confirmation.has_value());
     EXPECT_EQ(confirmation->transmitTime, 1150ms);
 

@@ -75,7 +75,13 @@ int main(int argc, char** argv)
     try
     {
         const beam::SearchGridConfig config(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg);
+            21,
+            9,
+            math::Azimuth(-42_deg),
+            4.2_deg,
+            math::Elevation(3_deg),
+            4.4_deg,
+            beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
         beam::SearchGrid grid(xform, config);
         const std::size_t beamCount = config.azimuthCount * config.elevationCount;
         std::printf("idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg\n");
@@ -84,7 +90,7 @@ int main(int argc, char** argv)
             const beam::SearchBeam& b = grid.nextBeam();
             std::printf("%zu,%u,%.6f,%.6f,%.2f,%.2f\n",
                         i, b.beamId, b.direction_enu.azimuth.deg(), b.direction_enu.elevation.deg(),
-                        b.azimuthBeamWidth.deg(), b.elevationBeamWidth.deg());
+                        b.beamWidth.azimuth.deg(), b.beamWidth.elevation.deg());
         }
     }
     catch (const std::exception& e)

@@ -31,10 +31,11 @@ beam::TransmitBeamCommand makeBeamCommand(
         21,
         7,
         math::SphericalDirection(
-            math::Angle::fromDegrees(10.5),
-            math::Angle::fromDegrees(-4.5)),
-        math::Angle::fromDegrees(azimuthBeamWidth),
-        math::Angle::fromDegrees(2.75));
+            math::Azimuth::fromDegrees(10.5),
+            math::Elevation::fromDegrees(-4.5)),
+        beam::BeamWidth(
+            math::AngularWidth(math::Angle::fromDegrees(azimuthBeamWidth)),
+            math::AngularWidth(math::Angle::fromDegrees(2.75))));
 }
 
 target::TrackEvent makeTrackEvent(
@@ -47,8 +48,8 @@ target::TrackEvent makeTrackEvent(
         target::TrackEvent::TrackState::TRACKING,
         math::Length::fromKilometers(slantRangeKilometers),
         math::Length::fromKilometers(10.25),
-        math::Angle::fromDegrees(15.5),
-        math::Angle::fromDegrees(6.25),
+        math::Azimuth::fromDegrees(15.5),
+        math::Elevation::fromDegrees(6.25),
         math::LinearVelocity::fromMetersPerSecond(-120.5),
         math::Angle::fromDegrees(37.5),
         math::Angle::fromDegrees(127.25),
@@ -75,7 +76,7 @@ Value readValue(
 }
 
 // 방위각이 azimuthDegrees인 빔 명령을 인코딩해서 와이어의 방위각(beam_az_deg)을 반환한다.
-// 방위각은 SphericalDirection이 [0, 360)으로 정규화하며, 시뮬레이터 규격도 0-360이다.
+// 방위각은 Azimuth가 [0, 360)으로 정규화하며, 시뮬레이터 규격도 0-360이다.
 float encodeAzimuthToWire(double azimuthDegrees)
 {
     const beam::TransmitBeamCommand command(
@@ -84,10 +85,11 @@ float encodeAzimuthToWire(double azimuthDegrees)
         21,
         7,
         math::SphericalDirection(
-            math::Angle::fromDegrees(azimuthDegrees),
-            math::Angle::fromDegrees(-4.5)),
-        math::Angle::fromDegrees(3.25),
-        math::Angle::fromDegrees(2.75));
+            math::Azimuth::fromDegrees(azimuthDegrees),
+            math::Elevation::fromDegrees(-4.5)),
+        beam::BeamWidth(
+            math::AngularWidth(math::Angle::fromDegrees(3.25)),
+            math::AngularWidth(math::Angle::fromDegrees(2.75))));
 
     const comm::EncodeResult result = comm::encodeBeamCommand(command);
     if (result.error != comm::EncodingError::NONE || !result.bytes.has_value())

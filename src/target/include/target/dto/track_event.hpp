@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <optional>
 #include <math/quantity/angle.hpp>
+#include <math/geometry/azimuth.hpp>
+#include <math/geometry/elevation.hpp>
 #include <math/quantity/length.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
@@ -18,8 +20,8 @@ struct TrackEvent
     const TrackState state;
     const math::Length slantRange;
     const math::Length groundRange;
-    const math::Angle azimuth;
-    const math::Angle elevation;
+    const math::Azimuth azimuth;
+    const math::Elevation elevation;
     const math::LinearVelocity dopplerVelocity;
     const math::Angle latitude;
     const math::Angle longitude;
@@ -41,8 +43,8 @@ struct TrackEvent
         TrackState state,
         math::Length slantRange,
         math::Length groundRange,
-        math::Angle azimuth,
-        math::Angle elevation,
+        math::Azimuth azimuth,
+        math::Elevation elevation,
         math::LinearVelocity dopplerVelocity,
         math::Angle latitude,
         math::Angle longitude,
@@ -75,8 +77,8 @@ struct TrackEvent
         Builder& state(TrackState value) { _state = value; return *this; }
         Builder& slantRange(math::Length value) { _slantRange = value; return *this; }
         Builder& groundRange(math::Length value) { _groundRange = value; return *this; }
-        Builder& azimuth(math::Angle value) { _azimuth = value; return *this; }
-        Builder& elevation(math::Angle value) { _elevation = value; return *this; }
+        Builder& azimuth(math::Azimuth value) { _azimuth = value; return *this; }
+        Builder& elevation(math::Elevation value) { _elevation = value; return *this; }
         Builder& dopplerVelocity(math::LinearVelocity value) { _dopplerVelocity = value; return *this; }
         Builder& latitude(math::Angle value) { _latitude = value; return *this; }
         Builder& longitude(math::Angle value) { _longitude = value; return *this; }
@@ -100,8 +102,8 @@ struct TrackEvent
         std::optional<TrackState> _state;
         std::optional<math::Length> _slantRange;
         std::optional<math::Length> _groundRange;
-        std::optional<math::Angle> _azimuth;
-        std::optional<math::Angle> _elevation;
+        std::optional<math::Azimuth> _azimuth;
+        std::optional<math::Elevation> _elevation;
         std::optional<math::LinearVelocity> _dopplerVelocity;
         std::optional<math::Angle> _latitude;
         std::optional<math::Angle> _longitude;

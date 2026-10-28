@@ -10,7 +10,7 @@ namespace
 class ConfirmationBeamPolicy final : public IRequestBeamPolicy
 {
 public:
-    explicit ConfirmationBeamPolicy(math::Angle beamWidth) : _beamWidth(beamWidth)
+    explicit ConfirmationBeamPolicy(BeamWidth beamWidth) : _beamWidth(beamWidth)
     {
     }
 
@@ -19,7 +19,7 @@ public:
         return BeamType::CONFIRMATION;
     }
 
-    math::Angle beamWidth() const override
+    BeamWidth beamWidth() const override
     {
         return _beamWidth;
     }
@@ -30,13 +30,13 @@ public:
     }
 
 private:
-    math::Angle _beamWidth;
+    BeamWidth _beamWidth;
 };
 
 class TrackingBeamPolicy final : public IRequestBeamPolicy
 {
 public:
-    explicit TrackingBeamPolicy(math::Angle beamWidth) : _beamWidth(beamWidth)
+    explicit TrackingBeamPolicy(BeamWidth beamWidth) : _beamWidth(beamWidth)
     {
     }
 
@@ -45,7 +45,7 @@ public:
         return BeamType::TRACKING;
     }
 
-    math::Angle beamWidth() const override
+    BeamWidth beamWidth() const override
     {
         return _beamWidth;
     }
@@ -56,7 +56,7 @@ public:
     }
 
 private:
-    math::Angle _beamWidth;
+    BeamWidth _beamWidth;
 };
 
 } // namespace

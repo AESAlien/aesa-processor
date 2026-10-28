@@ -28,7 +28,7 @@ static_assert(std::is_nothrow_move_constructible_v<Target>);
 
 math::SphericalPosition position(math::Length range = 1000_m)
 {
-    return math::SphericalPosition(range, math::SphericalDirection(0_deg, 0_deg));
+    return math::SphericalPosition(range, math::SphericalDirection(math::Azimuth(0_deg), math::Elevation(0_deg)));
 }
 
 TargetTrackingState state(

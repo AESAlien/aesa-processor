@@ -99,8 +99,8 @@ protocol::ST_BeamTx encodeBeam(
     encodedBeam.timestamp =     convertTimestamp(command.transmitTime);
     encodedBeam.beam_az_deg =   convertFloat(command.direction_ant.azimuth.deg());
     encodedBeam.beam_el_deg =   convertFloat(command.direction_ant.elevation.deg());
-    encodedBeam.az_width_deg =  convertFloat(command.azimuthBeamWidth.deg());
-    encodedBeam.el_width_deg =  convertFloat(command.elevationBeamWidth.deg());
+    encodedBeam.az_width_deg =  convertFloat(command.beamWidth.azimuth.deg());
+    encodedBeam.el_width_deg =  convertFloat(command.beamWidth.elevation.deg());
 
     return encodedBeam;
 }

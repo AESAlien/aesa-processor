@@ -90,8 +90,8 @@ target::DetectionEvent::Plot decodePlot(
 {
     return target::DetectionEvent::Plot::Builder()
         .slantRange(math::Length::fromKilometers(plot.slantR_km))
-        .azimuth(math::Angle::fromDegrees(plot.azi_deg))
-        .elevation(math::Angle::fromDegrees(plot.elv_deg))
+        .azimuth(math::Azimuth::fromDegrees(plot.azi_deg))
+        .elevation(math::Elevation::fromDegrees(plot.elv_deg))
         .dopplerVelocity(
             math::LinearVelocity::fromMetersPerSecond(plot.doppler_mps))
         .power_db(plot.pwr_DB)

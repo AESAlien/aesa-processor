@@ -1,4 +1,4 @@
-﻿// Scheduler를 시나리오로 실행하는 테스트/시각화 공용 헤더
+// Scheduler를 시나리오로 실행하는 테스트/시각화 공용 헤더
 //
 // beam_schedule_dump(시각화용 도구)와 scheduler_scenario_test(GTest)가 같은 시나리오와 실행 로직을
 // 쓰도록 한 곳에 둔다. 그림으로 본 동작과 테스트가 검증하는 동작이 어긋나지 않게 하기 위함이다.
@@ -74,14 +74,18 @@ inline RequestSpec makeRequestSpec(
 ) {
     // Scheduler가 기본 설정으로 동작하므로 요청의 정책도 기본 설정의 팩토리로 고른다.
     static const beam::RequestBeamPolicyFactory factory{
-        beam::RequestBeamConfig(3_deg, 3_deg)};
+        beam::RequestBeamConfig(
+            beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)),
+            beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))};
     return RequestSpec{
         name,
         beam::BeamRequest(
             factory.create(beamType),
             transmitTime,
             REQUEST_ID,
-            math::SphericalDirection(math::Angle::fromDegrees(azimuth_deg), math::Angle::fromDegrees(elevation_deg)))
+            math::SphericalDirection(
+                math::Azimuth::fromDegrees(azimuth_deg),
+                math::Elevation::fromDegrees(elevation_deg)))
     };
 }
 
@@ -146,11 +150,6 @@ inline Scenario makeTracksScenario()
 namespace detail
 {
 
-inline bool sameAngle(math::Angle left, math::Angle right)
-{
-    return left.isEquivalentTo(right);
-}
-
 // 송신된 요청 빔을 보낸 요청과 짝짓는다(종류와 각도가 같은 아직 짝이 없는 요청).
 inline void markSent(
     std::vector<RequestSpec>& requests,
@@ -161,8 +160,8 @@ inline void markSent(
     {
         const bool sameType = spec.request.transmitBeamType() == command.beamType;
         if (spec.sentTick_ms < 0 && sameType &&
-            sameAngle(spec.request.direction_enu().azimuth, command.direction_ant.azimuth) &&
-            sameAngle(spec.request.direction_enu().elevation, command.direction_ant.elevation))
+            spec.request.direction_enu().azimuth == command.direction_ant.azimuth &&
+            spec.request.direction_enu().elevation == command.direction_ant.elevation)
         {
             spec.sentTick_ms = tick_ms;
             return;
@@ -182,8 +181,16 @@ inline Result run(Scenario scenario, const beam::RadarAttitude& attitude)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+            21,
+            9,
+            math::Azimuth(-42_deg),
+            4.2_deg,
+            math::Elevation(3_deg),
+            4.4_deg,
+            beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(
+            beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)),
+            beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
     Status status = Status::OFF;
 
     for (auto time = 0ms; time <= scenario.duration; time += TICK_PERIOD)

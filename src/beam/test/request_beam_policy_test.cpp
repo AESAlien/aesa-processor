@@ -14,10 +14,10 @@ beam::RequestBeamPolicyFactory makeFactory()
 {
     return beam::RequestBeamPolicyFactory(
         beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(3_deg)
-            .trackingBeamWidth(3_deg)
-            .confirmationBeamWidth(4_deg)
-            .trackingBeamWidth(2_deg)
+            .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
+            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
+            .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg)))
+            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(2_deg), math::AngularWidth(2_deg)))
             .build());
 }
 
@@ -41,23 +41,35 @@ TEST(RequestBeamPolicyTest, ConfirmationUsesInjectedConfirmationBeamWidth)
 {
     const auto policy = makeFactory().create(beam::RequestBeamType::CONFIRMATION);
 
-    EXPECT_EQ(policy->beamWidth(), 4_deg);
+    EXPECT_EQ(policy->beamWidth().azimuth, 4_deg);
+    EXPECT_EQ(policy->beamWidth().elevation, 4_deg);
 }
 
 TEST(RequestBeamPolicyTest, TrackingUsesInjectedTrackingBeamWidth)
 {
     const auto policy = makeFactory().create(beam::RequestBeamType::TRACKING);
 
-    EXPECT_EQ(policy->beamWidth(), 2_deg);
+    EXPECT_EQ(policy->beamWidth().azimuth, 2_deg);
+    EXPECT_EQ(policy->beamWidth().elevation, 2_deg);
 }
 
 TEST(RequestBeamPolicyTest, DefaultConfigGivesDefaultBeamWidths)
 {
     const beam::RequestBeamPolicyFactory factory{
-        beam::RequestBeamConfig(3_deg, 3_deg)};
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))};
 
-    EXPECT_EQ(factory.create(beam::RequestBeamType::CONFIRMATION)->beamWidth(), 3_deg);
-    EXPECT_EQ(factory.create(beam::RequestBeamType::TRACKING)->beamWidth(), 3_deg);
+    EXPECT_EQ(
+        factory.create(beam::RequestBeamType::CONFIRMATION)->beamWidth().azimuth,
+        3_deg);
+    EXPECT_EQ(
+        factory.create(beam::RequestBeamType::CONFIRMATION)->beamWidth().elevation,
+        3_deg);
+    EXPECT_EQ(
+        factory.create(beam::RequestBeamType::TRACKING)->beamWidth().azimuth,
+        3_deg);
+    EXPECT_EQ(
+        factory.create(beam::RequestBeamType::TRACKING)->beamWidth().elevation,
+        3_deg);
 }
 
 TEST(RequestBeamPolicyTest, ConfirmationHasHigherPriorityThanTracking)
