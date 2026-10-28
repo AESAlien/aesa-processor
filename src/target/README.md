@@ -74,7 +74,7 @@ Controller 생성자는 app에서 주입받은 Config를 보관하고 Repository
 Selector는 vector 요소의 포인터나 참조를 멤버에 보관하지 않는다.
 Controller 복사본은 Config·Repository·Matcher·Selector·알고리즘 객체 구성을 함께 공유한다.
 외부 app은 공개 헤더 include/target/config/target_config.hpp의 TargetConfig를 생성하여 TargetController(const TargetConfig&)에 명시적으로 주입한다.
-설정 필드 10개는 모두 const이며, 전체 설정값을 받는 생성자로 초기화한 뒤 변경할 수 없다. 잘못된 설정은 Config 생성 시 거부한다.
+설정 필드 10개는 private으로 보관하며, 전체 설정값을 받는 생성자로 초기화한 뒤 const 접근자로만 조회한다. 잘못된 설정은 Config 생성 시 거부한다.
 Controller는 전달받은 Config의 읽기 전용 복사본을 소유하여 호출자 객체의 수명에 의존하지 않는다. 이 설정을 Matcher와 ConstantAccelerationAlgorithm에 전달하고 요청 시각·미탐 한도 처리에도 사용한다.
 
 ```cpp

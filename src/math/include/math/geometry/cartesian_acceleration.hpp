@@ -21,9 +21,9 @@ struct CartesianAcceleration
         return CartesianVelocity(x * elapsed, y * elapsed, z * elapsed);
     }
 
-    const LinearAcceleration x;
-    const LinearAcceleration y;
-    const LinearAcceleration z;
+    LinearAcceleration x;
+    LinearAcceleration y;
+    LinearAcceleration z;
 };
 
 }

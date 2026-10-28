@@ -7,13 +7,13 @@ namespace math
 using namespace literals;
 
 const QuantityTolerance<LinearVelocity> LinearVelocity::NONE_TOLERANCE{
-    LinearVelocity::fromMetersPerSecond(0.0),
+    0.0_mps,
     0.0
 };
 
 const QuantityTolerance<LinearVelocity> LinearVelocity::DEFAULT_TOLERANCE{
-    LinearVelocity::fromMetersPerSecond(DEFAULT_ABSOLUTE_TOLERANCE),
-    DEFAULT_RELATIVE_TOLERANCE
+    1e-12_mps,
+    1e-9
 };
 
 LinearVelocity LinearVelocity::fromMetersPerSecond(double metersPerSecond)

@@ -7,6 +7,13 @@
 
 using namespace math::literals;
 
+TEST(TrigonometryTest, SupportsGeometryAnglesWithoutUnwrapping)
+{
+    EXPECT_NEAR(math::sin(math::Azimuth(30_deg)), 0.5, 1e-12);
+    EXPECT_NEAR(math::cos(math::Elevation(60_deg)), 0.5, 1e-12);
+    EXPECT_NEAR(math::tan(math::Elevation(45_deg)), 1.0, 1e-12);
+}
+
 
 
 // 값의 변환과 정규화 결과를 검증한다.

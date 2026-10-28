@@ -24,7 +24,7 @@ BeamType BeamRequest::transmitBeamType() const
     return _policy->transmitBeamType();
 }
 
-math::Angle BeamRequest::beamWidth() const
+BeamWidth BeamRequest::beamWidth() const
 {
     return _policy->beamWidth();
 }

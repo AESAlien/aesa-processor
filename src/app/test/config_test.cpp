@@ -24,12 +24,7 @@
 namespace
 {
 
-static_assert(std::is_const_v<decltype(
-    std::declval<app::Config>().beamConfig)>);
-static_assert(std::is_const_v<decltype(
-    std::declval<app::Config>().targetConfig)>);
-static_assert(std::is_const_v<decltype(
-    std::declval<app::Config>().commConfig)>);
+static_assert(std::is_copy_assignable_v<app::Config>);
 
 using namespace math::literals;
 using namespace std::chrono_literals;
@@ -166,43 +161,46 @@ TEST(AppConfigTest, LoadsEveryConfigurationValue)
     const TemporaryEnvFile file(validConfigText());
     const app::Config config = loadConfig(file.path());
 
-    EXPECT_EQ(config.beamConfig.attitude.maxAbsPitch, 60_deg);
+    EXPECT_EQ(config.beamConfig.attitude.maxAbsPitch(), 60_deg);
     EXPECT_DOUBLE_EQ(
-        config.beamConfig.attitude.mountOrthogonalTolerance.absolute,
+        config.beamConfig.attitude.mountOrthogonalTolerance().absolute(),
         0.00001);
     EXPECT_DOUBLE_EQ(
-        config.beamConfig.attitude.mountOrthogonalTolerance.relative,
+        config.beamConfig.attitude.mountOrthogonalTolerance().relative(),
         0.00002);
     EXPECT_EQ(
-        config.beamConfig.attitude.mountAntToBodyRotation,
+        config.beamConfig.attitude.mountAntToBodyRotation(),
         math::SquareMatrix::identity(3));
-    EXPECT_EQ(config.beamConfig.searchGrid.azimuthCount, 3u);
-    EXPECT_EQ(config.beamConfig.searchGrid.elevationCount, 2u);
-    EXPECT_EQ(config.beamConfig.searchGrid.azimuthStart, -10_deg);
-    EXPECT_EQ(config.beamConfig.searchGrid.azimuthStep, 5_deg);
-    EXPECT_EQ(config.beamConfig.searchGrid.elevationStart, 1_deg);
-    EXPECT_EQ(config.beamConfig.searchGrid.elevationStep, 2_deg);
-    EXPECT_EQ(config.beamConfig.searchGrid.beamWidth, 4_deg);
-    EXPECT_EQ(config.beamConfig.requestBeam.confirmationBeamWidth, 2_deg);
-    EXPECT_EQ(config.beamConfig.requestBeam.trackingBeamWidth, 5_deg);
+    EXPECT_EQ(config.beamConfig.searchGrid.azimuthCount(), 3u);
+    EXPECT_EQ(config.beamConfig.searchGrid.elevationCount(), 2u);
+    EXPECT_TRUE(config.beamConfig.searchGrid.azimuthStart().isEquivalentTo(-10_deg));
+    EXPECT_EQ(config.beamConfig.searchGrid.azimuthStep(), 5_deg);
+    EXPECT_EQ(config.beamConfig.searchGrid.elevationStart(), 1_deg);
+    EXPECT_EQ(config.beamConfig.searchGrid.elevationStep(), 2_deg);
+    EXPECT_EQ(config.beamConfig.searchGrid.beamWidth().azimuth, 4_deg);
+    EXPECT_EQ(config.beamConfig.searchGrid.beamWidth().elevation, 4_deg);
+    EXPECT_EQ(config.beamConfig.requestBeam.confirmationBeamWidth.azimuth, 2_deg);
+    EXPECT_EQ(config.beamConfig.requestBeam.confirmationBeamWidth.elevation, 2_deg);
+    EXPECT_EQ(config.beamConfig.requestBeam.trackingBeamWidth.azimuth, 5_deg);
+    EXPECT_EQ(config.beamConfig.requestBeam.trackingBeamWidth.elevation, 5_deg);
 
-    EXPECT_EQ(config.targetConfig.maxAssociationSpeed, 900_mps);
-    EXPECT_EQ(config.targetConfig.maxInitialDopplerDifference, 25_mps);
-    EXPECT_EQ(config.targetConfig.measurementStandardDeviation, 6_m);
-    EXPECT_DOUBLE_EQ(config.targetConfig.positionNdsThreshold, 10.0);
-    EXPECT_EQ(config.targetConfig.confirmationDelay, 150ms);
-    EXPECT_EQ(config.targetConfig.trackingInterval, 800ms);
-    EXPECT_EQ(config.targetConfig.maxConsecutiveTrackingMisses, 4u);
-    EXPECT_EQ(config.targetConfig.initialAccelerationStandardDeviation, 8_mps2);
-    EXPECT_EQ(config.targetConfig.maxReportedTrackCount, 75u);
-    EXPECT_EQ(config.targetConfig.processAccelerationStandardDeviation, 5_mps2);
+    EXPECT_EQ(config.targetConfig.maxAssociationSpeed(), 900_mps);
+    EXPECT_EQ(config.targetConfig.maxInitialDopplerDifference(), 25_mps);
+    EXPECT_EQ(config.targetConfig.measurementStandardDeviation(), 6_m);
+    EXPECT_DOUBLE_EQ(config.targetConfig.positionNdsThreshold(), 10.0);
+    EXPECT_EQ(config.targetConfig.confirmationDelay(), 150ms);
+    EXPECT_EQ(config.targetConfig.trackingInterval(), 800ms);
+    EXPECT_EQ(config.targetConfig.maxConsecutiveTrackingMisses(), 4u);
+    EXPECT_EQ(config.targetConfig.initialAccelerationStandardDeviation(), 8_mps2);
+    EXPECT_EQ(config.targetConfig.maxReportedTrackCount(), 75u);
+    EXPECT_EQ(config.targetConfig.processAccelerationStandardDeviation(), 5_mps2);
 
-    EXPECT_EQ(config.commConfig.server.address, "127.0.0.1");
-    EXPECT_EQ(config.commConfig.server.port, 43200);
-    EXPECT_EQ(config.commConfig.operatorConsole.address, "127.0.0.2");
-    EXPECT_EQ(config.commConfig.operatorConsole.port, 43201);
-    EXPECT_EQ(config.commConfig.scenarioSimulator.address, "127.0.0.3");
-    EXPECT_EQ(config.commConfig.scenarioSimulator.port, 43202);
+    EXPECT_EQ(config.commConfig.server().address(), "127.0.0.1");
+    EXPECT_EQ(config.commConfig.server().port(), 43200);
+    EXPECT_EQ(config.commConfig.operatorConsole().address(), "127.0.0.2");
+    EXPECT_EQ(config.commConfig.operatorConsole().port(), 43201);
+    EXPECT_EQ(config.commConfig.scenarioSimulator().address(), "127.0.0.3");
+    EXPECT_EQ(config.commConfig.scenarioSimulator().port(), 43202);
 }
 
 TEST(AppConfigTest, RejectsDisabledCommunicationPeer)
@@ -230,9 +228,9 @@ TEST(AppConfigTest, LoadsConfigurationFromEnvFilePath)
     const TemporaryEnvFile file(validConfigText());
     const app::Config config = app::ConfigLoader::load(file.path());
 
-    EXPECT_EQ(config.beamConfig.searchGrid.azimuthCount, 3u);
-    EXPECT_EQ(config.targetConfig.maxReportedTrackCount, 75u);
-    EXPECT_EQ(config.commConfig.server.port, 43200);
+    EXPECT_EQ(config.beamConfig.searchGrid.azimuthCount(), 3u);
+    EXPECT_EQ(config.targetConfig.maxReportedTrackCount(), 75u);
+    EXPECT_EQ(config.commConfig.server().port(), 43200);
 }
 
 TEST(AppConfigTest, MissingRelativeMountOrthogonalToleranceThrows)
@@ -296,9 +294,9 @@ TEST(AppConfigTest, ParsesQuotedValuesAndInlineComments)
     const TemporaryEnvFile file(content);
     const app::Config config = loadConfig(file.path());
 
-    EXPECT_EQ(config.beamConfig.attitude.maxAbsPitch, 60_deg);
-    EXPECT_EQ(config.targetConfig.maxAssociationSpeed, 900_mps);
-    EXPECT_EQ(config.commConfig.server.address, "127.0.0.1");
+    EXPECT_EQ(config.beamConfig.attitude.maxAbsPitch(), 60_deg);
+    EXPECT_EQ(config.targetConfig.maxAssociationSpeed(), 900_mps);
+    EXPECT_EQ(config.commConfig.server().address(), "127.0.0.1");
 }
 
 TEST(AppConfigTest, LoadedConfigurationCanBeInjectedIntoEveryController)
@@ -318,8 +316,8 @@ TEST(AppConfigTest, LoadedConfigurationCanBeInjectedIntoEveryController)
         0_deg));
     const auto beamCommand = beamController.nextBeamCommand(0ms);
     ASSERT_TRUE(beamCommand.has_value());
-    EXPECT_EQ(beamCommand->azimuthBeamWidth, 4_deg);
-    EXPECT_EQ(beamCommand->elevationBeamWidth, 4_deg);
+    EXPECT_EQ(beamCommand->beamWidth.azimuth, 4_deg);
+    EXPECT_EQ(beamCommand->beamWidth.elevation, 4_deg);
 
     target::TargetController targetController(config.targetConfig);
     const auto confirmation = targetController.handleDetection(
@@ -327,7 +325,7 @@ TEST(AppConfigTest, LoadedConfigurationCanBeInjectedIntoEveryController)
             beam::BeamType::SEARCH,
             1,
             1000ms,
-            {{1000_m, 0_deg, 0_deg, 0_mps, -10.0f}}));
+            {{math::Distance(1000_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f}}));
     ASSERT_TRUE(confirmation.has_value());
     EXPECT_EQ(confirmation->transmitTime, 1150ms);
 

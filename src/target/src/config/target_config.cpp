@@ -19,41 +19,91 @@ TargetConfig::TargetConfig(
     math::LinearAcceleration initialAccelerationStandardDeviation,
     std::size_t maxReportedTrackCount,
     math::LinearAcceleration processAccelerationStandardDeviation)
-    : maxAssociationSpeed(maxAssociationSpeed)
-    , maxInitialDopplerDifference(maxInitialDopplerDifference)
-    , measurementStandardDeviation(measurementStandardDeviation)
-    , positionNdsThreshold(positionNdsThreshold)
-    , confirmationDelay(confirmationDelay)
-    , trackingInterval(trackingInterval)
-    , maxConsecutiveTrackingMisses(maxConsecutiveTrackingMisses)
-    , initialAccelerationStandardDeviation(initialAccelerationStandardDeviation)
-    , maxReportedTrackCount(maxReportedTrackCount)
-    , processAccelerationStandardDeviation(processAccelerationStandardDeviation)
+    : _maxAssociationSpeed(maxAssociationSpeed)
+    , _maxInitialDopplerDifference(maxInitialDopplerDifference)
+    , _measurementStandardDeviation(measurementStandardDeviation)
+    , _positionNdsThreshold(positionNdsThreshold)
+    , _confirmationDelay(confirmationDelay)
+    , _trackingInterval(trackingInterval)
+    , _maxConsecutiveTrackingMisses(maxConsecutiveTrackingMisses)
+    , _initialAccelerationStandardDeviation(initialAccelerationStandardDeviation)
+    , _maxReportedTrackCount(maxReportedTrackCount)
+    , _processAccelerationStandardDeviation(processAccelerationStandardDeviation)
 {
     validate();
 }
 
+const math::LinearVelocity& TargetConfig::maxAssociationSpeed() const noexcept
+{
+    return _maxAssociationSpeed;
+}
+
+const math::LinearVelocity& TargetConfig::maxInitialDopplerDifference() const noexcept
+{
+    return _maxInitialDopplerDifference;
+}
+
+const math::Length& TargetConfig::measurementStandardDeviation() const noexcept
+{
+    return _measurementStandardDeviation;
+}
+
+double TargetConfig::positionNdsThreshold() const noexcept
+{
+    return _positionNdsThreshold;
+}
+
+std::chrono::milliseconds TargetConfig::confirmationDelay() const noexcept
+{
+    return _confirmationDelay;
+}
+
+std::chrono::milliseconds TargetConfig::trackingInterval() const noexcept
+{
+    return _trackingInterval;
+}
+
+std::uint32_t TargetConfig::maxConsecutiveTrackingMisses() const noexcept
+{
+    return _maxConsecutiveTrackingMisses;
+}
+
+const math::LinearAcceleration& TargetConfig::initialAccelerationStandardDeviation() const noexcept
+{
+    return _initialAccelerationStandardDeviation;
+}
+
+std::size_t TargetConfig::maxReportedTrackCount() const noexcept
+{
+    return _maxReportedTrackCount;
+}
+
+const math::LinearAcceleration& TargetConfig::processAccelerationStandardDeviation() const noexcept
+{
+    return _processAccelerationStandardDeviation;
+}
+
 void TargetConfig::validate() const
 {
-    const double sigma = measurementStandardDeviation.m();
+    const double sigma = _measurementStandardDeviation.m();
     const double variance = sigma * sigma;
     const double differenceVariance = 2.0 * variance;
-    const double accelerationSigma = initialAccelerationStandardDeviation.mps2();
+    const double accelerationSigma = _initialAccelerationStandardDeviation.mps2();
     const double accelerationVariance = accelerationSigma * accelerationSigma;
-    const double processSigma = processAccelerationStandardDeviation.mps2();
+    const double processSigma = _processAccelerationStandardDeviation.mps2();
     const double processVariance = processSigma * processSigma;
-    if (maxAssociationSpeed.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
-        || maxInitialDopplerDifference.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+    if (_maxAssociationSpeed.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+        || _maxInitialDopplerDifference.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         || sigma <= 0.0 || !std::isfinite(variance) || variance <= 0.0
         || !std::isfinite(differenceVariance)
-        || !std::isfinite(positionNdsThreshold) || positionNdsThreshold < 0.0
-        || confirmationDelay.count() <= 0 || trackingInterval.count() <= 0
-        || maxConsecutiveTrackingMisses == 0
+        || !std::isfinite(_positionNdsThreshold) || _positionNdsThreshold < 0.0
+        || _confirmationDelay.count() <= 0 || _trackingInterval.count() <= 0
+        || _maxConsecutiveTrackingMisses == 0
         || accelerationSigma <= 0.0
         || !std::isfinite(accelerationVariance) || accelerationVariance <= 0.0
         || processSigma < 0.0 || !std::isfinite(processVariance)
         || (processSigma > 0.0 && processVariance == 0.0)
-        || maxReportedTrackCount == 0 || maxReportedTrackCount > MAXIMUM_REPORTED_TRACK_COUNT)
+        || _maxReportedTrackCount == 0 || _maxReportedTrackCount > MAXIMUM_REPORTED_TRACK_COUNT)
     {
         throw std::invalid_argument("Invalid Target configuration");
     }

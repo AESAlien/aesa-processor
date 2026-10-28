@@ -11,28 +11,20 @@
 namespace
 {
 
-static_assert(std::is_const_v<decltype(
-    std::declval<comm::CommEndpoint>().address)>);
-static_assert(std::is_const_v<decltype(
-    std::declval<comm::CommEndpoint>().port)>);
-static_assert(std::is_const_v<decltype(
-    std::declval<comm::CommConfig>().server)>);
-static_assert(std::is_const_v<decltype(
-    std::declval<comm::CommConfig>().operatorConsole)>);
-static_assert(std::is_const_v<decltype(
-    std::declval<comm::CommConfig>().scenarioSimulator)>);
+static_assert(std::is_copy_assignable_v<comm::CommEndpoint>);
+static_assert(std::is_copy_assignable_v<comm::CommConfig>);
 static_assert(std::is_same_v<
-    decltype(std::declval<comm::CommConfig>().operatorConsole),
-    const comm::CommEndpoint>);
+    decltype(std::declval<const comm::CommEndpoint&>().address()),
+    const std::string&>);
 static_assert(std::is_same_v<
-    decltype(std::declval<comm::CommConfig>().scenarioSimulator),
-    const comm::CommEndpoint>);
+    decltype(std::declval<const comm::CommConfig&>().operatorConsole()),
+    const comm::CommEndpoint&>);
 
-TEST(CommEndpointTest, StoresValidEndpointAsImmutableValue)
+TEST(CommEndpointTest, StoresValidEndpointBehindAccessors)
 {
     const comm::CommEndpoint endpoint("127.0.0.1", 3200);
-    EXPECT_EQ(endpoint.address, "127.0.0.1");
-    EXPECT_EQ(endpoint.port, 3200);
+    EXPECT_EQ(endpoint.address(), "127.0.0.1");
+    EXPECT_EQ(endpoint.port(), 3200);
 }
 
 TEST(CommEndpointTest, RejectsMissingAddressOrPort)

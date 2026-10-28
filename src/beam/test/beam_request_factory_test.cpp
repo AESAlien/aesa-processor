@@ -13,7 +13,7 @@ namespace
 
 math::SphericalDirection makeDirection()
 {
-    return math::SphericalDirection(12.5_deg, 20.5_deg);
+    return math::SphericalDirection(math::Azimuth(12.5_deg), math::Elevation(20.5_deg));
 }
 
 // 확인 빔 폭과 추적 빔 폭을 서로 다른 값으로 두어 두 값이 뒤바뀌면 테스트가 실패하게 한다.
@@ -21,10 +21,10 @@ beam::BeamRequestFactory makeFactory()
 {
     return beam::BeamRequestFactory(
         beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(3_deg)
-            .trackingBeamWidth(3_deg)
-            .confirmationBeamWidth(4_deg)
-            .trackingBeamWidth(2_deg)
+            .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
+            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
+            .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg)))
+            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(2_deg), math::AngularWidth(2_deg)))
             .build());
 }
 
@@ -58,9 +58,11 @@ TEST(BeamRequestFactoryTest, InjectsPolicyMatchingBeamType)
         beam::RequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 2, makeDirection()));
 
     EXPECT_EQ(confirmation.transmitBeamType(), beam::BeamType::CONFIRMATION);
-    EXPECT_EQ(confirmation.beamWidth(), 4_deg);
+    EXPECT_EQ(confirmation.beamWidth().azimuth, 4_deg);
+    EXPECT_EQ(confirmation.beamWidth().elevation, 4_deg);
     EXPECT_EQ(tracking.transmitBeamType(), beam::BeamType::TRACKING);
-    EXPECT_EQ(tracking.beamWidth(), 2_deg);
+    EXPECT_EQ(tracking.beamWidth().azimuth, 2_deg);
+    EXPECT_EQ(tracking.beamWidth().elevation, 2_deg);
     EXPECT_GT(confirmation.priority(), tracking.priority());
 }
 

@@ -21,9 +21,9 @@ using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
 using BeamType = beam::BeamType;
 
-math::Length range(std::uint32_t id)
+math::Distance range(std::uint32_t id)
 {
-    return 1000_m + 100_m * static_cast<double>(id - 1);
+    return math::Distance(1000_m + 100_m * static_cast<double>(id - 1));
 }
 
 DetectionEvent result(BeamType type, std::uint32_t id, Time time, bool detected = true)
@@ -31,7 +31,7 @@ DetectionEvent result(BeamType type, std::uint32_t id, Time time, bool detected 
     std::vector<DetectionEvent::Plot> plots;
     if (detected)
     {
-        plots.emplace_back(range(id), 0_deg, 0_deg, 0_mps, -10.0f);
+        plots.emplace_back(range(id), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f);
     }
     return DetectionEvent(type, id, time, std::move(plots));
 }
@@ -174,7 +174,7 @@ TEST(TrackReportingLimitTest, ValidatesConfiguredCountAgainstTheMessageMaximum)
     {
         const TargetConfig config(1000_mps, 30_mps, 7_m, 11.345,
             100ms, 1000ms, 3, 10_mps2, count, 0_mps2);
-        EXPECT_EQ(config.maxReportedTrackCount, count);
+        EXPECT_EQ(config.maxReportedTrackCount(), count);
     }
     for (std::size_t count : {std::size_t{0}, std::size_t{101},
              std::numeric_limits<std::size_t>::max()})

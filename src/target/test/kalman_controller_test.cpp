@@ -66,8 +66,8 @@ std::optional<beam::RequestBeamCommand> beginTracking(
 
 math::CartesianPosition consolePosition(const TrackEvent& event)
 {
-    return math::SphericalPosition(event.slantRange,
-        math::SphericalDirection(event.azimuth, event.elevation)).toCartesian();
+    return math::SphericalPosition{event.slantRange,
+        math::SphericalDirection(event.azimuth, event.elevation)}.toCartesian();
 }
 
 math::CartesianPosition trajectory(double seconds)

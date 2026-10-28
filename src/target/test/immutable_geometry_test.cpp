@@ -15,7 +15,7 @@ namespace
 {
 math::SphericalPosition position(math::Length range)
 {
-    return math::SphericalPosition(range, math::SphericalDirection(0_deg, 0_deg));
+    return math::SphericalPosition{math::Distance(range), math::SphericalDirection(math::Azimuth(0_deg), math::Elevation(0_deg))};
 }
 } // namespace
 
@@ -30,10 +30,10 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     auto* tracked = repository.find(lastId);
     ASSERT_TRUE(tracked->confirm(target::Target(position(301_m), 1_mps, 1.0f, 1000ms, algorithm)));
     ASSERT_TRUE(tracked->update(target::Target(position(302_m), 1_mps, 1.0f, 2000ms, algorithm)));
-    EXPECT_EQ(tracked->trackingState()->position.x, 0_m);
-    EXPECT_EQ(tracked->trackingState()->position.y, 302_m);
-    EXPECT_EQ(tracked->trackingState()->velocity.x, 0_mps);
-    EXPECT_EQ(tracked->trackingState()->velocity.y, 1_mps);
+    EXPECT_EQ(tracked->trackingState()->position().x, 0_m);
+    EXPECT_EQ(tracked->trackingState()->position().y, 302_m);
+    EXPECT_EQ(tracked->trackingState()->velocity().x, 0_mps);
+    EXPECT_EQ(tracked->trackingState()->velocity().y, 1_mps);
 
     EXPECT_FALSE(repository.remove(0));
     ASSERT_TRUE(repository.remove(middleId));
@@ -43,9 +43,9 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     EXPECT_EQ(repository.find(middleId), nullptr);
     tracked = repository.find(lastId);
     ASSERT_TRUE(tracked->trackingState());
-    EXPECT_EQ(tracked->trackingState()->position.y, 302_m);
+    EXPECT_EQ(tracked->trackingState()->position().y, 302_m);
     ASSERT_TRUE(tracked->update(target::Target(position(303_m), 1_mps, 1.0f, 3000ms, algorithm)));
-    EXPECT_EQ(tracked->trackingState()->position.y, 303_m);
+    EXPECT_EQ(tracked->trackingState()->position().y, 303_m);
 
     EXPECT_TRUE(repository.remove(firstId));
     EXPECT_TRUE(repository.remove(lastId));
@@ -61,13 +61,13 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
         target::TargetController controller(target::TargetConfig(
             1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
         const auto confirmation = controller.handleDetection(target::DetectionEvent(
-            BeamType::SEARCH, 1, 0ms, {{100_m, 0_deg, 0_deg, 0_mps, 1.0f}}));
+            BeamType::SEARCH, 1, 0ms, {{math::Distance(100_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, 1.0f}}));
         ASSERT_TRUE(confirmation.has_value());
         const auto tracking = controller.handleDetection(target::DetectionEvent(
             BeamType::CONFIRMATION,
             confirmation->requestId,
             1000ms,
-            {{math::Length::fromMeters(100.0 + displacement), 0_deg, 0_deg, 0_mps, 1.0f}}));
+            {{math::Distance::fromMeters(100.0 + displacement), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, 1.0f}}));
         ASSERT_TRUE(tracking.has_value());
         const auto events = controller.nextTrackEvents();
         ASSERT_EQ(events.size(), 1u);

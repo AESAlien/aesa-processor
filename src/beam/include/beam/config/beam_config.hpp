@@ -31,9 +31,9 @@ public:
                SearchGridConfig searchGrid,
                RequestBeamConfig requestBeam);
 
-    const AttitudeConfig attitude;
-    const SearchGridConfig searchGrid;
-    const RequestBeamConfig requestBeam;
+    AttitudeConfig attitude;
+    SearchGridConfig searchGrid;
+    RequestBeamConfig requestBeam;
 };
 
 } // namespace beam

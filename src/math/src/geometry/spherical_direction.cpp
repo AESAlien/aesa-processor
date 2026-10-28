@@ -9,16 +9,10 @@
 
 namespace math
 {
-using namespace literals;
-
-SphericalDirection::SphericalDirection(Angle azimuth, Angle elevation)
-    : azimuth(wrap360(azimuth)),
+SphericalDirection::SphericalDirection(Azimuth azimuth, Elevation elevation) noexcept
+    : azimuth(azimuth),
       elevation(elevation)
 {
-    if (elevation < -90_deg || elevation > 90_deg)
-    {
-        throw std::invalid_argument("SphericalDirection elevation must be in [-90, 90] degrees");
-    }
 }
 
 Vector SphericalDirection::toCartesianUnitVector() const
@@ -53,9 +47,9 @@ SphericalDirection SphericalDirection::fromCartesianUnitVector(const Vector& vec
     const double z = vector(2) / maxComponent;
     const double horizontalNorm = std::hypot(x, y);
 
-    const Angle azimuth = Angle::fromRadians(std::atan2(x, y));
-    const Angle elevation = Angle::fromRadians(std::atan2(z, horizontalNorm));
-    return SphericalDirection(azimuth, elevation);
+    return SphericalDirection(
+        Azimuth::fromRadians(std::atan2(x, y)),
+        Elevation::fromRadians(std::atan2(z, horizontalNorm)));
 }
 
 }

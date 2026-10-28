@@ -10,13 +10,17 @@ namespace comm
 MessageFramer::MessageFramer(std::size_t maximumFrameSize) :
     _maximumFrameSize(maximumFrameSize)
 {
+    validate();
+    _buffer.reserve(_maximumFrameSize);
+}
+
+void MessageFramer::validate() const
+{
     if (_maximumFrameSize < sizeof(protocol::ST_MsgHeader))
     {
         throw std::invalid_argument(
             "Maximum frame size must be at least the header size");
     }
-
-    _buffer.reserve(_maximumFrameSize);
 }
 
 FrameResult MessageFramer::append(
