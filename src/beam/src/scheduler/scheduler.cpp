@@ -1,6 +1,6 @@
 #include "scheduler/scheduler.hpp"
 
-#include "attitude/ant_enu_transform.hpp"
+#include <utility>
 
 namespace beam
 {
@@ -40,10 +40,6 @@ TransmitBeamCommand makeRequestCommand(
 }
 } // namespace
 
-Scheduler::Scheduler(const BeamConfig& config) : _config(config)
-{
-}
-
 void Scheduler::setOperationState(OperationState state)
 {
     if (state == _operationState)
@@ -58,18 +54,14 @@ void Scheduler::setOperationState(OperationState state)
     _operationState = state;
 }
 
-void Scheduler::setAttitude(const RadarAttitude& attitude)
+void Scheduler::setSearchGrid(SearchGrid searchGrid)
 {
-    // 설정에 의존하는 검증(짐벌락)도 운용 상태와 관계없이 수행해야 하므로 상태 확인보다 먼저 변환을 만든다.
-    // 예외가 발생해도 상태는 변하지 않는다.
-    const AntEnuTransform transform(attitude, _config.attitude);
-
     if (_operationState != OperationState::ON || _searchGrid.has_value())
     {
         return;
     }
 
-    _searchGrid.emplace(transform, _config.searchGrid);
+    _searchGrid.emplace(std::move(searchGrid));
 }
 
 void Scheduler::addRequest(const BeamRequest& request)

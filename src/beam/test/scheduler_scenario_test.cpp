@@ -22,14 +22,9 @@ namespace
 
 constexpr std::size_t BEAM_COUNT = 189;
 
-beam::RadarAttitude makeAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw)
+beam::SearchGrid makeZeroSearchGrid()
 {
-    return beam::RadarAttitude(roll, pitch, yaw);
-}
-
-beam::RadarAttitude makeZeroAttitude()
-{
-    return makeAttitude(0_deg, 0_deg, 0_deg);
+    return schedule_scenario::makeSearchGrid(0_deg, 0_deg, 0_deg);
 }
 
 const TickRecord& tickAt(const Result& result, long long tick_ms)
@@ -130,7 +125,7 @@ void expectCommonRules(const Result& result)
 
 TEST(SchedulerScenarioTest, MixedSendsNothingUntilReady)
 {
-    const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitude());
+    const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroSearchGrid());
 
     EXPECT_EQ(tickAt(result, 0).status, Status::OFF);
     EXPECT_EQ(tickAt(result, 10).status, Status::OFF);
@@ -151,7 +146,7 @@ TEST(SchedulerScenarioTest, MixedSendsNothingUntilReady)
 TEST(SchedulerScenarioTest, MixedSendsRequestBeamsAtTheDesignedTicks)
 {
     using Type = beam::BeamType;
-    const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitude());
+    const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroSearchGrid());
 
     struct Expected
     {
@@ -180,7 +175,7 @@ TEST(SchedulerScenarioTest, MixedSendsRequestBeamsAtTheDesignedTicks)
 
 TEST(SchedulerScenarioTest, MixedMatchesEachRequestToItsSentTick)
 {
-    const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitude());
+    const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroSearchGrid());
 
     EXPECT_EQ(requestNamed(result, "C1").sentTick_ms, 100);
     EXPECT_EQ(requestNamed(result, "T1").sentTick_ms, 150);
@@ -196,7 +191,7 @@ TEST(SchedulerScenarioTest, MixedMatchesEachRequestToItsSentTick)
 
 TEST(SchedulerScenarioTest, MixedSendsEveryRequestEvenWhenItWaitsLong)
 {
-    const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitude());
+    const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroSearchGrid());
 
     // 폐기는 없다. 같은 시각에 몰려 오래 기다린 D, H도 결국 송신된다.
     for (const schedule_scenario::RequestSpec& spec : result.requests)
@@ -209,7 +204,7 @@ TEST(SchedulerScenarioTest, MixedSendsEveryRequestEvenWhenItWaitsLong)
 
 TEST(SchedulerScenarioTest, MixedSearchSweepContinuesWithoutSkippingAfterInterruptions)
 {
-    const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitude());
+    const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroSearchGrid());
 
     // 37개 빔 중 요청 빔이 10개이므로 탐색 빔은 27개이고, 번호는 1부터 건너뛰지 않고 이어진다.
     const std::vector<std::uint32_t> ids = searchBeamIds(result);
@@ -222,14 +217,14 @@ TEST(SchedulerScenarioTest, MixedSearchSweepContinuesWithoutSkippingAfterInterru
 
 TEST(SchedulerScenarioTest, MixedFollowsCommonRules)
 {
-    expectCommonRules(schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitude()));
+    expectCommonRules(schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroSearchGrid()));
 }
 
 // ---------- tracks: 추적 20개 / 1초 주기가 탐색 한 바퀴에 주는 영향 ----------
 
 TEST(SchedulerScenarioTest, TracksSendsEveryRequestWithoutDelay)
 {
-    const Result result = schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroAttitude());
+    const Result result = schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroSearchGrid());
 
     // 요청이 50ms 간격이라 같은 틱을 두고 다투지 않으므로 모두 원한 시각 그대로 나간다.
     ASSERT_EQ(result.requests.size(), 59u);
@@ -241,7 +236,7 @@ TEST(SchedulerScenarioTest, TracksSendsEveryRequestWithoutDelay)
 
 TEST(SchedulerScenarioTest, TracksFirstSearchSweepIsLongerByTheNumberOfRequestBeams)
 {
-    const Result result = schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroAttitude());
+    const Result result = schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroSearchGrid());
 
     std::vector<long long> sweepStartTicks;
     for (const TickRecord& tick : result.ticks)
@@ -274,7 +269,7 @@ TEST(SchedulerScenarioTest, TracksFirstSearchSweepIsLongerByTheNumberOfRequestBe
 
 TEST(SchedulerScenarioTest, TracksFirstSweepVisitsEverySearchBeamExactlyOnce)
 {
-    const Result result = schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroAttitude());
+    const Result result = schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroSearchGrid());
 
     const std::vector<std::uint32_t> ids = searchBeamIds(result);
     ASSERT_GE(ids.size(), BEAM_COUNT);
@@ -287,16 +282,16 @@ TEST(SchedulerScenarioTest, TracksFirstSweepVisitsEverySearchBeamExactlyOnce)
 
 TEST(SchedulerScenarioTest, TracksFollowsCommonRules)
 {
-    expectCommonRules(schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroAttitude()));
+    expectCommonRules(schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroSearchGrid()));
 }
 
 // ---------- 자세와의 독립성 ----------
 
 TEST(SchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
 {
-    const Result zero = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitude());
+    const Result zero = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroSearchGrid());
     const Result rotated = schedule_scenario::run(
-        schedule_scenario::makeMixedScenario(), makeAttitude(10_deg, 20_deg, 30_deg));
+        schedule_scenario::makeMixedScenario(), schedule_scenario::makeSearchGrid(10_deg, 20_deg, 30_deg));
 
     ASSERT_EQ(zero.ticks.size(), rotated.ticks.size());
     bool anySearchAngleDiffers = false;

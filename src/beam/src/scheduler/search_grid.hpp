@@ -1,12 +1,16 @@
 #pragma once
-#include "attitude/ant_enu_transform.hpp"
+
+#include "scheduler/search_beam.hpp"
+
 #include <beam/config/search_grid_config.hpp>
-#include "search_beam.hpp"
+
 #include <vector>
 #include <cstddef>
 
 namespace beam
 {
+
+class AntEnuTransform;
 
 // SearchGridConfig의 격자(안테나 정면 기준)를 ENU 기준 탐색 빔 목록으로 만들어 두고, 탐색 순서대로 하나씩 꺼내 쓴다.
 class SearchGrid

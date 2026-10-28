@@ -1,5 +1,7 @@
 #include "search_grid.hpp"
 
+#include "attitude/ant_enu_transform.hpp"
+
 #include <cstdint>
 
 namespace beam

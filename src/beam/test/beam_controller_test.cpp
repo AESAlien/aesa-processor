@@ -401,8 +401,9 @@ TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
         .build();
     beam::BeamController controller(config);
 
-    // OFF 상태에서도 설정 기준의 짐벌락 자세는 거부한다.
+    // OFF 상태에서도 설정 기준의 짐벌락 자세는 거부한다. 음의 pitch도 마찬가지다.
     EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), std::invalid_argument);
+    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, -70_deg, 0_deg)), std::invalid_argument);
 
     // 탐색 빔 테이블이 만들어진 뒤에도 마찬가지이며, 기존 상태는 유지된다.
     controller.setOperationState(makeOperationState(beam::OperationState::ON));

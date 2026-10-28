@@ -11,6 +11,9 @@
 
 #include "scheduler/scheduler.hpp"
 #include "scheduler/beam_request_factory.hpp"
+#include "scheduler/search_grid.hpp"
+
+#include "attitude/ant_enu_transform.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -28,6 +31,25 @@ using namespace std::chrono_literals;
 constexpr std::chrono::milliseconds TICK_PERIOD = 10ms;
 // 시나리오의 요청은 서로 구별하지 않으므로 모두 같은 요청 ID(0이 아닌 값)를 쓴다.
 constexpr std::uint32_t REQUEST_ID = 1;
+
+// 시나리오에서 쓰는 탐색 격자 설정(방위각 21개 x 고각 9개 = 189개)
+inline beam::SearchGridConfig makeSearchGridConfig()
+{
+    return beam::SearchGridConfig(21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg);
+}
+
+// 주어진 자세로 탐색 격자를 만든다. 실제 운용에서는 BeamController가 하는 일이다.
+// 잘못된 자세정보면 std::invalid_argument를 던진다.
+inline beam::SearchGrid makeSearchGrid(math::Angle roll, math::Angle pitch, math::Angle yaw)
+{
+    const beam::AntEnuTransform transform(
+        beam::RadarAttitude(roll, pitch, yaw),
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}));
+    return beam::SearchGrid(transform, makeSearchGridConfig());
+}
 
 enum class Status
 {
@@ -172,18 +194,11 @@ inline void markSent(
 
 } // namespace detail
 
-// 시나리오를 새 Scheduler로 실행한다. 잘못된 자세정보면 std::invalid_argument가 전파된다.
-inline Result run(Scenario scenario, const beam::RadarAttitude& attitude)
+// 시나리오를 새 Scheduler로 실행한다. 자세정보 시각에 searchGrid의 복사본을 넘긴다.
+inline Result run(Scenario scenario, const beam::SearchGrid& searchGrid)
 {
     Result result;
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
-        beam::RequestBeamConfig(3_deg, 3_deg)));
+    beam::Scheduler scheduler;
     Status status = Status::OFF;
 
     for (auto time = 0ms; time <= scenario.duration; time += TICK_PERIOD)
@@ -195,7 +210,7 @@ inline Result run(Scenario scenario, const beam::RadarAttitude& attitude)
         }
         if (time == scenario.attitudeTime)
         {
-            scheduler.setAttitude(attitude);
+            scheduler.setSearchGrid(searchGrid);
             for (const RequestSpec& spec : scenario.requests)
             {
                 scheduler.addRequest(spec.request);
