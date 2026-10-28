@@ -11,20 +11,9 @@ using namespace math::literals;
 namespace
 {
 
-beam::RadarAttitude makeAttitude(
-    math::Angle latitude,
-    math::Angle longitude,
-    math::Length altitude,
-    math::Angle roll,
-    math::Angle pitch,
-    math::Angle yaw
-) {
-    return beam::RadarAttitude(latitude, longitude, altitude, roll, pitch, yaw);
-}
-
 beam::RadarAttitude makeAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    return makeAttitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
+    return beam::RadarAttitude(roll, pitch, yaw);
 }
 
 beam::AntEnuTransform makeValidTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
@@ -65,11 +54,8 @@ TEST(AttitudeTransformTest, AcceptsAnglesCreatedFromRadians)
 
 TEST(RadarAttitudeTest, StoresGivenValues)
 {
-    const beam::RadarAttitude attitude = makeAttitude(1_deg, 2_deg, 3_km, 4_deg, 5_deg, 6_deg);
+    const beam::RadarAttitude attitude = makeAttitude(4_deg, 5_deg, 6_deg);
 
-    EXPECT_EQ(attitude.latitude(), 1_deg);
-    EXPECT_TRUE(attitude.longitude().isEquivalentTo(2_deg));
-    EXPECT_EQ(attitude.altitude(), 3_km);
     EXPECT_TRUE(attitude.roll().isEquivalentTo(4_deg));
     EXPECT_EQ(attitude.pitch(), 5_deg);
     EXPECT_TRUE(attitude.yaw().isEquivalentTo(6_deg));
@@ -77,38 +63,24 @@ TEST(RadarAttitudeTest, StoresGivenValues)
 
 TEST(RadarAttitudeTest, ThrowsOnOutOfRangeValues)
 {
-    EXPECT_THROW(makeAttitude(91_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
-    EXPECT_THROW(makeAttitude(37_deg, -181_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
-    EXPECT_THROW(makeAttitude(37_deg, 127_deg, 101_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
     EXPECT_THROW(makeAttitude(181_deg, 0_deg, 0_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(-181_deg, 0_deg, 0_deg), std::invalid_argument);
     EXPECT_THROW(makeAttitude(0_deg, 0_deg, 361_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(0_deg, 0_deg, -361_deg), std::invalid_argument);
 }
 
 TEST(RadarAttitudeTest, ThrowsOnValuesEquivalentByPeriodToValidRange)
 {
     // 360도 주기로는 범위 안과 동치이지만 실제 수치가 명시된 범위 밖이면 거부해야 한다.
-    EXPECT_THROW(makeAttitude(450_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
-    EXPECT_THROW(makeAttitude(-270_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
-    EXPECT_THROW(makeAttitude(37_deg, 540_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
-    EXPECT_THROW(makeAttitude(37_deg, -540_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
     EXPECT_THROW(makeAttitude(540_deg, 0_deg, 0_deg), std::invalid_argument);
     EXPECT_THROW(makeAttitude(0_deg, 0_deg, 720_deg), std::invalid_argument);
     EXPECT_THROW(makeAttitude(0_deg, 0_deg, -720_deg), std::invalid_argument);
 }
 
-TEST(RadarAttitudeTest, ValidatesAltitudeBoundariesWithLengthLiterals)
-{
-    EXPECT_NO_THROW(makeAttitude(37_deg, 127_deg, -0.5_km, 0_deg, 0_deg, 0_deg));
-    EXPECT_NO_THROW(makeAttitude(37_deg, 127_deg, 100_km, 0_deg, 0_deg, 0_deg));
-
-    EXPECT_THROW(makeAttitude(37_deg, 127_deg, -0.501_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
-    EXPECT_THROW(makeAttitude(37_deg, 127_deg, 100.001_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
-}
-
 TEST(RadarAttitudeTest, AcceptsBoundaryAnglesIncludingEndpoints)
 {
-    EXPECT_NO_THROW(makeAttitude(90_deg, 180_deg, 0_km, 180_deg, 0_deg, 360_deg));
-    EXPECT_NO_THROW(makeAttitude(-90_deg, -180_deg, 0_km, -180_deg, 0_deg, -360_deg));
+    EXPECT_NO_THROW(makeAttitude(180_deg, 0_deg, 360_deg));
+    EXPECT_NO_THROW(makeAttitude(-180_deg, 0_deg, -360_deg));
 }
 
 TEST(RadarAttitudeTest, PitchRangeIsNotCheckedByRadarAttitude)

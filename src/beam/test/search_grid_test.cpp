@@ -22,7 +22,7 @@ const beam::SearchGridConfig DEFAULT_GRID_CONFIG(
 
 beam::AntEnuTransform makeValidTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    const beam::RadarAttitude attitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
+    const beam::RadarAttitude attitude(roll, pitch, yaw);
 
     return beam::AntEnuTransform(
         attitude,

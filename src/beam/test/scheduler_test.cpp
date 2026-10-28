@@ -19,7 +19,7 @@ constexpr std::size_t AZIMUTH_COUNT = 21;
 
 beam::RadarAttitude makeAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    return beam::RadarAttitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
+    return beam::RadarAttitude(roll, pitch, yaw);
 }
 
 beam::RadarAttitude makeZeroAttitude()

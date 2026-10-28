@@ -30,7 +30,8 @@ public:
 
     void setOperationState(SetOperationStateCommand command);
 
-    // 자세정보가 잘못되면(범위 밖, 짐벌락) 운용 상태와 관계없이 std::invalid_argument를 던진다.
+    // 자세정보가 잘못되면(roll/yaw 범위 밖, 짐벌락) 운용 상태와 관계없이 std::invalid_argument를 던진다.
+    // 위도·경도·고도는 쓰지 않으므로 검사하지 않는다.
     void setAttitude(SetAttitudeCommand command);
 
     // 요청 값이 잘못되면(알 수 없는 종류, 음수 transmitTime, requestId 0) 운용 상태와 관계없이 std::invalid_argument를 던진다.

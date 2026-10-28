@@ -111,7 +111,7 @@ int main(int argc, char** argv)
     try
     {
         // 잘못된 자세정보이면 RadarAttitude 생성자나 AntEnuTransform 생성자가 std::invalid_argument를 던진다.
-        const beam::RadarAttitude attitude(37_deg, 127_deg, 0.1_km, roll, pitch, yaw);
+        const beam::RadarAttitude attitude(roll, pitch, yaw);
 
         const schedule_scenario::Result result = schedule_scenario::run(scenario, attitude);
 

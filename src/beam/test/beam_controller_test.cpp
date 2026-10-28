@@ -103,7 +103,7 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(roll, pitch, yaw));
 
-    const beam::RadarAttitude attitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
+    const beam::RadarAttitude attitude(roll, pitch, yaw);
     beam::SearchGrid expectedGrid(
         beam::AntEnuTransform(
             attitude,
@@ -425,9 +425,27 @@ TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
             21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
         beam::RequestBeamConfig(3_deg, 3_deg)));
 
-    // 위도 95도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
-    const beam::SetAttitudeCommand command(95_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg);
+    // roll 181도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
+    const beam::SetAttitudeCommand command(37_deg, 127_deg, 0.1_km, 181_deg, 0_deg, 0_deg);
     EXPECT_THROW(controller.setAttitude(command), std::invalid_argument);
+}
+
+TEST(BeamControllerTest, LatitudeLongitudeAltitudeAreNotValidated)
+{
+    beam::BeamController controller(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
+        beam::RequestBeamConfig(3_deg, 3_deg)));
+    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+
+    // 위도·경도·고도는 빔 모듈에서 쓰지 않으므로 범위를 벗어나도 탐색을 시작한다.
+    const beam::SetAttitudeCommand command(95_deg, 181_deg, 101_km, 0_deg, 0_deg, 0_deg);
+    EXPECT_NO_THROW(controller.setAttitude(command));
+    EXPECT_TRUE(controller.nextBeamCommand(0ms).has_value());
 }
 
 TEST(BeamControllerTest, ControllerWithInjectedConfigCanBeMoved)

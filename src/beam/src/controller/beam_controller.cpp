@@ -27,13 +27,8 @@ void BeamController::setOperationState(SetOperationStateCommand command)
 void BeamController::setAttitude(SetAttitudeCommand command)
 {
     // 잘못된 자세정보이면 RadarAttitude 생성자가 std::invalid_argument를 던진다.
-    _scheduler->setAttitude(RadarAttitude(
-        command.latitude,
-        command.longitude,
-        command.altitude,
-        command.roll,
-        command.pitch,
-        command.yaw));
+    // 위도·경도·고도는 빔 모듈에서 쓰지 않으므로 넘기지 않는다.
+    _scheduler->setAttitude(RadarAttitude(command.roll, command.pitch, command.yaw));
 }
 
 void BeamController::requestBeam(RequestBeamCommand command)
