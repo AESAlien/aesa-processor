@@ -1,14 +1,13 @@
 ﻿#include "scheduler/scheduler.hpp"
 #include "scheduler/request_beam_policy_factory.hpp"
 
-#include "attitude/attitude_error.hpp"
-
 #include <gtest/gtest.h>
 
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <stdexcept>
 
 using namespace std::chrono_literals;
 using namespace math::literals;
@@ -170,7 +169,7 @@ TEST(SchedulerTest, InvalidAttitudeThrowsAndLeavesSchedulerNotReady)
         beam::RequestBeamConfig(3_deg, 3_deg)));
     scheduler.setOperationState(beam::OperationState::ON);
 
-    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg)), beam::AttitudeError);
+    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg)), std::invalid_argument);
     EXPECT_FALSE(scheduler.next(0ms).has_value());
 
     // 이후 올바른 자세정보를 받으면 정상 동작한다.
@@ -189,15 +188,7 @@ TEST(SchedulerTest, GimbalLockAttitudeThrowsEvenWhileOff)
             21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg),
         beam::RequestBeamConfig(3_deg, 3_deg)));
 
-    try
-    {
-        scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg));
-        ADD_FAILURE() << "AttitudeError not thrown";
-    }
-    catch (const beam::AttitudeError& error)
-    {
-        EXPECT_EQ(error.code(), beam::AttitudeErrorCode::GIMBAL_LOCK);
-    }
+    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg)), std::invalid_argument);
 
     // 예외 이후에도 상태가 변하지 않아, ON 뒤 올바른 자세정보를 받으면 정상 동작한다.
     scheduler.setOperationState(beam::OperationState::ON);
@@ -219,7 +210,7 @@ TEST(SchedulerTest, GimbalLockAttitudeThrowsAfterSearchGridIsCreated)
     makeReady(scheduler, makeZeroAttitude());
     ASSERT_TRUE(scheduler.next(0ms).has_value());
 
-    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg)), beam::AttitudeError);
+    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg)), std::invalid_argument);
 
     // 기존 SearchGrid와 탐색 순서는 그대로 유지된다.
     const auto command = scheduler.next(10ms);
@@ -245,8 +236,8 @@ TEST(SchedulerTest, GimbalLockUsesPitchLimitFromConfig)
         .build();
     beam::Scheduler scheduler(config);
 
-    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 60_deg, 0_deg)), beam::AttitudeError);
-    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, -70_deg, 0_deg)), beam::AttitudeError);
+    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 60_deg, 0_deg)), std::invalid_argument);
+    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, -70_deg, 0_deg)), std::invalid_argument);
     EXPECT_NO_THROW(scheduler.setAttitude(makeAttitude(0_deg, 59_deg, 0_deg)));
 }
 

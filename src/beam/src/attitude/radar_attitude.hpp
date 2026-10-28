@@ -10,7 +10,7 @@ namespace beam
 class RadarAttitude
 {
 public:
-    // 범위를 벗어나면 AttitudeError(OUT_OF_RANGE)를 던진다. Angle과 Length는 항상 유한한 값만 가지므로 유한성은 검사하지 않는다.
+    // 범위를 벗어나면 std::invalid_argument를 던진다. Angle과 Length는 항상 유한한 값만 가지므로 유한성은 검사하지 않는다.
     // 범위(경계 포함): 위도 [-90, 90]도, 경도 [-180, 180]도, 고도 [-0.5, 100]km, roll [-180, 180]도, yaw [-360, 360]도.
     // pitch는 범위를 검사하지 않는다. 짐벌락 판정은 AttitudeConfig에 의존하므로 AntEnuTransform에서 한다.
     RadarAttitude(

@@ -1,8 +1,6 @@
 #include "search_grid.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
-#include "attitude/attitude_error.hpp"
-
 #include <gtest/gtest.h>
 
 #include <cmath>

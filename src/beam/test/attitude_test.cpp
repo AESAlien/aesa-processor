@@ -1,5 +1,4 @@
 #include "attitude/ant_enu_transform.hpp"
-#include "attitude/attitude_error.hpp"
 
 #include <gtest/gtest.h>
 
@@ -40,21 +39,6 @@ beam::AntEnuTransform makeValidTransform(math::Angle roll, math::Angle pitch, ma
 
 } // namespace
 
-// 실패 시 던지는 AttitudeError 의 code 를 확인하는 헬퍼
-#define EXPECT_ATTITUDE_ERROR(expression, expectedCode)                                                                \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        try                                                                                                            \
-        {                                                                                                              \
-            (void)(expression);                                                                                        \
-            ADD_FAILURE() << "AttitudeError not thrown";                                                               \
-        }                                                                                                              \
-        catch (const beam::AttitudeError& error)                                                                       \
-        {                                                                                                              \
-            EXPECT_EQ(error.code(), expectedCode);                                                                     \
-        }                                                                                                              \
-    } while (0)
-
 // ---------------------------------------------------------------- makeAntToEnu
 
 TEST(AttitudeTransformTest, ZeroAttitudeKeepsAngles)
@@ -93,23 +77,23 @@ TEST(RadarAttitudeTest, StoresGivenValues)
 
 TEST(RadarAttitudeTest, ThrowsOnOutOfRangeValues)
 {
-    EXPECT_ATTITUDE_ERROR(makeAttitude(91_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(37_deg, -181_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(37_deg, 127_deg, 101_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(181_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, 361_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_THROW(makeAttitude(91_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(37_deg, -181_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(37_deg, 127_deg, 101_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(181_deg, 0_deg, 0_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(0_deg, 0_deg, 361_deg), std::invalid_argument);
 }
 
 TEST(RadarAttitudeTest, ThrowsOnValuesEquivalentByPeriodToValidRange)
 {
     // 360도 주기로는 범위 안과 동치이지만 실제 수치가 명시된 범위 밖이면 거부해야 한다.
-    EXPECT_ATTITUDE_ERROR(makeAttitude(450_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(-270_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(37_deg, 540_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(37_deg, -540_deg, 0.1_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(540_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, 720_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(0_deg, 0_deg, -720_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_THROW(makeAttitude(450_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(-270_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(37_deg, 540_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(37_deg, -540_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(540_deg, 0_deg, 0_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(0_deg, 0_deg, 720_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(0_deg, 0_deg, -720_deg), std::invalid_argument);
 }
 
 TEST(RadarAttitudeTest, ValidatesAltitudeBoundariesWithLengthLiterals)
@@ -117,8 +101,8 @@ TEST(RadarAttitudeTest, ValidatesAltitudeBoundariesWithLengthLiterals)
     EXPECT_NO_THROW(makeAttitude(37_deg, 127_deg, -0.5_km, 0_deg, 0_deg, 0_deg));
     EXPECT_NO_THROW(makeAttitude(37_deg, 127_deg, 100_km, 0_deg, 0_deg, 0_deg));
 
-    EXPECT_ATTITUDE_ERROR(makeAttitude(37_deg, 127_deg, -0.501_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    EXPECT_ATTITUDE_ERROR(makeAttitude(37_deg, 127_deg, 100.001_km, 0_deg, 0_deg, 0_deg), beam::AttitudeErrorCode::OUT_OF_RANGE);
+    EXPECT_THROW(makeAttitude(37_deg, 127_deg, -0.501_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(37_deg, 127_deg, 100.001_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
 }
 
 TEST(RadarAttitudeTest, AcceptsBoundaryAnglesIncludingEndpoints)
@@ -134,11 +118,6 @@ TEST(RadarAttitudeTest, PitchRangeIsNotCheckedByRadarAttitude)
     EXPECT_NO_THROW(makeAttitude(0_deg, -95_deg, 0_deg));
 }
 
-TEST(RadarAttitudeTest, AttitudeErrorIsInvalidArgument)
-{
-    EXPECT_THROW(makeAttitude(91_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg), std::invalid_argument);
-}
-
 // ---------------------------------------------------------------- AntEnuTransform 검증
 
 TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
@@ -148,8 +127,8 @@ TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
         math::SquareMatrix::identity(3),
         math::Tolerance{1e-6, 0.0});
 
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(makeAttitude(0_deg, 89_deg, 0_deg), config), beam::AttitudeErrorCode::GIMBAL_LOCK);
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(makeAttitude(0_deg, -95_deg, 0_deg), config), beam::AttitudeErrorCode::GIMBAL_LOCK);
+    EXPECT_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 89_deg, 0_deg), config), std::invalid_argument);
+    EXPECT_THROW(beam::AntEnuTransform(makeAttitude(0_deg, -95_deg, 0_deg), config), std::invalid_argument);
     EXPECT_NO_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 88.9_deg, 0_deg), config));
 }
 
@@ -189,20 +168,8 @@ TEST(AttitudeTransformTest, MaxAbsPitchFromConfigIsUsedForGimbalLock)
         .mountOrthogonalTolerance(math::Tolerance{1e-6, 0.0})
         .build();
 
-    EXPECT_ATTITUDE_ERROR(beam::AntEnuTransform(makeAttitude(0_deg, 60_deg, 0_deg), config), beam::AttitudeErrorCode::GIMBAL_LOCK);
+    EXPECT_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 60_deg, 0_deg), config), std::invalid_argument);
     EXPECT_NO_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 59.9_deg, 0_deg), config));
-}
-
-TEST(AttitudeTransformTest, AttitudeErrorIsInvalidArgument)
-{
-    EXPECT_THROW(
-        beam::AntEnuTransform(
-            makeAttitude(0_deg, 95_deg, 0_deg),
-            beam::AttitudeConfig(
-                89_deg,
-                math::SquareMatrix::identity(3),
-                math::Tolerance{1e-6, 0.0})),
-        std::invalid_argument);
 }
 
 // ---------------------------------------------------------------- 각도 변환

@@ -1,5 +1,6 @@
 #include "attitude/radar_attitude.hpp"
-#include "attitude/attitude_error.hpp"
+
+#include <stdexcept>
 
 namespace beam
 {
@@ -61,7 +62,7 @@ void RadarAttitude::validate() const
         _roll      < -180_deg || _roll      > 180_deg ||
         _yaw       < -360_deg || _yaw       > 360_deg
     ) {
-        throw AttitudeError(AttitudeErrorCode::OUT_OF_RANGE, "RadarAttitude value is out of range");
+        throw std::invalid_argument("RadarAttitude: value is out of range");
     }
 }
 

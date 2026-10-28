@@ -13,12 +13,12 @@
 #include "schedule_scenario.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
-#include "attitude/attitude_error.hpp"
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
+#include <stdexcept>
 #include <string>
 
 namespace
@@ -110,7 +110,7 @@ int main(int argc, char** argv)
 
     try
     {
-        // 잘못된 자세정보이면 RadarAttitude 생성자가 AttitudeError를 던진다.
+        // 잘못된 자세정보이면 RadarAttitude 생성자나 AntEnuTransform 생성자가 std::invalid_argument를 던진다.
         const beam::RadarAttitude attitude(37_deg, 127_deg, 0.1_km, roll, pitch, yaw);
 
         const schedule_scenario::Result result = schedule_scenario::run(scenario, attitude);
@@ -172,9 +172,9 @@ int main(int argc, char** argv)
             std::printf("%zu,%u,%.6f,%.6f\n", index, info.beamId, info.direction_enu.azimuth.deg(), info.direction_enu.elevation.deg());
         }
     }
-    catch (const beam::AttitudeError& e)
+    catch (const std::invalid_argument& e)
     {
-        std::fprintf(stderr, "attitude failed: code=%d (%s)\n", static_cast<int>(e.code()), e.what());
+        std::fprintf(stderr, "attitude failed: %s\n", e.what());
         return 3;
     }
     catch (const std::exception& e)

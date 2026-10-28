@@ -8,12 +8,12 @@
 #include "search_grid.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
-#include "attitude/attitude_error.hpp"
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
+#include <stdexcept>
 
 int main(int argc, char** argv)
 {
@@ -52,9 +52,9 @@ int main(int argc, char** argv)
                     math::SquareMatrix::identity(3),
                     math::Tolerance{1e-6, 0.0}));
         }
-        catch (const beam::AttitudeError& e)
+        catch (const std::invalid_argument& e)
         {
-            std::fprintf(stderr, "makeAntToEnu failed: code=%d (%s)\n", static_cast<int>(e.code()), e.what());
+            std::fprintf(stderr, "makeAntToEnu failed: %s\n", e.what());
             std::exit(3);
         }
     }();

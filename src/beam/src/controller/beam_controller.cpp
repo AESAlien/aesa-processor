@@ -26,7 +26,7 @@ void BeamController::setOperationState(SetOperationStateCommand command)
 
 void BeamController::setAttitude(SetAttitudeCommand command)
 {
-    // 잘못된 자세정보이면 RadarAttitude 생성자가 AttitudeError를 던진다.
+    // 잘못된 자세정보이면 RadarAttitude 생성자가 std::invalid_argument를 던진다.
     _scheduler->setAttitude(RadarAttitude(
         command.latitude,
         command.longitude,

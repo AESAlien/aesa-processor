@@ -1,12 +1,13 @@
 ﻿#include "attitude/ant_enu_transform.hpp"
-#include "attitude/attitude_error.hpp"
 
-#include <cmath>
 #include <math/quantity/angle.hpp>
 #include <math/geometry/spherical_direction.hpp>
 #include <math/linear_algebra/square_matrix.hpp>
 #include <math/trigonometry.hpp>
 #include <math/linear_algebra/vector.hpp>
+
+#include <cmath>
+#include <stdexcept>
 
 namespace beam
 {
@@ -34,7 +35,7 @@ AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeCo
 {
     if (attitude.pitch() <= -config.maxAbsPitch || attitude.pitch() >= config.maxAbsPitch)
     {
-        throw AttitudeError(AttitudeErrorCode::GIMBAL_LOCK, "pitch is too close to gimbal lock");
+        throw std::invalid_argument("AntEnuTransform: pitch is too close to gimbal lock");
     }
 
     _rotationMatrix =

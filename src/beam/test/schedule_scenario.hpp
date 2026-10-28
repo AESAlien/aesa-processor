@@ -172,7 +172,7 @@ inline void markSent(
 
 } // namespace detail
 
-// 시나리오를 새 Scheduler로 실행한다. 잘못된 자세정보면 AttitudeError가 전파된다.
+// 시나리오를 새 Scheduler로 실행한다. 잘못된 자세정보면 std::invalid_argument가 전파된다.
 inline Result run(Scenario scenario, const beam::RadarAttitude& attitude)
 {
     Result result;
