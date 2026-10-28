@@ -1,12 +1,10 @@
 #include "scheduler/beam_request.hpp"
-#include "scheduler/request_beam_policy_factory.hpp"
 
 #include <gtest/gtest.h>
 
 #include <chrono>
 #include <cstdint>
 #include <limits>
-#include <memory>
 #include <stdexcept>
 
 using namespace std::chrono_literals;
@@ -20,46 +18,24 @@ math::SphericalDirection makeDirection()
     return math::SphericalDirection(12.5_deg, 20.5_deg);
 }
 
-// 확인 빔 폭과 추적 빔 폭을 서로 다른 값으로 두어 정책이 뒤바뀌면 테스트가 실패하게 한다.
-std::shared_ptr<const beam::IRequestBeamPolicy> makePolicy(beam::RequestBeamType beamType)
-{
-    const beam::RequestBeamPolicyFactory factory(
-        beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(3_deg)
-            .trackingBeamWidth(3_deg)
-            .confirmationBeamWidth(4_deg)
-            .trackingBeamWidth(2_deg)
-            .build());
-    return factory.create(beamType);
-}
-
 } // namespace
 
 TEST(BeamRequestTest, KeepsGivenValues)
 {
-    const beam::BeamRequest request(makePolicy(beam::RequestBeamType::TRACKING), 1500ms, 7, makeDirection());
+    const beam::BeamRequest request(beam::BeamType::TRACKING, 2_deg, 0, 1500ms, 7, makeDirection());
 
+    EXPECT_EQ(request.transmitBeamType(), beam::BeamType::TRACKING);
+    EXPECT_EQ(request.beamWidth(), 2_deg);
+    EXPECT_EQ(request.priority(), 0);
     EXPECT_EQ(request.transmitTime(), 1500ms);
     EXPECT_EQ(request.requestId(), 7u);
     EXPECT_TRUE(request.direction_enu().azimuth.isEquivalentTo(12.5_deg));
     EXPECT_EQ(request.direction_enu().elevation, 20.5_deg);
 }
 
-TEST(BeamRequestTest, DelegatesToInjectedPolicy)
+TEST(BeamRequestTest, CopyKeepsSameValues)
 {
-    const beam::BeamRequest confirmation(makePolicy(beam::RequestBeamType::CONFIRMATION), 0ms, 1, makeDirection());
-    const beam::BeamRequest tracking(makePolicy(beam::RequestBeamType::TRACKING), 0ms, 2, makeDirection());
-
-    EXPECT_EQ(confirmation.transmitBeamType(), beam::BeamType::CONFIRMATION);
-    EXPECT_EQ(confirmation.beamWidth(), 4_deg);
-    EXPECT_EQ(tracking.transmitBeamType(), beam::BeamType::TRACKING);
-    EXPECT_EQ(tracking.beamWidth(), 2_deg);
-    EXPECT_GT(confirmation.priority(), tracking.priority());
-}
-
-TEST(BeamRequestTest, CopyKeepsSamePolicyBehavior)
-{
-    const beam::BeamRequest request(makePolicy(beam::RequestBeamType::CONFIRMATION), 100ms, 3, makeDirection());
+    const beam::BeamRequest request(beam::BeamType::CONFIRMATION, 4_deg, 1, 100ms, 3, makeDirection());
     const beam::BeamRequest copy = request;
 
     EXPECT_EQ(copy.transmitBeamType(), request.transmitBeamType());
@@ -72,28 +48,25 @@ TEST(BeamRequestTest, AcceptsBoundaryValues)
 {
     // transmitTime 0과 가장 큰 requestId는 올바른 값이다.
     EXPECT_NO_THROW(beam::BeamRequest(
-        makePolicy(beam::RequestBeamType::TRACKING),
+        beam::BeamType::TRACKING,
+        3_deg,
+        0,
         0ms,
         std::numeric_limits<std::uint32_t>::max(),
         makeDirection()));
 }
 
-TEST(BeamRequestTest, RejectsNullPolicy)
-{
-    EXPECT_THROW(beam::BeamRequest(nullptr, 0ms, 1, makeDirection()), std::invalid_argument);
-}
-
 TEST(BeamRequestTest, RejectsNegativeTransmitTime)
 {
     EXPECT_THROW(
-        beam::BeamRequest(makePolicy(beam::RequestBeamType::TRACKING), -1ms, 1, makeDirection()),
+        beam::BeamRequest(beam::BeamType::TRACKING, 3_deg, 0, -1ms, 1, makeDirection()),
         std::invalid_argument);
 }
 
 TEST(BeamRequestTest, RejectsZeroRequestId)
 {
     EXPECT_THROW(
-        beam::BeamRequest(makePolicy(beam::RequestBeamType::CONFIRMATION), 0ms, 0, makeDirection()),
+        beam::BeamRequest(beam::BeamType::CONFIRMATION, 3_deg, 1, 0ms, 0, makeDirection()),
         std::invalid_argument);
 }
 

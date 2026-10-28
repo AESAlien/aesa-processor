@@ -35,7 +35,7 @@ public:
     void setAttitude(SetAttitudeCommand command);
 
     // 요청 값이 잘못되면(알 수 없는 종류, 음수 transmitTime, requestId 0) 운용 상태와 관계없이 std::invalid_argument를 던진다.
-    // 생성자에 주입한 요청 빔 설정(빔 폭)은 요청에 주입되는 정책을 통해 반영된다.
+    // 생성자에 주입한 요청 빔 설정(빔 폭)은 BeamRequestFactory가 요청을 만들 때 반영된다.
     // 올바른 요청은 준비 상태(ON이고 자세정보를 받음)일 때만 받아들이고, 그 외에는 무시한다.
     void requestBeam(RequestBeamCommand command);
 

@@ -1,5 +1,5 @@
 ﻿#include "scheduler/request_queue.hpp"
-#include "scheduler/request_beam_policy_factory.hpp"
+#include "scheduler/beam_request_factory.hpp"
 
 #include <gtest/gtest.h>
 
@@ -16,9 +16,9 @@ beam::BeamRequest makeRequest(
     std::chrono::milliseconds transmitTime,
     math::Angle azimuth = 0_deg
 ) {
-    static const beam::RequestBeamPolicyFactory factory{
+    static const beam::BeamRequestFactory factory{
         beam::RequestBeamConfig(3_deg, 3_deg)};
-    return beam::BeamRequest(factory.create(beamType), transmitTime, 1, math::SphericalDirection(azimuth, 0_deg));
+    return factory.create(beam::RequestBeamCommand(beamType, transmitTime, 1, math::SphericalDirection(azimuth, 0_deg)));
 }
 
 beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)

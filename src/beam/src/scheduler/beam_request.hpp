@@ -1,38 +1,40 @@
 #pragma once
 
-#include "scheduler/request_beam_policy.hpp"
-
 #include <beam/dto/beam_type.hpp>
 
 #include <math/geometry/spherical_direction.hpp>
 #include <math/quantity/angle.hpp>
 #include <chrono>
 #include <cstdint>
-#include <memory>
 
 namespace beam
 {
 
 // beam 내부에서 쓰는 확인/추적 빔 요청. 생성된 이후에는 항상 유효한 값을 가진다.
-// 종류별 동작(송신 빔 종류, 빔 폭, 우선순위)은 주입받은 정책에 맡기므로 Scheduler와 RequestQueue는 요청의 종류를 알 필요가 없다.
-// 공개 DTO인 RequestBeamCommand는 BeamRequestFactory가 정책을 골라 이 클래스로 변환한다.
+// 종류별 값(송신 빔 종류, 빔 폭, 우선순위)은 BeamRequestFactory가 요청 빔 종류에 맞게 정해서 넘기므로
+// Scheduler와 RequestQueue는 요청의 종류를 알 필요가 없다.
 class BeamRequest
 {
 public:
     // 다음 중 하나라도 해당하면 std::invalid_argument를 던진다.
-    // - policy가 null
     // - transmitTime이 음수
     // - requestId가 0
     BeamRequest(
-        std::shared_ptr<const IRequestBeamPolicy> policy,
+        BeamType transmitBeamType,
+        math::Angle beamWidth,
+        int priority,
         std::chrono::milliseconds transmitTime,
         std::uint32_t requestId,
         math::SphericalDirection direction_enu);
 
-    // 아래 세 메서드는 정책에 위임한다.
-    BeamType transmitBeamType() const;
-    math::Angle beamWidth() const;
-    int priority() const;
+    // 송신 시 명령에 담는 빔 종류.
+    BeamType transmitBeamType() const noexcept;
+
+    // 송신 빔의 방위각/고각 빔 폭.
+    math::Angle beamWidth() const noexcept;
+
+    // 송신 시각이 같은 요청 중 어느 것을 먼저 보낼지 정한다. 값이 클수록 먼저 보낸다.
+    int priority() const noexcept;
 
     std::chrono::milliseconds transmitTime() const noexcept;
     std::uint32_t requestId() const noexcept;
@@ -41,7 +43,9 @@ public:
 private:
     void validate() const;
 
-    std::shared_ptr<const IRequestBeamPolicy> _policy;
+    BeamType _transmitBeamType;
+    math::Angle _beamWidth;
+    int _priority;
     std::chrono::milliseconds _transmitTime;
     std::uint32_t _requestId;
     math::SphericalDirection _direction_enu;

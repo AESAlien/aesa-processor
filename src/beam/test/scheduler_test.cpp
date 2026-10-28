@@ -1,5 +1,5 @@
 ﻿#include "scheduler/scheduler.hpp"
-#include "scheduler/request_beam_policy_factory.hpp"
+#include "scheduler/beam_request_factory.hpp"
 
 #include <gtest/gtest.h>
 
@@ -39,17 +39,17 @@ void makeReady(beam::Scheduler& scheduler)
     makeReady(scheduler, makeZeroAttitude());
 }
 
-// 요청에 주입되는 정책은 팩토리가 고른다. 설정을 지정하지 않으면 기본 설정의 팩토리를 쓴다.
+// 요청의 빔 폭과 우선순위는 팩토리가 정한다. 설정을 지정하지 않으면 기본 설정의 팩토리를 쓴다.
 beam::BeamRequest makeRequest(
-    const beam::RequestBeamPolicyFactory& factory,
+    const beam::BeamRequestFactory& factory,
     beam::RequestBeamType beamType,
     std::chrono::milliseconds transmitTime,
     uint32_t requestId,
     math::Angle azimuth,
     math::Angle elevation
 ) {
-    return beam::BeamRequest(
-        factory.create(beamType), transmitTime, requestId, math::SphericalDirection(azimuth, elevation));
+    return factory.create(beam::RequestBeamCommand(
+        beamType, transmitTime, requestId, math::SphericalDirection(azimuth, elevation)));
 }
 
 beam::BeamRequest makeRequest(
@@ -59,7 +59,7 @@ beam::BeamRequest makeRequest(
     math::Angle azimuth,
     math::Angle elevation
 ) {
-    static const beam::RequestBeamPolicyFactory factory{
+    static const beam::BeamRequestFactory factory{
         beam::RequestBeamConfig(3_deg, 3_deg)};
     return makeRequest(factory, beamType, transmitTime, requestId, azimuth, elevation);
 }
@@ -680,12 +680,12 @@ TEST(SchedulerTest, TurningOffWhileAlreadyOffDoesNothing)
 }
 
 // ---------- 요청 빔 설정 반영 ----------
-// 빔 폭은 요청에 주입된 정책이 정한다. Scheduler는 설정을 직접 읽지 않는다.
+// 빔 폭은 요청을 만들 때 팩토리가 정한다. Scheduler는 설정을 직접 읽지 않는다.
 // 설정 값 검증(빔폭 0 이하)은 config_test.cpp 에서 확인한다.
 
-TEST(SchedulerTest, RequestBeamWidthFollowsPolicyOfEachRequest)
+TEST(SchedulerTest, RequestBeamWidthFollowsEachRequest)
 {
-    const beam::RequestBeamPolicyFactory factory(
+    const beam::BeamRequestFactory factory(
         beam::RequestBeamConfig::Builder()
             .confirmationBeamWidth(3_deg)
             .trackingBeamWidth(3_deg)
