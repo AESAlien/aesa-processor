@@ -75,13 +75,22 @@ void SearchGridConfig::validate() const
         throw std::invalid_argument("SearchGridConfig: beam count exceeds uint32 range");
     }
 
-    // 마지막 점 계산이 오버플로하면 Angle이 std::invalid_argument를 던진다.
-    (void)(_azimuthStart + _azimuthStep * static_cast<double>(_azimuthCount - 1));
-    const math::Elevation elevationLast =
-        _elevationStart + _elevationStep * static_cast<double>(_elevationCount - 1);
+    // 각 축의 마지막 점을 계산해 본다. 계산이 오버플로하면 Angle이, 고각이 범위를 벗어나면 Elevation이
+    // std::invalid_argument를 던진다.
     // 고각 축은 단조 증가 또는 감소이므로 양 끝이 범위 안이면 중간 점도 범위 안이다.
     // 방위각은 Azimuth가 [0, 360)으로 정규화하므로 범위를 검사하지 않는다.
-    (void)elevationLast;
+    (void)azimuthAt(_azimuthCount - 1);
+    (void)elevationAt(_elevationCount - 1);
+}
+
+math::Azimuth SearchGridConfig::azimuthAt(std::size_t index) const
+{
+    return _azimuthStart + _azimuthStep * static_cast<double>(index);
+}
+
+math::Elevation SearchGridConfig::elevationAt(std::size_t index) const
+{
+    return _elevationStart + _elevationStep * static_cast<double>(index);
 }
 
 SearchGridConfig SearchGridConfig::Builder::build() const

@@ -50,6 +50,12 @@ public:
     const math::Angle& elevationStep() const noexcept;
     const BeamWidth& beamWidth() const noexcept;
 
+    // 격자의 index번째(0부터) 방위각/고각. start + step * index로 계산한다.
+    // 격자 점의 각도 계산은 이 두 함수에만 둔다. index가 count 이상인지는 검사하지 않는다.
+    // 방위각은 Azimuth가 [0, 360)으로 정규화하고, 고각이 [-90, 90]도를 벗어나면 Elevation이 std::invalid_argument를 던진다.
+    math::Azimuth azimuthAt(std::size_t index) const;
+    math::Elevation elevationAt(std::size_t index) const;
+
 private:
     std::size_t _azimuthCount;
     std::size_t _elevationCount;
