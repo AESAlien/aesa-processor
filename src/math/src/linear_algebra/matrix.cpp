@@ -15,11 +15,7 @@ Matrix::Matrix(std::size_t rows, std::size_t columns, double value)
     : _rows(rows),
       _columns(columns)
 {
-    if (columns != 0 && rows > std::numeric_limits<std::size_t>::max() / columns)
-    {
-        throw std::length_error("Matrix dimensions are too large");
-    }
-
+    validate();
     _values.assign(rows * columns, value);
 }
 
@@ -31,16 +27,34 @@ Matrix::Matrix(std::initializer_list<std::initializer_list<double>> values)
         _columns = values.begin()->size();
     }
 
+    validate(values);
     _values.reserve(_rows * _columns);
 
+    for (const auto& row : values)
+    {
+        _values.insert(_values.end(), row.begin(), row.end());
+    }
+}
+
+void Matrix::validate() const
+{
+    if (_columns != 0 &&
+        _rows > std::numeric_limits<std::size_t>::max() / _columns)
+    {
+        throw std::length_error("Matrix dimensions are too large");
+    }
+}
+
+void Matrix::validate(
+    std::initializer_list<std::initializer_list<double>> values
+) const {
+    validate();
     for (const auto& row : values)
     {
         if (row.size() != _columns)
         {
             throw std::invalid_argument("Matrix rows must have the same size");
         }
-
-        _values.insert(_values.end(), row.begin(), row.end());
     }
 }
 

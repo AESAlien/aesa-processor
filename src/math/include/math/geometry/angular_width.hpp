@@ -37,6 +37,8 @@ public:
     friend bool operator!=(Angle angle, const AngularWidth& width) noexcept;
 
 private:
+    void validate() const;
+
     Angle _angle;
 };
 

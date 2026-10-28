@@ -56,6 +56,11 @@ CommEndpoint::CommEndpoint(std::string address, std::uint16_t port)
     : address(std::move(address)),
       port(port)
 {
+    validate();
+}
+
+void CommEndpoint::validate() const
+{
     if (this->address.empty() || this->port == 0)
     {
         throw std::invalid_argument(
@@ -75,6 +80,11 @@ CommConfig::CommConfig(
     : server(std::move(server)),
       operatorConsole(std::move(operatorConsole)),
       scenarioSimulator(std::move(scenarioSimulator))
+{
+    validate();
+}
+
+void CommConfig::validate() const
 {
     if (this->operatorConsole.address == this->scenarioSimulator.address &&
         this->operatorConsole.port == this->scenarioSimulator.port)

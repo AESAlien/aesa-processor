@@ -40,6 +40,8 @@ public:
     friend bool operator!=(Angle angle, const Elevation& elevation) noexcept;
 
 private:
+    void validate() const;
+
     Angle _angle;
 };
 

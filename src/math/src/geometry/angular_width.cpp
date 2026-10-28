@@ -8,7 +8,12 @@ namespace math
 AngularWidth::AngularWidth(Angle angle)
     : _angle(angle)
 {
-    if (angle.deg() <= 0.0)
+    validate();
+}
+
+void AngularWidth::validate() const
+{
+    if (_angle.deg() <= 0.0)
     {
         throw std::invalid_argument("AngularWidth must be greater than 0 degrees");
     }

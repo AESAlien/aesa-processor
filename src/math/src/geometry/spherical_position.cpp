@@ -11,6 +11,11 @@ SphericalPosition::SphericalPosition(Length radius, SphericalDirection direction
     : radius(radius),
       direction(direction)
 {
+    validate();
+}
+
+void SphericalPosition::validate() const
+{
     if (!radius.isNonnegative())
     {
         throw std::invalid_argument("Spherical position radius must be non-negative");

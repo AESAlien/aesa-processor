@@ -59,6 +59,11 @@ public:
     Matrix operator/(double scalar) const;
 
 private:
+    void validate() const;
+    void validate(
+        std::initializer_list<std::initializer_list<double>> values
+    ) const;
+
     std::size_t _rows = 0;
     std::size_t _columns = 0;
     std::vector<double> _values;

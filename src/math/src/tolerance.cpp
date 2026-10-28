@@ -28,6 +28,11 @@ Tolerance::Tolerance(double absoluteTolerance, double relativeTolerance)
     : absolute(absoluteTolerance),
       relative(relativeTolerance)
 {
+    validate();
+}
+
+void Tolerance::validate() const
+{
     if (!isFiniteAndNonnegative(this->absolute) ||
         !isFiniteAndNonnegative(this->relative)
     ) {

@@ -12,6 +12,9 @@ struct CommEndpoint
 
     const std::string address;
     const std::uint16_t port;
+
+private:
+    void validate() const;
 };
 
 struct CommConfig
@@ -24,6 +27,9 @@ struct CommConfig
     const CommEndpoint server;
     const CommEndpoint operatorConsole;
     const CommEndpoint scenarioSimulator;
+
+private:
+    void validate() const;
 };
 
 } // namespace comm

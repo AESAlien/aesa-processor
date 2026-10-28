@@ -28,6 +28,9 @@ struct SphericalPosition
 
     const Length radius;
     const SphericalDirection direction;
+
+private:
+    void validate() const;
 };
 
 }

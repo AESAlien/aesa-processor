@@ -8,7 +8,12 @@ namespace math
 Elevation::Elevation(Angle angle)
     : _angle(angle)
 {
-    if (angle.deg() < -90.0 || angle.deg() > 90.0)
+    validate();
+}
+
+void Elevation::validate() const
+{
+    if (_angle.deg() < -90.0 || _angle.deg() > 90.0)
     {
         throw std::invalid_argument("Elevation must be in [-90, 90] degrees");
     }

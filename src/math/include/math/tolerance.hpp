@@ -18,6 +18,7 @@ struct Tolerance
     bool isWithin(double left, double right) const noexcept;
 
 private:
+    void validate() const;
     bool isWithinAbsoluteTolerance(double left, double right) const noexcept;
     bool isWithinRelativeTolerance(double left, double right) const noexcept;
 };

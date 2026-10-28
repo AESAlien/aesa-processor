@@ -31,6 +31,11 @@ Vector::Vector(std::initializer_list<double> values)
 Vector::Vector(Matrix matrix)
     : _matrix(std::move(matrix))
 {
+    validate();
+}
+
+void Vector::validate() const
+{
     if (_matrix.columns() != 1)
     {
         throw std::invalid_argument("Vector requires exactly one column");
