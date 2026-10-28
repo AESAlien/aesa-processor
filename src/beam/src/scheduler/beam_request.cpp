@@ -1,17 +1,20 @@
 #include "scheduler/beam_request.hpp"
 
 #include <stdexcept>
-#include <utility>
 
 namespace beam
 {
 
 BeamRequest::BeamRequest(
-    std::shared_ptr<const IRequestBeamPolicy> policy,
+    BeamType transmitBeamType,
+    BeamWidth beamWidth,
+    int priority,
     std::chrono::milliseconds transmitTime,
     std::uint32_t requestId,
     math::SphericalDirection direction_enu
-) : _policy(std::move(policy)),
+) : _transmitBeamType(transmitBeamType),
+    _beamWidth(beamWidth),
+    _priority(priority),
     _transmitTime(transmitTime),
     _requestId(requestId),
     _direction_enu(direction_enu)
@@ -19,19 +22,19 @@ BeamRequest::BeamRequest(
     validate();
 }
 
-BeamType BeamRequest::transmitBeamType() const
+BeamType BeamRequest::transmitBeamType() const noexcept
 {
-    return _policy->transmitBeamType();
+    return _transmitBeamType;
 }
 
-BeamWidth BeamRequest::beamWidth() const
+BeamWidth BeamRequest::beamWidth() const noexcept
 {
-    return _policy->beamWidth();
+    return _beamWidth;
 }
 
-int BeamRequest::priority() const
+int BeamRequest::priority() const noexcept
 {
-    return _policy->priority();
+    return _priority;
 }
 
 std::chrono::milliseconds BeamRequest::transmitTime() const noexcept
@@ -51,11 +54,6 @@ const math::SphericalDirection& BeamRequest::direction_enu() const noexcept
 
 void BeamRequest::validate() const
 {
-    if (_policy == nullptr)
-    {
-        throw std::invalid_argument("BeamRequest: policy must not be null");
-    }
-
     if (_transmitTime.count() < 0)
     {
         throw std::invalid_argument("BeamRequest: transmit time must not be negative");

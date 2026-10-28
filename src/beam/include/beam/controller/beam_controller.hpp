@@ -30,11 +30,13 @@ public:
 
     void setOperationState(SetOperationStateCommand command);
 
-    // 자세정보가 잘못되면 운용 상태와 관계없이 예외(AttitudeError)를 던진다.
+    // 자세정보가 잘못되면(roll/yaw 범위 밖, 짐벌락) 운용 상태와 관계없이 std::invalid_argument를 던지며, 이때 상태는 변하지 않는다.
+    // 위도·경도·고도는 쓰지 않으므로 검사하지 않는다.
+    // 올바른 자세정보는 ON이고 탐색 격자가 아직 없을 때만 반영되고, 그 외에는 무시된다.
     void setAttitude(SetAttitudeCommand command);
 
     // 요청 값이 잘못되면(알 수 없는 종류, 음수 transmitTime, requestId 0) 운용 상태와 관계없이 std::invalid_argument를 던진다.
-    // 생성자에 주입한 요청 빔 설정(빔 폭)은 요청에 주입되는 정책을 통해 반영된다.
+    // 생성자에 주입한 요청 빔 설정(빔 폭)은 BeamRequestFactory가 요청을 만들 때 반영된다.
     // 올바른 요청은 준비 상태(ON이고 자세정보를 받음)일 때만 받아들이고, 그 외에는 무시한다.
     void requestBeam(RequestBeamCommand command);
 
@@ -42,6 +44,8 @@ public:
     std::optional<TransmitBeamCommand> nextBeamCommand(std::chrono::milliseconds currentTime);
 
 private:
+    // 자세정보를 받을 때 탐색 격자를 만드는 데 쓴다.
+    BeamConfig _config;
     std::unique_ptr<Scheduler> _scheduler;
     // RequestBeamCommand를 BeamRequest로 바꾼다. 요청 빔 설정은 생성 시 한 번 주입된다.
     std::unique_ptr<BeamRequestFactory> _requestFactory;

@@ -1,4 +1,6 @@
-#include "search_grid.hpp"
+#include "scheduler/search_grid.hpp"
+
+#include "attitude/ant_enu_transform.hpp"
 
 #include <cstdint>
 
@@ -13,10 +15,9 @@ SearchGrid::SearchGrid(const AntEnuTransform& transform, const SearchGridConfig&
     {
         for (std::size_t a = 0; a < config.azimuthCount(); ++a)
         {
-            // 방위각은 Azimuth가 [0, 360)으로 정규화한다.
             const math::SphericalDirection direction_enu = transform.antToEnu(math::SphericalDirection(
-                config.azimuthStart() + config.azimuthStep() * static_cast<double>(a),
-                config.elevationStart() + config.elevationStep() * static_cast<double>(e)));
+                config.azimuthAt(a),
+                config.elevationAt(e)));
 
             _beams.push_back(SearchBeam{
                 static_cast<uint32_t>(_beams.size() + 1),

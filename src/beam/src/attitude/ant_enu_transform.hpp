@@ -2,7 +2,6 @@
 
 #include <beam/config/attitude_config.hpp>
 #include "attitude/radar_attitude.hpp"
-#include <math/quantity/angle.hpp>
 #include <math/geometry/spherical_direction.hpp>
 #include <math/linear_algebra/square_matrix.hpp>
 

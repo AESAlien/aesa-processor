@@ -1,7 +1,6 @@
 #include <beam/controller/beam_controller.hpp>
 
 #include "attitude/ant_enu_transform.hpp"
-#include "attitude/attitude_error.hpp"
 #include "scheduler/search_grid.hpp"
 
 #include <gtest/gtest.h>
@@ -18,9 +17,7 @@ namespace
 
 beam::SetOperationStateCommand makeOperationState(beam::OperationState state)
 {
-    return beam::SetOperationStateCommand::Builder()
-        .powerState(state)
-        .build();
+    return beam::SetOperationStateCommand(state);
 }
 
 beam::SetAttitudeCommand makeAttitudeCommand(math::Angle roll, math::Angle pitch, math::Angle yaw)
@@ -104,7 +101,7 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(roll, pitch, yaw));
 
-    const beam::RadarAttitude attitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
+    const beam::RadarAttitude attitude(roll, pitch, yaw);
     beam::SearchGrid expectedGrid(
         beam::AntEnuTransform(
             attitude,
@@ -380,15 +377,7 @@ TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
 
     // 기본 설정(89도)에서는 통과하는 pitch 70도가 이 설정(60도)에서는 짐벌락이다.
-    try
-    {
-        controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg));
-        ADD_FAILURE() << "AttitudeError not thrown";
-    }
-    catch (const beam::AttitudeError& error)
-    {
-        EXPECT_EQ(error.code(), beam::AttitudeErrorCode::GIMBAL_LOCK);
-    }
+    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), std::invalid_argument);
     EXPECT_FALSE(controller.nextBeamCommand(0ms).has_value());
 
     EXPECT_NO_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 50_deg, 0_deg)));
@@ -412,14 +401,15 @@ TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
         .build();
     beam::BeamController controller(config);
 
-    // OFF 상태에서도 설정 기준의 짐벌락 자세는 거부한다.
-    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), beam::AttitudeError);
+    // OFF 상태에서도 설정 기준의 짐벌락 자세는 거부한다. 음의 pitch도 마찬가지다.
+    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), std::invalid_argument);
+    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, -70_deg, 0_deg)), std::invalid_argument);
 
     // 탐색 빔 테이블이 만들어진 뒤에도 마찬가지이며, 기존 상태는 유지된다.
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
     ASSERT_EQ(controller.nextBeamCommand(0ms)->beamId, 1u);
-    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), beam::AttitudeError);
+    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), std::invalid_argument);
     EXPECT_EQ(controller.nextBeamCommand(10ms)->beamId, 2u);
 }
 
@@ -434,17 +424,27 @@ TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
         beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
 
-    // 위도 95도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
-    const beam::SetAttitudeCommand command(95_deg, 127_deg, 0.1_km, 0_deg, 0_deg, 0_deg);
-    try
-    {
-        controller.setAttitude(command);
-        ADD_FAILURE() << "AttitudeError not thrown";
-    }
-    catch (const beam::AttitudeError& error)
-    {
-        EXPECT_EQ(error.code(), beam::AttitudeErrorCode::OUT_OF_RANGE);
-    }
+    // roll 181도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
+    const beam::SetAttitudeCommand command(37_deg, 127_deg, 0.1_km, 181_deg, 0_deg, 0_deg);
+    EXPECT_THROW(controller.setAttitude(command), std::invalid_argument);
+}
+
+TEST(BeamControllerTest, LatitudeLongitudeAltitudeAreNotValidated)
+{
+    beam::BeamController controller(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+
+    // 위도·경도·고도는 빔 모듈에서 쓰지 않으므로 범위를 벗어나도 탐색을 시작한다.
+    const beam::SetAttitudeCommand command(95_deg, 181_deg, 101_km, 0_deg, 0_deg, 0_deg);
+    EXPECT_NO_THROW(controller.setAttitude(command));
+    EXPECT_TRUE(controller.nextBeamCommand(0ms).has_value());
 }
 
 TEST(BeamControllerTest, ControllerWithInjectedConfigCanBeMoved)

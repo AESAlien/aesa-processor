@@ -4,7 +4,6 @@
 #include <beam/config/search_grid_config.hpp>
 #include <beam/config/request_beam_config.hpp>
 
-#include <cstddef>
 #include <optional>
 #include <utility>
 

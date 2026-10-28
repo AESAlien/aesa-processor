@@ -5,7 +5,6 @@ add_library(beam STATIC
 
     src/scheduler/beam_request.cpp
     src/scheduler/beam_request_factory.cpp
-    src/scheduler/request_beam_policy_factory.cpp
     src/scheduler/search_grid.cpp
     src/scheduler/request_queue.cpp
     src/scheduler/scheduler.cpp
@@ -65,7 +64,6 @@ if(BUILD_TESTING)
     )
     target_include_directories(beam_search_grid_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/scheduler"
     )
     target_link_libraries(beam_search_grid_test PRIVATE
         beam
@@ -96,18 +94,6 @@ if(BUILD_TESTING)
         GTest::gtest_main
     )
     gtest_discover_tests(beam_request_factory_test)
-
-    add_executable(beam_request_beam_policy_test
-        test/request_beam_policy_test.cpp
-    )
-    target_include_directories(beam_request_beam_policy_test PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src"
-    )
-    target_link_libraries(beam_request_beam_policy_test PRIVATE
-        beam
-        GTest::gtest_main
-    )
-    gtest_discover_tests(beam_request_beam_policy_test)
 
     add_executable(beam_request_queue_test
         test/request_queue_test.cpp
@@ -163,7 +149,6 @@ if(BUILD_TESTING)
     )
     target_include_directories(beam_table_dump PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/scheduler"
     )
     target_link_libraries(beam_table_dump PRIVATE beam)
 

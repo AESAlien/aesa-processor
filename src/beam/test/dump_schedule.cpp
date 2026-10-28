@@ -12,13 +12,11 @@
 
 #include "schedule_scenario.hpp"
 
-#include "attitude/ant_enu_transform.hpp"
-#include "attitude/attitude_error.hpp"
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
+#include <stdexcept>
 #include <string>
 
 namespace
@@ -108,12 +106,22 @@ int main(int argc, char** argv)
         return usage(argv[0]);
     }
 
+    const beam::SearchGrid grid = [&]() {
+        try
+        {
+            // 잘못된 자세정보이면 RadarAttitude 생성자나 AntEnuTransform 생성자가 std::invalid_argument를 던진다.
+            return schedule_scenario::makeSearchGrid(roll, pitch, yaw);
+        }
+        catch (const std::invalid_argument& e)
+        {
+            std::fprintf(stderr, "attitude failed: %s\n", e.what());
+            std::exit(3);
+        }
+    }();
+
     try
     {
-        // 잘못된 자세정보이면 RadarAttitude 생성자가 AttitudeError를 던진다.
-        const beam::RadarAttitude attitude(37_deg, 127_deg, 0.1_km, roll, pitch, yaw);
-
-        const schedule_scenario::Result result = schedule_scenario::run(scenario, attitude);
+        const schedule_scenario::Result result = schedule_scenario::run(scenario, grid);
 
         std::printf("# ticks\n");
         std::printf("tick_ms,status,type,beamID,commandCount,az_deg,el_deg,az_width_deg,el_width_deg\n");
@@ -155,33 +163,15 @@ int main(int argc, char** argv)
 
         std::printf("# grid\n");
         std::printf("idx,beamID,az_deg,el_deg\n");
-        const beam::SearchGridConfig gridConfig(
-            21,
-            9,
-            math::Azimuth(-42_deg),
-            4.2_deg,
-            math::Elevation(3_deg),
-            4.4_deg,
-            beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
-        beam::SearchGrid grid(
-            beam::AntEnuTransform(
-                attitude,
-                beam::AttitudeConfig(
-                    89_deg,
-                    math::SquareMatrix::identity(3),
-                    math::Tolerance{1e-6, 0.0})),
-            gridConfig);
+        // run()은 grid의 복사본을 쓰므로 여기서는 처음 빔부터 꺼낸다.
+        beam::SearchGrid gridToPrint = grid;
+        const beam::SearchGridConfig gridConfig = schedule_scenario::makeSearchGridConfig();
         const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
         for (std::size_t index = 0; index < beamCount; ++index)
         {
-            const beam::SearchBeam& info = grid.nextBeam();
+            const beam::SearchBeam& info = gridToPrint.nextBeam();
             std::printf("%zu,%u,%.6f,%.6f\n", index, info.beamId, info.direction_enu.azimuth.deg(), info.direction_enu.elevation.deg());
         }
-    }
-    catch (const beam::AttitudeError& e)
-    {
-        std::fprintf(stderr, "attitude failed: code=%d (%s)\n", static_cast<int>(e.code()), e.what());
-        return 3;
     }
     catch (const std::exception& e)
     {

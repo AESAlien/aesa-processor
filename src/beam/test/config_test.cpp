@@ -201,6 +201,16 @@ TEST(SearchGridConfigTest, AzimuthBeyondHalfTurnIsAccepted)
             .build());
 }
 
+TEST(SearchGridConfigTest, AngleAtIndexIsStartPlusStepTimesIndex)
+{
+    const beam::SearchGridConfig config = gridBuilder().build();
+
+    EXPECT_EQ(config.azimuthAt(0), math::Azimuth(-42_deg));
+    EXPECT_EQ(config.azimuthAt(20), math::Azimuth(-42_deg) + 4.2_deg * 20.0);
+    EXPECT_EQ(config.elevationAt(0), math::Elevation(3_deg));
+    EXPECT_EQ(config.elevationAt(8), math::Elevation(3_deg) + 4.4_deg * 8.0);
+}
+
 // ================================================================ AttitudeConfig
 
 TEST(AttitudeConfigTest, BuilderRequiresEveryValue)

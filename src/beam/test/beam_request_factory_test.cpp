@@ -48,7 +48,7 @@ TEST(BeamRequestFactoryTest, ConvertsFromRequestBeamCommand)
     EXPECT_EQ(request.direction_enu().elevation, 20.5_deg);
 }
 
-TEST(BeamRequestFactoryTest, InjectsPolicyMatchingBeamType)
+TEST(BeamRequestFactoryTest, CreatesRequestMatchingBeamType)
 {
     const beam::BeamRequestFactory factory = makeFactory();
 
@@ -72,12 +72,14 @@ TEST(BeamRequestFactoryTest, RejectsInvalidCommand)
 
     const beam::RequestBeamCommand zeroId(beam::RequestBeamType::TRACKING, 0ms, 0, makeDirection());
     const beam::RequestBeamCommand negativeTime(beam::RequestBeamType::TRACKING, -10ms, 1, makeDirection());
+    const beam::RequestBeamCommand zeroType(static_cast<beam::RequestBeamType>(0), 0ms, 1, makeDirection());
     const beam::RequestBeamCommand unknownType(static_cast<beam::RequestBeamType>(9), 0ms, 1, makeDirection());
     const beam::RequestBeamCommand searchType(
         static_cast<beam::RequestBeamType>(beam::BeamType::SEARCH), 0ms, 1, makeDirection());
 
     EXPECT_THROW(factory.create(zeroId), std::invalid_argument);
     EXPECT_THROW(factory.create(negativeTime), std::invalid_argument);
+    EXPECT_THROW(factory.create(zeroType), std::invalid_argument);
     EXPECT_THROW(factory.create(unknownType), std::invalid_argument);
     EXPECT_THROW(factory.create(searchType), std::invalid_argument);
 }

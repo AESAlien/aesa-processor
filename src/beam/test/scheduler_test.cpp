@@ -1,7 +1,7 @@
 #include "scheduler/scheduler.hpp"
-#include "scheduler/request_beam_policy_factory.hpp"
+#include "scheduler/beam_request_factory.hpp"
 
-#include "attitude/attitude_error.hpp"
+#include "attitude/ant_enu_transform.hpp"
 
 #include <gtest/gtest.h>
 
@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <utility>
 
 using namespace std::chrono_literals;
 using namespace math::literals;
@@ -18,39 +19,55 @@ namespace
 
 constexpr std::size_t AZIMUTH_COUNT = 21;
 
-beam::RadarAttitude makeAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw)
+const beam::SearchGridConfig GRID_CONFIG(
+    AZIMUTH_COUNT,
+    9,
+    math::Azimuth(-42_deg),
+    4.2_deg,
+    math::Elevation(3_deg),
+    4.4_deg,
+    beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
+
+// 자세정보로 탐색 격자를 만드는 일은 BeamController가 맡으므로, 테스트에서는 격자를 직접 만들어 넘긴다.
+beam::SearchGrid makeSearchGrid(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    return beam::RadarAttitude(37.0_deg, 127.0_deg, 0.1_km, roll, pitch, yaw);
+    const beam::AntEnuTransform transform(
+        beam::RadarAttitude(roll, pitch, yaw),
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}));
+    return beam::SearchGrid(transform, GRID_CONFIG);
 }
 
-beam::RadarAttitude makeZeroAttitude()
+beam::SearchGrid makeZeroSearchGrid()
 {
-    return makeAttitude(0_deg, 0_deg, 0_deg);
+    return makeSearchGrid(0_deg, 0_deg, 0_deg);
 }
 
-// ON으로 바꾸고 자세정보까지 넣어 준비 상태로 만든다.
-void makeReady(beam::Scheduler& scheduler, const beam::RadarAttitude& attitude)
+// ON으로 바꾸고 탐색 격자까지 넣어 준비 상태로 만든다.
+void makeReady(beam::Scheduler& scheduler, beam::SearchGrid searchGrid)
 {
     scheduler.setOperationState(beam::OperationState::ON);
-    scheduler.setAttitude(attitude);
+    scheduler.setSearchGrid(std::move(searchGrid));
 }
 
 void makeReady(beam::Scheduler& scheduler)
 {
-    makeReady(scheduler, makeZeroAttitude());
+    makeReady(scheduler, makeZeroSearchGrid());
 }
 
-// 요청에 주입되는 정책은 팩토리가 고른다. 설정을 지정하지 않으면 기본 설정의 팩토리를 쓴다.
+// 요청의 빔 폭과 우선순위는 팩토리가 정한다. 설정을 지정하지 않으면 기본 설정의 팩토리를 쓴다.
 beam::BeamRequest makeRequest(
-    const beam::RequestBeamPolicyFactory& factory,
+    const beam::BeamRequestFactory& factory,
     beam::RequestBeamType beamType,
     std::chrono::milliseconds transmitTime,
     uint32_t requestId,
     math::Angle azimuth,
     math::Angle elevation
 ) {
-    return beam::BeamRequest(
-        factory.create(beamType), transmitTime, requestId, math::SphericalDirection(math::Azimuth(azimuth), math::Elevation(elevation)));
+    return factory.create(beam::RequestBeamCommand(
+        beamType, transmitTime, requestId, math::SphericalDirection(math::Azimuth(azimuth), math::Elevation(elevation))));
 }
 
 beam::BeamRequest makeRequest(
@@ -60,7 +77,7 @@ beam::BeamRequest makeRequest(
     math::Angle azimuth,
     math::Angle elevation
 ) {
-    static const beam::RequestBeamPolicyFactory factory{
+    static const beam::BeamRequestFactory factory{
         beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))};
     return makeRequest(factory, beamType, transmitTime, requestId, azimuth, elevation);
 }
@@ -82,59 +99,31 @@ math::Angle gridElevation(std::size_t index)
 
 TEST(SchedulerTest, ReturnsNothingInitially)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
 
     EXPECT_FALSE(scheduler.next(0ms).has_value());
 }
 
-TEST(SchedulerTest, ReturnsNothingWhenOnButAttitudeNotReceived)
+TEST(SchedulerTest, ReturnsNothingWhenOnButSearchGridNotReceived)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     scheduler.setOperationState(beam::OperationState::ON);
 
     EXPECT_FALSE(scheduler.next(0ms).has_value());
 }
 
-TEST(SchedulerTest, AttitudeReceivedWhileOffIsIgnored)
+TEST(SchedulerTest, SearchGridReceivedWhileOffIsIgnored)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
-    scheduler.setAttitude(makeZeroAttitude());
+    beam::Scheduler scheduler;
+    scheduler.setSearchGrid(makeZeroSearchGrid());
     scheduler.setOperationState(beam::OperationState::ON);
 
     EXPECT_FALSE(scheduler.next(0ms).has_value());
 }
 
-TEST(SchedulerTest, AttitudeAfterOnMakesSchedulerReady)
+TEST(SchedulerTest, SearchGridAfterOnMakesSchedulerReady)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
 
     EXPECT_TRUE(scheduler.next(0ms).has_value());
@@ -142,14 +131,7 @@ TEST(SchedulerTest, AttitudeAfterOnMakesSchedulerReady)
 
 TEST(SchedulerTest, ReturnsNothingAfterTurnedOff)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
     ASSERT_TRUE(scheduler.next(0ms).has_value());
 
@@ -158,111 +140,12 @@ TEST(SchedulerTest, ReturnsNothingAfterTurnedOff)
     EXPECT_FALSE(scheduler.next(10ms).has_value());
 }
 
-TEST(SchedulerTest, InvalidAttitudeThrowsAndLeavesSchedulerNotReady)
+TEST(SchedulerTest, SecondSearchGridIsIgnored)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
-    scheduler.setOperationState(beam::OperationState::ON);
+    beam::Scheduler scheduler;
+    makeReady(scheduler, makeZeroSearchGrid());
 
-    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg)), beam::AttitudeError);
-    EXPECT_FALSE(scheduler.next(0ms).has_value());
-
-    // 이후 올바른 자세정보를 받으면 정상 동작한다.
-    scheduler.setAttitude(makeZeroAttitude());
-    EXPECT_TRUE(scheduler.next(10ms).has_value());
-}
-
-TEST(SchedulerTest, GimbalLockAttitudeThrowsEvenWhileOff)
-{
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
-
-    try
-    {
-        scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg));
-        ADD_FAILURE() << "AttitudeError not thrown";
-    }
-    catch (const beam::AttitudeError& error)
-    {
-        EXPECT_EQ(error.code(), beam::AttitudeErrorCode::GIMBAL_LOCK);
-    }
-
-    // 예외 이후에도 상태가 변하지 않아, ON 뒤 올바른 자세정보를 받으면 정상 동작한다.
-    scheduler.setOperationState(beam::OperationState::ON);
-    EXPECT_FALSE(scheduler.next(0ms).has_value());
-    scheduler.setAttitude(makeZeroAttitude());
-    EXPECT_TRUE(scheduler.next(10ms).has_value());
-}
-
-TEST(SchedulerTest, GimbalLockAttitudeThrowsAfterSearchGridIsCreated)
-{
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
-    makeReady(scheduler, makeZeroAttitude());
-    ASSERT_TRUE(scheduler.next(0ms).has_value());
-
-    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 90_deg, 0_deg)), beam::AttitudeError);
-
-    // 기존 SearchGrid와 탐색 순서는 그대로 유지된다.
-    const auto command = scheduler.next(10ms);
-    ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamId, 2u);
-    EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(1)));
-}
-
-TEST(SchedulerTest, GimbalLockUsesPitchLimitFromConfig)
-{
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .attitudeConfig(beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}))
-        .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
-        .attitudeConfig(beam::AttitudeConfig(
-            60_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}))
-        .build();
-    beam::Scheduler scheduler(config);
-
-    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, 60_deg, 0_deg)), beam::AttitudeError);
-    EXPECT_THROW(scheduler.setAttitude(makeAttitude(0_deg, -70_deg, 0_deg)), beam::AttitudeError);
-    EXPECT_NO_THROW(scheduler.setAttitude(makeAttitude(0_deg, 59_deg, 0_deg)));
-}
-
-TEST(SchedulerTest, SecondAttitudeIsIgnored)
-{
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
-    makeReady(scheduler, makeZeroAttitude());
-
-    scheduler.setAttitude(makeAttitude(0_deg, 0_deg, 10_deg));
+    scheduler.setSearchGrid(makeSearchGrid(0_deg, 0_deg, 10_deg));
     const auto command = scheduler.next(0ms);
 
     ASSERT_TRUE(command.has_value());
@@ -273,14 +156,7 @@ TEST(SchedulerTest, SecondAttitudeIsIgnored)
 
 TEST(SchedulerTest, ReturnsSearchBeamsInGridOrderWhenNoRequests)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
 
     for (std::size_t index = 0; index < 30; ++index)
@@ -299,19 +175,10 @@ TEST(SchedulerTest, ReturnsSearchBeamsInGridOrderWhenNoRequests)
 
 TEST(SchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
 
-    const beam::SearchGridConfig gridConfig(
-        21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
-    const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
+    const std::size_t beamCount = GRID_CONFIG.azimuthCount() * GRID_CONFIG.elevationCount();
     for (std::size_t index = 0; index < beamCount; ++index)
     {
         ASSERT_TRUE(scheduler.next(std::chrono::milliseconds(10 * index)).has_value());
@@ -325,32 +192,18 @@ TEST(SchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
 
 TEST(SchedulerTest, SearchBeamTransmitTimeIsCurrentTime)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
 
     EXPECT_EQ(scheduler.next(1230ms)->transmitTime, 1230ms);
     EXPECT_EQ(scheduler.next(1240ms)->transmitTime, 1240ms);
 }
 
-TEST(SchedulerTest, SearchBeamsFollowAttitude)
+TEST(SchedulerTest, SearchBeamsFollowGivenSearchGrid)
 {
     // 격자는 안테나 정면 기준이므로 안테나가 yaw 만큼 돌아가 있으면 ENU 방위각도 +yaw 만큼 이동한다.
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
-    makeReady(scheduler, makeAttitude(0_deg, 0_deg, 10_deg));
+    beam::Scheduler scheduler;
+    makeReady(scheduler, makeSearchGrid(0_deg, 0_deg, 10_deg));
 
     const auto command = scheduler.next(0ms);
 
@@ -363,14 +216,7 @@ TEST(SchedulerTest, SearchBeamsFollowAttitude)
 
 TEST(SchedulerTest, ConfirmationRequestProducesConfirmationBeam)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::CONFIRMATION, 100ms, 20, 12.5_deg, 20.5_deg));
 
@@ -388,14 +234,7 @@ TEST(SchedulerTest, ConfirmationRequestProducesConfirmationBeam)
 
 TEST(SchedulerTest, TrackingRequestProducesTrackingBeam)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 100ms, 100, -30_deg, 5_deg));
 
@@ -412,14 +251,7 @@ TEST(SchedulerTest, TrackingRequestProducesTrackingBeam)
 
 TEST(SchedulerTest, FutureRequestKeepsSearchingUntilItsTime)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 30ms, 20, 1_deg, 2_deg));
 
@@ -431,14 +263,7 @@ TEST(SchedulerTest, FutureRequestKeepsSearchingUntilItsTime)
 
 TEST(SchedulerTest, RequestBeamDoesNotAdvanceSearchCursor)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
 
     EXPECT_EQ(scheduler.next(0ms)->beamId, 1u);
@@ -452,14 +277,7 @@ TEST(SchedulerTest, RequestBeamDoesNotAdvanceSearchCursor)
 
 TEST(SchedulerTest, DelayedRequestUsesCurrentTimeAsTransmitTime)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 1005ms, 10, 1_deg, 2_deg));
 
@@ -473,14 +291,7 @@ TEST(SchedulerTest, DelayedRequestUsesCurrentTimeAsTransmitTime)
 TEST(SchedulerTest, VeryOldRequestIsStillSentAsRequestBeam)
 {
     // 요청은 만료로 폐기되지 않는다. 오래 기다렸어도 현재 시각의 요청 빔으로 나가고 탐색 순서는 밀리지 않는다.
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 1000ms, 7, 1_deg, 2_deg));
 
@@ -500,14 +311,7 @@ TEST(SchedulerTest, VeryOldRequestIsStillSentAsRequestBeam)
 TEST(SchedulerTest, CrowdedTicksFollowDesignedScenario)
 {
     // 1005 추적 A, 1010 확인 B, 1010 추적 C, 1010 추적 D
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 1005ms, 1, 1_deg, 0_deg));
     scheduler.addRequest(makeRequest(beam::RequestBeamType::CONFIRMATION, 1010ms, 2, 2_deg, 0_deg));
@@ -544,14 +348,7 @@ TEST(SchedulerTest, CrowdedTicksFollowDesignedScenario)
 
 TEST(SchedulerTest, CommandCountStartsAtOneAndIncreasesPerCommand)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
 
     EXPECT_EQ(scheduler.next(0ms)->commandCount, 1u);
@@ -565,19 +362,12 @@ TEST(SchedulerTest, CommandCountStartsAtOneAndIncreasesPerCommand)
 
 TEST(SchedulerTest, CommandCountDoesNotIncreaseWhenNothingIsSent)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     scheduler.setOperationState(beam::OperationState::ON);
 
     EXPECT_FALSE(scheduler.next(0ms).has_value());
 
-    scheduler.setAttitude(makeZeroAttitude());
+    scheduler.setSearchGrid(makeZeroSearchGrid());
 
     EXPECT_EQ(scheduler.next(10ms)->commandCount, 1u);
 }
@@ -586,33 +376,19 @@ TEST(SchedulerTest, CommandCountDoesNotIncreaseWhenNothingIsSent)
 
 TEST(SchedulerTest, RequestWhileOffIsIgnored)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 3, 1_deg, 2_deg));
     makeReady(scheduler);
 
     EXPECT_EQ(scheduler.next(0ms)->beamType, beam::BeamType::SEARCH);
 }
 
-TEST(SchedulerTest, RequestBeforeAttitudeIsIgnored)
+TEST(SchedulerTest, RequestBeforeSearchGridIsIgnored)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     scheduler.setOperationState(beam::OperationState::ON);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 4, 1_deg, 2_deg));
-    scheduler.setAttitude(makeZeroAttitude());
+    scheduler.setSearchGrid(makeZeroSearchGrid());
 
     EXPECT_EQ(scheduler.next(0ms)->beamType, beam::BeamType::SEARCH);
 }
@@ -621,15 +397,8 @@ TEST(SchedulerTest, RequestBeforeAttitudeIsIgnored)
 
 TEST(SchedulerTest, TurningOnAgainAfterOffResetsEverything)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
-    makeReady(scheduler, makeAttitude(0_deg, 0_deg, 10_deg));
+    beam::Scheduler scheduler;
+    makeReady(scheduler, makeSearchGrid(0_deg, 0_deg, 10_deg));
     scheduler.next(0ms);
     scheduler.next(10ms);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 1000ms, 6, 1_deg, 2_deg));
@@ -637,11 +406,11 @@ TEST(SchedulerTest, TurningOnAgainAfterOffResetsEverything)
     scheduler.setOperationState(beam::OperationState::OFF);
     scheduler.setOperationState(beam::OperationState::ON);
 
-    // 자세정보를 다시 받기 전에는 준비 상태가 아니다.
+    // 탐색 격자를 다시 받기 전에는 준비 상태가 아니다.
     EXPECT_FALSE(scheduler.next(20ms).has_value());
 
-    // 새 운용에서는 새 자세(영 자세)로 만든 테이블, 처음 구역, 카운트 1부터 시작한다.
-    scheduler.setAttitude(makeZeroAttitude());
+    // 새 운용에서는 새로 받은 격자(영 자세), 처음 구역, 카운트 1부터 시작한다.
+    scheduler.setSearchGrid(makeZeroSearchGrid());
     const auto first = scheduler.next(1000ms);
 
     ASSERT_TRUE(first.has_value());
@@ -653,14 +422,7 @@ TEST(SchedulerTest, TurningOnAgainAfterOffResetsEverything)
 
 TEST(SchedulerTest, TurningOnWhileAlreadyOnKeepsState)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
     scheduler.next(0ms);
 
@@ -674,14 +436,7 @@ TEST(SchedulerTest, TurningOnWhileAlreadyOnKeepsState)
 
 TEST(SchedulerTest, TurningOffWhileAlreadyOffDoesNothing)
 {
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     scheduler.setOperationState(beam::OperationState::OFF);
     makeReady(scheduler);
 
@@ -689,12 +444,12 @@ TEST(SchedulerTest, TurningOffWhileAlreadyOffDoesNothing)
 }
 
 // ---------- 요청 빔 설정 반영 ----------
-// 빔 폭은 요청에 주입된 정책이 정한다. Scheduler는 설정을 직접 읽지 않는다.
+// 빔 폭은 요청을 만들 때 팩토리가 정한다. Scheduler는 설정을 직접 읽지 않는다.
 // 설정 값 검증(빔폭 0 이하)은 config_test.cpp 에서 확인한다.
 
-TEST(SchedulerTest, RequestBeamWidthFollowsPolicyOfEachRequest)
+TEST(SchedulerTest, RequestBeamWidthFollowsEachRequest)
 {
-    const beam::RequestBeamPolicyFactory factory(
+    const beam::BeamRequestFactory factory(
         beam::RequestBeamConfig::Builder()
             .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
             .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
@@ -705,10 +460,7 @@ TEST(SchedulerTest, RequestBeamWidthFollowsPolicyOfEachRequest)
                 math::AngularWidth(4_deg),
                 math::AngularWidth(5_deg)))
             .build());
-    beam::Scheduler scheduler(beam::BeamConfig(
-        beam::AttitudeConfig(89_deg, math::SquareMatrix::identity(3), math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+    beam::Scheduler scheduler;
     makeReady(scheduler);
 
     scheduler.addRequest(makeRequest(factory, beam::RequestBeamType::CONFIRMATION, 0ms, 1, 1_deg, 5_deg));
