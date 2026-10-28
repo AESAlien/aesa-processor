@@ -15,17 +15,23 @@ namespace
 
 math::SphericalDirection makeDirection()
 {
-    return math::SphericalDirection(12.5_deg, 20.5_deg);
+    return math::SphericalDirection(math::Azimuth(12.5_deg), math::Elevation(20.5_deg));
+}
+
+beam::BeamWidth makeBeamWidth(math::Angle azimuth, math::Angle elevation)
+{
+    return beam::BeamWidth(math::AngularWidth(azimuth), math::AngularWidth(elevation));
 }
 
 } // namespace
 
 TEST(BeamRequestTest, KeepsGivenValues)
 {
-    const beam::BeamRequest request(beam::BeamType::TRACKING, 2_deg, 0, 1500ms, 7, makeDirection());
+    const beam::BeamRequest request(beam::BeamType::TRACKING, makeBeamWidth(2_deg, 3_deg), 0, 1500ms, 7, makeDirection());
 
     EXPECT_EQ(request.transmitBeamType(), beam::BeamType::TRACKING);
-    EXPECT_EQ(request.beamWidth(), 2_deg);
+    EXPECT_EQ(request.beamWidth().azimuth, 2_deg);
+    EXPECT_EQ(request.beamWidth().elevation, 3_deg);
     EXPECT_EQ(request.priority(), 0);
     EXPECT_EQ(request.transmitTime(), 1500ms);
     EXPECT_EQ(request.requestId(), 7u);
@@ -35,7 +41,7 @@ TEST(BeamRequestTest, KeepsGivenValues)
 
 TEST(BeamRequestTest, CopyKeepsSameValues)
 {
-    const beam::BeamRequest request(beam::BeamType::CONFIRMATION, 4_deg, 1, 100ms, 3, makeDirection());
+    const beam::BeamRequest request(beam::BeamType::CONFIRMATION, makeBeamWidth(4_deg, 5_deg), 1, 100ms, 3, makeDirection());
     const beam::BeamRequest copy = request;
 
     EXPECT_EQ(copy.transmitBeamType(), request.transmitBeamType());
@@ -49,7 +55,7 @@ TEST(BeamRequestTest, AcceptsBoundaryValues)
     // transmitTime 0과 가장 큰 requestId는 올바른 값이다.
     EXPECT_NO_THROW(beam::BeamRequest(
         beam::BeamType::TRACKING,
-        3_deg,
+        makeBeamWidth(3_deg, 3_deg),
         0,
         0ms,
         std::numeric_limits<std::uint32_t>::max(),
@@ -59,14 +65,14 @@ TEST(BeamRequestTest, AcceptsBoundaryValues)
 TEST(BeamRequestTest, RejectsNegativeTransmitTime)
 {
     EXPECT_THROW(
-        beam::BeamRequest(beam::BeamType::TRACKING, 3_deg, 0, -1ms, 1, makeDirection()),
+        beam::BeamRequest(beam::BeamType::TRACKING, makeBeamWidth(3_deg, 3_deg), 0, -1ms, 1, makeDirection()),
         std::invalid_argument);
 }
 
 TEST(BeamRequestTest, RejectsZeroRequestId)
 {
     EXPECT_THROW(
-        beam::BeamRequest(beam::BeamType::CONFIRMATION, 3_deg, 1, 0ms, 0, makeDirection()),
+        beam::BeamRequest(beam::BeamType::CONFIRMATION, makeBeamWidth(3_deg, 3_deg), 1, 0ms, 0, makeDirection()),
         std::invalid_argument);
 }
 

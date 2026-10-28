@@ -45,8 +45,7 @@ public:
 
 private:
     // 자세정보를 받을 때 탐색 격자를 만드는 데 쓴다.
-    // 설정 구조체는 const 멤버를 가져 대입할 수 없으므로, 이동 대입을 지원하려고 포인터로 보관한다.
-    std::unique_ptr<const BeamConfig> _config;
+    BeamConfig _config;
     std::unique_ptr<Scheduler> _scheduler;
     // RequestBeamCommand를 BeamRequest로 바꾼다. 요청 빔 설정은 생성 시 한 번 주입된다.
     std::unique_ptr<BeamRequestFactory> _requestFactory;

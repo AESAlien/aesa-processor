@@ -1,4 +1,4 @@
-﻿#include "scheduler/request_queue.hpp"
+#include "scheduler/request_queue.hpp"
 #include "scheduler/beam_request_factory.hpp"
 
 #include <gtest/gtest.h>
@@ -17,8 +17,11 @@ beam::BeamRequest makeRequest(
     math::Angle azimuth = 0_deg
 ) {
     static const beam::BeamRequestFactory factory{
-        beam::RequestBeamConfig(3_deg, 3_deg)};
-    return factory.create(beam::RequestBeamCommand(beamType, transmitTime, 1, math::SphericalDirection(azimuth, 0_deg)));
+        beam::RequestBeamConfig(
+            beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)),
+            beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))};
+    return factory.create(beam::RequestBeamCommand(
+        beamType, transmitTime, 1, math::SphericalDirection(math::Azimuth(azimuth), math::Elevation(0_deg))));
 }
 
 beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)

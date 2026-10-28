@@ -33,13 +33,13 @@ math::SquareMatrix bodyToEnu(math::Angle roll, math::Angle pitch, math::Angle ya
 
 AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeConfig& config)
 {
-    if (attitude.pitch() <= -config.maxAbsPitch || attitude.pitch() >= config.maxAbsPitch)
+    if (attitude.pitch() <= -config.maxAbsPitch() || attitude.pitch() >= config.maxAbsPitch())
     {
         throw std::invalid_argument("AntEnuTransform: pitch is too close to gimbal lock");
     }
 
     _rotationMatrix =
-        bodyToEnu(attitude.roll(), attitude.pitch(), attitude.yaw()) * config.mountAntToBodyRotation;
+        bodyToEnu(attitude.roll(), attitude.pitch(), attitude.yaw()) * config.mountAntToBodyRotation();
 }
 
 math::SphericalDirection AntEnuTransform::antToEnu(const math::SphericalDirection& direction_ant) const

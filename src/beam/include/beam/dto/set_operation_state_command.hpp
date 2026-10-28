@@ -7,7 +7,7 @@ namespace beam
 
 struct SetOperationStateCommand
 {
-    const OperationState powerState;
+    OperationState powerState;
 
     explicit SetOperationStateCommand(OperationState powerState)
       : powerState(powerState)

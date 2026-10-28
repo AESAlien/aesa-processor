@@ -7,13 +7,13 @@ namespace math
 using namespace literals;
 
 const QuantityTolerance<Length> Length::NONE_TOLERANCE{
-    Length::fromMeters(0.0),
+    0.0_m,
     0.0
 };
 
 const QuantityTolerance<Length> Length::DEFAULT_TOLERANCE{
-    Length::fromMeters(DEFAULT_ABSOLUTE_TOLERANCE),
-    DEFAULT_RELATIVE_TOLERANCE
+    1e-12_m,
+    1e-9
 };
 
 Length Length::fromMeters(double meters)

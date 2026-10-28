@@ -1,6 +1,8 @@
 add_library(beam STATIC
     src/controller/beam_controller.cpp
 
+    src/domain/beam_width.cpp
+
     src/scheduler/beam_request.cpp
     src/scheduler/beam_request_factory.cpp
     src/scheduler/search_grid.cpp
@@ -35,6 +37,15 @@ if(BUILD_TESTING)
         GTest::gtest_main
     )
     gtest_discover_tests(beam_config_test)
+
+    add_executable(beam_width_test
+        test/beam_width_test.cpp
+    )
+    target_link_libraries(beam_width_test PRIVATE
+        beam
+        GTest::gtest_main
+    )
+    gtest_discover_tests(beam_width_test)
 
     add_executable(beam_attitude_test
         test/attitude_test.cpp

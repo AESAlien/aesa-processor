@@ -171,15 +171,20 @@ protected:
     explicit Quantity(double value)
         : _value(value)
     {
-        if (!std::isfinite(value))
-        {
-            throw std::invalid_argument("Quantity must be finite");
-        }
+        validate();
     }
 
     ~Quantity() noexcept = default;
 
 private:
+    void validate() const
+    {
+        if (!std::isfinite(_value))
+        {
+            throw std::invalid_argument("Quantity must be finite");
+        }
+    }
+
     double _value;
 };
 

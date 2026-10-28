@@ -1,9 +1,9 @@
 #pragma once
 
 #include <beam/dto/beam_type.hpp>
+#include <beam/domain/beam_width.hpp>
 
 #include <math/geometry/spherical_direction.hpp>
-#include <math/quantity/angle.hpp>
 #include <chrono>
 #include <cstdint>
 
@@ -21,7 +21,7 @@ public:
     // - requestId가 0
     BeamRequest(
         BeamType transmitBeamType,
-        math::Angle beamWidth,
+        BeamWidth beamWidth,
         int priority,
         std::chrono::milliseconds transmitTime,
         std::uint32_t requestId,
@@ -30,8 +30,8 @@ public:
     // 송신 시 명령에 담는 빔 종류.
     BeamType transmitBeamType() const noexcept;
 
-    // 송신 빔의 방위각/고각 빔 폭.
-    math::Angle beamWidth() const noexcept;
+    // 송신 빔의 서로 독립적인 방위각/고각 빔 폭.
+    BeamWidth beamWidth() const noexcept;
 
     // 송신 시각이 같은 요청 중 어느 것을 먼저 보낼지 정한다. 값이 클수록 먼저 보낸다.
     int priority() const noexcept;
@@ -44,7 +44,7 @@ private:
     void validate() const;
 
     BeamType _transmitBeamType;
-    math::Angle _beamWidth;
+    BeamWidth _beamWidth;
     int _priority;
     std::chrono::milliseconds _transmitTime;
     std::uint32_t _requestId;

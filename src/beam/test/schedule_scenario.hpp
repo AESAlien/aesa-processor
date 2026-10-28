@@ -35,7 +35,14 @@ constexpr std::uint32_t REQUEST_ID = 1;
 // 시나리오에서 쓰는 탐색 격자 설정(방위각 21개 x 고각 9개 = 189개)
 inline beam::SearchGridConfig makeSearchGridConfig()
 {
-    return beam::SearchGridConfig(21, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg);
+    return beam::SearchGridConfig(
+        21,
+        9,
+        math::Azimuth(-42_deg),
+        4.2_deg,
+        math::Elevation(3_deg),
+        4.4_deg,
+        beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
 }
 
 // 주어진 자세로 탐색 격자를 만든다. 실제 운용에서는 BeamController가 하는 일이다.
@@ -96,14 +103,18 @@ inline RequestSpec makeRequestSpec(
 ) {
     // 요청 빔 폭은 기본 설정(3도)을 쓴다.
     static const beam::BeamRequestFactory factory{
-        beam::RequestBeamConfig(3_deg, 3_deg)};
+        beam::RequestBeamConfig(
+            beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)),
+            beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))};
     return RequestSpec{
         name,
         factory.create(beam::RequestBeamCommand(
             beamType,
             transmitTime,
             REQUEST_ID,
-            math::SphericalDirection(math::Angle::fromDegrees(azimuth_deg), math::Angle::fromDegrees(elevation_deg))))
+            math::SphericalDirection(
+                math::Azimuth::fromDegrees(azimuth_deg),
+                math::Elevation::fromDegrees(elevation_deg))))
     };
 }
 
@@ -168,11 +179,6 @@ inline Scenario makeTracksScenario()
 namespace detail
 {
 
-inline bool sameAngle(math::Angle left, math::Angle right)
-{
-    return left.isEquivalentTo(right);
-}
-
 // 송신된 요청 빔을 보낸 요청과 짝짓는다(종류와 각도가 같은 아직 짝이 없는 요청).
 inline void markSent(
     std::vector<RequestSpec>& requests,
@@ -183,8 +189,8 @@ inline void markSent(
     {
         const bool sameType = spec.request.transmitBeamType() == command.beamType;
         if (spec.sentTick_ms < 0 && sameType &&
-            sameAngle(spec.request.direction_enu().azimuth, command.direction_ant.azimuth) &&
-            sameAngle(spec.request.direction_enu().elevation, command.direction_ant.elevation))
+            spec.request.direction_enu().azimuth == command.direction_ant.azimuth &&
+            spec.request.direction_enu().elevation == command.direction_ant.elevation)
         {
             spec.sentTick_ms = tick_ms;
             return;

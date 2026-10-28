@@ -17,9 +17,9 @@ struct CartesianVelocity
     LinearVelocity speed() const;
     CartesianDisplacement operator*(std::chrono::duration<double> elapsed) const;
 
-    const LinearVelocity x;
-    const LinearVelocity y;
-    const LinearVelocity z;
+    LinearVelocity x;
+    LinearVelocity y;
+    LinearVelocity z;
 };
 
 }

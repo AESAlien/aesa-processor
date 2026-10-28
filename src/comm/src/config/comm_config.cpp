@@ -53,15 +53,30 @@ bool isIpv4Address(const std::string& address)
 } // namespace
 
 CommEndpoint::CommEndpoint(std::string address, std::uint16_t port)
-    : address(std::move(address)),
-      port(port)
+    : _address(std::move(address)),
+      _port(port)
 {
-    if (this->address.empty() || this->port == 0)
+    validate();
+}
+
+const std::string& CommEndpoint::address() const noexcept
+{
+    return _address;
+}
+
+std::uint16_t CommEndpoint::port() const noexcept
+{
+    return _port;
+}
+
+void CommEndpoint::validate() const
+{
+    if (_address.empty() || _port == 0)
     {
         throw std::invalid_argument(
             "Comm endpoint requires both address and port");
     }
-    if (!isIpv4Address(this->address))
+    if (!isIpv4Address(_address))
     {
         throw std::invalid_argument(
             "Comm endpoint requires a valid IPv4 address");
@@ -72,12 +87,32 @@ CommConfig::CommConfig(
     CommEndpoint server,
     CommEndpoint operatorConsole,
     CommEndpoint scenarioSimulator)
-    : server(std::move(server)),
-      operatorConsole(std::move(operatorConsole)),
-      scenarioSimulator(std::move(scenarioSimulator))
+    : _server(std::move(server)),
+      _operatorConsole(std::move(operatorConsole)),
+      _scenarioSimulator(std::move(scenarioSimulator))
 {
-    if (this->operatorConsole.address == this->scenarioSimulator.address &&
-        this->operatorConsole.port == this->scenarioSimulator.port)
+    validate();
+}
+
+const CommEndpoint& CommConfig::server() const noexcept
+{
+    return _server;
+}
+
+const CommEndpoint& CommConfig::operatorConsole() const noexcept
+{
+    return _operatorConsole;
+}
+
+const CommEndpoint& CommConfig::scenarioSimulator() const noexcept
+{
+    return _scenarioSimulator;
+}
+
+void CommConfig::validate() const
+{
+    if (_operatorConsole.address() == _scenarioSimulator.address() &&
+        _operatorConsole.port() == _scenarioSimulator.port())
     {
         throw std::invalid_argument(
             "Communication peer endpoints must be distinct");

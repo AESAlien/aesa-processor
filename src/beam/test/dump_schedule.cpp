@@ -143,8 +143,8 @@ int main(int argc, char** argv)
                 command.commandCount,
                 command.direction_ant.azimuth.deg(),
                 command.direction_ant.elevation.deg(),
-                command.azimuthBeamWidth.deg(),
-                command.elevationBeamWidth.deg());
+                command.beamWidth.azimuth.deg(),
+                command.beamWidth.elevation.deg());
         }
 
         std::printf("# requests\n");
@@ -166,7 +166,7 @@ int main(int argc, char** argv)
         // run()은 grid의 복사본을 쓰므로 여기서는 처음 빔부터 꺼낸다.
         beam::SearchGrid gridToPrint = grid;
         const beam::SearchGridConfig gridConfig = schedule_scenario::makeSearchGridConfig();
-        const std::size_t beamCount = gridConfig.azimuthCount * gridConfig.elevationCount;
+        const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
         for (std::size_t index = 0; index < beamCount; ++index)
         {
             const beam::SearchBeam& info = gridToPrint.nextBeam();

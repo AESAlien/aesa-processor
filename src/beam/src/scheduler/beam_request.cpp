@@ -7,7 +7,7 @@ namespace beam
 
 BeamRequest::BeamRequest(
     BeamType transmitBeamType,
-    math::Angle beamWidth,
+    BeamWidth beamWidth,
     int priority,
     std::chrono::milliseconds transmitTime,
     std::uint32_t requestId,
@@ -27,7 +27,7 @@ BeamType BeamRequest::transmitBeamType() const noexcept
     return _transmitBeamType;
 }
 
-math::Angle BeamRequest::beamWidth() const noexcept
+BeamWidth BeamRequest::beamWidth() const noexcept
 {
     return _beamWidth;
 }

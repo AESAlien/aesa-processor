@@ -43,6 +43,8 @@ public:
     void reset();
 
 private:
+    void validate() const;
+
     protocol::ST_MsgHeader peekHeader() const;
 
     FramingError validateHeader(

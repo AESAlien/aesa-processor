@@ -1,8 +1,9 @@
 #pragma once
 
 #include <beam/dto/beam_type.hpp>
-#include <math/quantity/angle.hpp>
-#include <math/quantity/length.hpp>
+#include <math/geometry/azimuth.hpp>
+#include <math/geometry/elevation.hpp>
+#include <math/geometry/distance.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
 #include <chrono>
@@ -18,23 +19,23 @@ struct DetectionEvent
 {
     struct Plot;
 
-    const beam::BeamType beamType;
-    const uint32_t requestId;
-    const std::chrono::milliseconds transmitTime;
-    const std::vector<Plot> plots;
+    beam::BeamType beamType;
+    uint32_t requestId;
+    std::chrono::milliseconds transmitTime;
+    std::vector<Plot> plots;
 
     struct Plot
     {
-        const math::Length slantRange;
-        const math::Angle azimuth;
-        const math::Angle elevation;
-        const math::LinearVelocity dopplerVelocity;
-        const float power_db;
+        math::Distance slantRange;
+        math::Azimuth azimuth;
+        math::Elevation elevation;
+        math::LinearVelocity dopplerVelocity;
+        float power_db;
 
         Plot(
-            math::Length slantRange,
-            math::Angle azimuth,
-            math::Angle elevation,
+            math::Distance slantRange,
+            math::Azimuth azimuth,
+            math::Elevation elevation,
             math::LinearVelocity dopplerVelocity,
             float power_db
         ) : slantRange(slantRange),
@@ -48,9 +49,9 @@ struct DetectionEvent
         class Builder
         {
         public:
-            Builder& slantRange(math::Length value) { _slantRange = value; return *this; }
-            Builder& azimuth(math::Angle value) { _azimuth = value; return *this; }
-            Builder& elevation(math::Angle value) { _elevation = value; return *this; }
+            Builder& slantRange(math::Distance value) { _slantRange = value; return *this; }
+            Builder& azimuth(math::Azimuth value) { _azimuth = value; return *this; }
+            Builder& elevation(math::Elevation value) { _elevation = value; return *this; }
             Builder& dopplerVelocity(math::LinearVelocity value) { _dopplerVelocity = value; return *this; }
             Builder& power_db(float value) { _power_db = value; return *this; }
 
@@ -62,9 +63,9 @@ struct DetectionEvent
             }
 
         private:
-            std::optional<math::Length> _slantRange;
-            std::optional<math::Angle> _azimuth;
-            std::optional<math::Angle> _elevation;
+            std::optional<math::Distance> _slantRange;
+            std::optional<math::Azimuth> _azimuth;
+            std::optional<math::Elevation> _elevation;
             std::optional<math::LinearVelocity> _dopplerVelocity;
             std::optional<float> _power_db;
         };

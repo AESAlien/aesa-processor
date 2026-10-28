@@ -24,9 +24,9 @@ CartesianDisplacement CartesianDisplacement::operator+(const CartesianDisplaceme
         z + other.z);
 }
 
-Length CartesianDisplacement::distance() const
+Distance CartesianDisplacement::distance() const
 {
-    return Length::fromMeters(std::hypot(x.m(), y.m(), z.m()));
+    return Distance::fromMeters(std::hypot(x.m(), y.m(), z.m()));
 }
 
 Vector CartesianDisplacement::toVector() const

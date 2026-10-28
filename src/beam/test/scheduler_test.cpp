@@ -20,7 +20,13 @@ namespace
 constexpr std::size_t AZIMUTH_COUNT = 21;
 
 const beam::SearchGridConfig GRID_CONFIG(
-    AZIMUTH_COUNT, 9, -42_deg, 4.2_deg, 3_deg, 4.4_deg, 6_deg);
+    AZIMUTH_COUNT,
+    9,
+    math::Azimuth(-42_deg),
+    4.2_deg,
+    math::Elevation(3_deg),
+    4.4_deg,
+    beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
 
 // 자세정보로 탐색 격자를 만드는 일은 BeamController가 맡으므로, 테스트에서는 격자를 직접 만들어 넘긴다.
 beam::SearchGrid makeSearchGrid(math::Angle roll, math::Angle pitch, math::Angle yaw)
@@ -61,7 +67,7 @@ beam::BeamRequest makeRequest(
     math::Angle elevation
 ) {
     return factory.create(beam::RequestBeamCommand(
-        beamType, transmitTime, requestId, math::SphericalDirection(azimuth, elevation)));
+        beamType, transmitTime, requestId, math::SphericalDirection(math::Azimuth(azimuth), math::Elevation(elevation))));
 }
 
 beam::BeamRequest makeRequest(
@@ -72,7 +78,7 @@ beam::BeamRequest makeRequest(
     math::Angle elevation
 ) {
     static const beam::BeamRequestFactory factory{
-        beam::RequestBeamConfig(3_deg, 3_deg)};
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))};
     return makeRequest(factory, beamType, transmitTime, requestId, azimuth, elevation);
 }
 
@@ -162,8 +168,8 @@ TEST(SchedulerTest, ReturnsSearchBeamsInGridOrderWhenNoRequests)
         EXPECT_EQ(command->beamId, static_cast<std::uint32_t>(index + 1)) << "index=" << index;
         EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(index))) << "index=" << index;
         EXPECT_EQ(command->direction_ant.elevation, gridElevation(index)) << "index=" << index;
-        EXPECT_EQ(command->azimuthBeamWidth, 6_deg);
-        EXPECT_EQ(command->elevationBeamWidth, 6_deg);
+        EXPECT_EQ(command->beamWidth.azimuth, 6_deg);
+        EXPECT_EQ(command->beamWidth.elevation, 6_deg);
     }
 }
 
@@ -172,7 +178,7 @@ TEST(SchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
     beam::Scheduler scheduler;
     makeReady(scheduler);
 
-    const std::size_t beamCount = GRID_CONFIG.azimuthCount * GRID_CONFIG.elevationCount;
+    const std::size_t beamCount = GRID_CONFIG.azimuthCount() * GRID_CONFIG.elevationCount();
     for (std::size_t index = 0; index < beamCount; ++index)
     {
         ASSERT_TRUE(scheduler.next(std::chrono::milliseconds(10 * index)).has_value());
@@ -222,8 +228,8 @@ TEST(SchedulerTest, ConfirmationRequestProducesConfirmationBeam)
     EXPECT_EQ(command->transmitTime, 100ms);
     EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(12.5_deg));
     EXPECT_EQ(command->direction_ant.elevation, 20.5_deg);
-    EXPECT_EQ(command->azimuthBeamWidth, 3_deg);
-    EXPECT_EQ(command->elevationBeamWidth, 3_deg);
+    EXPECT_EQ(command->beamWidth.azimuth, 3_deg);
+    EXPECT_EQ(command->beamWidth.elevation, 3_deg);
 }
 
 TEST(SchedulerTest, TrackingRequestProducesTrackingBeam)
@@ -239,8 +245,8 @@ TEST(SchedulerTest, TrackingRequestProducesTrackingBeam)
     EXPECT_EQ(command->beamId, 100u);
     EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(-30_deg));
     EXPECT_EQ(command->direction_ant.elevation, 5_deg);
-    EXPECT_EQ(command->azimuthBeamWidth, 3_deg);
-    EXPECT_EQ(command->elevationBeamWidth, 3_deg);
+    EXPECT_EQ(command->beamWidth.azimuth, 3_deg);
+    EXPECT_EQ(command->beamWidth.elevation, 3_deg);
 }
 
 TEST(SchedulerTest, FutureRequestKeepsSearchingUntilItsTime)
@@ -445,10 +451,14 @@ TEST(SchedulerTest, RequestBeamWidthFollowsEachRequest)
 {
     const beam::BeamRequestFactory factory(
         beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(3_deg)
-            .trackingBeamWidth(3_deg)
-            .confirmationBeamWidth(2_deg)
-            .trackingBeamWidth(4_deg)
+            .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
+            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
+            .confirmationBeamWidth(beam::BeamWidth(
+                math::AngularWidth(2_deg),
+                math::AngularWidth(3_deg)))
+            .trackingBeamWidth(beam::BeamWidth(
+                math::AngularWidth(4_deg),
+                math::AngularWidth(5_deg)))
             .build());
     beam::Scheduler scheduler;
     makeReady(scheduler);
@@ -457,13 +467,13 @@ TEST(SchedulerTest, RequestBeamWidthFollowsEachRequest)
     const auto confirmation = scheduler.next(0ms);
     ASSERT_TRUE(confirmation.has_value());
     EXPECT_EQ(confirmation->beamType, beam::BeamType::CONFIRMATION);
-    EXPECT_EQ(confirmation->azimuthBeamWidth, 2_deg);
-    EXPECT_EQ(confirmation->elevationBeamWidth, 2_deg);
+    EXPECT_EQ(confirmation->beamWidth.azimuth, 2_deg);
+    EXPECT_EQ(confirmation->beamWidth.elevation, 3_deg);
 
     scheduler.addRequest(makeRequest(factory, beam::RequestBeamType::TRACKING, 10ms, 2, 1_deg, 5_deg));
     const auto tracking = scheduler.next(10ms);
     ASSERT_TRUE(tracking.has_value());
     EXPECT_EQ(tracking->beamType, beam::BeamType::TRACKING);
-    EXPECT_EQ(tracking->azimuthBeamWidth, 4_deg);
-    EXPECT_EQ(tracking->elevationBeamWidth, 4_deg);
+    EXPECT_EQ(tracking->beamWidth.azimuth, 4_deg);
+    EXPECT_EQ(tracking->beamWidth.elevation, 5_deg);
 }
