@@ -18,6 +18,7 @@
 namespace
 {
 
+using namespace math::literals;
 using namespace std::chrono_literals;
 
 beam::TransmitBeamCommand makeBeamCommand(
@@ -31,11 +32,11 @@ beam::TransmitBeamCommand makeBeamCommand(
         21,
         7,
         math::SphericalDirection(
-            math::Azimuth::fromDegrees(10.5),
-            math::Elevation::fromDegrees(-4.5)),
+            math::Azimuth(10.5_deg),
+            math::Elevation(-4.5_deg)),
         beam::BeamWidth(
             math::AngularWidth(math::Angle::fromDegrees(azimuthBeamWidth)),
-            math::AngularWidth(math::Angle::fromDegrees(2.75))));
+            math::AngularWidth(2.75_deg)));
 }
 
 target::TrackEvent makeTrackEvent(
@@ -46,17 +47,17 @@ target::TrackEvent makeTrackEvent(
     return target::TrackEvent(
         42,
         target::TrackEvent::TrackState::TRACKING,
-        math::Length::fromKilometers(slantRangeKilometers),
-        math::Length::fromKilometers(10.25),
-        math::Azimuth::fromDegrees(15.5),
-        math::Elevation::fromDegrees(6.25),
-        math::LinearVelocity::fromMetersPerSecond(-120.5),
-        math::Angle::fromDegrees(37.5),
-        math::Angle::fromDegrees(127.25),
-        math::Length::fromKilometers(2.5),
-        math::LinearVelocity::fromMetersPerSecond(250.75),
-        math::Angle::fromDegrees(45.5),
-        math::Angle::fromDegrees(-2.25),
+        math::Distance::fromKilometers(slantRangeKilometers),
+        math::Distance(10.25_km),
+        math::Azimuth(15.5_deg),
+        math::Elevation(6.25_deg),
+        -120.5_mps,
+        37.5_deg,
+        127.25_deg,
+        2.5_km,
+        250.75_mps,
+        45.5_deg,
+        -2.25_deg,
         timestamp);
 }
 
@@ -86,10 +87,10 @@ float encodeAzimuthToWire(double azimuthDegrees)
         7,
         math::SphericalDirection(
             math::Azimuth::fromDegrees(azimuthDegrees),
-            math::Elevation::fromDegrees(-4.5)),
+            math::Elevation(-4.5_deg)),
         beam::BeamWidth(
-            math::AngularWidth(math::Angle::fromDegrees(3.25)),
-            math::AngularWidth(math::Angle::fromDegrees(2.75))));
+            math::AngularWidth(3.25_deg),
+            math::AngularWidth(2.75_deg)));
 
     const comm::EncodeResult result = comm::encodeBeamCommand(command);
     if (result.error != comm::EncodingError::NONE || !result.bytes.has_value())

@@ -4,6 +4,7 @@
 
 namespace math
 {
+using namespace literals;
 
 AngularWidth::AngularWidth(Angle angle)
     : _angle(angle)
@@ -13,7 +14,7 @@ AngularWidth::AngularWidth(Angle angle)
 
 void AngularWidth::validate() const
 {
-    if (_angle.deg() <= 0.0)
+    if (_angle <= 0.0_deg)
     {
         throw std::invalid_argument("AngularWidth must be greater than 0 degrees");
     }

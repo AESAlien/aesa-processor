@@ -8,13 +8,13 @@ namespace math
 using namespace literals;
 
 const QuantityTolerance<Angle> Angle::NONE_TOLERANCE{
-    Angle::fromDegrees(0.0),
+    0.0_deg,
     0.0
 };
 
 const QuantityTolerance<Angle> Angle::DEFAULT_TOLERANCE{
-    Angle::fromDegrees(DEFAULT_ABSOLUTE_TOLERANCE),
-    DEFAULT_RELATIVE_TOLERANCE
+    1e-12_deg,
+    1e-9
 };
 
 const double PI = 3.14159265358979323846;

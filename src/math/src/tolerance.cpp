@@ -18,8 +18,8 @@ bool isFiniteAndNonnegative(double value) noexcept
 }  // namespace
 
 const Tolerance DEFAULT_TOLERANCE{
-    DEFAULT_ABSOLUTE_TOLERANCE,
-    DEFAULT_RELATIVE_TOLERANCE
+    1e-12,
+    1e-9
 };
 
 const Tolerance NONE_TOLERANCE{0.0, 0.0};

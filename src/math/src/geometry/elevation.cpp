@@ -1,9 +1,12 @@
 #include "math/geometry/elevation.hpp"
 
+#include "math/quantity/angle.hpp"
+
 #include <stdexcept>
 
 namespace math
 {
+using namespace literals;
 
 Elevation::Elevation(Angle angle)
     : _angle(angle)
@@ -13,7 +16,7 @@ Elevation::Elevation(Angle angle)
 
 void Elevation::validate() const
 {
-    if (_angle.deg() < -90.0 || _angle.deg() > 90.0)
+    if (_angle < -90.0_deg || _angle > 90.0_deg)
     {
         throw std::invalid_argument("Elevation must be in [-90, 90] degrees");
     }

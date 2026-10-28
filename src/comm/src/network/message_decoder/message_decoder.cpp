@@ -89,7 +89,7 @@ target::DetectionEvent::Plot decodePlot(
 )
 {
     return target::DetectionEvent::Plot::Builder()
-        .slantRange(math::Length::fromKilometers(plot.slantR_km))
+        .slantRange(math::Distance::fromKilometers(plot.slantR_km))
         .azimuth(math::Azimuth::fromDegrees(plot.azi_deg))
         .elevation(math::Elevation::fromDegrees(plot.elv_deg))
         .dopplerVelocity(
@@ -247,7 +247,7 @@ DecodeResult MessageDecoder::decodePlotInformation(
                 frame.bytes,
                 PLOT_DATA_OFFSET + index * sizeof(protocol::ST_Plot));
 
-        if (!isFinite(plot))
+        if (!isFinite(plot) || plot.slantR_km < 0.0)
         {
             return failed(DecodingError::INVALID_FIELD_VALUE);
         }

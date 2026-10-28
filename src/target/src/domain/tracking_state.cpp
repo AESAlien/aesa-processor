@@ -6,6 +6,7 @@
 
 namespace target
 {
+using namespace math::literals;
 
 TargetPrediction::TargetPrediction(
     std::chrono::milliseconds timestamp,
@@ -35,9 +36,10 @@ const std::optional<math::SquareMatrix>& TargetPrediction::positionCovariance() 
 
 void TargetPrediction::validate() const
 {
-    using namespace math::literals;
     if (_timestamp.count() < 0
-        || !_sphericalPosition.radius().greaterThan(0.0_m, math::Length::NONE_TOLERANCE))
+        || !_sphericalPosition.radius.greaterThan(
+            0.0_m,
+            math::Length::NONE_TOLERANCE))
     {
         throw std::invalid_argument("Prediction requires a positive range and nonnegative time");
     }
@@ -122,9 +124,10 @@ const std::optional<math::SquareMatrix>& TargetTrackingState::errorCovariance() 
 
 void TargetTrackingState::validate() const
 {
-    using namespace math::literals;
     if (_timestamp.count() < 0
-        || !_sphericalPosition.radius().greaterThan(0.0_m, math::Length::NONE_TOLERANCE)
+        || !_sphericalPosition.radius.greaterThan(
+            0.0_m,
+            math::Length::NONE_TOLERANCE)
         || !std::isfinite(_power_db))
     {
         throw std::invalid_argument("Tracking state requires valid observation values and time");

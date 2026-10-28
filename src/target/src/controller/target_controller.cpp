@@ -52,8 +52,8 @@ std::vector<Target> toTargets(
     targets.reserve(detection.plots.size());
     for (const auto& plot : detection.plots)
     {
-        targets.emplace_back(math::SphericalPosition(
-                plot.slantRange, math::SphericalDirection(plot.azimuth, plot.elevation)),
+        targets.emplace_back(math::SphericalPosition{
+                plot.slantRange, math::SphericalDirection(plot.azimuth, plot.elevation)},
             plot.dopplerVelocity, plot.power_db, detection.transmitTime, trackingAlgorithm);
     }
     return targets;
@@ -75,7 +75,7 @@ std::optional<beam::RequestBeamCommand> trackingRequestOrRemove(
         beam::RequestBeamType::TRACKING,
         prediction->timestamp(),
         target.id(),
-        prediction->sphericalPosition().direction());
+        prediction->sphericalPosition().direction);
 }
 
 TrackEvent trackEvent(const Target& target)

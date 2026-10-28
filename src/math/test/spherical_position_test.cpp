@@ -9,6 +9,7 @@
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
+#include <utility>
 
 using namespace math::literals;
 
@@ -21,6 +22,12 @@ static_assert(std::is_same_v<
 static_assert(std::is_same_v<
     decltype(math::CartesianPosition::z),
     math::Length>);
+static_assert(std::is_same_v<
+    decltype(std::declval<const math::CartesianPosition&>().distance()),
+    math::Distance>);
+static_assert(std::is_same_v<
+    decltype(std::declval<const math::CartesianPosition&>().horizontalDistance()),
+    math::Distance>);
 static_assert(std::is_copy_constructible_v<math::CartesianPosition>);
 static_assert(std::is_copy_assignable_v<math::CartesianPosition>);
 static_assert(std::is_move_assignable_v<math::CartesianPosition>);
@@ -36,7 +43,14 @@ static_assert(!std::is_aggregate_v<math::SphericalDirection>);
 static_assert(std::is_copy_constructible_v<math::SphericalPosition>);
 static_assert(std::is_copy_assignable_v<math::SphericalPosition>);
 static_assert(std::is_move_assignable_v<math::SphericalPosition>);
-static_assert(!std::is_aggregate_v<math::SphericalPosition>);
+static_assert(std::is_aggregate_v<math::SphericalPosition>);
+static_assert(!std::is_constructible_v<
+    math::SphericalPosition,
+    math::Length,
+    math::SphericalDirection>);
+static_assert(std::is_same_v<
+    decltype((std::declval<const math::SphericalPosition&>().radius)),
+    const math::Distance&>);
 
 
 
@@ -46,14 +60,14 @@ TEST(SphericalPositionTest, StoresValidCoordinates)
     const math::SphericalDirection direction(
         math::Azimuth(-180_deg),
         math::Elevation(90_deg));
-    const math::SphericalPosition point(2_km, direction);
+    const math::SphericalPosition point{math::Distance(2_km), direction};
 
-    EXPECT_DOUBLE_EQ(point.radius().km(), 2.0);
-    EXPECT_DOUBLE_EQ(point.direction().azimuth.deg(), 180.0);
-    EXPECT_DOUBLE_EQ(point.direction().elevation.deg(), 90.0);
+    EXPECT_DOUBLE_EQ(point.radius.km(), 2.0);
+    EXPECT_DOUBLE_EQ(point.direction.azimuth.deg(), 180.0);
+    EXPECT_DOUBLE_EQ(point.direction.elevation.deg(), 90.0);
 
-    const math::SphericalPosition origin(0_m, math::SphericalDirection(math::Azimuth(-180_deg), math::Elevation(-90_deg)));
-    EXPECT_DOUBLE_EQ(origin.radius().m(), 0.0);
+    const math::SphericalPosition origin{math::Distance(0_m), math::SphericalDirection(math::Azimuth(-180_deg), math::Elevation(-90_deg))};
+    EXPECT_DOUBLE_EQ(origin.radius.m(), 0.0);
 }
 
 // 객체 생성과 상태 보존 규칙을 검증한다.
@@ -97,13 +111,13 @@ TEST(CartesianPositionAndVelocityTest, StoresFiniteBoundaryValues)
 TEST(SphericalPositionTest, ConvertsAzimuthUsingPositiveYAxisAsZero)
 {
     const math::CartesianPosition forward =
-        math::SphericalPosition(10_m, math::SphericalDirection(math::Azimuth(0_deg), math::Elevation(0_deg))).toCartesian();
+        math::SphericalPosition{math::Distance(10_m), math::SphericalDirection(math::Azimuth(0_deg), math::Elevation(0_deg))}.toCartesian();
     EXPECT_DOUBLE_EQ(forward.x.m(), 0.0);
     EXPECT_DOUBLE_EQ(forward.y.m(), 10.0);
     EXPECT_DOUBLE_EQ(forward.z.m(), 0.0);
 
     const math::CartesianPosition right =
-        math::SphericalPosition(10_m, math::SphericalDirection(math::Azimuth(90_deg), math::Elevation(0_deg))).toCartesian();
+        math::SphericalPosition{math::Distance(10_m), math::SphericalDirection(math::Azimuth(90_deg), math::Elevation(0_deg))}.toCartesian();
     EXPECT_NEAR(right.x.m(), 10.0, 1e-12);
     EXPECT_NEAR(right.y.m(), 0.0, 1e-12);
     EXPECT_DOUBLE_EQ(right.z.m(), 0.0);
@@ -113,7 +127,7 @@ TEST(SphericalPositionTest, ConvertsAzimuthUsingPositiveYAxisAsZero)
 TEST(SphericalPositionTest, ConvertsZeroRadiusToOrigin)
 {
     const math::CartesianPosition origin =
-        math::SphericalPosition(0_m, math::SphericalDirection(math::Azimuth(123_deg), math::Elevation(-45_deg))).toCartesian();
+        math::SphericalPosition{math::Distance(0_m), math::SphericalDirection(math::Azimuth(123_deg), math::Elevation(-45_deg))}.toCartesian();
 
     EXPECT_DOUBLE_EQ(origin.x.m(), 0.0);
     EXPECT_DOUBLE_EQ(origin.y.m(), 0.0);
@@ -125,17 +139,17 @@ TEST(SphericalPositionTest, RoundTripsPositionAcrossAzimuthQuadrants)
 {
     for (double azimuthDegrees : {30.0, 120.0, 210.0, 300.0, -30.0})
     {
-        const math::SphericalPosition original(
-            2_km,
+        const math::SphericalPosition original{
+            math::Distance(2_km),
             math::SphericalDirection(
                 math::Azimuth::fromDegrees(azimuthDegrees),
-                math::Elevation(-20_deg)));
+                math::Elevation(-20_deg))};
         const math::CartesianPosition cartesian = original.toCartesian();
         const math::SphericalPosition restored = cartesian.toSpherical();
 
-        EXPECT_NEAR(restored.radius().m(), original.radius().m(), 1e-9);
-        EXPECT_NEAR(restored.direction().azimuth.deg(), original.direction().azimuth.deg(), 1e-12);
-        EXPECT_NEAR(restored.direction().elevation.deg(), original.direction().elevation.deg(), 1e-12);
+        EXPECT_NEAR(restored.radius.m(), original.radius.m(), 1e-9);
+        EXPECT_NEAR(restored.direction.azimuth.deg(), original.direction.azimuth.deg(), 1e-12);
+        EXPECT_NEAR(restored.direction.elevation.deg(), original.direction.elevation.deg(), 1e-12);
     }
 }
 
@@ -144,9 +158,9 @@ TEST(CartesianPositionTest, ConvertsKnownPositionToSphericalCoordinates)
 {
     const math::SphericalPosition position = math::CartesianPosition(3_m, 4_m, 12_m).toSpherical();
 
-    EXPECT_DOUBLE_EQ(position.radius().m(), 13.0);
-    EXPECT_NEAR(position.direction().azimuth.deg(), 36.86989764584402, 1e-12);
-    EXPECT_NEAR(position.direction().elevation.deg(), 67.38013505195957, 1e-12);
+    EXPECT_DOUBLE_EQ(position.radius.m(), 13.0);
+    EXPECT_NEAR(position.direction.azimuth.deg(), 36.86989764584402, 1e-12);
+    EXPECT_NEAR(position.direction.elevation.deg(), 67.38013505195957, 1e-12);
 }
 
 // 값의 변환과 정규화 결과를 검증한다.
@@ -157,9 +171,9 @@ TEST(CartesianPositionTest, ConvertsVerticalPositionsToSphericalCoordinates)
         const math::SphericalPosition position = math::CartesianPosition(
             0_m, 0_m, math::Length::fromMeters(heightMeters)).toSpherical();
 
-        EXPECT_DOUBLE_EQ(position.radius().m(), 2.0);
-        EXPECT_DOUBLE_EQ(position.direction().azimuth.deg(), 0.0);
-        EXPECT_DOUBLE_EQ(position.direction().elevation.deg(), heightMeters > 0.0 ? 90.0 : -90.0);
+        EXPECT_DOUBLE_EQ(position.radius.m(), 2.0);
+        EXPECT_DOUBLE_EQ(position.direction.azimuth.deg(), 0.0);
+        EXPECT_DOUBLE_EQ(position.direction.elevation.deg(), heightMeters > 0.0 ? 90.0 : -90.0);
     }
 }
 
@@ -175,7 +189,7 @@ TEST(CartesianPositionTest, ConvertsExtremeFinitePositionScales)
         const math::SphericalPosition spherical = original.toSpherical();
         const math::CartesianPosition restored = spherical.toCartesian();
 
-        EXPECT_NEAR(spherical.radius().m() / scale, 13.0, 1e-12);
+        EXPECT_NEAR(spherical.radius.m() / scale, 13.0, 1e-12);
         EXPECT_NEAR(restored.x.m() / scale, 3.0, 1e-12);
         EXPECT_NEAR(restored.y.m() / scale, -4.0, 1e-12);
         EXPECT_NEAR(restored.z.m() / scale, 12.0, 1e-12);
@@ -239,12 +253,12 @@ TEST(CartesianVelocityTest, CalculatesHorizontalAndThreeDimensionalSpeed)
 // 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TEST(SphericalPositionTest, ComparesWithDefaultTolerance)
 {
-    const math::SphericalPosition point(10_m, math::SphericalDirection(math::Azimuth(20_deg), math::Elevation(30_deg)));
-    const math::SphericalPosition nearby(
-        math::Length::fromMeters(10.0 + 1e-10),
+    const math::SphericalPosition point{math::Distance(10_m), math::SphericalDirection(math::Azimuth(20_deg), math::Elevation(30_deg))};
+    const math::SphericalPosition nearby{
+        math::Distance(math::Length::fromMeters(10.0 + 1e-10)),
         math::SphericalDirection(
             math::Azimuth::fromDegrees(20.0 + 1e-10),
-            math::Elevation(30_deg)));
+            math::Elevation(30_deg))};
 
     EXPECT_TRUE(point.equals(nearby));
     EXPECT_TRUE(point == nearby);
@@ -256,41 +270,32 @@ TEST(SphericalPositionTest, ComparesWithDefaultTolerance)
 // 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TEST(SphericalPositionTest, ComparesAzimuthAcrossWrapBoundary)
 {
-    const math::SphericalPosition left(10_m, math::SphericalDirection(math::Azimuth(359.999_deg), math::Elevation(0_deg)));
-    const math::SphericalPosition right(10_m, math::SphericalDirection(math::Azimuth(0.001_deg), math::Elevation(0_deg)));
+    const math::SphericalPosition left{math::Distance(10_m), math::SphericalDirection(math::Azimuth(359.999_deg), math::Elevation(0_deg))};
+    const math::SphericalPosition right{math::Distance(10_m), math::SphericalDirection(math::Azimuth(0.001_deg), math::Elevation(0_deg))};
     const math::QuantityTolerance<math::Angle> tolerance{0.003_deg, 0.0};
 
     EXPECT_TRUE(left.equals(right, math::Length::NONE_TOLERANCE, tolerance));
     EXPECT_TRUE(right.equals(left, math::Length::NONE_TOLERANCE, tolerance));
     EXPECT_FALSE(left.equals(right, math::Length::NONE_TOLERANCE, math::Angle::NONE_TOLERANCE));
-    EXPECT_EQ(math::SphericalPosition(10_m, math::SphericalDirection(math::Azimuth(-1_deg), math::Elevation(0_deg))),
-        math::SphericalPosition(10_m, math::SphericalDirection(math::Azimuth(359_deg), math::Elevation(0_deg))));
+    EXPECT_EQ((math::SphericalPosition{math::Distance(10_m), math::SphericalDirection(math::Azimuth(-1_deg), math::Elevation(0_deg))}),
+        (math::SphericalPosition{math::Distance(10_m), math::SphericalDirection(math::Azimuth(359_deg), math::Elevation(0_deg))}));
 }
 
 // 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TEST(SphericalPositionTest, ComparesEachCoordinateWithSeparateTolerance)
 {
-    const math::SphericalPosition point(10_m, math::SphericalDirection(math::Azimuth(20_deg), math::Elevation(30_deg)));
+    const math::SphericalPosition point{math::Distance(10_m), math::SphericalDirection(math::Azimuth(20_deg), math::Elevation(30_deg))};
     const math::QuantityTolerance<math::Length> rangeTolerance{1_m, 0.0};
     const math::QuantityTolerance<math::Angle> angleTolerance{0.1_deg, 0.0};
-    const math::SphericalPosition nearby(10.5_m, math::SphericalDirection(math::Azimuth(20.05_deg), math::Elevation(30.05_deg)));
+    const math::SphericalPosition nearby{math::Distance(10.5_m), math::SphericalDirection(math::Azimuth(20.05_deg), math::Elevation(30.05_deg))};
 
     EXPECT_TRUE(point.equals(nearby, rangeTolerance, angleTolerance));
-    EXPECT_FALSE(point.equals(math::SphericalPosition(12_m, point.direction()), rangeTolerance, angleTolerance));
-    EXPECT_FALSE(point.equals(math::SphericalPosition(10_m, math::SphericalDirection(math::Azimuth(21_deg), math::Elevation(30_deg))),
+    EXPECT_FALSE(point.equals(math::SphericalPosition{math::Distance(12_m), point.direction}, rangeTolerance, angleTolerance));
+    EXPECT_FALSE(point.equals(math::SphericalPosition{math::Distance(10_m), math::SphericalDirection(math::Azimuth(21_deg), math::Elevation(30_deg))},
         rangeTolerance, angleTolerance));
-    EXPECT_FALSE(point.equals(math::SphericalPosition(10_m, math::SphericalDirection(math::Azimuth(20_deg), math::Elevation(31_deg))),
+    EXPECT_FALSE(point.equals(math::SphericalPosition{math::Distance(10_m), math::SphericalDirection(math::Azimuth(20_deg), math::Elevation(31_deg))},
         rangeTolerance, angleTolerance));
     EXPECT_TRUE(point != nearby);
-}
-
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
-TEST(SphericalPositionTest, RejectsNegativeRadius)
-{
-    EXPECT_THROW((math::SphericalPosition(-1_m, math::SphericalDirection(math::Azimuth(0_deg), math::Elevation(0_deg)))), std::invalid_argument);
-    EXPECT_THROW((math::SphericalPosition(
-        math::Length::fromMeters(-std::numeric_limits<double>::denorm_min()),
-        math::SphericalDirection(math::Azimuth(0_deg), math::Elevation(0_deg)))), std::invalid_argument);
 }
 
 // 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "math/geometry/distance.hpp"
 #include "math/quantity/length.hpp"
 
 #include <chrono>
@@ -14,7 +15,7 @@ struct CartesianDisplacement
 {
     CartesianDisplacement(Length x, Length y, Length z) noexcept;
 
-    Length distance() const;
+    Distance distance() const;
     CartesianDisplacement operator+(const CartesianDisplacement& other) const;
     // 각 성분을 미터 단위로 표현한 3차원 벡터를 반환한다.
     Vector toVector() const;

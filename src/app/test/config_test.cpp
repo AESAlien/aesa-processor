@@ -291,7 +291,7 @@ TEST(AppConfigTest, LoadedConfigurationCanBeInjectedIntoEveryController)
             beam::BeamType::SEARCH,
             1,
             1000ms,
-            {{1000_m, math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f}}));
+            {{math::Distance(1000_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f}}));
     ASSERT_TRUE(confirmation.has_value());
     EXPECT_EQ(confirmation->transmitTime, 1150ms);
 

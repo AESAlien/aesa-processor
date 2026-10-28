@@ -197,7 +197,7 @@ TEST(SearchGridConfigTest, AzimuthBeyondHalfTurnIsAccepted)
         gridBuilder()
             .azimuthCount(1)
             .elevationCount(1)
-            .azimuthStart(math::Azimuth::fromDegrees(1e18))
+            .azimuthStart(math::Azimuth(1e18_deg))
             .build());
 }
 

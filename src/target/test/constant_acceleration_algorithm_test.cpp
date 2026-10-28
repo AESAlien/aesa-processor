@@ -340,7 +340,7 @@ TEST(ConstantAccelerationConfigTest, ValidatesInitialAccelerationVarianceAndSing
         EXPECT_THROW(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, sigma, 100),
             std::invalid_argument);
     }
-    EXPECT_THROW(TargetConfig(1000_mps, 30_mps, math::Length::fromMeters(1.2e-162),
+    EXPECT_THROW(TargetConfig(1000_mps, 30_mps, 1.2e-162_m,
         11.345, 100ms, 1000ms, 3, 10.0, 100), std::invalid_argument);
     const TargetConfig compatible(
         1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100);

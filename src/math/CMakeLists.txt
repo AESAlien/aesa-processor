@@ -2,6 +2,7 @@ add_library(math STATIC
     src/geometry/angular_width.cpp
     src/geometry/azimuth.cpp
     src/geometry/elevation.cpp
+    src/geometry/distance.cpp
     src/geometry/cartesian_acceleration.cpp
     src/geometry/cartesian_displacement.cpp
     src/geometry/cartesian_position.cpp
@@ -34,6 +35,10 @@ if(BUILD_TESTING)
     add_executable(angular_domain_test test/angular_domain_test.cpp)
     target_link_libraries(angular_domain_test PRIVATE math GTest::gtest_main)
     gtest_discover_tests(angular_domain_test)
+
+    add_executable(distance_test test/distance_test.cpp)
+    target_link_libraries(distance_test PRIVATE math GTest::gtest_main)
+    gtest_discover_tests(distance_test)
 
     add_executable(length_test test/length_test.cpp)
     target_link_libraries(length_test PRIVATE math GTest::gtest_main)

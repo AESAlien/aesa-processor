@@ -1,6 +1,7 @@
 #include "math/geometry/cartesian_position.hpp"
 
 #include "math/geometry/cartesian_displacement.hpp"
+#include "math/geometry/distance.hpp"
 #include "math/geometry/spherical_position.hpp"
 #include "math/linear_algebra/vector.hpp"
 
@@ -17,14 +18,14 @@ CartesianPosition::CartesianPosition(Length x, Length y, Length z) noexcept
 {
 }
 
-Length CartesianPosition::horizontalDistance() const
+Distance CartesianPosition::horizontalDistance() const
 {
-    return Length::fromMeters(std::hypot(x.m(), y.m()));
+    return Distance::fromMeters(std::hypot(x.m(), y.m()));
 }
 
-Length CartesianPosition::distance() const
+Distance CartesianPosition::distance() const
 {
-    return Length::fromMeters(std::hypot(x.m(), y.m(), z.m()));
+    return Distance::fromMeters(std::hypot(x.m(), y.m(), z.m()));
 }
 
 SphericalPosition CartesianPosition::toSpherical() const
@@ -33,11 +34,11 @@ SphericalPosition CartesianPosition::toSpherical() const
     const SphericalDirection direction = SphericalDirection::fromCartesianUnitVector(position);
     try
     {
-        return SphericalPosition(distance(), direction);
+        return SphericalPosition{distance(), direction};
     }
     catch (const std::invalid_argument&)
     {
-        throw std::overflow_error("Cartesian position radius exceeds the finite Length range");
+        throw std::overflow_error("Cartesian position distance exceeds the finite Distance range");
     }
 }
 

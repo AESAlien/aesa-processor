@@ -21,9 +21,9 @@ using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
 using BeamType = beam::BeamType;
 
-math::Length range(std::uint32_t id)
+math::Distance range(std::uint32_t id)
 {
-    return 1000_m + 100_m * static_cast<double>(id - 1);
+    return math::Distance(1000_m + 100_m * static_cast<double>(id - 1));
 }
 
 DetectionEvent result(BeamType type, std::uint32_t id, Time time, bool detected = true)

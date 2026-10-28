@@ -53,7 +53,7 @@ std::optional<double> calculateNds(
 {
     if (residual.size() != NDS_DIMENSION || covariance.size() != NDS_DIMENSION
         || !residual.isFinite()
-        || !covariance.isSymmetric(math::Tolerance{0.0, math::DEFAULT_RELATIVE_TOLERANCE}))
+        || !covariance.isSymmetric(math::Tolerance{0.0, 1e-9}))
     {
         return std::nullopt;
     }
@@ -138,7 +138,7 @@ std::optional<double> DetectionMatcher::matchesPosition(
             // before scoring it with the available position uncertainty.
             residual = distance <= maximumTravel
                 ? math::Vector(NDS_DIMENSION)
-                : residual * ((distance - maximumTravel).m() / distance.m());
+                : residual * ((distance - maximumTravel) / distance);
         }
     }
     catch (const std::invalid_argument&)

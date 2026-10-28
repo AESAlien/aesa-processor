@@ -9,6 +9,7 @@
 
 namespace target
 {
+using namespace math::literals;
 
 Target::Target(
     math::SphericalPosition position,
@@ -28,14 +29,15 @@ Target::Target(
 
 void Target::validate() const
 {
-    using namespace math::literals;
     if (!_trackingAlgorithm)
     {
         throw std::invalid_argument("Tracking algorithm must not be null");
     }
 
     if (_initialTime.count() < 0
-        || !_initialPosition.radius().greaterThan(0.0_m, math::Length::NONE_TOLERANCE)
+        || !_initialPosition.radius.greaterThan(
+            0.0_m,
+            math::Length::NONE_TOLERANCE)
         || !std::isfinite(_initialPower_db))
     {
         throw std::invalid_argument("Target requires a valid observation and time");
@@ -56,19 +58,19 @@ TargetState Target::state() const
     return _trackingState ? TargetState::TRACKING : TargetState::TENTATIVE;
 }
 
-math::Length Target::slantRange() const
+math::Distance Target::slantRange() const
 {
-    return sphericalPosition().radius();
+    return sphericalPosition().radius;
 }
 
 math::Azimuth Target::azimuth() const
 {
-    return sphericalPosition().direction().azimuth;
+    return sphericalPosition().direction.azimuth;
 }
 
 math::Elevation Target::elevation() const
 {
-    return sphericalPosition().direction().elevation;
+    return sphericalPosition().direction.elevation;
 }
 
 const math::SphericalPosition& Target::sphericalPosition() const

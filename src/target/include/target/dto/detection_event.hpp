@@ -3,7 +3,7 @@
 #include <beam/dto/beam_type.hpp>
 #include <math/geometry/azimuth.hpp>
 #include <math/geometry/elevation.hpp>
-#include <math/quantity/length.hpp>
+#include <math/geometry/distance.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
 #include <chrono>
@@ -26,14 +26,14 @@ struct DetectionEvent
 
     struct Plot
     {
-        math::Length slantRange;
+        math::Distance slantRange;
         math::Azimuth azimuth;
         math::Elevation elevation;
         math::LinearVelocity dopplerVelocity;
         float power_db;
 
         Plot(
-            math::Length slantRange,
+            math::Distance slantRange,
             math::Azimuth azimuth,
             math::Elevation elevation,
             math::LinearVelocity dopplerVelocity,
@@ -49,7 +49,7 @@ struct DetectionEvent
         class Builder
         {
         public:
-            Builder& slantRange(math::Length value) { _slantRange = value; return *this; }
+            Builder& slantRange(math::Distance value) { _slantRange = value; return *this; }
             Builder& azimuth(math::Azimuth value) { _azimuth = value; return *this; }
             Builder& elevation(math::Elevation value) { _elevation = value; return *this; }
             Builder& dopplerVelocity(math::LinearVelocity value) { _dopplerVelocity = value; return *this; }
@@ -63,7 +63,7 @@ struct DetectionEvent
             }
 
         private:
-            std::optional<math::Length> _slantRange;
+            std::optional<math::Distance> _slantRange;
             std::optional<math::Azimuth> _azimuth;
             std::optional<math::Elevation> _elevation;
             std::optional<math::LinearVelocity> _dopplerVelocity;
