@@ -164,10 +164,7 @@ DecodeResult MessageDecoder::decodeOperatorControl(
         return failed(DecodingError::INVALID_FIELD_VALUE);
     }
 
-    return decoded(
-        beam::SetOperationStateCommand::Builder()
-            .powerState(operationState)
-            .build());
+    return decoded(beam::SetOperationStateCommand(operationState));
 }
 
 DecodeResult MessageDecoder::decodeRadarAttitude(

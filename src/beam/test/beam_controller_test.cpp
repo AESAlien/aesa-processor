@@ -17,9 +17,7 @@ namespace
 
 beam::SetOperationStateCommand makeOperationState(beam::OperationState state)
 {
-    return beam::SetOperationStateCommand::Builder()
-        .powerState(state)
-        .build();
+    return beam::SetOperationStateCommand(state);
 }
 
 beam::SetAttitudeCommand makeAttitudeCommand(math::Angle roll, math::Angle pitch, math::Angle yaw)

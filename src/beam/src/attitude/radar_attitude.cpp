@@ -35,11 +35,13 @@ void RadarAttitude::validate() const
 {
     using namespace math::literals;
 
-    if (_roll < -180_deg || _roll > 180_deg) {
+    if (_roll < -180_deg || _roll > 180_deg)
+    {
         throw std::invalid_argument("RadarAttitude: roll must be in [-180, 180] degrees");
     }
 
-    if (_yaw < -360_deg || _yaw > 360_deg) {
+    if (_yaw < -360_deg || _yaw > 360_deg)
+    {
         throw std::invalid_argument("RadarAttitude: yaw must be in [-360, 360] degrees");
     }
 }
