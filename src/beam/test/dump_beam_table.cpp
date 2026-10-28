@@ -5,7 +5,7 @@
 //
 // visualize_beam_table.py 가 이 프로그램을 실행해서 결과를 그린다.
 
-#include "search_grid.hpp"
+#include "scheduler/search_grid.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
 

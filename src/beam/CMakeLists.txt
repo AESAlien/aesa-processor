@@ -64,7 +64,6 @@ if(BUILD_TESTING)
     )
     target_include_directories(beam_search_grid_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/scheduler"
     )
     target_link_libraries(beam_search_grid_test PRIVATE
         beam
@@ -150,7 +149,6 @@ if(BUILD_TESTING)
     )
     target_include_directories(beam_table_dump PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/scheduler"
     )
     target_link_libraries(beam_table_dump PRIVATE beam)
 
