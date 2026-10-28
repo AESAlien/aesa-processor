@@ -1,6 +1,7 @@
 #pragma once
 
 #include <math/quantity/length.hpp>
+#include <math/quantity/linear_acceleration.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
 #include <chrono>
@@ -23,8 +24,9 @@ struct TargetConfig
         std::chrono::milliseconds confirmationDelay,
         std::chrono::milliseconds trackingInterval,
         std::uint32_t maxConsecutiveTrackingMisses,
-        double initialAccelerationStandardDeviation,
-        std::size_t maxReportedTrackCount);
+        math::LinearAcceleration initialAccelerationStandardDeviation,
+        std::size_t maxReportedTrackCount,
+        math::LinearAcceleration processAccelerationStandardDeviation);
 
     const math::LinearVelocity maxAssociationSpeed;
     const math::LinearVelocity maxInitialDopplerDifference;
@@ -35,8 +37,10 @@ struct TargetConfig
     const std::chrono::milliseconds trackingInterval;
     const std::uint32_t maxConsecutiveTrackingMisses;
     // Per-axis initial acceleration uncertainty in m/s^2; a tunable starting value.
-    const double initialAccelerationStandardDeviation;
+    const math::LinearAcceleration initialAccelerationStandardDeviation;
     const std::size_t maxReportedTrackCount;
+    // Per-axis acceleration disturbance (1 sigma) for each prediction interval.
+    const math::LinearAcceleration processAccelerationStandardDeviation;
 
 private:
     // Throws std::invalid_argument when a setting cannot be used by Target.

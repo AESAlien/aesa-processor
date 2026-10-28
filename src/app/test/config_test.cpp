@@ -5,6 +5,7 @@
 #include <beam/dto/set_attitude_command.hpp>
 #include <beam/dto/set_operation_state_command.hpp>
 #include <comm/controller/comm_controller.hpp>
+#include <math/quantity/linear_acceleration.hpp>
 #include <target/controller/target_controller.hpp>
 #include <target/dto/detection_event.hpp>
 
@@ -108,6 +109,7 @@ std::string validConfigText()
         "TARGET_MAX_CONSECUTIVE_TRACKING_MISSES=4\n"
         "TARGET_INITIAL_ACCELERATION_STANDARD_DEVIATION_MPS2=8\n"
         "TARGET_MAX_REPORTED_TRACK_COUNT=75\n"
+        "TARGET_PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2=5\n"
         "COMM_SERVER_ADDRESS=127.0.0.1\n"
         "COMM_SERVER_PORT=43200\n"
         "COMM_OPERATOR_CONSOLE_ADDRESS=127.0.0.2\n"
@@ -191,10 +193,9 @@ TEST(AppConfigTest, LoadsEveryConfigurationValue)
     EXPECT_EQ(config.targetConfig.confirmationDelay, 150ms);
     EXPECT_EQ(config.targetConfig.trackingInterval, 800ms);
     EXPECT_EQ(config.targetConfig.maxConsecutiveTrackingMisses, 4u);
-    EXPECT_DOUBLE_EQ(
-        config.targetConfig.initialAccelerationStandardDeviation,
-        8.0);
+    EXPECT_EQ(config.targetConfig.initialAccelerationStandardDeviation, 8_mps2);
     EXPECT_EQ(config.targetConfig.maxReportedTrackCount, 75u);
+    EXPECT_EQ(config.targetConfig.processAccelerationStandardDeviation, 5_mps2);
 
     EXPECT_EQ(config.commConfig.server.address, "127.0.0.1");
     EXPECT_EQ(config.commConfig.server.port, 43200);
@@ -242,6 +243,39 @@ TEST(AppConfigTest, MissingRelativeMountOrthogonalToleranceThrows)
     const TemporaryEnvFile file(content);
 
     EXPECT_THROW(loadConfig(file.path()), std::runtime_error);
+}
+
+TEST(AppConfigTest, MissingProcessAccelerationStandardDeviationThrows)
+{
+    const TemporaryEnvFile file(removeKey(
+        validConfigText(),
+        "TARGET_PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2"));
+
+    EXPECT_THROW(loadConfig(file.path()), std::runtime_error);
+}
+
+TEST(AppConfigTest, NegativeProcessAccelerationStandardDeviationThrows)
+{
+    const TemporaryEnvFile file(replaceValue(
+        validConfigText(),
+        "TARGET_PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2",
+        "-1"));
+
+    EXPECT_THROW(loadConfig(file.path()), std::runtime_error);
+}
+
+TEST(AppConfigTest, NonfiniteProcessAccelerationStandardDeviationThrows)
+{
+    for (const char* value : {"nan", "inf", "-inf"})
+    {
+        SCOPED_TRACE(value);
+        const TemporaryEnvFile file(replaceValue(
+            validConfigText(),
+            "TARGET_PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2",
+            value));
+
+        EXPECT_THROW(loadConfig(file.path()), std::runtime_error);
+    }
 }
 
 TEST(AppConfigTest, ParsesQuotedValuesAndInlineComments)

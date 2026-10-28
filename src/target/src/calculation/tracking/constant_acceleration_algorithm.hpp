@@ -7,7 +7,7 @@
 namespace target
 {
 
-// Nine-state linear Cartesian Kalman filter with constant acceleration and Q = 0.
+// Nine-state CA Kalman filter with configurable per-interval acceleration noise.
 class ConstantAccelerationAlgorithm final : public ITrackingAlgorithm
 {
 public:

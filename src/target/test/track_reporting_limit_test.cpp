@@ -100,7 +100,7 @@ void expire(TargetController& controller, std::uint32_t id, Time firstMiss)
 
 TEST(TrackReportingLimitTest, HandlesZeroNinetyNineOneHundredAndOneHundredOneTrackingTargets)
 {
-    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
     addCandidates(controller, 103);
     // The first and last repository entries stay Tentative and never consume
     // a reporting slot. There are initially zero Tracking entries.
@@ -117,7 +117,7 @@ TEST(TrackReportingLimitTest, HandlesZeroNinetyNineOneHundredAndOneHundredOneTra
 
 TEST(TrackReportingLimitTest, UnreportedTargetCanUpdateAndExpireWithoutAffectingTheFirstHundred)
 {
-    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
     addCandidates(controller, 101);
     confirm(controller, 1, 101);
     expectReportedIds(controller, 100, 1);
@@ -139,7 +139,7 @@ TEST(TrackReportingLimitTest, UnreportedTargetCanUpdateAndExpireWithoutAffecting
 
 TEST(TrackReportingLimitTest, RevealsTheNextStoredTrackingTargetWhenAReportedTargetExpires)
 {
-    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 100));
+    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
     addCandidates(controller, 101);
     confirm(controller, 1, 101);
     expectReportedIds(controller, 100, 1);
@@ -150,7 +150,7 @@ TEST(TrackReportingLimitTest, RevealsTheNextStoredTrackingTargetWhenAReportedTar
 
 TEST(TrackReportingLimitTest, UsesInjectedLimitWithoutLimitingTentativeOrHiddenTrackingTargets)
 {
-    const TargetConfig config(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10.0, 2);
+    const TargetConfig config(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 2, 0_mps2);
     TargetController controller(config);
     addCandidates(controller, 5);
     // ID 1 stays Tentative; IDs 2..5 all become Tracking despite the reporting limit.
@@ -173,14 +173,14 @@ TEST(TrackReportingLimitTest, ValidatesConfiguredCountAgainstTheMessageMaximum)
     for (std::size_t count : {std::size_t{1}, std::size_t{100}})
     {
         const TargetConfig config(1000_mps, 30_mps, 7_m, 11.345,
-            100ms, 1000ms, 3, 10.0, count);
+            100ms, 1000ms, 3, 10_mps2, count, 0_mps2);
         EXPECT_EQ(config.maxReportedTrackCount, count);
     }
     for (std::size_t count : {std::size_t{0}, std::size_t{101},
              std::numeric_limits<std::size_t>::max()})
     {
         EXPECT_THROW(TargetConfig(1000_mps, 30_mps, 7_m, 11.345,
-            100ms, 1000ms, 3, 10.0, count), std::invalid_argument);
+            100ms, 1000ms, 3, 10_mps2, count, 0_mps2), std::invalid_argument);
     }
 }
 

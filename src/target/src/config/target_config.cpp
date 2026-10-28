@@ -16,8 +16,9 @@ TargetConfig::TargetConfig(
     std::chrono::milliseconds confirmationDelay,
     std::chrono::milliseconds trackingInterval,
     std::uint32_t maxConsecutiveTrackingMisses,
-    double initialAccelerationStandardDeviation,
-    std::size_t maxReportedTrackCount)
+    math::LinearAcceleration initialAccelerationStandardDeviation,
+    std::size_t maxReportedTrackCount,
+    math::LinearAcceleration processAccelerationStandardDeviation)
     : maxAssociationSpeed(maxAssociationSpeed)
     , maxInitialDopplerDifference(maxInitialDopplerDifference)
     , measurementStandardDeviation(measurementStandardDeviation)
@@ -27,6 +28,7 @@ TargetConfig::TargetConfig(
     , maxConsecutiveTrackingMisses(maxConsecutiveTrackingMisses)
     , initialAccelerationStandardDeviation(initialAccelerationStandardDeviation)
     , maxReportedTrackCount(maxReportedTrackCount)
+    , processAccelerationStandardDeviation(processAccelerationStandardDeviation)
 {
     validate();
 }
@@ -36,8 +38,10 @@ void TargetConfig::validate() const
     const double sigma = measurementStandardDeviation.m();
     const double variance = sigma * sigma;
     const double differenceVariance = 2.0 * variance;
-    const double accelerationVariance = initialAccelerationStandardDeviation
-        * initialAccelerationStandardDeviation;
+    const double accelerationSigma = initialAccelerationStandardDeviation.mps2();
+    const double accelerationVariance = accelerationSigma * accelerationSigma;
+    const double processSigma = processAccelerationStandardDeviation.mps2();
+    const double processVariance = processSigma * processSigma;
     if (maxAssociationSpeed.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         || maxInitialDopplerDifference.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         || sigma <= 0.0 || !std::isfinite(variance) || variance <= 0.0
@@ -45,9 +49,10 @@ void TargetConfig::validate() const
         || !std::isfinite(positionNdsThreshold) || positionNdsThreshold < 0.0
         || confirmationDelay.count() <= 0 || trackingInterval.count() <= 0
         || maxConsecutiveTrackingMisses == 0
-        || !std::isfinite(initialAccelerationStandardDeviation)
-        || initialAccelerationStandardDeviation <= 0.0
+        || accelerationSigma <= 0.0
         || !std::isfinite(accelerationVariance) || accelerationVariance <= 0.0
+        || processSigma < 0.0 || !std::isfinite(processVariance)
+        || (processSigma > 0.0 && processVariance == 0.0)
         || maxReportedTrackCount == 0 || maxReportedTrackCount > MAXIMUM_REPORTED_TRACK_COUNT)
     {
         throw std::invalid_argument("Invalid Target configuration");

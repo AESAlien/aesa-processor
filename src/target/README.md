@@ -66,7 +66,7 @@ Repository는 전달받은 복사본에 순차 ID를 부여하고 Tentative로 �
 | ITrackingAlgorithm | Target 입력으로 initialize/update/predict 계산, 도메인 상태·예측 결과 반환 |
 | ConstantAccelerationAlgorithm | 두 점 차분 초기화, CA 선형 칼만필터 관측 보정, 위치·공분산 예측 |
 | ConstantVelocityAlgorithm | 공분산을 제공하지 않는 기존 등속도 전략. Controller에서는 사용하지 않음 |
-| TargetConfig | 연관 기준·측정 잡음·빔 요청 간격·연속 미탐 한도 설정 |
+| TargetConfig | 연관 기준·측정 잡음·공정 잡음·빔 요청 간격·연속 미탐 한도 설정 |
 
 Controller 생성자는 app에서 주입받은 Config를 보관하고 Repository, Matcher, 추적 알고리즘과 두 Selector를 한 번 생성하여 의존성을 연결한다.
 두 Selector는 const TargetRepository&와 const DetectionMatcher&를 생성자로 주입받는다.
@@ -74,19 +74,23 @@ Controller 생성자는 app에서 주입받은 Config를 보관하고 Repository
 Selector는 vector 요소의 포인터나 참조를 멤버에 보관하지 않는다.
 Controller 복사본은 Config·Repository·Matcher·Selector·알고리즘 객체 구성을 함께 공유한다.
 외부 app은 공개 헤더 include/target/config/target_config.hpp의 TargetConfig를 생성하여 TargetController(const TargetConfig&)에 명시적으로 주입한다.
-설정 필드 9개는 모두 const이며, 기본값 또는 전체 설정값을 받는 생성자로 초기화한 뒤 변경할 수 없다. 잘못된 설정은 Config 생성 시 거부한다.
+설정 필드 10개는 모두 const이며, 전체 설정값을 받는 생성자로 초기화한 뒤 변경할 수 없다. 잘못된 설정은 Config 생성 시 거부한다.
 Controller는 전달받은 Config의 읽기 전용 복사본을 소유하여 호출자 객체의 수명에 의존하지 않는다. 이 설정을 Matcher와 ConstantAccelerationAlgorithm에 전달하고 요청 시각·미탐 한도 처리에도 사용한다.
 
 ```cpp
-const target::TargetConfig targetConfig;
+using namespace math::literals;
+using namespace std::chrono_literals;
+
+const target::TargetConfig targetConfig(
+    1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 10_mps2);
 target::TargetController targetController(targetConfig);
 ```
 
 Config 구현은 src/config/target_config.cpp에 두며, Controller에서 기본 설정을 암묵적으로 생성하거나 별도의 정적 설정 함수를 사용하지 않는다.
 
-TargetConfig의 기본값은 다음과 같으며 설정 생성 시 한 번 검증한다.
+app은 `.env`의 필수 설정을 읽어 TargetConfig를 생성한다. 생성자 기본값은 없으며, `.env.example`의 시작 설정은 다음과 같다. 설정 생성 시 한 번 검증한다.
 
-| 설정 | 기본값 |
+| 설정 | 시작 설정 |
 |---|---|
 | maxAssociationSpeed | 1000m/s |
 | maxInitialDopplerDifference | 30m/s |
@@ -97,10 +101,13 @@ TargetConfig의 기본값은 다음과 같으며 설정 생성 시 한 번 검�
 | maxConsecutiveTrackingMisses | 3 |
 | initialAccelerationStandardDeviation | 각 축 10m/s² (1σ, 조정 가능한 초기값) |
 | maxReportedTrackCount | 100 (콘솔 보고 개수, 1~100) |
+| processAccelerationStandardDeviation | 각 축 10m/s² (1σ, 예측 구간별 가속도 교란) |
 
-측정 표준편차와 초기 가속도 표준편차는 양수이며, 각 분산과 2배 측정 분산은 유한한 양수여야 한다. 임계값과 속력·도플러 한도는 음수가 될 수 없다.
+측정 표준편차와 초기 가속도 표준편차는 양수이며, 각 분산과 2배 측정 분산은 유한한 양수여야 한다. 초기 가속도 표준편차는 math::LinearAcceleration으로 전달한다. 임계값과 속력·도플러 한도는 음수가 될 수 없다.
+공정 가속도 교란 표준편차는 math::LinearAcceleration으로 전달하며 0 이상이어야 한다. 제곱한 분산은 유한해야 하고 양수 표준편차의 제곱이 0으로 언더플로하는 설정도 거부한다. 0은 기존 Q=0 동작을 보존한다.
 요청 간격과 연속 미탐 한도는 양수여야 하며, 잘못된 설정은 std::invalid_argument를 발생시킨다.
-보고 개수는 TargetConfig::MAXIMUM_REPORTED_TRACK_COUNT(100)를 상한으로 1~100에서 설정한다. app이 Config 생성 시 더 작은 값을 주입할 수 있으며, Controller는 maxReportedTrackCount를 참조한다. 기존 7·8개 인자 생성자는 기본 보고 개수 100을 유지한다.
+보고 개수는 TargetConfig::MAXIMUM_REPORTED_TRACK_COUNT(100)를 상한으로 1~100에서 설정한다. app이 Config 생성 시 더 작은 값을 주입할 수 있으며, Controller는 maxReportedTrackCount를 참조한다.
+공정 잡음은 `TARGET_PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2=10`으로 설정한다. 5와 비교하려면 이 값만 5로 바꾸고 앱을 재시작한다. 기존 `.env`에도 이 필수 키를 추가해야 한다.
 
 ## 연관과 추적 계산
 
@@ -166,7 +173,7 @@ NDS는 math::cholesky()와 SquareMatrix::solveLowerTriangular()로 계산하며,
 ### CA 칼만필터
 
 ConstantAccelerationAlgorithm이 ITrackingAlgorithm을 구현한다. 설정과 계산 방법만 공유하고, 각 표적의 상태와 9×9 공분산은 TargetTrackingState에 보관한다.
-측정은 독립적인 직교 위치 3축이며, 측정 공분산 R = σ²I이다. 기본 σ = 7m에서 R = 49I이다. 초기 가속도 평균은 0, 초기 가속도 공분산 A = σa²I이며 기본 σa = 10m/s²에서 A = 100I이다. 공정 잡음 Q는 합의한 조건에 따라 0으로 둔다.
+측정은 독립적인 직교 위치 3축이며, 측정 공분산 R = σ²I이다. 시작 σ = 7m에서 R = 49I이다. 초기 가속도 평균은 0, 초기 가속도 공분산 A = σa²I이며 시작 σa = 10m/s²에서 A = 100I이다. 초기 가속도 불확실성과 공정 잡음 표준편차는 서로 다른 설정이다.
 
 초기화 시 두 관측 사이의 실제 시간 차이를 d초로 두고, 두 번째 관측 시각의 상태를 p = z2, v = (z2-z1)/d, a = 0으로 만든다. 독립 측정 R1 = R2 = R을 사용하는 초기 공분산은 다음 3×3 블록들로 구성한다.
 
@@ -178,11 +185,42 @@ Pap = 0                   Pav = dA/2                  Paa = A
 
 100ms 간격과 기본 설정에서 축별 (p,v,a) 공분산은 [[49,490,0],[490,9800.25,5],[0,5,100]]이다. 실제 저장 순서는 축별 묶음이 아니라 [px,py,pz,vx,vy,vz,ax,ay,az]이다.
 
-예측은 p' = p + v·dt + a·dt²/2, v' = v + a·dt, a' = a와 P' = FPFᵀ을 사용한다. 관측 보정은 위치 선택 행렬 H에 대해 S = HP'Hᵀ + R로 계산한다. 칼만 이득은 역행렬을 만들지 않고 math의 Cholesky와 하삼각·상삼각 풀이로 구한다. 보정 공분산은 Joseph 식 (I-KH)P'(I-KH)ᵀ + KRKᵀ을 사용하고 반올림 차이를 대칭으로 맞춘다.
+예측은 p' = p + v·dt + a·dt²/2, v' = v + a·dt, a' = a와 P' = FPFᵀ + Q(dt)를 사용한다. 관측 보정은 위치 선택 행렬 H에 대해 S = HP'Hᵀ + R로 계산한다. 칼만 이득은 역행렬을 만들지 않고 math의 Cholesky와 하삼각·상삼각 풀이로 구한다. 보정 공분산은 Joseph 식 (I-KH)P'(I-KH)ᵀ + KRKᵀ을 사용하고 반올림 차이를 대칭으로 맞춘다.
+
+#### 공정 잡음 행렬
+
+각 예측 구간의 가속도 교란 w를 평균 0, 축별 독립인 공분산 σq²I로 모델링한다. 선택한 모델은 `x_next = F x + G w`이며, `G = [dt²/2 I; dt I; I]`이다. 이는 구간별 가속도 교란 모델이며, 연속 백색 jerk의 spectral density를 사용하는 모델과는 구분한다. 공정 표준편차 σq는 m/s² 단위이고, 행렬 Q 전체에 같은 숫자를 넣지 않는다.
+가속도 교란의 상태 전달 형태는 [MathWorks의 Constant Acceleration Model](https://www.mathworks.com/help/fusion/ug/motion-model-state-and-process-noise.html)을 따른다.
+
+상태 순서 `[px,py,pz,vx,vy,vz,ax,ay,az]`에서 각 I가 3×3 단위행렬일 때:
+
+```text
+                     [ dt⁴/4 I   dt³/2 I   dt²/2 I ]
+Q(dt) = G σq²I Gᵀ = σq² [ dt³/2 I   dt² I     dt I    ]
+                     [ dt²/2 I   dt I      I       ]
+```
+
+σq=10m/s², dt=1초에서는 다음 9×9 행렬이다. 각 원소의 단위는 대응하는 두 상태 성분의 단위 곱이다.
+
+```text
+     [25  0  0   50   0   0   50   0   0]
+     [ 0 25  0    0  50   0    0  50   0]
+     [ 0  0 25    0   0  50    0   0  50]
+     [50  0  0  100   0   0  100   0   0]
+Q =  [ 0 50  0    0 100   0    0 100   0]
+     [ 0  0 50    0   0 100    0   0 100]
+     [50  0  0  100   0   0  100   0   0]
+     [ 0 50  0    0 100   0    0 100   0]
+     [ 0  0 50    0   0 100    0   0 100]
+```
+
+dt는 고정 요청 주기가 아니라 저장된 관측 상태 시각부터 계산 대상 시각까지의 실제 경과 초를 사용한다. 같은 시각의 예측은 새로운 구간이 아니므로 Q(0)=0으로 처리한다. σq=0도 영행렬을 반환한다. σq=5이면 같은 dt에서 Q는 σq=10일 때의 1/4이다. 이 이산 모델은 계산 대상까지를 하나의 구간으로 다루며, 구간을 나눌 때마다 독립적인 교란을 더하는 모델과는 다르다.
+
+Q는 ConstantAccelerationAlgorithm 내부에서 math의 행렬곱으로 구성한다. Controller나 Matcher에 계산을 두지 않고 update와 predict가 공유하는 예측 함수에서 한 번 더한다. 공정 잡음의 평균은 0이므로 예측 상태 평균에 난수나 고정 가속도를 더하지 않는다.
 
 TargetPrediction은 예측 시각의 구면 위치와 3×3 위치 공분산을 전달한다. Matcher의 Tracking 비교는 이 공분산과 R을 더한 S로 NDS를 계산한다. 동일 시각 이후 SEARCH와 Tracking 비교에도 같은 예측 공분산 경로를 사용한다. Tentative·확인 비교는 두 측정의 차이이므로 2R을 유지한다. 공분산이 없는 기존 등속도 전략과 테스트 전략만 호환용 2R을 사용하며 Controller의 CA 경로는 항상 계산한 예측 공분산을 제공한다.
 
-예측은 저장 상태를 변경하지 않는다. 미탐 뒤에는 최근 관측 시각부터 요청 시각까지의 전체 경과 시간으로 예측하므로, 미탐 간격을 중복 적용하지 않는다. 다음 정상 관측에서 위치·속도·가속도와 공분산을 함께 보정한다. Q = 0은 일정한 실제 가속도를 가정하는 모델이며, 기동 중 가속도 변화에 대응하려면 추후 공정 잡음 모델을 별도로 정해야 한다.
+예측은 저장 상태를 변경하지 않는다. 미탐 뒤에는 최근 관측 시각부터 요청 시각까지의 전체 경과 시간으로 F와 Q를 계산하므로, 미탐 간격이나 이전 예측의 Q를 중복 적용하지 않는다. 반복 조회도 상태를 변경하지 않는다. 다음 정상 관측에서 위치·속도·가속도와 공분산을 함께 보정한다. σq는 조정 가능한 시작값이며 실제 기동과 측정 잡음이 있는 로그로 추적 유지와 오연관을 함께 검증해야 한다.
 
 ## 빔 타입별 처리
 
@@ -236,7 +274,7 @@ nextTrackEvents()는 등록 순서대로 Tracking 상태인 표적을 maxReporte
 - latitude / longitude: 기준 위치가 없어 현재 0도로 보고한다.
 
 Tracking 결과 연관은 예측 위치 공분산 + 측정 잡음 공분산으로 NDS를 계산하고 최소 점수 하나를 선택한다. positionNdsThreshold의 기본값 11.345는 3차원 99% 카이제곱 기준의 조정 가능한 설정이다. 초기 가속도 불확실성과 잡음 가정의 실제 적합성은 운용 데이터로 확인해야 한다.
-CA 칼만필터의 공분산 초기화·예측·관측 보정과 NDS 연결은 구현되어 있다. 플랫폼 자세 보정과 실제 기동에 맞춘 공정 잡음 모델 조정은 포함하지 않는다.
+CA 칼만필터의 공분산 초기화·예측·관측 보정과 NDS 연결, 구간별 가속도 교란 공정 잡음은 구현되어 있다. 플랫폼 자세 보정과 운용 로그에 기반한 공정 잡음 최적값 조정은 포함하지 않는다.
 연관 조건은 Matcher에서, 추적 알고리즘은 ITrackingAlgorithm 구현체에서 교체한다.
 Beam Scheduler는 확인·추적 요청의 requestId를 BeamCommand.beamId로 전달한다. Comm은 수신 beamID를 DetectionEvent.requestId로 전달한다.
 실제 장비의 추적 조향 범위 검증은 요청을 생성하는 쪽의 책임이다. 현재는 기하 유효성만 검사하며, 조향 범위 밖의 요청 중단·표적 정리 정책은 미구현이다.
