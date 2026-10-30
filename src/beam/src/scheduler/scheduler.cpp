@@ -51,24 +51,30 @@ void Scheduler::setOperationState(OperationState state)
     _operationState = state;
 }
 
-void Scheduler::setSearchGrid(SearchGrid searchGrid)
+void Scheduler::setAttitudeFrame(AttitudeFrame attitudeFrame)
 {
-    if (_operationState != OperationState::ON || _searchGrid.has_value())
+    if (_operationState != OperationState::ON || _attitudeFrame.has_value())
     {
         return;
     }
 
-    _searchGrid.emplace(std::move(searchGrid));
+    _attitudeFrame.emplace(std::move(attitudeFrame));
 }
 
-void Scheduler::addRequest(const BeamRequest& request)
+RequestBeamStatus Scheduler::addRequest(const BeamRequest& request)
 {
     if (!isReady())
     {
-        return;
+        return RequestBeamStatus::NOT_READY;
+    }
+
+    if (!_attitudeFrame->requestCoverage().contains(request.direction_enu()))
+    {
+        return RequestBeamStatus::OUT_OF_COVERAGE;
     }
 
     _requestQueue.add(request);
+    return RequestBeamStatus::ACCEPTED;
 }
 
 std::optional<TransmitBeamCommand> Scheduler::next(std::chrono::milliseconds currentTime)
@@ -85,17 +91,17 @@ std::optional<TransmitBeamCommand> Scheduler::next(std::chrono::milliseconds cur
         return makeRequestCommand(*request, currentTime, _commandCount);
     }
 
-    return makeSearchCommand(_searchGrid->nextBeam(), currentTime, _commandCount);
+    return makeSearchCommand(_attitudeFrame->searchGrid().nextBeam(), currentTime, _commandCount);
 }
 
 bool Scheduler::isReady() const
 {
-    return _operationState == OperationState::ON && _searchGrid.has_value();
+    return _operationState == OperationState::ON && _attitudeFrame.has_value();
 }
 
 void Scheduler::reset()
 {
-    _searchGrid.reset();
+    _attitudeFrame.reset();
     _requestQueue.clear();
     _commandCount = 0;
 }

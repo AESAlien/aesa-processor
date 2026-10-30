@@ -10,8 +10,8 @@
 #pragma once
 
 #include "scheduler/scheduler.hpp"
+#include "scheduler/attitude_frame.hpp"
 #include "scheduler/beam_request_factory.hpp"
-#include "scheduler/search_grid.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
 
@@ -45,9 +45,16 @@ inline beam::SearchGridConfig makeSearchGridConfig()
         beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
 }
 
-// 주어진 자세로 탐색 격자를 만든다. 실제 운용에서는 BeamController가 하는 일이다.
+// 시나리오는 스케줄링 순서를 보기 위한 것이므로, 추적 영역 판정으로 요청이 걸러지지 않도록 모든 방향을 허용한다.
+// 추적 영역 판정은 request_coverage_test, scheduler_test, beam_controller_test에서 확인한다.
+inline beam::RequestCoverageConfig makeOpenRequestCoverageConfig()
+{
+    return beam::RequestCoverageConfig(-180_deg, 180_deg, math::Elevation(-90_deg), math::Elevation(90_deg));
+}
+
+// 주어진 자세로 탐색 격자와 영역 판정(AttitudeFrame)을 만든다. 실제 운용에서는 BeamController가 하는 일이다.
 // 잘못된 자세정보면 std::invalid_argument를 던진다.
-inline beam::SearchGrid makeSearchGrid(math::Angle roll, math::Angle pitch, math::Angle yaw)
+inline beam::AttitudeFrame makeAttitudeFrame(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     const beam::AntEnuTransform transform(
         beam::RadarAttitude(roll, pitch, yaw),
@@ -55,7 +62,7 @@ inline beam::SearchGrid makeSearchGrid(math::Angle roll, math::Angle pitch, math
             89_deg,
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}));
-    return beam::SearchGrid(transform, makeSearchGridConfig());
+    return beam::AttitudeFrame(transform, makeSearchGridConfig(), makeOpenRequestCoverageConfig());
 }
 
 enum class Status
@@ -200,8 +207,8 @@ inline void markSent(
 
 } // namespace detail
 
-// 시나리오를 새 Scheduler로 실행한다. 자세정보 시각에 searchGrid의 복사본을 넘긴다.
-inline Result run(Scenario scenario, const beam::SearchGrid& searchGrid)
+// 시나리오를 새 Scheduler로 실행한다. 자세정보 시각에 attitudeFrame의 복사본을 넘긴다.
+inline Result run(Scenario scenario, const beam::AttitudeFrame& attitudeFrame)
 {
     Result result;
     beam::Scheduler scheduler;
@@ -216,7 +223,7 @@ inline Result run(Scenario scenario, const beam::SearchGrid& searchGrid)
         }
         if (time == scenario.attitudeTime)
         {
-            scheduler.setSearchGrid(searchGrid);
+            scheduler.setAttitudeFrame(attitudeFrame);
             for (const RequestSpec& spec : scenario.requests)
             {
                 scheduler.addRequest(spec.request);
