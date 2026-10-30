@@ -1,8 +1,5 @@
 #pragma once
 
-#include <beam/dto/beam_type.hpp>
-
-#include <chrono>
 #include <cstdint>
 
 namespace beam
@@ -20,24 +17,18 @@ enum class RequestBeamStatus : uint8_t
 };
 
 // BeamController::requestBeam의 처리 결과. 요청한 쪽(target)이 거부된 요청에 대응할 수 있도록 반환한다.
-// - beamType, requestId, transmitTime은 받은 RequestBeamCommand의 값을 변환 없이 그대로 담는다.
-//   target은 requestId(표적 ID)와 beamType으로 대상 표적을 찾고, transmitTime으로 오래된 결과를 거를 수 있다.
+// - requestId는 받은 RequestBeamCommand의 값을 그대로 담는다. target은 이 값(표적 ID)으로 대상 표적을 찾는다.
+//   표적 ID는 재사용되지 않고 표적마다 대기 중인 요청은 하나뿐이므로, 빔 종류나 송신 시각 없이도 대상을 정할 수 있다.
 // - 값을 검사하지 않는다. 검증은 BeamController::requestBeam에서 결과를 만들기 전에 끝나 있다.
 struct RequestBeamResult
 {
     RequestBeamStatus status;
-    RequestBeamType beamType;
-    std::chrono::milliseconds transmitTime;
     uint32_t requestId;
 
     RequestBeamResult(
         RequestBeamStatus status,
-        RequestBeamType beamType,
-        std::chrono::milliseconds transmitTime,
         uint32_t requestId
     ) : status(status),
-        beamType(beamType),
-        transmitTime(transmitTime),
         requestId(requestId)
     {
     }

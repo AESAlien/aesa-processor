@@ -38,7 +38,7 @@ public:
 
     // 요청 값이 잘못되면(알 수 없는 종류, 음수 transmitTime, requestId 0) 운용 상태와 관계없이 std::invalid_argument를 던진다.
     // 생성자에 주입한 요청 빔 설정(빔 폭)은 BeamRequestFactory가 요청을 만들 때 반영된다.
-    // 올바른 요청의 처리 결과를 반환한다. 결과에는 상태와 함께 요청의 beamType, transmitTime, requestId가 그대로 담긴다.
+    // 올바른 요청의 처리 결과를 반환한다. 결과에는 상태와 함께 요청의 requestId가 그대로 담긴다.
     // - NOT_READY: 준비 상태(ON이고 자세정보를 받음)가 아니어서 버렸다.
     // - OUT_OF_COVERAGE: 요청 방향(ENU)을 안테나 기준으로 바꾼 값이 추적 영역(RequestCoverageConfig) 밖이어서 버렸다.
     // - ACCEPTED: 큐에 넣었다.

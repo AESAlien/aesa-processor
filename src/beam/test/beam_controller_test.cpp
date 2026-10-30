@@ -599,7 +599,7 @@ TEST(BeamControllerTest, InvalidRequestThrowsBeforeCoverageCheck)
         std::invalid_argument);
 }
 
-TEST(BeamControllerTest, RequestBeamResultCarriesRequestFieldsForEveryStatus)
+TEST(BeamControllerTest, RequestBeamResultCarriesRequestIdForEveryStatus)
 {
     beam::BeamController controller = makeDefaultController();
 
@@ -607,8 +607,6 @@ TEST(BeamControllerTest, RequestBeamResultCarriesRequestFieldsForEveryStatus)
     const beam::RequestBeamResult notReady =
         controller.requestBeam(makeRequestCommand(beam::RequestBeamType::CONFIRMATION, 120ms, 11, 7.5_deg, 15.5_deg));
     EXPECT_EQ(notReady.status, beam::RequestBeamStatus::NOT_READY);
-    EXPECT_EQ(notReady.beamType, beam::RequestBeamType::CONFIRMATION);
-    EXPECT_EQ(notReady.transmitTime, 120ms);
     EXPECT_EQ(notReady.requestId, 11u);
 
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
@@ -618,15 +616,11 @@ TEST(BeamControllerTest, RequestBeamResultCarriesRequestFieldsForEveryStatus)
     const beam::RequestBeamResult accepted =
         controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 1000ms, 12, 7.5_deg, 15.5_deg));
     EXPECT_EQ(accepted.status, beam::RequestBeamStatus::ACCEPTED);
-    EXPECT_EQ(accepted.beamType, beam::RequestBeamType::TRACKING);
-    EXPECT_EQ(accepted.transmitTime, 1000ms);
     EXPECT_EQ(accepted.requestId, 12u);
 
     // OUT_OF_COVERAGE
     const beam::RequestBeamResult outOfCoverage =
         controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 2000ms, 13, 90_deg, 15.5_deg));
     EXPECT_EQ(outOfCoverage.status, beam::RequestBeamStatus::OUT_OF_COVERAGE);
-    EXPECT_EQ(outOfCoverage.beamType, beam::RequestBeamType::TRACKING);
-    EXPECT_EQ(outOfCoverage.transmitTime, 2000ms);
     EXPECT_EQ(outOfCoverage.requestId, 13u);
 }
