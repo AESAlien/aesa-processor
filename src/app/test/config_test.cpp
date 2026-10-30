@@ -316,11 +316,11 @@ TEST(AppConfigTest, LoadedConfigurationCanBeInjectedIntoEveryController)
     beamController.setOperationState(
         beam::SetOperationStateCommand(beam::OperationState::ON));
     beamController.setAttitude(beam::SetAttitudeCommand(
-        37_deg,
-        127_deg,
+        math::TiltAngle(37_deg),
+        math::CircularAngle(127_deg),
         0_m,
         0_deg,
-        0_deg,
+        math::TiltAngle(0_deg),
         0_deg));
     const auto beamCommand = beamController.nextBeamCommand(0ms);
     ASSERT_TRUE(beamCommand.has_value());

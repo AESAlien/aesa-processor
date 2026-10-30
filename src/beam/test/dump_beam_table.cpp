@@ -44,7 +44,7 @@ int main(int argc, char** argv)
     beam::AntEnuTransform xform = [&]() {
         try
         {
-            const beam::RadarAttitude att(roll, pitch, yaw);
+            const beam::RadarAttitude att(roll, math::TiltAngle(pitch), yaw);
             return beam::AntEnuTransform(
                 att,
                 beam::AttitudeConfig(

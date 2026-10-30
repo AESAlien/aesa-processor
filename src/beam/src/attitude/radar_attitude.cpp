@@ -7,40 +7,40 @@ namespace beam
 
 RadarAttitude::RadarAttitude(
     math::Angle roll,
-    math::Angle pitch,
+    math::TiltAngle pitch,
     math::Angle yaw
 ) : _roll(roll),
     _pitch(pitch),
     _yaw(yaw)
 {
-    validate();
+    validate(roll, yaw);
 }
 
-math::Angle RadarAttitude::roll() const noexcept
+math::CircularAngle RadarAttitude::roll() const noexcept
 {
     return _roll;
 }
 
-math::Angle RadarAttitude::pitch() const noexcept
+math::TiltAngle RadarAttitude::pitch() const noexcept
 {
     return _pitch;
 }
 
-math::Angle RadarAttitude::yaw() const noexcept
+math::CircularAngle RadarAttitude::yaw() const noexcept
 {
     return _yaw;
 }
 
-void RadarAttitude::validate() const
+void RadarAttitude::validate(math::Angle roll, math::Angle yaw)
 {
     using namespace math::literals;
 
-    if (_roll < -180_deg || _roll > 180_deg)
+    if (roll < -180_deg || roll > 180_deg)
     {
         throw std::invalid_argument("RadarAttitude: roll must be in [-180, 180] degrees");
     }
 
-    if (_yaw < -360_deg || _yaw > 360_deg)
+    if (yaw < -360_deg || yaw > 360_deg)
     {
         throw std::invalid_argument("RadarAttitude: yaw must be in [-360, 360] degrees");
     }

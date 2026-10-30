@@ -39,7 +39,7 @@ beam::RequestCoverageConfig makeCoverageConfig()
 beam::AttitudeFrame makeAttitudeFrame(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     const beam::AntEnuTransform transform(
-        beam::RadarAttitude(roll, pitch, yaw),
+        beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw),
         beam::AttitudeConfig(
             89_deg,
             math::SquareMatrix::identity(3),

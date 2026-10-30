@@ -14,16 +14,17 @@ struct SetAttitudeCommand
     math::TiltAngle latitude;
     math::CircularAngle longitude;
     math::Length altitude;
+    // 원래 입력 범위는 RadarAttitude에서 검사하므로 roll/yaw는 정규화하지 않는다.
     math::Angle roll;
-    math::Angle pitch;
+    math::TiltAngle pitch;
     math::Angle yaw;
 
     SetAttitudeCommand(
-        math::Angle latitude,
-        math::Angle longitude,
+        math::TiltAngle latitude,
+        math::CircularAngle longitude,
         math::Length altitude,
         math::Angle roll,
-        math::Angle pitch,
+        math::TiltAngle pitch,
         math::Angle yaw
     ) : latitude(latitude),
         longitude(longitude),
@@ -37,11 +38,14 @@ struct SetAttitudeCommand
     class Builder
     {
     public:
-        Builder& latitude(math::Angle value) { _latitude = value; return *this; }
-        Builder& longitude(math::Angle value) { _longitude = value; return *this; }
+        Builder& latitude(math::Angle value) { return latitude(math::TiltAngle(value)); }
+        Builder& latitude(math::TiltAngle value) { _latitude = value; return *this; }
+        Builder& longitude(math::Angle value) { return longitude(math::CircularAngle(value)); }
+        Builder& longitude(math::CircularAngle value) { _longitude = value; return *this; }
         Builder& altitude(math::Length value) { _altitude = value; return *this; }
         Builder& roll(math::Angle value) { _roll = value; return *this; }
-        Builder& pitch(math::Angle value) { _pitch = value; return *this; }
+        Builder& pitch(math::Angle value) { return pitch(math::TiltAngle(value)); }
+        Builder& pitch(math::TiltAngle value) { _pitch = value; return *this; }
         Builder& yaw(math::Angle value) { _yaw = value; return *this; }
 
         SetAttitudeCommand build() const
@@ -52,11 +56,11 @@ struct SetAttitudeCommand
         }
 
     private:
-        std::optional<math::Angle> _latitude;
-        std::optional<math::Angle> _longitude;
+        std::optional<math::TiltAngle> _latitude;
+        std::optional<math::CircularAngle> _longitude;
         std::optional<math::Length> _altitude;
         std::optional<math::Angle> _roll;
-        std::optional<math::Angle> _pitch;
+        std::optional<math::TiltAngle> _pitch;
         std::optional<math::Angle> _yaw;
     };
 };

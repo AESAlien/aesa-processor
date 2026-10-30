@@ -123,7 +123,7 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(roll, pitch, yaw));
 
-    const beam::RadarAttitude attitude(roll, pitch, yaw);
+    const beam::RadarAttitude attitude(roll, math::TiltAngle(pitch), yaw);
     beam::SearchGrid expectedGrid(
         beam::AntEnuTransform(
             attitude,
@@ -459,7 +459,9 @@ TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
         makeCoverageConfig()));
 
     // roll 181도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
-    const beam::SetAttitudeCommand command(37_deg, 127_deg, 0.1_km, 181_deg, 0_deg, 0_deg);
+    const beam::SetAttitudeCommand command(
+        math::TiltAngle(37_deg), math::CircularAngle(127_deg), 0.1_km,
+        181_deg, math::TiltAngle(0_deg), 0_deg);
     EXPECT_THROW(controller.setAttitude(command), std::invalid_argument);
 }
 
@@ -477,7 +479,9 @@ TEST(BeamControllerTest, NormalizesLongitudeAndLeavesAltitudeUnvalidated)
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
 
     // 경도는 정규화하고 고도는 빔 모듈에서 쓰지 않으므로 범위를 검사하지 않는다.
-    const beam::SetAttitudeCommand command(37_deg, -179_deg, 101_km, 0_deg, 0_deg, 0_deg);
+    const beam::SetAttitudeCommand command(
+        math::TiltAngle(37_deg), math::CircularAngle(-179_deg), 101_km,
+        0_deg, math::TiltAngle(0_deg), 0_deg);
     EXPECT_EQ(command.longitude, 181_deg);
     EXPECT_NO_THROW(controller.setAttitude(command));
     EXPECT_TRUE(controller.nextBeamCommand(0ms).has_value());

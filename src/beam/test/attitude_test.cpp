@@ -13,7 +13,7 @@ namespace
 
 beam::RadarAttitude makeAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    return beam::RadarAttitude(roll, pitch, yaw);
+    return beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw);
 }
 
 beam::AntEnuTransform makeValidTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
@@ -70,6 +70,15 @@ TEST(RadarAttitudeTest, ThrowsOnOutOfRangeValues)
     EXPECT_THROW(makeAttitude(0_deg, 0_deg, -361_deg), std::invalid_argument);
 }
 
+TEST(RadarAttitudeTest, NormalizesValidatedRollAndYaw)
+{
+    const auto attitude = makeAttitude(-180_deg, -90_deg, -360_deg);
+
+    EXPECT_DOUBLE_EQ(attitude.roll().deg(), 180.0);
+    EXPECT_DOUBLE_EQ(attitude.pitch().deg(), -90.0);
+    EXPECT_DOUBLE_EQ(attitude.yaw().deg(), 0.0);
+}
+
 TEST(RadarAttitudeTest, ThrowsOnValuesEquivalentByPeriodToValidRange)
 {
     // 360도 주기로는 범위 안과 동치이지만 실제 수치가 명시된 범위 밖이면 거부해야 한다.
@@ -84,11 +93,13 @@ TEST(RadarAttitudeTest, AcceptsBoundaryAnglesIncludingEndpoints)
     EXPECT_NO_THROW(makeAttitude(-180_deg, 0_deg, -360_deg));
 }
 
-TEST(RadarAttitudeTest, PitchRangeIsNotCheckedByRadarAttitude)
+TEST(RadarAttitudeTest, PitchRequiresTiltAngleAndAllowsGimbalLockBoundary)
 {
     // 짐벌락 판정은 AttitudeConfig에 의존하므로 AntEnuTransform의 책임이다.
     EXPECT_NO_THROW(makeAttitude(0_deg, 90_deg, 0_deg));
-    EXPECT_NO_THROW(makeAttitude(0_deg, -95_deg, 0_deg));
+    EXPECT_NO_THROW(makeAttitude(0_deg, -90_deg, 0_deg));
+    EXPECT_THROW(makeAttitude(0_deg, -95_deg, 0_deg), std::invalid_argument);
+    EXPECT_THROW(makeAttitude(0_deg, 95_deg, 0_deg), std::invalid_argument);
 }
 
 // ---------------------------------------------------------------- AntEnuTransform 검증
@@ -101,7 +112,9 @@ TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
         math::Tolerance{1e-6, 0.0});
 
     EXPECT_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 89_deg, 0_deg), config), std::invalid_argument);
-    EXPECT_THROW(beam::AntEnuTransform(makeAttitude(0_deg, -95_deg, 0_deg), config), std::invalid_argument);
+    EXPECT_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 88.9999999999_deg, 0_deg), config), std::invalid_argument);
+    EXPECT_THROW(beam::AntEnuTransform(makeAttitude(0_deg, -88.9999999999_deg, 0_deg), config), std::invalid_argument);
+    EXPECT_THROW(beam::AntEnuTransform(makeAttitude(0_deg, -90_deg, 0_deg), config), std::invalid_argument);
     EXPECT_NO_THROW(beam::AntEnuTransform(makeAttitude(0_deg, 88.9_deg, 0_deg), config));
 }
 

@@ -13,7 +13,7 @@ namespace
 beam::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     return beam::AntEnuTransform(
-        beam::RadarAttitude(roll, pitch, yaw),
+        beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw),
         beam::AttitudeConfig(
             89_deg,
             math::SquareMatrix::identity(3),

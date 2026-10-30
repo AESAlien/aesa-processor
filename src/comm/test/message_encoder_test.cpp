@@ -48,12 +48,12 @@ target::TrackEvent makeTrackEvent(
         math::CircularAngle(15.5_deg),
         math::TiltAngle(6.25_deg),
         -120.5_mps,
-        37.5_deg,
-        127.25_deg,
+        math::TiltAngle(37.5_deg),
+        math::CircularAngle(127.25_deg),
         2.5_km,
         250.75_mps,
-        45.5_deg,
-        -2.25_deg,
+        math::CircularAngle(45.5_deg),
+        math::TiltAngle(-2.25_deg),
         timestamp);
 }
 
@@ -230,6 +230,26 @@ TEST(MessageEncoderTest, EncodesTrackEventsUsingActualMessageSize)
     for (uint8_t padding : track.padding)
     {
         EXPECT_EQ(padding, 0);
+    }
+}
+
+TEST(MessageEncoderTest, EncodesNormalizedHeadingAndSignedFlightPathBoundaries)
+{
+    for (const auto flightPathAngle : {-90_deg, 90_deg})
+    {
+        auto event = makeTrackEvent();
+        event.heading = math::CircularAngle(-90_deg);
+        event.flightPathAngle = math::TiltAngle(flightPathAngle);
+
+        const auto result = comm::encodeTrackEvents({event});
+
+        ASSERT_EQ(result.error, comm::EncodingError::NONE);
+        ASSERT_TRUE(result.bytes.has_value());
+        const auto track = readValue<comm::protocol::ST_Trk>(
+            *result.bytes,
+            sizeof(comm::protocol::ST_MsgHeader) + sizeof(comm::protocol::ST_TrkHeader));
+        EXPECT_FLOAT_EQ(track.heading_deg, 270.0F);
+        EXPECT_FLOAT_EQ(track.fpa_deg, static_cast<float>(flightPathAngle.deg()));
     }
 }
 

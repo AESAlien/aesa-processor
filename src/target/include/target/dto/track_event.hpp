@@ -28,8 +28,8 @@ struct TrackEvent
     math::CircularAngle longitude;
     math::Length altitude;
     math::LinearVelocity velocity;
-    math::Angle heading;
-    math::Angle flightPathAngle;
+    math::CircularAngle heading;
+    math::TiltAngle flightPathAngle;
     // Elapsed time since the shared start at 0 ms.
     std::chrono::milliseconds timestamp;
 
@@ -47,12 +47,12 @@ struct TrackEvent
         math::CircularAngle azimuth,
         math::TiltAngle elevation,
         math::LinearVelocity dopplerVelocity,
-        math::Angle latitude,
-        math::Angle longitude,
+        math::TiltAngle latitude,
+        math::CircularAngle longitude,
         math::Length altitude,
         math::LinearVelocity velocity,
-        math::Angle heading,
-        math::Angle flightPathAngle,
+        math::CircularAngle heading,
+        math::TiltAngle flightPathAngle,
         std::chrono::milliseconds timestamp
     ) : id(id),
         state(state),
@@ -81,12 +81,12 @@ struct TrackEvent
         Builder& azimuth(math::CircularAngle value) { _azimuth = value; return *this; }
         Builder& elevation(math::TiltAngle value) { _elevation = value; return *this; }
         Builder& dopplerVelocity(math::LinearVelocity value) { _dopplerVelocity = value; return *this; }
-        Builder& latitude(math::Angle value) { _latitude = value; return *this; }
-        Builder& longitude(math::Angle value) { _longitude = value; return *this; }
+        Builder& latitude(math::TiltAngle value) { _latitude = value; return *this; }
+        Builder& longitude(math::CircularAngle value) { _longitude = value; return *this; }
         Builder& altitude(math::Length value) { _altitude = value; return *this; }
         Builder& velocity(math::LinearVelocity value) { _velocity = value; return *this; }
-        Builder& heading(math::Angle value) { _heading = value; return *this; }
-        Builder& flightPathAngle(math::Angle value) { _flightPathAngle = value; return *this; }
+        Builder& heading(math::CircularAngle value) { _heading = value; return *this; }
+        Builder& flightPathAngle(math::TiltAngle value) { _flightPathAngle = value; return *this; }
         Builder& timestamp(std::chrono::milliseconds value) { _timestamp = value; return *this; }
 
         TrackEvent build() const
@@ -106,12 +106,12 @@ struct TrackEvent
         std::optional<math::CircularAngle> _azimuth;
         std::optional<math::TiltAngle> _elevation;
         std::optional<math::LinearVelocity> _dopplerVelocity;
-        std::optional<math::Angle> _latitude;
-        std::optional<math::Angle> _longitude;
+        std::optional<math::TiltAngle> _latitude;
+        std::optional<math::CircularAngle> _longitude;
         std::optional<math::Length> _altitude;
         std::optional<math::LinearVelocity> _velocity;
-        std::optional<math::Angle> _heading;
-        std::optional<math::Angle> _flightPathAngle;
+        std::optional<math::CircularAngle> _heading;
+        std::optional<math::TiltAngle> _flightPathAngle;
         std::optional<std::chrono::milliseconds> _timestamp;
     };
 };

@@ -186,11 +186,11 @@ DecodeResult MessageDecoder::decodeRadarAttitude(
 
     return decoded(
         beam::SetAttitudeCommand::Builder()
-            .latitude(math::Angle::fromDegrees(message.radar_lat_deg))
-            .longitude(math::Angle::fromDegrees(message.radar_lon_deg))
+            .latitude(math::TiltAngle::fromDegrees(message.radar_lat_deg))
+            .longitude(math::CircularAngle::fromDegrees(message.radar_lon_deg))
             .altitude(math::Length::fromKilometers(message.radar_alt_km))
             .roll(math::Angle::fromDegrees(message.roll_deg))
-            .pitch(math::Angle::fromDegrees(message.pitch_deg))
+            .pitch(math::TiltAngle::fromDegrees(message.pitch_deg))
             .yaw(math::Angle::fromDegrees(message.yaw_deg))
             .build());
 }
