@@ -43,7 +43,7 @@ beam::RequestBeamCommand makeRequestCommand(
         .beamType(beamType)
         .transmitTime(transmitTime)
         .requestId(requestId)
-        .direction_ant(math::SphericalDirection(math::CircularAngle(azimuth), math::TiltAngle(elevation)))
+        .direction_ant(math::SphericalDirection(azimuth, elevation))
         .build();
 }
 
@@ -61,8 +61,8 @@ beam::BeamController makeDefaultController()
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
         makeCoverageConfig()));
 }
 
@@ -76,8 +76,8 @@ TEST(BeamControllerTest, ReturnsNothingBeforeStart)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
         makeCoverageConfig()));
 
     EXPECT_FALSE(controller.nextBeamCommand(0ms).has_value());
@@ -91,8 +91,8 @@ TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
         makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
@@ -117,8 +117,8 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
         makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(roll, pitch, yaw));
@@ -131,7 +131,7 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
                 89_deg,
                 math::SquareMatrix::identity(3),
                 math::Tolerance{1e-6, 0.0})),
-        beam::SearchGridConfig(21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))));
+        beam::SearchGridConfig(21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)));
 
     for (std::size_t index = 0; index < 5; ++index)
     {
@@ -152,8 +152,8 @@ TEST(BeamControllerTest, RequestBeamIsDeliveredToScheduler)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
         makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
@@ -178,8 +178,8 @@ TEST(BeamControllerTest, RequestWhileOffIsIgnored)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
         makeCoverageConfig()));
     controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
@@ -196,8 +196,8 @@ TEST(BeamControllerTest, InvalidRequestThrowsEvenWhileOff)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
         makeCoverageConfig()));
 
     EXPECT_THROW(
@@ -219,8 +219,8 @@ TEST(BeamControllerTest, InvalidRequestIsNotQueued)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
         makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
@@ -244,8 +244,8 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
         makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
@@ -272,8 +272,8 @@ TEST(BeamControllerTest, MovedControllerKeepsState)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
         makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
@@ -296,8 +296,8 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}))
         .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
+        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
         .requestCoverageConfig(makeCoverageConfig())
         .searchGridConfig(beam::SearchGridConfig::Builder()
             .azimuthCount(21)
@@ -306,10 +306,10 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
             .azimuthStep(4.2_deg)
             .elevationStart(math::TiltAngle(3_deg))
             .elevationStep(4.4_deg)
-            .beamWidth(beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)))
+            .beamWidth(beam::BeamWidth(6_deg, 6_deg))
             .azimuthCount(3)
             .elevationCount(1)
-            .beamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg)))
+            .beamWidth(beam::BeamWidth(4_deg, 4_deg))
             .build())
         .build();
     beam::BeamController controller(config);
@@ -336,13 +336,13 @@ TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}))
         .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
+        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
         .requestCoverageConfig(makeCoverageConfig())
         .requestBeamConfig(beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
-            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
-            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg)))
+            .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+            .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+            .trackingBeamWidth(beam::BeamWidth(4_deg, 4_deg))
             .build())
         .build();
     beam::BeamController controller(config);
@@ -366,14 +366,14 @@ TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}))
         .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
+        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
         .requestCoverageConfig(makeCoverageConfig())
         .requestBeamConfig(beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
-            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
-            .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(5_deg), math::AngularWidth(5_deg)))
-            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg)))
+            .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+            .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+            .confirmationBeamWidth(beam::BeamWidth(5_deg, 5_deg))
+            .trackingBeamWidth(beam::BeamWidth(4_deg, 4_deg))
             .build())
         .build();
     beam::BeamController controller(config);
@@ -397,8 +397,8 @@ TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}))
         .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
+        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
         .requestCoverageConfig(makeCoverageConfig())
         .attitudeConfig(beam::AttitudeConfig(
             60_deg,
@@ -424,8 +424,8 @@ TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}))
         .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
+        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
         .requestCoverageConfig(makeCoverageConfig())
         .attitudeConfig(beam::AttitudeConfig(
             60_deg,
@@ -454,8 +454,8 @@ TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
         makeCoverageConfig()));
 
     // roll 181도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
@@ -471,8 +471,8 @@ TEST(BeamControllerTest, NormalizesLongitudeAndLeavesAltitudeUnvalidated)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
         makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
 
@@ -491,11 +491,11 @@ TEST(BeamControllerTest, ControllerWithInjectedConfigCanBeMoved)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}))
         .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
+        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
         .requestCoverageConfig(makeCoverageConfig())
         .searchGridConfig(beam::SearchGridConfig(
-            2, 1, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
+            2, 1, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
         .build();
     beam::BeamController controller(config);
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
@@ -571,8 +571,8 @@ TEST(BeamControllerTest, InjectedRequestCoverageConfigIsUsed)
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}))
         .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
+        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
         .requestCoverageConfig(beam::RequestCoverageConfig(-5_deg, 5_deg, math::TiltAngle(0_deg), math::TiltAngle(10_deg)))
         .build();
     beam::BeamController controller(config);

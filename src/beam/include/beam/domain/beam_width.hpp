@@ -8,6 +8,10 @@ namespace beam
 struct BeamWidth
 {
     BeamWidth(
+        math::Angle azimuth,
+        math::Angle elevation);
+
+    BeamWidth(
         math::AngularWidth azimuth,
         math::AngularWidth elevation);
 

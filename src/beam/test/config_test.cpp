@@ -47,14 +47,14 @@ beam::SearchGridConfig::Builder gridBuilder()
         .azimuthStep(4.2_deg)
         .elevationStart(math::TiltAngle(3_deg))
         .elevationStep(4.4_deg)
-        .beamWidth(beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
+        .beamWidth(beam::BeamWidth(6_deg, 6_deg));
 }
 
 beam::RequestBeamConfig::Builder requestBuilder()
 {
     return beam::RequestBeamConfig::Builder()
-        .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
-        .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)));
+        .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+        .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg));
 }
 
 beam::RequestCoverageConfig::Builder coverageBuilder()
@@ -84,7 +84,7 @@ TEST(SearchGridConfigTest, BuilderOverridesOnlyGivenValues)
         .azimuthStep(5_deg)
         .elevationStart(math::TiltAngle(1_deg))
         .elevationStep(2_deg)
-        .beamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg)))
+        .beamWidth(beam::BeamWidth(4_deg, 4_deg))
         .build();
 
     EXPECT_EQ(config.azimuthCount(), 3u);
@@ -103,8 +103,8 @@ TEST(SearchGridConfigTest, BuilderOverridesOnlyGivenValues)
 
 TEST(SearchGridConfigTest, ConstructorValidatesLikeBuilder)
 {
-    EXPECT_NO_THROW(beam::SearchGridConfig(3, 2, math::CircularAngle(-10_deg), 5_deg, math::TiltAngle(1_deg), 2_deg, beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))));
-    EXPECT_THROW(beam::SearchGridConfig(0, 2, math::CircularAngle(-10_deg), 5_deg, math::TiltAngle(1_deg), 2_deg, beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))), std::invalid_argument);
+    EXPECT_NO_THROW(beam::SearchGridConfig(3, 2, math::CircularAngle(-10_deg), 5_deg, math::TiltAngle(1_deg), 2_deg, beam::BeamWidth(4_deg, 4_deg)));
+    EXPECT_THROW(beam::SearchGridConfig(0, 2, math::CircularAngle(-10_deg), 5_deg, math::TiltAngle(1_deg), 2_deg, beam::BeamWidth(4_deg, 4_deg)), std::invalid_argument);
 }
 
 TEST(SearchGridConfigTest, ZeroAzimuthCountThrows)
@@ -129,8 +129,8 @@ TEST(SearchGridConfigTest, BeamCountBeyondUint32Throws)
 
 TEST(SearchGridConfigTest, NonPositiveBeamWidthThrows)
 {
-    EXPECT_THROW(gridBuilder().beamWidth(beam::BeamWidth(math::AngularWidth(0_deg), math::AngularWidth(0_deg))).build(), std::invalid_argument);
-    EXPECT_THROW(gridBuilder().beamWidth(beam::BeamWidth(math::AngularWidth(-1_deg), math::AngularWidth(-1_deg))).build(), std::invalid_argument);
+    EXPECT_THROW(gridBuilder().beamWidth(beam::BeamWidth(0_deg, 0_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(gridBuilder().beamWidth(beam::BeamWidth(-1_deg, -1_deg)).build(), std::invalid_argument);
 }
 
 TEST(SearchGridConfigTest, GridAngleOverflowThrows)
@@ -386,8 +386,8 @@ TEST(RequestBeamConfigTest, BuilderRequiresEveryValue)
 TEST(RequestBeamConfigTest, BuilderOverridesGivenValues)
 {
     const beam::RequestBeamConfig config = requestBuilder()
-        .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(2_deg), math::AngularWidth(2_deg)))
-        .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg)))
+        .confirmationBeamWidth(beam::BeamWidth(2_deg, 2_deg))
+        .trackingBeamWidth(beam::BeamWidth(4_deg, 4_deg))
         .build();
 
     EXPECT_EQ(config.confirmationBeamWidth.azimuth, 2_deg);
@@ -398,16 +398,16 @@ TEST(RequestBeamConfigTest, BuilderOverridesGivenValues)
 
 TEST(RequestBeamConfigTest, NonPositiveBeamWidthThrows)
 {
-    EXPECT_THROW(requestBuilder().confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(0_deg), math::AngularWidth(0_deg))).build(), std::invalid_argument);
-    EXPECT_THROW(requestBuilder().confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(-1_deg), math::AngularWidth(-1_deg))).build(), std::invalid_argument);
-    EXPECT_THROW(requestBuilder().trackingBeamWidth(beam::BeamWidth(math::AngularWidth(0_deg), math::AngularWidth(0_deg))).build(), std::invalid_argument);
-    EXPECT_THROW(requestBuilder().trackingBeamWidth(beam::BeamWidth(math::AngularWidth(-1_deg), math::AngularWidth(-1_deg))).build(), std::invalid_argument);
+    EXPECT_THROW(requestBuilder().confirmationBeamWidth(beam::BeamWidth(0_deg, 0_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(requestBuilder().confirmationBeamWidth(beam::BeamWidth(-1_deg, -1_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(requestBuilder().trackingBeamWidth(beam::BeamWidth(0_deg, 0_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(requestBuilder().trackingBeamWidth(beam::BeamWidth(-1_deg, -1_deg)).build(), std::invalid_argument);
 }
 
 TEST(RequestBeamConfigTest, ConstructorValidatesLikeBuilder)
 {
-    EXPECT_NO_THROW(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(2_deg), math::AngularWidth(2_deg)), beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))));
-    EXPECT_THROW(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(0_deg), math::AngularWidth(0_deg)), beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))), std::invalid_argument);
+    EXPECT_NO_THROW(beam::RequestBeamConfig(beam::BeamWidth(2_deg, 2_deg), beam::BeamWidth(4_deg, 4_deg)));
+    EXPECT_THROW(beam::RequestBeamConfig(beam::BeamWidth(0_deg, 0_deg), beam::BeamWidth(4_deg, 4_deg)), std::invalid_argument);
 }
 
 // ================================================================ RequestCoverageConfig
@@ -483,7 +483,7 @@ TEST(BeamConfigTest, BuilderReplacesOnlyGivenSubConfigs)
         .requestBeamConfig(requestBuilder().build())
         .requestCoverageConfig(coverageBuilder().build())
         .searchGridConfig(gridBuilder().azimuthCount(5).build())
-        .requestBeamConfig(requestBuilder().trackingBeamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))).build())
+        .requestBeamConfig(requestBuilder().trackingBeamWidth(beam::BeamWidth(4_deg, 4_deg)).build())
         .build();
 
     EXPECT_EQ(config.searchGrid.azimuthCount(), 5u);
@@ -511,7 +511,7 @@ TEST(BeamConfigTest, ConstructorKeepsGivenSubConfigs)
     const beam::BeamConfig config(
         attitudeBuilder().maxAbsPitch(70_deg).build(),
         gridBuilder().elevationCount(4).build(),
-        requestBuilder().confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(2_deg), math::AngularWidth(2_deg))).build(),
+        requestBuilder().confirmationBeamWidth(beam::BeamWidth(2_deg, 2_deg)).build(),
         coverageBuilder().elevationMin(math::TiltAngle(-5_deg)).build());
 
     EXPECT_EQ(config.attitude.maxAbsPitch(), 70_deg);

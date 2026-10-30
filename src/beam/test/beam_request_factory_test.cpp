@@ -13,7 +13,7 @@ namespace
 
 math::SphericalDirection makeDirection()
 {
-    return math::SphericalDirection(math::CircularAngle(12.5_deg), math::TiltAngle(20.5_deg));
+    return math::SphericalDirection(12.5_deg, 20.5_deg);
 }
 
 // 확인 빔 폭과 추적 빔 폭을 서로 다른 값으로 두어 두 값이 뒤바뀌면 테스트가 실패하게 한다.
@@ -21,10 +21,10 @@ beam::BeamRequestFactory makeFactory()
 {
     return beam::BeamRequestFactory(
         beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
-            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
-            .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg)))
-            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(2_deg), math::AngularWidth(2_deg)))
+            .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+            .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+            .confirmationBeamWidth(beam::BeamWidth(4_deg, 4_deg))
+            .trackingBeamWidth(beam::BeamWidth(2_deg, 2_deg))
             .build());
 }
 

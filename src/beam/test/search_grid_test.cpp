@@ -18,7 +18,7 @@ constexpr std::size_t AZIMUTH_COUNT = 21;
 constexpr std::size_t ELEVATION_COUNT = 9;
 
 const beam::SearchGridConfig DEFAULT_GRID_CONFIG(
-    21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
+    21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg));
 
 beam::AntEnuTransform makeValidTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
@@ -150,8 +150,8 @@ TEST(SearchGridTest, GridMatchesAnglesConvertedToEnuFrame)
     {
         const math::SphericalDirection direction_enu = transform.antToEnu(
             math::SphericalDirection(
-                math::CircularAngle(gridAzimuth(beamIndex)),
-                math::TiltAngle(gridElevation(beamIndex))));
+                gridAzimuth(beamIndex),
+                gridElevation(beamIndex)));
         EXPECT_TRUE(beams[beamIndex].direction_enu.azimuth.isEquivalentTo(direction_enu.azimuth)) << "beamIndex=" << beamIndex;
         EXPECT_EQ(beams[beamIndex].direction_enu.elevation, direction_enu.elevation) << "beamIndex=" << beamIndex;
     }
@@ -215,7 +215,7 @@ TEST(SearchGridTest, CustomGridChangesBeamCountAndIds)
         .azimuthStep(4.2_deg)
         .elevationStart(math::TiltAngle(3_deg))
         .elevationStep(4.4_deg)
-        .beamWidth(beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)))
+        .beamWidth(beam::BeamWidth(6_deg, 6_deg))
         .azimuthCount(3)
         .elevationCount(2)
         .build();
@@ -239,14 +239,14 @@ TEST(SearchGridTest, CustomGridUsesConfiguredStartStepAndWidth)
         .azimuthStep(4.2_deg)
         .elevationStart(math::TiltAngle(3_deg))
         .elevationStep(4.4_deg)
-        .beamWidth(beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)))
+        .beamWidth(beam::BeamWidth(6_deg, 6_deg))
         .azimuthCount(3)
         .elevationCount(2)
         .azimuthStart(math::CircularAngle(-10_deg))
         .azimuthStep(5_deg)
         .elevationStart(math::TiltAngle(1_deg))
         .elevationStep(2_deg)
-        .beamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg)))
+        .beamWidth(beam::BeamWidth(4_deg, 4_deg))
         .build();
 
     const std::vector<beam::SearchBeam> beams = takeAllBeams(makeValidTransform(0_deg, 0_deg, 0_deg), config);
@@ -281,7 +281,7 @@ TEST(SearchGridTest, LargeStepWithSingleBeamPerAxisIsAccepted)
         .azimuthStep(4.2_deg)
         .elevationStart(math::TiltAngle(3_deg))
         .elevationStep(4.4_deg)
-        .beamWidth(beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)))
+        .beamWidth(beam::BeamWidth(6_deg, 6_deg))
         .azimuthCount(1)
         .azimuthStep(maxAngle)
         .elevationCount(1)
@@ -303,7 +303,7 @@ TEST(SearchGridTest, LargeAzimuthStartWithSingleBeamPreservesWrappedDirection)
         .azimuthStep(4.2_deg)
         .elevationStart(math::TiltAngle(3_deg))
         .elevationStep(4.4_deg)
-        .beamWidth(beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)))
+        .beamWidth(beam::BeamWidth(6_deg, 6_deg))
         .azimuthCount(1)
         .elevationCount(1)
         .azimuthStart(math::CircularAngle(1e18_deg))
@@ -337,7 +337,7 @@ TEST(SearchGridTest, SingleBeamGridReturnsTheSameBeamEveryTime)
         .azimuthStep(4.2_deg)
         .elevationStart(math::TiltAngle(3_deg))
         .elevationStep(4.4_deg)
-        .beamWidth(beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)))
+        .beamWidth(beam::BeamWidth(6_deg, 6_deg))
         .azimuthCount(1)
         .elevationCount(1)
         .build();

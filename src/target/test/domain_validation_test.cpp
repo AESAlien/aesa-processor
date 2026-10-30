@@ -41,7 +41,7 @@ static_assert(std::is_same_v<decltype(std::declval<const Target&>().trackingStat
 
 math::SphericalPosition position(math::Length range = 1000_m)
 {
-    return math::SphericalPosition{math::Distance(range), math::SphericalDirection(math::CircularAngle(0_deg), math::TiltAngle(0_deg))};
+    return math::SphericalPosition{range, 0_deg, 0_deg};
 }
 
 Target observation(

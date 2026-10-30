@@ -42,7 +42,7 @@ inline beam::SearchGridConfig makeSearchGridConfig()
         4.2_deg,
         math::TiltAngle(3_deg),
         4.4_deg,
-        beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
+        beam::BeamWidth(6_deg, 6_deg));
 }
 
 // 시나리오는 스케줄링 순서를 보기 위한 것이므로, 추적 영역 판정으로 요청이 걸러지지 않도록 모든 방향을 허용한다.
@@ -111,8 +111,8 @@ inline RequestSpec makeRequestSpec(
     // 요청 빔 폭은 기본 설정(3도)을 쓴다.
     static const beam::BeamRequestFactory factory{
         beam::RequestBeamConfig(
-            beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)),
-            beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))};
+            beam::BeamWidth(3_deg, 3_deg),
+            beam::BeamWidth(3_deg, 3_deg))};
     return RequestSpec{
         name,
         factory.create(beam::RequestBeamCommand(
@@ -120,8 +120,8 @@ inline RequestSpec makeRequestSpec(
             transmitTime,
             REQUEST_ID,
             math::SphericalDirection(
-                math::CircularAngle::fromDegrees(azimuth_deg),
-                math::TiltAngle::fromDegrees(elevation_deg))))
+                math::Angle::fromDegrees(azimuth_deg),
+                math::Angle::fromDegrees(elevation_deg))))
     };
 }
 

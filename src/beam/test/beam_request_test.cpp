@@ -15,12 +15,12 @@ namespace
 
 math::SphericalDirection makeDirection()
 {
-    return math::SphericalDirection(math::CircularAngle(12.5_deg), math::TiltAngle(20.5_deg));
+    return math::SphericalDirection(12.5_deg, 20.5_deg);
 }
 
 beam::BeamWidth makeBeamWidth(math::Angle azimuth, math::Angle elevation)
 {
-    return beam::BeamWidth(math::AngularWidth(azimuth), math::AngularWidth(elevation));
+    return beam::BeamWidth(azimuth, elevation);
 }
 
 } // namespace

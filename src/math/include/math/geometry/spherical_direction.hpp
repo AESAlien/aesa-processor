@@ -11,6 +11,7 @@ class Vector;
 struct SphericalDirection
 {
     // 방위각은 [0, 360)도로 정규화한다. 고각이 [-90, 90]도 범위를 벗어나면 std::invalid_argument를 던진다.
+    SphericalDirection(Angle azimuth, Angle elevation);
     SphericalDirection(CircularAngle azimuth, TiltAngle elevation) noexcept;
 
     // 방위각 0도의 방향을 +y축으로 하는 직교 좌표계의 단위벡터를 반환한다.

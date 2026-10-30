@@ -15,7 +15,7 @@ namespace
 {
 math::SphericalPosition position(math::Length range)
 {
-    return math::SphericalPosition{math::Distance(range), math::SphericalDirection(math::CircularAngle(0_deg), math::TiltAngle(0_deg))};
+    return math::SphericalPosition{range, 0_deg, 0_deg};
 }
 } // namespace
 

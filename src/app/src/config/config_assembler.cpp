@@ -1,7 +1,6 @@
 #include "config_assembler.hpp"
 
 #include <math/quantity/angle.hpp>
-#include <math/bounded/angular_width.hpp>
 #include <math/bounded/circular_angle.hpp>
 #include <math/bounded/tilt_angle.hpp>
 #include <math/quantity/length.hpp>
@@ -91,15 +90,15 @@ beam::BeamConfig ConfigAssembler::createBeamConfig()
                 math::TiltAngle::fromDegrees(SEARCH_ELEVATION_START_DEG),
                 math::Angle::fromDegrees(SEARCH_ELEVATION_STEP_DEG),
                 beam::BeamWidth(
-                    math::AngularWidth(math::Angle::fromDegrees(SEARCH_WIDTH_DEG)),
-                    math::AngularWidth(math::Angle::fromDegrees(SEARCH_WIDTH_DEG)))),
+                    math::Angle::fromDegrees(SEARCH_WIDTH_DEG),
+                    math::Angle::fromDegrees(SEARCH_WIDTH_DEG))),
             beam::RequestBeamConfig(
                 beam::BeamWidth(
-                    math::AngularWidth(math::Angle::fromDegrees(CONFIRMATION_WIDTH_DEG)),
-                    math::AngularWidth(math::Angle::fromDegrees(CONFIRMATION_WIDTH_DEG))),
+                    math::Angle::fromDegrees(CONFIRMATION_WIDTH_DEG),
+                    math::Angle::fromDegrees(CONFIRMATION_WIDTH_DEG)),
                 beam::BeamWidth(
-                    math::AngularWidth(math::Angle::fromDegrees(TRACKING_WIDTH_DEG)),
-                    math::AngularWidth(math::Angle::fromDegrees(TRACKING_WIDTH_DEG)))),
+                    math::Angle::fromDegrees(TRACKING_WIDTH_DEG),
+                    math::Angle::fromDegrees(TRACKING_WIDTH_DEG))),
             beam::RequestCoverageConfig(
                 math::Angle::fromDegrees(REQUEST_COVERAGE_AZIMUTH_MIN_DEG),
                 math::Angle::fromDegrees(REQUEST_COVERAGE_AZIMUTH_MAX_DEG),

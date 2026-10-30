@@ -33,7 +33,7 @@ beam::RequestCoverage makeCoverage(math::Angle roll, math::Angle pitch, math::An
 
 math::SphericalDirection direction(math::Angle azimuth, math::Angle elevation)
 {
-    return math::SphericalDirection(math::CircularAngle(azimuth), math::TiltAngle(elevation));
+    return math::SphericalDirection(azimuth, elevation);
 }
 
 } // namespace

@@ -27,7 +27,7 @@ const beam::SearchGridConfig GRID_CONFIG(
     4.2_deg,
     math::TiltAngle(3_deg),
     4.4_deg,
-    beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
+    beam::BeamWidth(6_deg, 6_deg));
 
 // 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도
 beam::RequestCoverageConfig makeCoverageConfig()
@@ -74,7 +74,7 @@ beam::BeamRequest makeRequest(
     math::Angle elevation
 ) {
     return factory.create(beam::RequestBeamCommand(
-        beamType, transmitTime, requestId, math::SphericalDirection(math::CircularAngle(azimuth), math::TiltAngle(elevation))));
+        beamType, transmitTime, requestId, math::SphericalDirection(azimuth, elevation)));
 }
 
 beam::BeamRequest makeRequest(
@@ -85,7 +85,7 @@ beam::BeamRequest makeRequest(
     math::Angle elevation
 ) {
     static const beam::BeamRequestFactory factory{
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))};
+        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg))};
     return makeRequest(factory, beamType, transmitTime, requestId, azimuth, elevation);
 }
 
@@ -545,14 +545,14 @@ TEST(SchedulerTest, RequestBeamWidthFollowsEachRequest)
 {
     const beam::BeamRequestFactory factory(
         beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
-            .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
+            .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+            .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg))
             .confirmationBeamWidth(beam::BeamWidth(
-                math::AngularWidth(2_deg),
-                math::AngularWidth(3_deg)))
+                2_deg,
+                3_deg))
             .trackingBeamWidth(beam::BeamWidth(
-                math::AngularWidth(4_deg),
-                math::AngularWidth(5_deg)))
+                4_deg,
+                5_deg))
             .build());
     beam::Scheduler scheduler;
     makeReady(scheduler);

@@ -5,6 +5,17 @@
 
 namespace math
 {
+SphericalPosition::SphericalPosition(Length radius, Angle azimuth, Angle elevation)
+    : SphericalPosition(Distance(radius), SphericalDirection(azimuth, elevation))
+{
+}
+
+SphericalPosition::SphericalPosition(Distance radius, SphericalDirection direction) noexcept
+    : radius(radius),
+      direction(direction)
+{
+}
+
 CartesianPosition SphericalPosition::toCartesian() const
 {
     const Vector position = direction.toCartesianUnitVector() * radius.m();

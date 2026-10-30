@@ -31,12 +31,8 @@ beam::TransmitBeamCommand makeBeamCommand(
         transmitTime,
         21,
         7,
-        math::SphericalDirection(
-            math::CircularAngle(10.5_deg),
-            math::TiltAngle(-4.5_deg)),
-        beam::BeamWidth(
-            math::AngularWidth(math::Angle::fromDegrees(azimuthBeamWidth)),
-            math::AngularWidth(2.75_deg)));
+        math::SphericalDirection(10.5_deg, -4.5_deg),
+        beam::BeamWidth(math::Angle::fromDegrees(azimuthBeamWidth), 2.75_deg));
 }
 
 target::TrackEvent makeTrackEvent(
@@ -85,12 +81,8 @@ float encodeAzimuthToWire(double azimuthDegrees)
         1234ms,
         21,
         7,
-        math::SphericalDirection(
-            math::CircularAngle::fromDegrees(azimuthDegrees),
-            math::TiltAngle(-4.5_deg)),
-        beam::BeamWidth(
-            math::AngularWidth(3.25_deg),
-            math::AngularWidth(2.75_deg)));
+        math::SphericalDirection(math::Angle::fromDegrees(azimuthDegrees), -4.5_deg),
+        beam::BeamWidth(3.25_deg, 2.75_deg));
 
     const comm::EncodeResult result = comm::encodeBeamCommand(command);
     if (result.error != comm::EncodingError::NONE || !result.bytes.has_value())

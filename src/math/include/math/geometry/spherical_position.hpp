@@ -11,6 +11,9 @@ struct CartesianPosition;
 
 struct SphericalPosition
 {
+    SphericalPosition(Length radius, Angle azimuth, Angle elevation);
+    SphericalPosition(Distance radius, SphericalDirection direction) noexcept;
+
     // 방위각 0도는 +y축, +90도는 +x축, 양의 고각은 +z축인 직교 위치를 반환한다.
     // 반지름이 0이면 방향과 관계없이 원점을 반환한다.
     CartesianPosition toCartesian() const;
