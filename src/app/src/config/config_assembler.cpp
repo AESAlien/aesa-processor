@@ -2,8 +2,8 @@
 
 #include <math/quantity/angle.hpp>
 #include <math/geometry/angular_width.hpp>
-#include <math/geometry/azimuth.hpp>
-#include <math/geometry/elevation.hpp>
+#include <math/geometry/circular_angle.hpp>
+#include <math/geometry/tilt_angle.hpp>
 #include <math/quantity/length.hpp>
 #include <math/quantity/linear_acceleration.hpp>
 #include <math/quantity/linear_velocity.hpp>
@@ -86,9 +86,9 @@ beam::BeamConfig ConfigAssembler::createBeamConfig()
             beam::SearchGridConfig(
                 SEARCH_AZIMUTH_COUNT,
                 SEARCH_ELEVATION_COUNT,
-                math::Azimuth::fromDegrees(SEARCH_AZIMUTH_START_DEG),
+                math::CircularAngle::fromDegrees(SEARCH_AZIMUTH_START_DEG),
                 math::Angle::fromDegrees(SEARCH_AZIMUTH_STEP_DEG),
-                math::Elevation::fromDegrees(SEARCH_ELEVATION_START_DEG),
+                math::TiltAngle::fromDegrees(SEARCH_ELEVATION_START_DEG),
                 math::Angle::fromDegrees(SEARCH_ELEVATION_STEP_DEG),
                 beam::BeamWidth(
                     math::AngularWidth(math::Angle::fromDegrees(SEARCH_WIDTH_DEG)),
@@ -103,8 +103,8 @@ beam::BeamConfig ConfigAssembler::createBeamConfig()
             beam::RequestCoverageConfig(
                 math::Angle::fromDegrees(REQUEST_COVERAGE_AZIMUTH_MIN_DEG),
                 math::Angle::fromDegrees(REQUEST_COVERAGE_AZIMUTH_MAX_DEG),
-                math::Elevation::fromDegrees(REQUEST_COVERAGE_ELEVATION_MIN_DEG),
-                math::Elevation::fromDegrees(REQUEST_COVERAGE_ELEVATION_MAX_DEG)));
+                math::TiltAngle::fromDegrees(REQUEST_COVERAGE_ELEVATION_MIN_DEG),
+                math::TiltAngle::fromDegrees(REQUEST_COVERAGE_ELEVATION_MAX_DEG)));
     }
     catch (const std::invalid_argument& error)
     {

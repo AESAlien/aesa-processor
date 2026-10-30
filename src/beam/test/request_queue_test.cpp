@@ -21,7 +21,7 @@ beam::BeamRequest makeRequest(
             beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)),
             beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))};
     return factory.create(beam::RequestBeamCommand(
-        beamType, transmitTime, 1, math::SphericalDirection(math::Azimuth(azimuth), math::Elevation(0_deg))));
+        beamType, transmitTime, 1, math::SphericalDirection(math::CircularAngle(azimuth), math::TiltAngle(0_deg))));
 }
 
 beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)

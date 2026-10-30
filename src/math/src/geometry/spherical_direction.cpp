@@ -9,7 +9,7 @@
 
 namespace math
 {
-SphericalDirection::SphericalDirection(Azimuth azimuth, Elevation elevation) noexcept
+SphericalDirection::SphericalDirection(CircularAngle azimuth, TiltAngle elevation) noexcept
     : azimuth(azimuth),
       elevation(elevation)
 {
@@ -48,8 +48,8 @@ SphericalDirection SphericalDirection::fromCartesianUnitVector(const Vector& vec
     const double horizontalNorm = std::hypot(x, y);
 
     return SphericalDirection(
-        Azimuth::fromRadians(std::atan2(x, y)),
-        Elevation::fromRadians(std::atan2(z, horizontalNorm)));
+        CircularAngle::fromRadians(std::atan2(x, y)),
+        TiltAngle::fromRadians(std::atan2(z, horizontalNorm)));
 }
 
 }

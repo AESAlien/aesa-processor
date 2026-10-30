@@ -13,7 +13,7 @@ namespace
 
 math::SphericalDirection makeDirection()
 {
-    return math::SphericalDirection(math::Azimuth(12.5_deg), math::Elevation(20.5_deg));
+    return math::SphericalDirection(math::CircularAngle(12.5_deg), math::TiltAngle(20.5_deg));
 }
 
 // 확인 빔 폭과 추적 빔 폭을 서로 다른 값으로 두어 두 값이 뒤바뀌면 테스트가 실패하게 한다.

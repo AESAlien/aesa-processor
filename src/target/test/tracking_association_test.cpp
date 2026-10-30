@@ -34,7 +34,7 @@ static_assert(std::is_same_v<
 
 math::SphericalPosition position(math::Length range)
 {
-    return math::SphericalPosition{math::Distance(range), math::SphericalDirection(math::Azimuth(0_deg), math::Elevation(0_deg))};
+    return math::SphericalPosition{math::Distance(range), math::SphericalDirection(math::CircularAngle(0_deg), math::TiltAngle(0_deg))};
 }
 
 DetectionEvent result(
@@ -46,7 +46,7 @@ DetectionEvent result(
     std::vector<DetectionEvent::Plot> plots;
     for (const auto range : ranges)
     {
-        plots.emplace_back(math::Distance(range), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f);
+        plots.emplace_back(math::Distance(range), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f);
     }
     return DetectionEvent(type, id, time, std::move(plots));
 }
@@ -177,13 +177,13 @@ TEST_F(TrackingAssociationTest, EqualSlantRangesStillUseAzimuthAndElevationDispl
         SCOPED_TRACE(elevationOnly);
         const Target near(math::SphericalPosition{math::Distance(1000_m),
                 math::SphericalDirection(
-                    math::Azimuth(elevationOnly ? 0_deg : 1_deg),
-                    math::Elevation(elevationOnly ? 1_deg : 0_deg))},
+                    math::CircularAngle(elevationOnly ? 0_deg : 1_deg),
+                    math::TiltAngle(elevationOnly ? 1_deg : 0_deg))},
             0_mps, -10.0f, 1100ms, _algorithm);
         const Target far(math::SphericalPosition{math::Distance(1000_m),
                 math::SphericalDirection(
-                    math::Azimuth(elevationOnly ? 0_deg : 3_deg),
-                    math::Elevation(elevationOnly ? 3_deg : 0_deg))},
+                    math::CircularAngle(elevationOnly ? 0_deg : 3_deg),
+                    math::TiltAngle(elevationOnly ? 3_deg : 0_deg))},
             0_mps, -10.0f, 1100ms, _algorithm);
         // At 1000 m, one degree gives about 17.45 m displacement; three give 52.35 m.
         EXPECT_TRUE(_matcher.matchesTracking(near, tracking));

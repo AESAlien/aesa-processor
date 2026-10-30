@@ -77,9 +77,9 @@ int main(int argc, char** argv)
         const beam::SearchGridConfig config(
             21,
             9,
-            math::Azimuth(-42_deg),
+            math::CircularAngle(-42_deg),
             4.2_deg,
-            math::Elevation(3_deg),
+            math::TiltAngle(3_deg),
             4.4_deg,
             beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
         beam::SearchGrid grid(xform, config);

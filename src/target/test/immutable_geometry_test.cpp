@@ -15,7 +15,7 @@ namespace
 {
 math::SphericalPosition position(math::Length range)
 {
-    return math::SphericalPosition{math::Distance(range), math::SphericalDirection(math::Azimuth(0_deg), math::Elevation(0_deg))};
+    return math::SphericalPosition{math::Distance(range), math::SphericalDirection(math::CircularAngle(0_deg), math::TiltAngle(0_deg))};
 }
 } // namespace
 
@@ -61,13 +61,13 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
         target::TargetController controller(target::TargetConfig(
             1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
         const auto confirmation = controller.handleDetection(target::DetectionEvent(
-            BeamType::SEARCH, 1, 0ms, {{math::Distance(100_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, 1.0f}}));
+            BeamType::SEARCH, 1, 0ms, {{math::Distance(100_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, 1.0f}}));
         ASSERT_TRUE(confirmation.has_value());
         const auto tracking = controller.handleDetection(target::DetectionEvent(
             BeamType::CONFIRMATION,
             confirmation->requestId,
             1000ms,
-            {{math::Distance::fromMeters(100.0 + displacement), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, 1.0f}}));
+            {{math::Distance::fromMeters(100.0 + displacement), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, 1.0f}}));
         ASSERT_TRUE(tracking.has_value());
         const auto events = controller.nextTrackEvents();
         ASSERT_EQ(events.size(), 1u);

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <beam/dto/beam_type.hpp>
-#include <math/geometry/azimuth.hpp>
-#include <math/geometry/elevation.hpp>
+#include <math/geometry/circular_angle.hpp>
+#include <math/geometry/tilt_angle.hpp>
 #include <math/geometry/distance.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
@@ -27,15 +27,15 @@ struct DetectionEvent
     struct Plot
     {
         math::Distance slantRange;
-        math::Azimuth azimuth;
-        math::Elevation elevation;
+        math::CircularAngle azimuth;
+        math::TiltAngle elevation;
         math::LinearVelocity dopplerVelocity;
         float power_db;
 
         Plot(
             math::Distance slantRange,
-            math::Azimuth azimuth,
-            math::Elevation elevation,
+            math::CircularAngle azimuth,
+            math::TiltAngle elevation,
             math::LinearVelocity dopplerVelocity,
             float power_db
         ) : slantRange(slantRange),
@@ -50,8 +50,8 @@ struct DetectionEvent
         {
         public:
             Builder& slantRange(math::Distance value) { _slantRange = value; return *this; }
-            Builder& azimuth(math::Azimuth value) { _azimuth = value; return *this; }
-            Builder& elevation(math::Elevation value) { _elevation = value; return *this; }
+            Builder& azimuth(math::CircularAngle value) { _azimuth = value; return *this; }
+            Builder& elevation(math::TiltAngle value) { _elevation = value; return *this; }
             Builder& dopplerVelocity(math::LinearVelocity value) { _dopplerVelocity = value; return *this; }
             Builder& power_db(float value) { _power_db = value; return *this; }
 
@@ -64,8 +64,8 @@ struct DetectionEvent
 
         private:
             std::optional<math::Distance> _slantRange;
-            std::optional<math::Azimuth> _azimuth;
-            std::optional<math::Elevation> _elevation;
+            std::optional<math::CircularAngle> _azimuth;
+            std::optional<math::TiltAngle> _elevation;
             std::optional<math::LinearVelocity> _dopplerVelocity;
             std::optional<float> _power_db;
         };

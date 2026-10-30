@@ -1,7 +1,7 @@
 add_library(math STATIC
     src/geometry/angular_width.cpp
-    src/geometry/azimuth.cpp
-    src/geometry/elevation.cpp
+    src/geometry/circular_angle.cpp
+    src/geometry/tilt_angle.cpp
     src/geometry/distance.cpp
     src/geometry/cartesian_acceleration.cpp
     src/geometry/cartesian_displacement.cpp

@@ -9,9 +9,9 @@ using namespace math::literals;
 
 TEST(TrigonometryTest, SupportsGeometryAnglesWithoutUnwrapping)
 {
-    EXPECT_NEAR(math::sin(math::Azimuth(30_deg)), 0.5, 1e-12);
-    EXPECT_NEAR(math::cos(math::Elevation(60_deg)), 0.5, 1e-12);
-    EXPECT_NEAR(math::tan(math::Elevation(45_deg)), 1.0, 1e-12);
+    EXPECT_NEAR(math::sin(math::CircularAngle(30_deg)), 0.5, 1e-12);
+    EXPECT_NEAR(math::cos(math::TiltAngle(60_deg)), 0.5, 1e-12);
+    EXPECT_NEAR(math::tan(math::TiltAngle(45_deg)), 1.0, 1e-12);
 }
 
 

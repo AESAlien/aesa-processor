@@ -10,8 +10,8 @@ using namespace math::literals;
 RequestCoverageConfig::RequestCoverageConfig(
     math::Angle azimuthMin,
     math::Angle azimuthMax,
-    math::Elevation elevationMin,
-    math::Elevation elevationMax
+    math::TiltAngle elevationMin,
+    math::TiltAngle elevationMax
 ) : _azimuthMin(azimuthMin),
     _azimuthMax(azimuthMax),
     _elevationMin(elevationMin),
@@ -30,12 +30,12 @@ const math::Angle& RequestCoverageConfig::azimuthMax() const noexcept
     return _azimuthMax;
 }
 
-const math::Elevation& RequestCoverageConfig::elevationMin() const noexcept
+const math::TiltAngle& RequestCoverageConfig::elevationMin() const noexcept
 {
     return _elevationMin;
 }
 
-const math::Elevation& RequestCoverageConfig::elevationMax() const noexcept
+const math::TiltAngle& RequestCoverageConfig::elevationMax() const noexcept
 {
     return _elevationMax;
 }

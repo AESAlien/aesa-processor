@@ -23,16 +23,16 @@ constexpr std::size_t AZIMUTH_COUNT = 21;
 const beam::SearchGridConfig GRID_CONFIG(
     AZIMUTH_COUNT,
     9,
-    math::Azimuth(-42_deg),
+    math::CircularAngle(-42_deg),
     4.2_deg,
-    math::Elevation(3_deg),
+    math::TiltAngle(3_deg),
     4.4_deg,
     beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
 
 // 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도
 beam::RequestCoverageConfig makeCoverageConfig()
 {
-    return beam::RequestCoverageConfig(-60_deg, 60_deg, math::Elevation(-10_deg), math::Elevation(60_deg));
+    return beam::RequestCoverageConfig(-60_deg, 60_deg, math::TiltAngle(-10_deg), math::TiltAngle(60_deg));
 }
 
 // 자세정보로 탐색 격자와 영역 판정을 만드는 일은 BeamController가 맡으므로, 테스트에서는 직접 만들어 넘긴다.
@@ -74,7 +74,7 @@ beam::BeamRequest makeRequest(
     math::Angle elevation
 ) {
     return factory.create(beam::RequestBeamCommand(
-        beamType, transmitTime, requestId, math::SphericalDirection(math::Azimuth(azimuth), math::Elevation(elevation))));
+        beamType, transmitTime, requestId, math::SphericalDirection(math::CircularAngle(azimuth), math::TiltAngle(elevation))));
 }
 
 beam::BeamRequest makeRequest(

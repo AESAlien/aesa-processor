@@ -32,8 +32,8 @@ beam::TransmitBeamCommand makeBeamCommand(
         21,
         7,
         math::SphericalDirection(
-            math::Azimuth(10.5_deg),
-            math::Elevation(-4.5_deg)),
+            math::CircularAngle(10.5_deg),
+            math::TiltAngle(-4.5_deg)),
         beam::BeamWidth(
             math::AngularWidth(math::Angle::fromDegrees(azimuthBeamWidth)),
             math::AngularWidth(2.75_deg)));
@@ -49,8 +49,8 @@ target::TrackEvent makeTrackEvent(
         target::TrackEvent::TrackState::TRACKING,
         math::Distance::fromKilometers(slantRangeKilometers),
         math::Distance(10.25_km),
-        math::Azimuth(15.5_deg),
-        math::Elevation(6.25_deg),
+        math::CircularAngle(15.5_deg),
+        math::TiltAngle(6.25_deg),
         -120.5_mps,
         37.5_deg,
         127.25_deg,
@@ -77,7 +77,7 @@ Value readValue(
 }
 
 // 방위각이 azimuthDegrees인 빔 명령을 인코딩해서 와이어의 방위각(beam_az_deg)을 반환한다.
-// 방위각은 Azimuth가 [0, 360)으로 정규화하며, 시뮬레이터 규격도 0-360이다.
+// 방위각은 CircularAngle이 [0, 360)으로 정규화하며, 시뮬레이터 규격도 0-360이다.
 float encodeAzimuthToWire(double azimuthDegrees)
 {
     const beam::TransmitBeamCommand command(
@@ -86,8 +86,8 @@ float encodeAzimuthToWire(double azimuthDegrees)
         21,
         7,
         math::SphericalDirection(
-            math::Azimuth::fromDegrees(azimuthDegrees),
-            math::Elevation(-4.5_deg)),
+            math::CircularAngle::fromDegrees(azimuthDegrees),
+            math::TiltAngle(-4.5_deg)),
         beam::BeamWidth(
             math::AngularWidth(3.25_deg),
             math::AngularWidth(2.75_deg)));

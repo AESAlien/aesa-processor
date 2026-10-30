@@ -15,7 +15,7 @@ namespace
 
 math::SphericalDirection makeDirection()
 {
-    return math::SphericalDirection(math::Azimuth(12.5_deg), math::Elevation(20.5_deg));
+    return math::SphericalDirection(math::CircularAngle(12.5_deg), math::TiltAngle(20.5_deg));
 }
 
 beam::BeamWidth makeBeamWidth(math::Angle azimuth, math::Angle elevation)

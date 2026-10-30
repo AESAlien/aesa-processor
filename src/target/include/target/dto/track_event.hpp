@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <optional>
 #include <math/quantity/angle.hpp>
-#include <math/geometry/azimuth.hpp>
+#include <math/geometry/circular_angle.hpp>
 #include <math/geometry/distance.hpp>
-#include <math/geometry/elevation.hpp>
+#include <math/geometry/tilt_angle.hpp>
 #include <math/quantity/length.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
@@ -21,8 +21,8 @@ struct TrackEvent
     TrackState state;
     math::Distance slantRange;
     math::Distance groundRange;
-    math::Azimuth azimuth;
-    math::Elevation elevation;
+    math::CircularAngle azimuth;
+    math::TiltAngle elevation;
     math::LinearVelocity dopplerVelocity;
     math::Angle latitude;
     math::Angle longitude;
@@ -44,8 +44,8 @@ struct TrackEvent
         TrackState state,
         math::Distance slantRange,
         math::Distance groundRange,
-        math::Azimuth azimuth,
-        math::Elevation elevation,
+        math::CircularAngle azimuth,
+        math::TiltAngle elevation,
         math::LinearVelocity dopplerVelocity,
         math::Angle latitude,
         math::Angle longitude,
@@ -78,8 +78,8 @@ struct TrackEvent
         Builder& state(TrackState value) { _state = value; return *this; }
         Builder& slantRange(math::Distance value) { _slantRange = value; return *this; }
         Builder& groundRange(math::Distance value) { _groundRange = value; return *this; }
-        Builder& azimuth(math::Azimuth value) { _azimuth = value; return *this; }
-        Builder& elevation(math::Elevation value) { _elevation = value; return *this; }
+        Builder& azimuth(math::CircularAngle value) { _azimuth = value; return *this; }
+        Builder& elevation(math::TiltAngle value) { _elevation = value; return *this; }
         Builder& dopplerVelocity(math::LinearVelocity value) { _dopplerVelocity = value; return *this; }
         Builder& latitude(math::Angle value) { _latitude = value; return *this; }
         Builder& longitude(math::Angle value) { _longitude = value; return *this; }
@@ -103,8 +103,8 @@ struct TrackEvent
         std::optional<TrackState> _state;
         std::optional<math::Distance> _slantRange;
         std::optional<math::Distance> _groundRange;
-        std::optional<math::Azimuth> _azimuth;
-        std::optional<math::Elevation> _elevation;
+        std::optional<math::CircularAngle> _azimuth;
+        std::optional<math::TiltAngle> _elevation;
         std::optional<math::LinearVelocity> _dopplerVelocity;
         std::optional<math::Angle> _latitude;
         std::optional<math::Angle> _longitude;
