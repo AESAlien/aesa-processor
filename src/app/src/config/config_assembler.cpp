@@ -1,9 +1,9 @@
 #include "config_assembler.hpp"
 
 #include <math/quantity/angle.hpp>
-#include <math/geometry/angular_width.hpp>
-#include <math/geometry/circular_angle.hpp>
-#include <math/geometry/tilt_angle.hpp>
+#include <math/bounded/angular_width.hpp>
+#include <math/bounded/circular_angle.hpp>
+#include <math/bounded/tilt_angle.hpp>
 #include <math/quantity/length.hpp>
 #include <math/quantity/linear_acceleration.hpp>
 #include <math/quantity/linear_velocity.hpp>

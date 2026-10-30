@@ -1,9 +1,9 @@
 #pragma once
 
 #include <beam/dto/beam_type.hpp>
-#include <math/geometry/circular_angle.hpp>
-#include <math/geometry/tilt_angle.hpp>
-#include <math/geometry/distance.hpp>
+#include <math/bounded/circular_angle.hpp>
+#include <math/bounded/tilt_angle.hpp>
+#include <math/bounded/distance.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
 #include <chrono>

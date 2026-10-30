@@ -1,4 +1,4 @@
-#include "math/geometry/tilt_angle.hpp"
+#include "math/bounded/tilt_angle.hpp"
 
 #include "math/quantity/angle.hpp"
 

@@ -3,8 +3,8 @@
 #include <beam/domain/beam_width.hpp>
 
 #include <math/quantity/angle.hpp>
-#include <math/geometry/circular_angle.hpp>
-#include <math/geometry/tilt_angle.hpp>
+#include <math/bounded/circular_angle.hpp>
+#include <math/bounded/tilt_angle.hpp>
 
 #include <cstddef>
 #include <optional>

@@ -1,8 +1,8 @@
 add_library(math STATIC
-    src/geometry/angular_width.cpp
-    src/geometry/circular_angle.cpp
-    src/geometry/tilt_angle.cpp
-    src/geometry/distance.cpp
+    src/bounded/angular_width.cpp
+    src/bounded/circular_angle.cpp
+    src/bounded/tilt_angle.cpp
+    src/bounded/distance.cpp
     src/geometry/cartesian_acceleration.cpp
     src/geometry/cartesian_displacement.cpp
     src/geometry/cartesian_position.cpp

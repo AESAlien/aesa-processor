@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math/geometry/distance.hpp"
+#include "math/bounded/distance.hpp"
 #include "math/geometry/spherical_direction.hpp"
 #include "math/quantity/length.hpp"
 

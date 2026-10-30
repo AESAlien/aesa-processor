@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <optional>
 #include <math/quantity/angle.hpp>
-#include <math/geometry/circular_angle.hpp>
-#include <math/geometry/distance.hpp>
-#include <math/geometry/tilt_angle.hpp>
+#include <math/bounded/circular_angle.hpp>
+#include <math/bounded/distance.hpp>
+#include <math/bounded/tilt_angle.hpp>
 #include <math/quantity/length.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
@@ -24,8 +24,8 @@ struct TrackEvent
     math::CircularAngle azimuth;
     math::TiltAngle elevation;
     math::LinearVelocity dopplerVelocity;
-    math::Angle latitude;
-    math::Angle longitude;
+    math::TiltAngle latitude;
+    math::CircularAngle longitude;
     math::Length altitude;
     math::LinearVelocity velocity;
     math::Angle heading;

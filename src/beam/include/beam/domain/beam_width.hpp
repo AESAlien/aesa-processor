@@ -1,6 +1,6 @@
 #pragma once
 
-#include <math/geometry/angular_width.hpp>
+#include <math/bounded/angular_width.hpp>
 
 namespace beam
 {

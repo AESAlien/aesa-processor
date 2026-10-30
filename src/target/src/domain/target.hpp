@@ -2,7 +2,7 @@
 
 #include "tracking_state.hpp"
 
-#include <math/geometry/distance.hpp>
+#include <math/bounded/distance.hpp>
 #include <math/geometry/spherical_position.hpp>
 
 #include <chrono>

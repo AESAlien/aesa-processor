@@ -463,7 +463,7 @@ TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
     EXPECT_THROW(controller.setAttitude(command), std::invalid_argument);
 }
 
-TEST(BeamControllerTest, LatitudeLongitudeAltitudeAreNotValidated)
+TEST(BeamControllerTest, NormalizesLongitudeAndLeavesAltitudeUnvalidated)
 {
     beam::BeamController controller(beam::BeamConfig(
         beam::AttitudeConfig(
@@ -476,8 +476,9 @@ TEST(BeamControllerTest, LatitudeLongitudeAltitudeAreNotValidated)
         makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
 
-    // 위도·경도·고도는 빔 모듈에서 쓰지 않으므로 범위를 벗어나도 탐색을 시작한다.
-    const beam::SetAttitudeCommand command(95_deg, 181_deg, 101_km, 0_deg, 0_deg, 0_deg);
+    // 경도는 정규화하고 고도는 빔 모듈에서 쓰지 않으므로 범위를 검사하지 않는다.
+    const beam::SetAttitudeCommand command(37_deg, -179_deg, 101_km, 0_deg, 0_deg, 0_deg);
+    EXPECT_EQ(command.longitude, 181_deg);
     EXPECT_NO_THROW(controller.setAttitude(command));
     EXPECT_TRUE(controller.nextBeamCommand(0ms).has_value());
 }

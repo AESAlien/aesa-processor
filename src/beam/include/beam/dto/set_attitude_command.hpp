@@ -1,5 +1,7 @@
 #pragma once
 
+#include <math/bounded/circular_angle.hpp>
+#include <math/bounded/tilt_angle.hpp>
 #include <math/quantity/angle.hpp>
 #include <math/quantity/length.hpp>
 #include <optional>
@@ -9,8 +11,8 @@ namespace beam
 
 struct SetAttitudeCommand
 {
-    math::Angle latitude;
-    math::Angle longitude;
+    math::TiltAngle latitude;
+    math::CircularAngle longitude;
     math::Length altitude;
     math::Angle roll;
     math::Angle pitch;

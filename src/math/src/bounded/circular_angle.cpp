@@ -1,4 +1,4 @@
-#include "math/geometry/circular_angle.hpp"
+#include "math/bounded/circular_angle.hpp"
 
 namespace math
 {

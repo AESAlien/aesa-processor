@@ -1,7 +1,7 @@
 #pragma once
 
-#include "math/geometry/circular_angle.hpp"
-#include "math/geometry/tilt_angle.hpp"
+#include "math/bounded/circular_angle.hpp"
+#include "math/bounded/tilt_angle.hpp"
 
 namespace math
 {
