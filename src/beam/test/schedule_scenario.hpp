@@ -49,7 +49,7 @@ inline beam::SearchGridConfig makeSearchGridConfig()
 // 추적 영역 판정은 request_coverage_test, scheduler_test, beam_controller_test에서 확인한다.
 inline beam::RequestCoverageConfig makeOpenRequestCoverageConfig()
 {
-    return beam::RequestCoverageConfig(-180_deg, 180_deg, math::TiltAngle(-90_deg), math::TiltAngle(90_deg));
+    return beam::RequestCoverageConfig(math::CircularAngleRange(-180_deg, 180_deg), math::AngleRange(-90_deg, 90_deg));
 }
 
 // 주어진 자세로 탐색 격자와 영역 판정(AttitudeFrame)을 만든다. 실제 운용에서는 BeamController가 하는 일이다.

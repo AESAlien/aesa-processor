@@ -1,4 +1,6 @@
 add_library(math STATIC
+    src/range/angle_range.cpp
+    src/range/circular_angle_range.cpp
     src/bounded/angular_width.cpp
     src/bounded/circular_angle.cpp
     src/bounded/tilt_angle.cpp
@@ -31,6 +33,14 @@ if(BUILD_TESTING)
     add_executable(angle_test test/angle_test.cpp)
     target_link_libraries(angle_test PRIVATE math GTest::gtest_main)
     gtest_discover_tests(angle_test)
+
+    add_executable(angle_range_test test/angle_range_test.cpp)
+    target_link_libraries(angle_range_test PRIVATE math GTest::gtest_main)
+    gtest_discover_tests(angle_range_test)
+
+    add_executable(circular_angle_range_test test/circular_angle_range_test.cpp)
+    target_link_libraries(circular_angle_range_test PRIVATE math GTest::gtest_main)
+    gtest_discover_tests(circular_angle_range_test)
 
     add_executable(angular_domain_test test/angular_domain_test.cpp)
     target_link_libraries(angular_domain_test PRIVATE math GTest::gtest_main)

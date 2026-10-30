@@ -22,6 +22,17 @@ TEST(CircularAngleTest, CreatesDirectlyFromDegreesAndRadians)
     EXPECT_EQ(math::CircularAngle::fromRadians(math::PI / 6.0), 30_deg);
 }
 
+TEST(CircularAngleTest, ExposesNormalizedAngle)
+{
+    const math::CircularAngle azimuth(-30_deg);
+    EXPECT_DOUBLE_EQ(azimuth.angle().deg(), 330.0);
+    EXPECT_DOUBLE_EQ(azimuth.angle().rad(), azimuth.rad());
+
+    math::CircularAngle updated(350_deg);
+    updated += 20_deg;
+    EXPECT_DOUBLE_EQ(updated.angle().deg(), 10.0);
+}
+
 TEST(CircularAngleTest, TreatsFullTurnApartValuesAsEquivalent)
 {
     EXPECT_EQ(math::CircularAngle(0_deg), math::CircularAngle(360_deg));

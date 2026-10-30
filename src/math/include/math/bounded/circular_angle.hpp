@@ -15,6 +15,7 @@ public:
 
     double deg() const noexcept;
     double rad() const noexcept;
+    const Angle& angle() const noexcept;
 
     bool isEquivalentTo(
         const CircularAngle& other,

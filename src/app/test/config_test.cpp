@@ -187,10 +187,10 @@ TEST(AppConfigTest, LoadsEveryConfigurationValue)
     EXPECT_EQ(config.beamConfig.requestBeam.confirmationBeamWidth.elevation, 2_deg);
     EXPECT_EQ(config.beamConfig.requestBeam.trackingBeamWidth.azimuth, 5_deg);
     EXPECT_EQ(config.beamConfig.requestBeam.trackingBeamWidth.elevation, 5_deg);
-    EXPECT_EQ(config.beamConfig.requestCoverage.azimuthMin(), -50_deg);
-    EXPECT_EQ(config.beamConfig.requestCoverage.azimuthMax(), 55_deg);
-    EXPECT_EQ(config.beamConfig.requestCoverage.elevationMin(), -5_deg);
-    EXPECT_EQ(config.beamConfig.requestCoverage.elevationMax(), 65_deg);
+    EXPECT_EQ(config.beamConfig.requestCoverage.azimuthRange().start(), -50_deg);
+    EXPECT_EQ(config.beamConfig.requestCoverage.azimuthRange().end(), 55_deg);
+    EXPECT_EQ(config.beamConfig.requestCoverage.elevationRange().start(), -5_deg);
+    EXPECT_EQ(config.beamConfig.requestCoverage.elevationRange().end(), 65_deg);
 
     EXPECT_EQ(config.targetConfig.maxAssociationSpeed(), 900_mps);
     EXPECT_EQ(config.targetConfig.maxInitialDopplerDifference(), 25_mps);
@@ -355,6 +355,17 @@ TEST(AppConfigTest, MissingFileOrRequiredKeyThrows)
         std::runtime_error);
 }
 
+TEST(AppConfigTest, LoadsWrappedCircularCoverage)
+{
+    const TemporaryEnvFile file(replaceValue(
+        replaceValue(validConfigText(), "BEAM_REQUEST_COVERAGE_AZIMUTH_MIN_DEG", "350"),
+        "BEAM_REQUEST_COVERAGE_AZIMUTH_MAX_DEG", "10"));
+    const app::Config config = loadConfig(file.path());
+
+    EXPECT_TRUE(config.beamConfig.requestCoverage.azimuthRange().contains(0_deg));
+    EXPECT_FALSE(config.beamConfig.requestCoverage.azimuthRange().contains(180_deg));
+}
+
 TEST(AppConfigTest, InvalidScalarAndDomainValuesThrow)
 {
     const TemporaryEnvFile invalidNumber(replaceValue(
@@ -376,7 +387,7 @@ TEST(AppConfigTest, InvalidScalarAndDomainValuesThrow)
     const TemporaryEnvFile invalidCoverage(replaceValue(
         validConfigText(),
         "BEAM_REQUEST_COVERAGE_AZIMUTH_MIN_DEG",
-        "60"));
+        "55"));
     EXPECT_THROW(
         loadConfig(invalidCoverage.path()),
         std::runtime_error);

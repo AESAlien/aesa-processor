@@ -100,10 +100,12 @@ beam::BeamConfig ConfigAssembler::createBeamConfig()
                     math::Angle::fromDegrees(TRACKING_WIDTH_DEG),
                     math::Angle::fromDegrees(TRACKING_WIDTH_DEG))),
             beam::RequestCoverageConfig(
-                math::Angle::fromDegrees(REQUEST_COVERAGE_AZIMUTH_MIN_DEG),
-                math::Angle::fromDegrees(REQUEST_COVERAGE_AZIMUTH_MAX_DEG),
-                math::TiltAngle::fromDegrees(REQUEST_COVERAGE_ELEVATION_MIN_DEG),
-                math::TiltAngle::fromDegrees(REQUEST_COVERAGE_ELEVATION_MAX_DEG)));
+                math::CircularAngleRange(
+                    math::Angle::fromDegrees(REQUEST_COVERAGE_AZIMUTH_MIN_DEG),
+                    math::Angle::fromDegrees(REQUEST_COVERAGE_AZIMUTH_MAX_DEG)),
+                math::AngleRange(
+                    math::Angle::fromDegrees(REQUEST_COVERAGE_ELEVATION_MIN_DEG),
+                    math::Angle::fromDegrees(REQUEST_COVERAGE_ELEVATION_MAX_DEG))));
     }
     catch (const std::invalid_argument& error)
     {

@@ -50,7 +50,7 @@ beam::RequestBeamCommand makeRequestCommand(
 // 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도
 beam::RequestCoverageConfig makeCoverageConfig()
 {
-    return beam::RequestCoverageConfig(-60_deg, 60_deg, math::TiltAngle(-10_deg), math::TiltAngle(60_deg));
+    return beam::RequestCoverageConfig(math::CircularAngleRange(-60_deg, 60_deg), math::AngleRange(-10_deg, 60_deg));
 }
 
 beam::BeamController makeDefaultController()
@@ -573,7 +573,7 @@ TEST(BeamControllerTest, InjectedRequestCoverageConfigIsUsed)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(beam::RequestCoverageConfig(-5_deg, 5_deg, math::TiltAngle(0_deg), math::TiltAngle(10_deg)))
+        .requestCoverageConfig(beam::RequestCoverageConfig(math::CircularAngleRange(-5_deg, 5_deg), math::AngleRange(0_deg, 10_deg)))
         .build();
     beam::BeamController controller(config);
     controller.setOperationState(makeOperationState(beam::OperationState::ON));

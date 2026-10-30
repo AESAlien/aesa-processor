@@ -28,6 +28,11 @@ double CircularAngle::rad() const noexcept
     return _angle.rad();
 }
 
+const Angle& CircularAngle::angle() const noexcept
+{
+    return _angle;
+}
+
 bool CircularAngle::isEquivalentTo(
     const CircularAngle& other,
     const QuantityTolerance<Angle>& tolerance

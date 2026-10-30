@@ -32,7 +32,7 @@ const beam::SearchGridConfig GRID_CONFIG(
 // 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도
 beam::RequestCoverageConfig makeCoverageConfig()
 {
-    return beam::RequestCoverageConfig(-60_deg, 60_deg, math::TiltAngle(-10_deg), math::TiltAngle(60_deg));
+    return beam::RequestCoverageConfig(math::CircularAngleRange(-60_deg, 60_deg), math::AngleRange(-10_deg, 60_deg));
 }
 
 // 자세정보로 탐색 격자와 영역 판정을 만드는 일은 BeamController가 맡으므로, 테스트에서는 직접 만들어 넘긴다.
