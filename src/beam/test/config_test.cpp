@@ -43,27 +43,25 @@ beam::SearchGridConfig::Builder gridBuilder()
     return beam::SearchGridConfig::Builder()
         .azimuthCount(21)
         .elevationCount(9)
-        .azimuthStart(math::Azimuth(-42_deg))
+        .azimuthStart(math::CircularAngle(-42_deg))
         .azimuthStep(4.2_deg)
-        .elevationStart(math::Elevation(3_deg))
+        .elevationStart(math::TiltAngle(3_deg))
         .elevationStep(4.4_deg)
-        .beamWidth(beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
+        .beamWidth(beam::BeamWidth(6_deg, 6_deg));
 }
 
 beam::RequestBeamConfig::Builder requestBuilder()
 {
     return beam::RequestBeamConfig::Builder()
-        .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
-        .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)));
+        .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+        .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg));
 }
 
 beam::RequestCoverageConfig::Builder coverageBuilder()
 {
     return beam::RequestCoverageConfig::Builder()
-        .azimuthMin(-60_deg)
-        .azimuthMax(60_deg)
-        .elevationMin(math::Elevation(-10_deg))
-        .elevationMax(math::Elevation(60_deg));
+        .azimuthRange(math::CircularAngleRange(-60_deg, 60_deg))
+        .elevationRange(math::AngleRange(-10_deg, 60_deg));
 }
 
 } // namespace
@@ -80,11 +78,11 @@ TEST(SearchGridConfigTest, BuilderOverridesOnlyGivenValues)
     const beam::SearchGridConfig config = gridBuilder()
         .azimuthCount(3)
         .elevationCount(2)
-        .azimuthStart(math::Azimuth(-10_deg))
+        .azimuthStart(math::CircularAngle(-10_deg))
         .azimuthStep(5_deg)
-        .elevationStart(math::Elevation(1_deg))
+        .elevationStart(math::TiltAngle(1_deg))
         .elevationStep(2_deg)
-        .beamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg)))
+        .beamWidth(beam::BeamWidth(4_deg, 4_deg))
         .build();
 
     EXPECT_EQ(config.azimuthCount(), 3u);
@@ -103,8 +101,8 @@ TEST(SearchGridConfigTest, BuilderOverridesOnlyGivenValues)
 
 TEST(SearchGridConfigTest, ConstructorValidatesLikeBuilder)
 {
-    EXPECT_NO_THROW(beam::SearchGridConfig(3, 2, math::Azimuth(-10_deg), 5_deg, math::Elevation(1_deg), 2_deg, beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))));
-    EXPECT_THROW(beam::SearchGridConfig(0, 2, math::Azimuth(-10_deg), 5_deg, math::Elevation(1_deg), 2_deg, beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))), std::invalid_argument);
+    EXPECT_NO_THROW(beam::SearchGridConfig(3, 2, math::CircularAngle(-10_deg), 5_deg, math::TiltAngle(1_deg), 2_deg, beam::BeamWidth(4_deg, 4_deg)));
+    EXPECT_THROW(beam::SearchGridConfig(0, 2, math::CircularAngle(-10_deg), 5_deg, math::TiltAngle(1_deg), 2_deg, beam::BeamWidth(4_deg, 4_deg)), std::invalid_argument);
 }
 
 TEST(SearchGridConfigTest, ZeroAzimuthCountThrows)
@@ -129,8 +127,8 @@ TEST(SearchGridConfigTest, BeamCountBeyondUint32Throws)
 
 TEST(SearchGridConfigTest, NonPositiveBeamWidthThrows)
 {
-    EXPECT_THROW(gridBuilder().beamWidth(beam::BeamWidth(math::AngularWidth(0_deg), math::AngularWidth(0_deg))).build(), std::invalid_argument);
-    EXPECT_THROW(gridBuilder().beamWidth(beam::BeamWidth(math::AngularWidth(-1_deg), math::AngularWidth(-1_deg))).build(), std::invalid_argument);
+    EXPECT_THROW(gridBuilder().beamWidth(beam::BeamWidth(0_deg, 0_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(gridBuilder().beamWidth(beam::BeamWidth(-1_deg, -1_deg)).build(), std::invalid_argument);
 }
 
 TEST(SearchGridConfigTest, GridAngleOverflowThrows)
@@ -141,14 +139,14 @@ TEST(SearchGridConfigTest, GridAngleOverflowThrows)
 
     // start + step * (count - 1)에서 오버플로
     EXPECT_THROW(
-        gridBuilder().elevationCount(2).elevationStart(math::Elevation(90_deg)).elevationStep(MAX_ANGLE).build(),
+        gridBuilder().elevationCount(2).elevationStart(math::TiltAngle(90_deg)).elevationStep(MAX_ANGLE).build(),
         std::invalid_argument);
 }
 
 TEST(SearchGridConfigTest, WrapsLargeFiniteAzimuthStep)
 {
     EXPECT_NO_THROW(
-        gridBuilder().azimuthCount(2).azimuthStart(math::Azimuth(MAX_ANGLE)).azimuthStep(MAX_ANGLE).build());
+        gridBuilder().azimuthCount(2).azimuthStart(math::CircularAngle(MAX_ANGLE)).azimuthStep(MAX_ANGLE).build());
 }
 
 TEST(SearchGridConfigTest, LargeStepWithSingleBeamPerAxisIsAccepted)
@@ -164,16 +162,16 @@ TEST(SearchGridConfigTest, LargeStepWithSingleBeamPerAxisIsAccepted)
 
 TEST(SearchGridConfigTest, ElevationOutsideSphericalRangeThrows)
 {
-    EXPECT_THROW(gridBuilder().elevationStart(math::Elevation(91_deg)).build(), std::invalid_argument);
-    EXPECT_THROW(gridBuilder().elevationStart(math::Elevation(-91_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(gridBuilder().elevationStart(math::TiltAngle(91_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(gridBuilder().elevationStart(math::TiltAngle(-91_deg)).build(), std::invalid_argument);
 
     // 마지막 고각 80 + 6 * 2 = 92도
     EXPECT_THROW(
-        gridBuilder().elevationCount(3).elevationStart(math::Elevation(80_deg)).elevationStep(6_deg).build(),
+        gridBuilder().elevationCount(3).elevationStart(math::TiltAngle(80_deg)).elevationStep(6_deg).build(),
         std::invalid_argument);
     // 마지막 고각 0 - 50 * 2 = -100도 (음수 step)
     EXPECT_THROW(
-        gridBuilder().elevationCount(3).elevationStart(math::Elevation(0_deg)).elevationStep(-50_deg).build(),
+        gridBuilder().elevationCount(3).elevationStart(math::TiltAngle(0_deg)).elevationStep(-50_deg).build(),
         std::invalid_argument);
 }
 
@@ -182,33 +180,33 @@ TEST(SearchGridConfigTest, ElevationEquivalentByPeriodToValidRangeThrows)
     // 360도 주기로는 범위 안(90도)과 동치이지만 실제 수치는 [-90, 90]도 밖이므로 거부해야 한다.
     // 450 -> 270 -> 90도로 가는 격자는 중간 고각 270도가 SphericalDirection에서 거부된다.
     EXPECT_THROW(
-        gridBuilder().elevationCount(3).elevationStart(math::Elevation(450_deg)).elevationStep(-180_deg).build(),
+        gridBuilder().elevationCount(3).elevationStart(math::TiltAngle(450_deg)).elevationStep(-180_deg).build(),
         std::invalid_argument);
-    EXPECT_THROW(gridBuilder().elevationCount(1).elevationStart(math::Elevation(450_deg)).elevationStep(0_deg).build(), std::invalid_argument);
-    EXPECT_THROW(gridBuilder().elevationCount(1).elevationStart(math::Elevation(-270_deg)).elevationStep(0_deg).build(), std::invalid_argument);
+    EXPECT_THROW(gridBuilder().elevationCount(1).elevationStart(math::TiltAngle(450_deg)).elevationStep(0_deg).build(), std::invalid_argument);
+    EXPECT_THROW(gridBuilder().elevationCount(1).elevationStart(math::TiltAngle(-270_deg)).elevationStep(0_deg).build(), std::invalid_argument);
     // 시작점은 범위 안이고 마지막 고각만 90 + 360 = 450도
     EXPECT_THROW(
-        gridBuilder().elevationCount(2).elevationStart(math::Elevation(90_deg)).elevationStep(360_deg).build(),
+        gridBuilder().elevationCount(2).elevationStart(math::TiltAngle(90_deg)).elevationStep(360_deg).build(),
         std::invalid_argument);
 }
 
 TEST(SearchGridConfigTest, ElevationBoundaryIsAccepted)
 {
     // 마지막 고각이 정확히 90도
-    EXPECT_NO_THROW(gridBuilder().elevationCount(3).elevationStart(math::Elevation(80_deg)).elevationStep(5_deg).build());
+    EXPECT_NO_THROW(gridBuilder().elevationCount(3).elevationStart(math::TiltAngle(80_deg)).elevationStep(5_deg).build());
     // 음수 step으로 내려가는 격자
-    EXPECT_NO_THROW(gridBuilder().elevationCount(3).elevationStart(math::Elevation(0_deg)).elevationStep(-5_deg).build());
+    EXPECT_NO_THROW(gridBuilder().elevationCount(3).elevationStart(math::TiltAngle(0_deg)).elevationStep(-5_deg).build());
 }
 
 TEST(SearchGridConfigTest, AzimuthBeyondHalfTurnIsAccepted)
 {
-    // 방위각은 Azimuth가 정규화하므로 범위를 제한하지 않는다.
+    // 방위각은 CircularAngle이 정규화하므로 범위를 제한하지 않는다.
     EXPECT_NO_THROW(gridBuilder().azimuthCount(100).azimuthStep(10_deg).build());
     EXPECT_NO_THROW(
         gridBuilder()
             .azimuthCount(1)
             .elevationCount(1)
-            .azimuthStart(math::Azimuth(1e18_deg))
+            .azimuthStart(math::CircularAngle(1e18_deg))
             .build());
 }
 
@@ -216,10 +214,10 @@ TEST(SearchGridConfigTest, AngleAtIndexIsStartPlusStepTimesIndex)
 {
     const beam::SearchGridConfig config = gridBuilder().build();
 
-    EXPECT_EQ(config.azimuthAt(0), math::Azimuth(-42_deg));
-    EXPECT_EQ(config.azimuthAt(20), math::Azimuth(-42_deg) + 4.2_deg * 20.0);
-    EXPECT_EQ(config.elevationAt(0), math::Elevation(3_deg));
-    EXPECT_EQ(config.elevationAt(8), math::Elevation(3_deg) + 4.4_deg * 8.0);
+    EXPECT_EQ(config.azimuthAt(0), math::CircularAngle(-42_deg));
+    EXPECT_EQ(config.azimuthAt(20), math::CircularAngle(-42_deg) + 4.2_deg * 20.0);
+    EXPECT_EQ(config.elevationAt(0), math::TiltAngle(3_deg));
+    EXPECT_EQ(config.elevationAt(8), math::TiltAngle(3_deg) + 4.4_deg * 8.0);
 }
 
 // ================================================================ AttitudeConfig
@@ -386,8 +384,8 @@ TEST(RequestBeamConfigTest, BuilderRequiresEveryValue)
 TEST(RequestBeamConfigTest, BuilderOverridesGivenValues)
 {
     const beam::RequestBeamConfig config = requestBuilder()
-        .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(2_deg), math::AngularWidth(2_deg)))
-        .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg)))
+        .confirmationBeamWidth(beam::BeamWidth(2_deg, 2_deg))
+        .trackingBeamWidth(beam::BeamWidth(4_deg, 4_deg))
         .build();
 
     EXPECT_EQ(config.confirmationBeamWidth.azimuth, 2_deg);
@@ -398,16 +396,16 @@ TEST(RequestBeamConfigTest, BuilderOverridesGivenValues)
 
 TEST(RequestBeamConfigTest, NonPositiveBeamWidthThrows)
 {
-    EXPECT_THROW(requestBuilder().confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(0_deg), math::AngularWidth(0_deg))).build(), std::invalid_argument);
-    EXPECT_THROW(requestBuilder().confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(-1_deg), math::AngularWidth(-1_deg))).build(), std::invalid_argument);
-    EXPECT_THROW(requestBuilder().trackingBeamWidth(beam::BeamWidth(math::AngularWidth(0_deg), math::AngularWidth(0_deg))).build(), std::invalid_argument);
-    EXPECT_THROW(requestBuilder().trackingBeamWidth(beam::BeamWidth(math::AngularWidth(-1_deg), math::AngularWidth(-1_deg))).build(), std::invalid_argument);
+    EXPECT_THROW(requestBuilder().confirmationBeamWidth(beam::BeamWidth(0_deg, 0_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(requestBuilder().confirmationBeamWidth(beam::BeamWidth(-1_deg, -1_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(requestBuilder().trackingBeamWidth(beam::BeamWidth(0_deg, 0_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(requestBuilder().trackingBeamWidth(beam::BeamWidth(-1_deg, -1_deg)).build(), std::invalid_argument);
 }
 
 TEST(RequestBeamConfigTest, ConstructorValidatesLikeBuilder)
 {
-    EXPECT_NO_THROW(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(2_deg), math::AngularWidth(2_deg)), beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))));
-    EXPECT_THROW(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(0_deg), math::AngularWidth(0_deg)), beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))), std::invalid_argument);
+    EXPECT_NO_THROW(beam::RequestBeamConfig(beam::BeamWidth(2_deg, 2_deg), beam::BeamWidth(4_deg, 4_deg)));
+    EXPECT_THROW(beam::RequestBeamConfig(beam::BeamWidth(0_deg, 0_deg), beam::BeamWidth(4_deg, 4_deg)), std::invalid_argument);
 }
 
 // ================================================================ RequestCoverageConfig
@@ -415,56 +413,68 @@ TEST(RequestBeamConfigTest, ConstructorValidatesLikeBuilder)
 TEST(RequestCoverageConfigTest, BuilderRequiresEveryValue)
 {
     EXPECT_THROW(beam::RequestCoverageConfig::Builder().build(), std::logic_error);
-    EXPECT_THROW(beam::RequestCoverageConfig::Builder().azimuthMin(-60_deg).azimuthMax(60_deg).build(), std::logic_error);
+    EXPECT_THROW(beam::RequestCoverageConfig::Builder().azimuthRange(math::CircularAngleRange(-60_deg, 60_deg)).build(), std::logic_error);
 }
 
 TEST(RequestCoverageConfigTest, BuilderOverridesGivenValues)
 {
     const beam::RequestCoverageConfig config = coverageBuilder()
-        .azimuthMin(-50_deg)
-        .azimuthMax(40_deg)
-        .elevationMin(math::Elevation(-5_deg))
-        .elevationMax(math::Elevation(70_deg))
+        .azimuthRange(math::CircularAngleRange(-50_deg, 40_deg))
+        .elevationRange(math::AngleRange(-5_deg, 70_deg))
         .build();
 
-    EXPECT_EQ(config.azimuthMin(), -50_deg);
-    EXPECT_EQ(config.azimuthMax(), 40_deg);
-    EXPECT_EQ(config.elevationMin(), -5_deg);
-    EXPECT_EQ(config.elevationMax(), 70_deg);
+    EXPECT_EQ(config.azimuthRange().start(), -50_deg);
+    EXPECT_EQ(config.azimuthRange().end(), 40_deg);
+    EXPECT_EQ(config.elevationRange().start(), -5_deg);
+    EXPECT_EQ(config.elevationRange().end(), 70_deg);
 }
 
-TEST(RequestCoverageConfigTest, AzimuthOutsideHalfTurnThrows)
+TEST(RequestCoverageConfigTest, AcceptsCircularAzimuthRanges)
 {
-    EXPECT_NO_THROW(coverageBuilder().azimuthMin(-180_deg).azimuthMax(180_deg).build());
-    EXPECT_THROW(coverageBuilder().azimuthMin(-180.001_deg).build(), std::invalid_argument);
-    EXPECT_THROW(coverageBuilder().azimuthMax(180.001_deg).build(), std::invalid_argument);
-    EXPECT_THROW(coverageBuilder().azimuthMin(-MAX_ANGLE).build(), std::invalid_argument);
-    EXPECT_THROW(coverageBuilder().azimuthMax(MAX_ANGLE).build(), std::invalid_argument);
+    EXPECT_NO_THROW(coverageBuilder().azimuthRange(math::CircularAngleRange(-180_deg, 180_deg)).build());
+    EXPECT_NO_THROW(coverageBuilder().azimuthRange(math::CircularAngleRange(350_deg, 10_deg)).build());
+    EXPECT_NO_THROW(coverageBuilder().azimuthRange(math::CircularAngleRange::fullCircle()).build());
+    EXPECT_THROW(coverageBuilder().azimuthRange(math::CircularAngleRange(-MAX_ANGLE, 60_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(coverageBuilder().azimuthRange(math::CircularAngleRange(-60_deg, MAX_ANGLE)).build(), std::invalid_argument);
 }
 
-TEST(RequestCoverageConfigTest, MinNotLessThanMaxThrows)
+TEST(RequestCoverageConfigTest, StartNotLessThanEndThrows)
 {
-    EXPECT_THROW(coverageBuilder().azimuthMin(10_deg).azimuthMax(10_deg).build(), std::invalid_argument);
-    EXPECT_THROW(coverageBuilder().azimuthMin(20_deg).azimuthMax(10_deg).build(), std::invalid_argument);
+    EXPECT_THROW(coverageBuilder().azimuthRange(math::CircularAngleRange(10_deg, 10_deg)).build(), std::invalid_argument);
+    EXPECT_NO_THROW(coverageBuilder().azimuthRange(math::CircularAngleRange(20_deg, 10_deg)).build());
     EXPECT_THROW(
-        coverageBuilder().elevationMin(math::Elevation(30_deg)).elevationMax(math::Elevation(30_deg)).build(),
+        coverageBuilder().elevationRange(math::AngleRange(30_deg, 30_deg)).build(),
         std::invalid_argument);
     EXPECT_THROW(
-        coverageBuilder().elevationMin(math::Elevation(40_deg)).elevationMax(math::Elevation(30_deg)).build(),
+        coverageBuilder().elevationRange(math::AngleRange(40_deg, 30_deg)).build(),
         std::invalid_argument);
 }
 
-TEST(RequestCoverageConfigTest, ElevationOutsideQuarterTurnIsRejectedByElevation)
+TEST(RequestCoverageConfigTest, ElevationOutsideQuarterTurnThrows)
 {
-    EXPECT_NO_THROW(coverageBuilder().elevationMin(math::Elevation(-90_deg)).elevationMax(math::Elevation(90_deg)).build());
-    EXPECT_THROW(math::Elevation(91_deg), std::invalid_argument);
+    EXPECT_NO_THROW(coverageBuilder().elevationRange(math::AngleRange(-90_deg, 90_deg)).build());
+    EXPECT_THROW(math::TiltAngle(91_deg), std::invalid_argument);
+    EXPECT_THROW(coverageBuilder().elevationRange(math::AngleRange(-90.001_deg, 60_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(coverageBuilder().elevationRange(math::AngleRange(-10_deg, 90.001_deg)).build(), std::invalid_argument);
+    EXPECT_THROW(
+        beam::RequestCoverageConfig(math::CircularAngleRange(-60_deg, 60_deg), math::AngleRange(-91_deg, 60_deg)),
+        std::invalid_argument);
+    EXPECT_THROW(
+        beam::RequestCoverageConfig(math::CircularAngleRange(-60_deg, 60_deg), math::AngleRange(-10_deg, 91_deg)),
+        std::invalid_argument);
 }
 
 TEST(RequestCoverageConfigTest, ConstructorValidatesLikeBuilder)
 {
-    EXPECT_NO_THROW(beam::RequestCoverageConfig(-60_deg, 60_deg, math::Elevation(-10_deg), math::Elevation(60_deg)));
+    EXPECT_NO_THROW(beam::RequestCoverageConfig(math::CircularAngleRange(-60_deg, 60_deg), math::AngleRange(-10_deg, 60_deg)));
+    EXPECT_NO_THROW(
+        beam::RequestCoverageConfig(math::CircularAngleRange(60_deg, -60_deg), math::AngleRange(-10_deg, 60_deg)));
+    EXPECT_NO_THROW(
+        beam::RequestCoverageConfig(math::CircularAngleRange(-181_deg, 60_deg), math::AngleRange(-10_deg, 60_deg)));
+    EXPECT_NO_THROW(
+        beam::RequestCoverageConfig(math::CircularAngleRange(-60_deg, 181_deg), math::AngleRange(-10_deg, 60_deg)));
     EXPECT_THROW(
-        beam::RequestCoverageConfig(60_deg, -60_deg, math::Elevation(-10_deg), math::Elevation(60_deg)),
+        beam::RequestCoverageConfig(math::CircularAngleRange(-60_deg, 60_deg), math::AngleRange(60_deg, -10_deg)),
         std::invalid_argument);
 }
 
@@ -483,7 +493,7 @@ TEST(BeamConfigTest, BuilderReplacesOnlyGivenSubConfigs)
         .requestBeamConfig(requestBuilder().build())
         .requestCoverageConfig(coverageBuilder().build())
         .searchGridConfig(gridBuilder().azimuthCount(5).build())
-        .requestBeamConfig(requestBuilder().trackingBeamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))).build())
+        .requestBeamConfig(requestBuilder().trackingBeamWidth(beam::BeamWidth(4_deg, 4_deg)).build())
         .build();
 
     EXPECT_EQ(config.searchGrid.azimuthCount(), 5u);
@@ -492,7 +502,7 @@ TEST(BeamConfigTest, BuilderReplacesOnlyGivenSubConfigs)
     EXPECT_EQ(config.requestBeam.confirmationBeamWidth.azimuth, 3_deg);
     EXPECT_EQ(config.requestBeam.confirmationBeamWidth.elevation, 3_deg);
     EXPECT_EQ(config.attitude.maxAbsPitch(), 89_deg);
-    EXPECT_EQ(config.requestCoverage.azimuthMax(), 60_deg);
+    EXPECT_EQ(config.requestCoverage.azimuthRange().end(), 60_deg);
 }
 
 TEST(BeamConfigTest, BuilderRequiresRequestCoverageConfig)
@@ -511,12 +521,12 @@ TEST(BeamConfigTest, ConstructorKeepsGivenSubConfigs)
     const beam::BeamConfig config(
         attitudeBuilder().maxAbsPitch(70_deg).build(),
         gridBuilder().elevationCount(4).build(),
-        requestBuilder().confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(2_deg), math::AngularWidth(2_deg))).build(),
-        coverageBuilder().elevationMin(math::Elevation(-5_deg)).build());
+        requestBuilder().confirmationBeamWidth(beam::BeamWidth(2_deg, 2_deg)).build(),
+        coverageBuilder().elevationRange(math::AngleRange(-5_deg, 60_deg)).build());
 
     EXPECT_EQ(config.attitude.maxAbsPitch(), 70_deg);
     EXPECT_EQ(config.searchGrid.elevationCount(), 4u);
     EXPECT_EQ(config.requestBeam.confirmationBeamWidth.azimuth, 2_deg);
     EXPECT_EQ(config.requestBeam.confirmationBeamWidth.elevation, 2_deg);
-    EXPECT_EQ(config.requestCoverage.elevationMin(), -5_deg);
+    EXPECT_EQ(config.requestCoverage.elevationRange().start(), -5_deg);
 }

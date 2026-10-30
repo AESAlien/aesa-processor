@@ -13,7 +13,7 @@ namespace
 beam::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     return beam::AntEnuTransform(
-        beam::RadarAttitude(roll, pitch, yaw),
+        beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw),
         beam::AttitudeConfig(
             89_deg,
             math::SquareMatrix::identity(3),
@@ -23,7 +23,7 @@ beam::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::A
 // 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도
 beam::RequestCoverageConfig makeDefaultConfig()
 {
-    return beam::RequestCoverageConfig(-60_deg, 60_deg, math::Elevation(-10_deg), math::Elevation(60_deg));
+    return beam::RequestCoverageConfig(math::CircularAngleRange(-60_deg, 60_deg), math::AngleRange(-10_deg, 60_deg));
 }
 
 beam::RequestCoverage makeCoverage(math::Angle roll, math::Angle pitch, math::Angle yaw)
@@ -33,12 +33,27 @@ beam::RequestCoverage makeCoverage(math::Angle roll, math::Angle pitch, math::An
 
 math::SphericalDirection direction(math::Angle azimuth, math::Angle elevation)
 {
-    return math::SphericalDirection(math::Azimuth(azimuth), math::Elevation(elevation));
+    return math::SphericalDirection(azimuth, elevation);
 }
 
 } // namespace
 
 // ---------- 영 자세: ENU와 안테나 기준이 같다 ----------
+
+TEST(RequestCoverageTest, SupportsWrappedAndWideCircularRanges)
+{
+    const beam::RequestCoverage narrow(
+        makeTransform(0_deg, 0_deg, 0_deg),
+        beam::RequestCoverageConfig(math::CircularAngleRange(350_deg, 10_deg), math::AngleRange(-10_deg, 60_deg)));
+    EXPECT_TRUE(narrow.contains(direction(0_deg, 10_deg)));
+    EXPECT_FALSE(narrow.contains(direction(180_deg, 10_deg)));
+
+    const beam::RequestCoverage wide(
+        makeTransform(0_deg, 0_deg, 0_deg),
+        beam::RequestCoverageConfig(math::CircularAngleRange(60_deg, -60_deg), math::AngleRange(-10_deg, 60_deg)));
+    EXPECT_TRUE(wide.contains(direction(180_deg, 10_deg)));
+    EXPECT_FALSE(wide.contains(direction(0_deg, 10_deg)));
+}
 
 TEST(RequestCoverageTest, ZeroAttitudeIncludesBoundaries)
 {
@@ -66,7 +81,7 @@ TEST(RequestCoverageTest, AzimuthNearZeroAndFullTurnIsInside)
 {
     const beam::RequestCoverage coverage = makeCoverage(0_deg, 0_deg, 0_deg);
 
-    // Azimuth는 [0, 360)으로 정규화되므로 -0.1도는 359.9도로 들어온다.
+    // CircularAngle은 [0, 360)으로 정규화되므로 -0.1도는 359.9도로 들어온다.
     EXPECT_TRUE(coverage.contains(direction(0_deg, 10_deg)));
     EXPECT_TRUE(coverage.contains(direction(359.9_deg, 10_deg)));
     EXPECT_TRUE(coverage.contains(direction(-0.1_deg, 10_deg)));
@@ -87,7 +102,7 @@ TEST(RequestCoverageTest, CoverageAroundZeroAzimuthWorks)
 {
     const beam::RequestCoverage coverage(
         makeTransform(0_deg, 0_deg, 0_deg),
-        beam::RequestCoverageConfig(-10_deg, 10_deg, math::Elevation(0_deg), math::Elevation(20_deg)));
+        beam::RequestCoverageConfig(math::CircularAngleRange(-10_deg, 10_deg), math::AngleRange(0_deg, 20_deg)));
 
     EXPECT_TRUE(coverage.contains(direction(350_deg, 5_deg)));
     EXPECT_TRUE(coverage.contains(direction(10_deg, 5_deg)));
@@ -99,7 +114,7 @@ TEST(RequestCoverageTest, FullCoverageContainsEveryDirection)
 {
     const beam::RequestCoverage coverage(
         makeTransform(10_deg, 20_deg, 30_deg),
-        beam::RequestCoverageConfig(-180_deg, 180_deg, math::Elevation(-90_deg), math::Elevation(90_deg)));
+        beam::RequestCoverageConfig(math::CircularAngleRange(-180_deg, 180_deg), math::AngleRange(-90_deg, 90_deg)));
 
     EXPECT_TRUE(coverage.contains(direction(0_deg, 0_deg)));
     EXPECT_TRUE(coverage.contains(direction(180_deg, 0_deg)));
@@ -143,9 +158,9 @@ TEST(RequestCoverageTest, CoverageEndingAtRearBoundaryIncludesHalfTurn)
 {
     const beam::RequestCoverage coverage(
         makeTransform(0_deg, 0_deg, 0_deg),
-        beam::RequestCoverageConfig(170_deg, 180_deg, math::Elevation(0_deg), math::Elevation(20_deg)));
+        beam::RequestCoverageConfig(math::CircularAngleRange(170_deg, 180_deg), math::AngleRange(0_deg, 20_deg)));
 
-    // 180도는 wrap180에서 -180도로 바뀌지만 같은 방향이므로 최대 경계에 포함된다.
+    // 180도와 -180도는 같은 방향이므로 끝 경계에 포함된다.
     EXPECT_TRUE(coverage.contains(direction(180_deg, 5_deg)));
     EXPECT_TRUE(coverage.contains(direction(-180_deg, 5_deg)));
     EXPECT_TRUE(coverage.contains(direction(175_deg, 5_deg)));
@@ -159,7 +174,7 @@ TEST(RequestCoverageTest, CoverageStartingAtRearBoundaryIncludesHalfTurn)
 {
     const beam::RequestCoverage coverage(
         makeTransform(0_deg, 0_deg, 0_deg),
-        beam::RequestCoverageConfig(-180_deg, -170_deg, math::Elevation(0_deg), math::Elevation(20_deg)));
+        beam::RequestCoverageConfig(math::CircularAngleRange(-180_deg, -170_deg), math::AngleRange(0_deg, 20_deg)));
 
     EXPECT_TRUE(coverage.contains(direction(180_deg, 5_deg)));
     EXPECT_TRUE(coverage.contains(direction(-180_deg, 5_deg)));
@@ -176,7 +191,7 @@ TEST(RequestCoverageTest, RearBoundaryUsesAntennaFrameAfterYaw)
     // yaw 30도: ENU 방위각 210도가 안테나 기준 180도(후방)이다.
     const beam::RequestCoverage coverage(
         makeTransform(0_deg, 0_deg, 30_deg),
-        beam::RequestCoverageConfig(170_deg, 180_deg, math::Elevation(-10_deg), math::Elevation(20_deg)));
+        beam::RequestCoverageConfig(math::CircularAngleRange(170_deg, 180_deg), math::AngleRange(-10_deg, 20_deg)));
 
     EXPECT_TRUE(coverage.contains(direction(210_deg, 0_deg)));
     EXPECT_TRUE(coverage.contains(direction(205_deg, 0_deg)));

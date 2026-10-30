@@ -187,10 +187,10 @@ TEST(AppConfigTest, LoadsEveryConfigurationValue)
     EXPECT_EQ(config.beamConfig.requestBeam.confirmationBeamWidth.elevation, 2_deg);
     EXPECT_EQ(config.beamConfig.requestBeam.trackingBeamWidth.azimuth, 5_deg);
     EXPECT_EQ(config.beamConfig.requestBeam.trackingBeamWidth.elevation, 5_deg);
-    EXPECT_EQ(config.beamConfig.requestCoverage.azimuthMin(), -50_deg);
-    EXPECT_EQ(config.beamConfig.requestCoverage.azimuthMax(), 55_deg);
-    EXPECT_EQ(config.beamConfig.requestCoverage.elevationMin(), -5_deg);
-    EXPECT_EQ(config.beamConfig.requestCoverage.elevationMax(), 65_deg);
+    EXPECT_EQ(config.beamConfig.requestCoverage.azimuthRange().start(), -50_deg);
+    EXPECT_EQ(config.beamConfig.requestCoverage.azimuthRange().end(), 55_deg);
+    EXPECT_EQ(config.beamConfig.requestCoverage.elevationRange().start(), -5_deg);
+    EXPECT_EQ(config.beamConfig.requestCoverage.elevationRange().end(), 65_deg);
 
     EXPECT_EQ(config.targetConfig.maxAssociationSpeed(), 900_mps);
     EXPECT_EQ(config.targetConfig.maxInitialDopplerDifference(), 25_mps);
@@ -316,11 +316,11 @@ TEST(AppConfigTest, LoadedConfigurationCanBeInjectedIntoEveryController)
     beamController.setOperationState(
         beam::SetOperationStateCommand(beam::OperationState::ON));
     beamController.setAttitude(beam::SetAttitudeCommand(
-        37_deg,
-        127_deg,
+        math::TiltAngle(37_deg),
+        math::CircularAngle(127_deg),
         0_m,
         0_deg,
-        0_deg,
+        math::TiltAngle(0_deg),
         0_deg));
     const auto beamCommand = beamController.nextBeamCommand(0ms);
     ASSERT_TRUE(beamCommand.has_value());
@@ -333,7 +333,7 @@ TEST(AppConfigTest, LoadedConfigurationCanBeInjectedIntoEveryController)
             beam::BeamType::SEARCH,
             1,
             1000ms,
-            {{math::Distance(1000_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f}}));
+            {{math::Distance(1000_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f}}));
     ASSERT_TRUE(confirmation.has_value());
     EXPECT_EQ(confirmation->transmitTime, 1150ms);
 
@@ -353,6 +353,17 @@ TEST(AppConfigTest, MissingFileOrRequiredKeyThrows)
     EXPECT_THROW(
         loadConfig(file.path()),
         std::runtime_error);
+}
+
+TEST(AppConfigTest, LoadsWrappedCircularCoverage)
+{
+    const TemporaryEnvFile file(replaceValue(
+        replaceValue(validConfigText(), "BEAM_REQUEST_COVERAGE_AZIMUTH_MIN_DEG", "350"),
+        "BEAM_REQUEST_COVERAGE_AZIMUTH_MAX_DEG", "10"));
+    const app::Config config = loadConfig(file.path());
+
+    EXPECT_TRUE(config.beamConfig.requestCoverage.azimuthRange().contains(0_deg));
+    EXPECT_FALSE(config.beamConfig.requestCoverage.azimuthRange().contains(180_deg));
 }
 
 TEST(AppConfigTest, InvalidScalarAndDomainValuesThrow)
@@ -376,7 +387,7 @@ TEST(AppConfigTest, InvalidScalarAndDomainValuesThrow)
     const TemporaryEnvFile invalidCoverage(replaceValue(
         validConfigText(),
         "BEAM_REQUEST_COVERAGE_AZIMUTH_MIN_DEG",
-        "60"));
+        "55"));
     EXPECT_THROW(
         loadConfig(invalidCoverage.path()),
         std::runtime_error);

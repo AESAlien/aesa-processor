@@ -2,6 +2,7 @@
 #include "repository/target_repository.hpp"
 #include <target/config/target_config.hpp>
 #include "target/controller/target_controller.hpp"
+#include <math/geometry/cartesian_position.hpp>
 
 #include <gtest/gtest.h>
 
@@ -15,7 +16,7 @@ namespace
 {
 math::SphericalPosition position(math::Length range)
 {
-    return math::SphericalPosition{math::Distance(range), math::SphericalDirection(math::Azimuth(0_deg), math::Elevation(0_deg))};
+    return math::SphericalPosition{range, 0_deg, 0_deg};
 }
 } // namespace
 
@@ -61,13 +62,13 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
         target::TargetController controller(target::TargetConfig(
             1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
         const auto confirmation = controller.handleDetection(target::DetectionEvent(
-            BeamType::SEARCH, 1, 0ms, {{math::Distance(100_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, 1.0f}}));
+            BeamType::SEARCH, 1, 0ms, {{math::Distance(100_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, 1.0f}}));
         ASSERT_TRUE(confirmation.has_value());
         const auto tracking = controller.handleDetection(target::DetectionEvent(
             BeamType::CONFIRMATION,
             confirmation->requestId,
             1000ms,
-            {{math::Distance::fromMeters(100.0 + displacement), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, 1.0f}}));
+            {{math::Distance::fromMeters(100.0 + displacement), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, 1.0f}}));
         ASSERT_TRUE(tracking.has_value());
         const auto events = controller.nextTrackEvents();
         ASSERT_EQ(events.size(), 1u);
@@ -76,5 +77,30 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
         EXPECT_DOUBLE_EQ(events[0].longitude.deg(), 0.0);
         EXPECT_DOUBLE_EQ(events[0].heading.deg(), 0.0);
         EXPECT_DOUBLE_EQ(events[0].flightPathAngle.deg(), 0.0);
+    }
+}
+
+TEST(ImmutableGeometryTest, ReportsNormalizedWestboundHeadingAndSignedFlightPathAngle)
+{
+    using BeamType = beam::BeamType;
+    for (const auto verticalDisplacement : {-1_m, 1_m})
+    {
+        target::TargetController controller(target::TargetConfig(
+            1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
+        const auto confirmation = controller.handleDetection(target::DetectionEvent(
+            BeamType::SEARCH, 1, 0ms,
+            {{math::Distance(100_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, 1.0f}}));
+        ASSERT_TRUE(confirmation.has_value());
+        const auto observation = math::CartesianPosition(-1_m, 100_m, verticalDisplacement).toSpherical();
+        const auto tracking = controller.handleDetection(target::DetectionEvent(
+            BeamType::CONFIRMATION, confirmation->requestId, 1000ms,
+            {{observation.radius, observation.direction.azimuth, observation.direction.elevation, 0_mps, 1.0f}}));
+        ASSERT_TRUE(tracking.has_value());
+
+        const auto events = controller.nextTrackEvents();
+
+        ASSERT_EQ(events.size(), 1u);
+        EXPECT_NEAR(events[0].heading.deg(), 270.0, 1e-9);
+        EXPECT_NEAR(events[0].flightPathAngle.deg(), verticalDisplacement.m() * 45.0, 1e-9);
     }
 }

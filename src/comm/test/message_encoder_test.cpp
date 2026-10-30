@@ -31,12 +31,8 @@ beam::TransmitBeamCommand makeBeamCommand(
         transmitTime,
         21,
         7,
-        math::SphericalDirection(
-            math::Azimuth(10.5_deg),
-            math::Elevation(-4.5_deg)),
-        beam::BeamWidth(
-            math::AngularWidth(math::Angle::fromDegrees(azimuthBeamWidth)),
-            math::AngularWidth(2.75_deg)));
+        math::SphericalDirection(10.5_deg, -4.5_deg),
+        beam::BeamWidth(math::Angle::fromDegrees(azimuthBeamWidth), 2.75_deg));
 }
 
 target::TrackEvent makeTrackEvent(
@@ -49,15 +45,15 @@ target::TrackEvent makeTrackEvent(
         target::TrackEvent::TrackState::TRACKING,
         math::Distance::fromKilometers(slantRangeKilometers),
         math::Distance(10.25_km),
-        math::Azimuth(15.5_deg),
-        math::Elevation(6.25_deg),
+        math::CircularAngle(15.5_deg),
+        math::TiltAngle(6.25_deg),
         -120.5_mps,
-        37.5_deg,
-        127.25_deg,
+        math::TiltAngle(37.5_deg),
+        math::CircularAngle(127.25_deg),
         2.5_km,
         250.75_mps,
-        45.5_deg,
-        -2.25_deg,
+        math::CircularAngle(45.5_deg),
+        math::TiltAngle(-2.25_deg),
         timestamp);
 }
 
@@ -77,7 +73,7 @@ Value readValue(
 }
 
 // 방위각이 azimuthDegrees인 빔 명령을 인코딩해서 와이어의 방위각(beam_az_deg)을 반환한다.
-// 방위각은 Azimuth가 [0, 360)으로 정규화하며, 시뮬레이터 규격도 0-360이다.
+// 방위각은 CircularAngle이 [0, 360)으로 정규화하며, 시뮬레이터 규격도 0-360이다.
 float encodeAzimuthToWire(double azimuthDegrees)
 {
     const beam::TransmitBeamCommand command(
@@ -85,12 +81,8 @@ float encodeAzimuthToWire(double azimuthDegrees)
         1234ms,
         21,
         7,
-        math::SphericalDirection(
-            math::Azimuth::fromDegrees(azimuthDegrees),
-            math::Elevation(-4.5_deg)),
-        beam::BeamWidth(
-            math::AngularWidth(3.25_deg),
-            math::AngularWidth(2.75_deg)));
+        math::SphericalDirection(math::Angle::fromDegrees(azimuthDegrees), -4.5_deg),
+        beam::BeamWidth(3.25_deg, 2.75_deg));
 
     const comm::EncodeResult result = comm::encodeBeamCommand(command);
     if (result.error != comm::EncodingError::NONE || !result.bytes.has_value())
@@ -238,6 +230,26 @@ TEST(MessageEncoderTest, EncodesTrackEventsUsingActualMessageSize)
     for (uint8_t padding : track.padding)
     {
         EXPECT_EQ(padding, 0);
+    }
+}
+
+TEST(MessageEncoderTest, EncodesNormalizedHeadingAndSignedFlightPathBoundaries)
+{
+    for (const auto flightPathAngle : {-90_deg, 90_deg})
+    {
+        auto event = makeTrackEvent();
+        event.heading = math::CircularAngle(-90_deg);
+        event.flightPathAngle = math::TiltAngle(flightPathAngle);
+
+        const auto result = comm::encodeTrackEvents({event});
+
+        ASSERT_EQ(result.error, comm::EncodingError::NONE);
+        ASSERT_TRUE(result.bytes.has_value());
+        const auto track = readValue<comm::protocol::ST_Trk>(
+            *result.bytes,
+            sizeof(comm::protocol::ST_MsgHeader) + sizeof(comm::protocol::ST_TrkHeader));
+        EXPECT_FLOAT_EQ(track.heading_deg, 270.0F);
+        EXPECT_FLOAT_EQ(track.fpa_deg, static_cast<float>(flightPathAngle.deg()));
     }
 }
 

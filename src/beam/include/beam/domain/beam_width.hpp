@@ -1,12 +1,16 @@
 #pragma once
 
-#include <math/geometry/angular_width.hpp>
+#include <math/bounded/angular_width.hpp>
 
 namespace beam
 {
 
 struct BeamWidth
 {
+    BeamWidth(
+        math::Angle azimuth,
+        math::Angle elevation);
+
     BeamWidth(
         math::AngularWidth azimuth,
         math::AngularWidth elevation);

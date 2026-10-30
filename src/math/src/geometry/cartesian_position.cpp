@@ -1,7 +1,7 @@
 #include "math/geometry/cartesian_position.hpp"
 
 #include "math/geometry/cartesian_displacement.hpp"
-#include "math/geometry/distance.hpp"
+#include "math/bounded/distance.hpp"
 #include "math/geometry/spherical_position.hpp"
 #include "math/linear_algebra/vector.hpp"
 

@@ -38,18 +38,18 @@ inline beam::SearchGridConfig makeSearchGridConfig()
     return beam::SearchGridConfig(
         21,
         9,
-        math::Azimuth(-42_deg),
+        math::CircularAngle(-42_deg),
         4.2_deg,
-        math::Elevation(3_deg),
+        math::TiltAngle(3_deg),
         4.4_deg,
-        beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
+        beam::BeamWidth(6_deg, 6_deg));
 }
 
 // 시나리오는 스케줄링 순서를 보기 위한 것이므로, 추적 영역 판정으로 요청이 걸러지지 않도록 모든 방향을 허용한다.
 // 추적 영역 판정은 request_coverage_test, scheduler_test, beam_controller_test에서 확인한다.
 inline beam::RequestCoverageConfig makeOpenRequestCoverageConfig()
 {
-    return beam::RequestCoverageConfig(-180_deg, 180_deg, math::Elevation(-90_deg), math::Elevation(90_deg));
+    return beam::RequestCoverageConfig(math::CircularAngleRange(-180_deg, 180_deg), math::AngleRange(-90_deg, 90_deg));
 }
 
 // 주어진 자세로 탐색 격자와 영역 판정(AttitudeFrame)을 만든다. 실제 운용에서는 BeamController가 하는 일이다.
@@ -57,7 +57,7 @@ inline beam::RequestCoverageConfig makeOpenRequestCoverageConfig()
 inline beam::AttitudeFrame makeAttitudeFrame(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     const beam::AntEnuTransform transform(
-        beam::RadarAttitude(roll, pitch, yaw),
+        beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw),
         beam::AttitudeConfig(
             89_deg,
             math::SquareMatrix::identity(3),
@@ -111,8 +111,8 @@ inline RequestSpec makeRequestSpec(
     // 요청 빔 폭은 기본 설정(3도)을 쓴다.
     static const beam::BeamRequestFactory factory{
         beam::RequestBeamConfig(
-            beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)),
-            beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))};
+            beam::BeamWidth(3_deg, 3_deg),
+            beam::BeamWidth(3_deg, 3_deg))};
     return RequestSpec{
         name,
         factory.create(beam::RequestBeamCommand(
@@ -120,8 +120,8 @@ inline RequestSpec makeRequestSpec(
             transmitTime,
             REQUEST_ID,
             math::SphericalDirection(
-                math::Azimuth::fromDegrees(azimuth_deg),
-                math::Elevation::fromDegrees(elevation_deg))))
+                math::Angle::fromDegrees(azimuth_deg),
+                math::Angle::fromDegrees(elevation_deg))))
     };
 }
 

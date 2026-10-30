@@ -10,9 +10,7 @@ using namespace math::literals;
 
 TEST(BeamWidthTest, KeepsAzimuthAndElevationWidthsIndependent)
 {
-    const beam::BeamWidth width(
-        math::AngularWidth(3_deg),
-        math::AngularWidth(5_deg));
+    const beam::BeamWidth width(3_deg, 5_deg);
 
     EXPECT_EQ(width.azimuth, 3_deg);
     EXPECT_EQ(width.elevation, 5_deg);

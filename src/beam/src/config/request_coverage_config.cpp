@@ -8,70 +8,44 @@ namespace beam
 using namespace math::literals;
 
 RequestCoverageConfig::RequestCoverageConfig(
-    math::Angle azimuthMin,
-    math::Angle azimuthMax,
-    math::Elevation elevationMin,
-    math::Elevation elevationMax
-) : _azimuthMin(azimuthMin),
-    _azimuthMax(azimuthMax),
-    _elevationMin(elevationMin),
-    _elevationMax(elevationMax)
+    math::CircularAngleRange azimuthRange,
+    math::AngleRange elevationRange
+) : _azimuthRange(azimuthRange),
+    _elevationRange(elevationRange)
 {
     validate();
 }
 
-const math::Angle& RequestCoverageConfig::azimuthMin() const noexcept
+const math::CircularAngleRange& RequestCoverageConfig::azimuthRange() const noexcept
 {
-    return _azimuthMin;
+    return _azimuthRange;
 }
 
-const math::Angle& RequestCoverageConfig::azimuthMax() const noexcept
+const math::AngleRange& RequestCoverageConfig::elevationRange() const noexcept
 {
-    return _azimuthMax;
-}
-
-const math::Elevation& RequestCoverageConfig::elevationMin() const noexcept
-{
-    return _elevationMin;
-}
-
-const math::Elevation& RequestCoverageConfig::elevationMax() const noexcept
-{
-    return _elevationMax;
+    return _elevationRange;
 }
 
 void RequestCoverageConfig::validate() const
 {
     // 허용오차 없이(NONE_TOLERANCE) 순서 비교로 검사한다
-    if (_azimuthMin.lessThan(-180_deg, math::Angle::NONE_TOLERANCE) ||
-        _azimuthMax.greaterThan(180_deg, math::Angle::NONE_TOLERANCE))
+    if (_elevationRange.start().lessThan(-90_deg, math::Angle::NONE_TOLERANCE) ||
+        _elevationRange.end().greaterThan(90_deg, math::Angle::NONE_TOLERANCE))
     {
-        throw std::invalid_argument("RequestCoverageConfig: azimuth must be in [-180, 180] degrees");
-    }
-
-    if (_azimuthMin.greaterThanOrEqual(_azimuthMax, math::Angle::NONE_TOLERANCE))
-    {
-        throw std::invalid_argument("RequestCoverageConfig: azimuthMin must be less than azimuthMax");
-    }
-
-    if (_elevationMin.deg() >= _elevationMax.deg())
-    {
-        throw std::invalid_argument("RequestCoverageConfig: elevationMin must be less than elevationMax");
+        throw std::invalid_argument("RequestCoverageConfig: elevation must be in [-90, 90] degrees");
     }
 }
 
 RequestCoverageConfig RequestCoverageConfig::Builder::build() const
 {
-    if (!_azimuthMin || !_azimuthMax || !_elevationMin || !_elevationMax)
+    if (!_azimuthRange || !_elevationRange)
     {
         throw std::logic_error("RequestCoverageConfig::Builder requires every value");
     }
 
     return RequestCoverageConfig(
-        *_azimuthMin,
-        *_azimuthMax,
-        *_elevationMin,
-        *_elevationMax);
+        *_azimuthRange,
+        *_elevationRange);
 }
 
 } // namespace beam

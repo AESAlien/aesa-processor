@@ -1,4 +1,4 @@
-#include "math/geometry/distance.hpp"
+#include "math/bounded/distance.hpp"
 
 #include <gtest/gtest.h>
 
