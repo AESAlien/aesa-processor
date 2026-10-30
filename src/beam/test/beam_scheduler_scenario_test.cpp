@@ -123,7 +123,7 @@ void expectCommonRules(const Result& result)
 
 // ---------- mixed: 요청이 끼어드는 순서와 지연 ----------
 
-TEST(SchedulerScenarioTest, MixedSendsNothingUntilReady)
+TEST(BeamSchedulerScenarioTest, MixedSendsNothingUntilReady)
 {
     const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitudeFrame());
 
@@ -143,7 +143,7 @@ TEST(SchedulerScenarioTest, MixedSendsNothingUntilReady)
     EXPECT_EQ(firstReady.command->commandCount, 1u);
 }
 
-TEST(SchedulerScenarioTest, MixedSendsRequestBeamsAtTheDesignedTicks)
+TEST(BeamSchedulerScenarioTest, MixedSendsRequestBeamsAtTheDesignedTicks)
 {
     using Type = beam::BeamType;
     const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitudeFrame());
@@ -173,7 +173,7 @@ TEST(SchedulerScenarioTest, MixedSendsRequestBeamsAtTheDesignedTicks)
     }
 }
 
-TEST(SchedulerScenarioTest, MixedMatchesEachRequestToItsSentTick)
+TEST(BeamSchedulerScenarioTest, MixedMatchesEachRequestToItsSentTick)
 {
     const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitudeFrame());
 
@@ -189,7 +189,7 @@ TEST(SchedulerScenarioTest, MixedMatchesEachRequestToItsSentTick)
     EXPECT_EQ(requestNamed(result, "G").sentTick_ms, 320);
 }
 
-TEST(SchedulerScenarioTest, MixedSendsEveryRequestEvenWhenItWaitsLong)
+TEST(BeamSchedulerScenarioTest, MixedSendsEveryRequestEvenWhenItWaitsLong)
 {
     const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitudeFrame());
 
@@ -202,7 +202,7 @@ TEST(SchedulerScenarioTest, MixedSendsEveryRequestEvenWhenItWaitsLong)
     EXPECT_EQ(requestNamed(result, "H").sentTick_ms - requestNamed(result, "H").request.transmitTime().count(), 30);
 }
 
-TEST(SchedulerScenarioTest, MixedSearchSweepContinuesWithoutSkippingAfterInterruptions)
+TEST(BeamSchedulerScenarioTest, MixedSearchSweepContinuesWithoutSkippingAfterInterruptions)
 {
     const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitudeFrame());
 
@@ -215,14 +215,14 @@ TEST(SchedulerScenarioTest, MixedSearchSweepContinuesWithoutSkippingAfterInterru
     }
 }
 
-TEST(SchedulerScenarioTest, MixedFollowsCommonRules)
+TEST(BeamSchedulerScenarioTest, MixedFollowsCommonRules)
 {
     expectCommonRules(schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitudeFrame()));
 }
 
 // ---------- tracks: 추적 20개 / 1초 주기가 탐색 한 바퀴에 주는 영향 ----------
 
-TEST(SchedulerScenarioTest, TracksSendsEveryRequestWithoutDelay)
+TEST(BeamSchedulerScenarioTest, TracksSendsEveryRequestWithoutDelay)
 {
     const Result result = schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroAttitudeFrame());
 
@@ -234,7 +234,7 @@ TEST(SchedulerScenarioTest, TracksSendsEveryRequestWithoutDelay)
     }
 }
 
-TEST(SchedulerScenarioTest, TracksFirstSearchSweepIsLongerByTheNumberOfRequestBeams)
+TEST(BeamSchedulerScenarioTest, TracksFirstSearchSweepIsLongerByTheNumberOfRequestBeams)
 {
     const Result result = schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroAttitudeFrame());
 
@@ -267,7 +267,7 @@ TEST(SchedulerScenarioTest, TracksFirstSearchSweepIsLongerByTheNumberOfRequestBe
     EXPECT_GT(nextSweepStart - sweepStart, static_cast<long long>(BEAM_COUNT) * 10);
 }
 
-TEST(SchedulerScenarioTest, TracksFirstSweepVisitsEverySearchBeamExactlyOnce)
+TEST(BeamSchedulerScenarioTest, TracksFirstSweepVisitsEverySearchBeamExactlyOnce)
 {
     const Result result = schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroAttitudeFrame());
 
@@ -280,14 +280,14 @@ TEST(SchedulerScenarioTest, TracksFirstSweepVisitsEverySearchBeamExactlyOnce)
     }
 }
 
-TEST(SchedulerScenarioTest, TracksFollowsCommonRules)
+TEST(BeamSchedulerScenarioTest, TracksFollowsCommonRules)
 {
     expectCommonRules(schedule_scenario::run(schedule_scenario::makeTracksScenario(), makeZeroAttitudeFrame()));
 }
 
 // ---------- 자세와의 독립성 ----------
 
-TEST(SchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
+TEST(BeamSchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
 {
     const Result zero = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitudeFrame());
     const Result rotated = schedule_scenario::run(

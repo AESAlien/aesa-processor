@@ -1,4 +1,4 @@
-// Scheduler를 시나리오로 실행하는 테스트/시각화 공용 헤더
+// BeamScheduler를 시나리오로 실행하는 테스트/시각화 공용 헤더
 //
 // beam_schedule_dump(시각화용 도구)와 scheduler_scenario_test(GTest)가 같은 시나리오와 실행 로직을
 // 쓰도록 한 곳에 둔다. 그림으로 본 동작과 테스트가 검증하는 동작이 어긋나지 않게 하기 위함이다.
@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "scheduler/scheduler.hpp"
+#include "scheduler/beam_scheduler.hpp"
 #include "scheduler/attitude_frame.hpp"
 #include "scheduler/beam_request_factory.hpp"
 
@@ -207,11 +207,11 @@ inline void markSent(
 
 } // namespace detail
 
-// 시나리오를 새 Scheduler로 실행한다. 자세정보 시각에 attitudeFrame의 복사본을 넘긴다.
+// 시나리오를 새 BeamScheduler로 실행한다. 자세정보 시각에 attitudeFrame의 복사본을 넘긴다.
 inline Result run(Scenario scenario, const beam::AttitudeFrame& attitudeFrame)
 {
     Result result;
-    beam::Scheduler scheduler;
+    beam::BeamScheduler scheduler;
     Status status = Status::OFF;
 
     for (auto time = 0ms; time <= scenario.duration; time += TICK_PERIOD)

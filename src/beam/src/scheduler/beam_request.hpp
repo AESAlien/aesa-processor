@@ -12,7 +12,7 @@ namespace beam
 
 // beam 내부에서 쓰는 확인/추적 빔 요청. 생성된 이후에는 항상 유효한 값을 가진다.
 // 종류별 값(송신 빔 종류, 빔 폭, 우선순위)은 BeamRequestFactory가 요청 빔 종류에 맞게 정해서 넘기므로
-// Scheduler와 RequestQueue는 요청의 종류를 알 필요가 없다.
+// BeamScheduler와 RequestQueue는 요청의 종류를 알 필요가 없다.
 class BeamRequest
 {
 public:

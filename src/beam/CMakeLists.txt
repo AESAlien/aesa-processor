@@ -9,7 +9,7 @@ add_library(beam STATIC
     src/scheduler/request_coverage.cpp
     src/scheduler/search_grid.cpp
     src/scheduler/request_queue.cpp
-    src/scheduler/scheduler.cpp
+    src/scheduler/beam_scheduler.cpp
 
     src/attitude/ant_enu_transform.cpp
     src/attitude/radar_attitude.cpp
@@ -129,7 +129,7 @@ if(BUILD_TESTING)
     gtest_discover_tests(beam_request_coverage_test)
 
     add_executable(beam_scheduler_test
-        test/unit/scheduler_test.cpp
+        test/unit/beam_scheduler_test.cpp
     )
     target_include_directories(beam_scheduler_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -153,7 +153,7 @@ if(BUILD_TESTING)
     gtest_discover_tests(beam_controller_test)
 
     add_executable(beam_scheduler_scenario_test
-        test/scheduler_scenario_test.cpp
+        test/beam_scheduler_scenario_test.cpp
     )
     target_include_directories(beam_scheduler_scenario_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"

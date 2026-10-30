@@ -1,4 +1,4 @@
-#include "scheduler/scheduler.hpp"
+#include "scheduler/beam_scheduler.hpp"
 
 #include <utility>
 
@@ -37,7 +37,7 @@ TransmitBeamCommand makeRequestCommand(
 }
 } // namespace
 
-void Scheduler::setOperationState(OperationState state)
+void BeamScheduler::setOperationState(OperationState state)
 {
     if (state == _operationState)
     {
@@ -51,7 +51,7 @@ void Scheduler::setOperationState(OperationState state)
     _operationState = state;
 }
 
-void Scheduler::setAttitudeFrame(AttitudeFrame attitudeFrame)
+void BeamScheduler::setAttitudeFrame(AttitudeFrame attitudeFrame)
 {
     if (_operationState != OperationState::ON || _attitudeFrame.has_value())
     {
@@ -61,7 +61,7 @@ void Scheduler::setAttitudeFrame(AttitudeFrame attitudeFrame)
     _attitudeFrame.emplace(std::move(attitudeFrame));
 }
 
-RequestBeamStatus Scheduler::addRequest(const BeamRequest& request)
+RequestBeamStatus BeamScheduler::addRequest(const BeamRequest& request)
 {
     if (!isReady())
     {
@@ -77,7 +77,7 @@ RequestBeamStatus Scheduler::addRequest(const BeamRequest& request)
     return RequestBeamStatus::ACCEPTED;
 }
 
-std::optional<TransmitBeamCommand> Scheduler::next(std::chrono::milliseconds currentTime)
+std::optional<TransmitBeamCommand> BeamScheduler::next(std::chrono::milliseconds currentTime)
 {
     if (!isReady())
     {
@@ -94,12 +94,12 @@ std::optional<TransmitBeamCommand> Scheduler::next(std::chrono::milliseconds cur
     return makeSearchCommand(_attitudeFrame->searchGrid().nextBeam(), currentTime, _commandCount);
 }
 
-bool Scheduler::isReady() const
+bool BeamScheduler::isReady() const
 {
     return _operationState == OperationState::ON && _attitudeFrame.has_value();
 }
 
-void Scheduler::reset()
+void BeamScheduler::reset()
 {
     _attitudeFrame.reset();
     _requestQueue.clear();

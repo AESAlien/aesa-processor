@@ -147,7 +147,7 @@ TEST(BeamControllerTest, AttitudeCommandChangesSearchDirection)
 }
 
 // 컨트롤러는 받은 요청 명령을 송신 명령에 반영한다.
-TEST(BeamControllerTest, RequestBeamIsDeliveredToScheduler)
+TEST(BeamControllerTest, RequestBeamIsDeliveredToBeamScheduler)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
     beam::BeamController controller(beam::BeamConfig(

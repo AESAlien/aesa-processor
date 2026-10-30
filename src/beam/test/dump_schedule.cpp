@@ -1,4 +1,4 @@
-// Scheduler를 시나리오로 실행해 틱별 결과를 CSV로 출력하는 시각화용 도구
+// BeamScheduler를 시나리오로 실행해 틱별 결과를 CSV로 출력하는 시각화용 도구
 //
 // 사용법: beam_schedule_dump [--scenario mixed|tracks] [roll_deg pitch_deg yaw_deg]
 // 출력  : 빈 줄 없이 "# ticks", "# requests", "# grid" 세 구역을 차례로 출력한다.
