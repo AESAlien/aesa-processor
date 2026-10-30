@@ -136,3 +136,50 @@ TEST(RequestCoverageTest, PitchShiftsElevationToAntennaFrame)
     // ENU 고각 75도 → 안테나 55도: ENU 기준이면 밖이지만 안테나 기준이면 안이다.
     EXPECT_TRUE(coverage.contains(direction(0_deg, 75_deg)));
 }
+
+// ---------- 후방 경계(±180도)는 같은 방향이다 ----------
+
+TEST(RequestCoverageTest, CoverageEndingAtRearBoundaryIncludesHalfTurn)
+{
+    const beam::RequestCoverage coverage(
+        makeTransform(0_deg, 0_deg, 0_deg),
+        beam::RequestCoverageConfig(170_deg, 180_deg, math::Elevation(0_deg), math::Elevation(20_deg)));
+
+    // 180도는 wrap180에서 -180도로 바뀌지만 같은 방향이므로 최대 경계에 포함된다.
+    EXPECT_TRUE(coverage.contains(direction(180_deg, 5_deg)));
+    EXPECT_TRUE(coverage.contains(direction(-180_deg, 5_deg)));
+    EXPECT_TRUE(coverage.contains(direction(175_deg, 5_deg)));
+    EXPECT_TRUE(coverage.contains(direction(170_deg, 5_deg)));
+    EXPECT_FALSE(coverage.contains(direction(169_deg, 5_deg)));
+    // 181도는 -179도이므로 영역 밖이다.
+    EXPECT_FALSE(coverage.contains(direction(181_deg, 5_deg)));
+}
+
+TEST(RequestCoverageTest, CoverageStartingAtRearBoundaryIncludesHalfTurn)
+{
+    const beam::RequestCoverage coverage(
+        makeTransform(0_deg, 0_deg, 0_deg),
+        beam::RequestCoverageConfig(-180_deg, -170_deg, math::Elevation(0_deg), math::Elevation(20_deg)));
+
+    EXPECT_TRUE(coverage.contains(direction(180_deg, 5_deg)));
+    EXPECT_TRUE(coverage.contains(direction(-180_deg, 5_deg)));
+    // 185도 = -175도, 190도 = -170도
+    EXPECT_TRUE(coverage.contains(direction(185_deg, 5_deg)));
+    EXPECT_TRUE(coverage.contains(direction(190_deg, 5_deg)));
+    // 191도 = -169도
+    EXPECT_FALSE(coverage.contains(direction(191_deg, 5_deg)));
+    EXPECT_FALSE(coverage.contains(direction(179_deg, 5_deg)));
+}
+
+TEST(RequestCoverageTest, RearBoundaryUsesAntennaFrameAfterYaw)
+{
+    // yaw 30도: ENU 방위각 210도가 안테나 기준 180도(후방)이다.
+    const beam::RequestCoverage coverage(
+        makeTransform(0_deg, 0_deg, 30_deg),
+        beam::RequestCoverageConfig(170_deg, 180_deg, math::Elevation(-10_deg), math::Elevation(20_deg)));
+
+    EXPECT_TRUE(coverage.contains(direction(210_deg, 0_deg)));
+    EXPECT_TRUE(coverage.contains(direction(205_deg, 0_deg)));
+    // ENU 211도 = 안테나 181도(-179도): 밖
+    EXPECT_FALSE(coverage.contains(direction(211_deg, 0_deg)));
+}

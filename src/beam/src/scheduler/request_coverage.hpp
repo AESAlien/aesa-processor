@@ -17,7 +17,7 @@ class RequestCoverage
 public:
     RequestCoverage(const AntEnuTransform& transform, const RequestCoverageConfig& config);
 
-    // ENU 방향을 안테나 기준으로 바꾼 뒤, 방위각을 [-180, 180)으로 바꿔 영역과 비교한다.
+    // ENU 방향을 안테나 기준으로 바꾼 뒤, 방위각을 [-180, 180)으로 바꿔 영역과 비교한다. -180°와 180°는 같은 방향으로 본다
     // 경계는 기본 허용오차(Angle::DEFAULT_TOLERANCE) 안이면 영역에 포함한다.
     bool contains(const math::SphericalDirection& direction_enu) const;
 
