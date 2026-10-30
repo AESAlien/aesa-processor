@@ -1,178 +1,35 @@
 #include <network/network_manager/network_manager.hpp>
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-
-#ifdef ERROR
-#undef ERROR
-#endif
-#else
-#include <arpa/inet.h>
-#include <cerrno>
-#include <fcntl.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#endif
-
+#include <algorithm>
 #include <chrono>
 #include <limits>
 #include <utility>
 
 namespace comm
 {
-
 namespace
 {
 
-#ifdef _WIN32
-constexpr SocketHandle INVALID_SOCKET_HANDLE =
-    static_cast<SocketHandle>(INVALID_SOCKET);
-using SocketLength = int;
-#else
-constexpr SocketHandle INVALID_SOCKET_HANDLE = -1;
-using SocketLength = socklen_t;
-#endif
-
 constexpr int RECEIVE_BUFFER_SIZE = 4096;
-
-timeval makeTimeval(std::chrono::microseconds timeout)
-{
-    using Seconds = std::chrono::seconds;
-
-    const auto seconds = std::chrono::duration_cast<Seconds>(timeout);
-    const auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(
-        timeout - seconds);
-
-    timeval value{};
-    value.tv_sec = static_cast<decltype(value.tv_sec)>(seconds.count());
-    value.tv_usec = static_cast<decltype(value.tv_usec)>(microseconds.count());
-    return value;
-}
+constexpr int LISTEN_BACKLOG = 2;
 
 std::chrono::microseconds remainingTime(
     std::chrono::steady_clock::time_point deadline
-)
-{
-    const auto now = std::chrono::steady_clock::now();
-    if (now >= deadline)
-    {
-        return std::chrono::microseconds{0};
-    }
+);
 
-    return std::chrono::duration_cast<std::chrono::microseconds>(deadline - now);
-}
+// An endpoint with neither address nor port is treated as disabled.
+bool parseEndpoint(
+    const NetworkEndpoint& endpoint,
+    std::optional<uint32_t>& parsedAddress,
+    bool allowDisabled
+);
 
-int lastSocketError()
-{
-#ifdef _WIN32
-    return WSAGetLastError();
-#else
-    return errno;
-#endif
-}
+bool contains(
+    const std::vector<SocketHandle>& sockets,
+    SocketHandle socket
+);
 
-bool isInterrupted(int errorCode)
-{
-#ifdef _WIN32
-    return errorCode == WSAEINTR;
-#else
-    return errorCode == EINTR;
-#endif
-}
-
-bool isWouldBlock(int errorCode)
-{
-#ifdef _WIN32
-    return errorCode == WSAEWOULDBLOCK;
-#else
-    return errorCode == EAGAIN || errorCode == EWOULDBLOCK;
-#endif
-}
-
-int closeNativeSocket(SocketHandle socket)
-{
-#ifdef _WIN32
-    return closesocket(socket);
-#else
-    return close(socket);
-#endif
-}
-
-void shutdownNativeSocket(SocketHandle socket)
-{
-#ifdef _WIN32
-    shutdown(socket, SD_BOTH);
-#else
-    shutdown(socket, SHUT_RDWR);
-#endif
-}
-
-int setNonBlocking(SocketHandle socket)
-{
-#ifdef _WIN32
-    u_long enabled = 1;
-    return ioctlsocket(socket, FIONBIO, &enabled);
-#else
-    int flags = fcntl(socket, F_GETFL, 0);
-    if (flags < 0)
-    {
-        return -1;
-    }
-    return fcntl(socket, F_SETFL, flags | O_NONBLOCK);
-#endif
-}
-
-int socketSelect(
-    SocketHandle maximumSocket,
-    fd_set* readSockets,
-    fd_set* writeSockets,
-    timeval* timeout
-)
-{
-#ifdef _WIN32
-    static_cast<void>(maximumSocket);
-    return select(0, readSockets, writeSockets, nullptr, timeout);
-#else
-    return select(
-        maximumSocket + 1,
-        readSockets,
-        writeSockets,
-        nullptr,
-        timeout);
-#endif
-}
-
-int sendBytes(SocketHandle socket, const uint8_t* data, int size)
-{
-#ifdef _WIN32
-    return ::send(
-        socket,
-        reinterpret_cast<const char*>(data),
-        size,
-        0);
-#else
-    return static_cast<int>(::send(socket, data, size, MSG_NOSIGNAL));
-#endif
-}
-
-int receiveBytes(SocketHandle socket, uint8_t* buffer, int size)
-{
-#ifdef _WIN32
-    return recv(socket, reinterpret_cast<char*>(buffer), size, 0);
-#else
-    return static_cast<int>(recv(socket, buffer, size, 0));
-#endif
-}
+PollResult pollFailure(NetworkOperation operation, int errorCode);
 
 } // namespace
 
@@ -195,75 +52,6 @@ NetworkManager::~NetworkManager()
     stop();
 }
 
-OperationResult NetworkManager::validateConfiguration()
-{
-    _serverAddress.reset();
-    _operatorConsoleAddress.reset();
-    _scenarioSimulatorAddress.reset();
-
-    auto parseEndpoint = [](
-        const NetworkEndpoint& endpoint,
-        std::optional<uint32_t>& parsedAddress,
-        bool allowDisabled
-    ) {
-        bool disabled = endpoint.address.empty() && endpoint.port == 0;
-        if (disabled)
-        {
-            return allowDisabled;
-        }
-
-        if (endpoint.address.empty() || endpoint.port == 0)
-        {
-            return false;
-        }
-
-        in_addr address{};
-        int parseResult = inet_pton(AF_INET, endpoint.address.c_str(), &address);
-        if (parseResult != 1)
-        {
-            return false;
-        }
-
-        parsedAddress = address.s_addr;
-        return true;
-    };
-
-    if (!parseEndpoint(_serverEndpoint, _serverAddress, false) ||
-        !parseEndpoint(
-            _operatorConsoleEndpoint,
-            _operatorConsoleAddress,
-            true) ||
-        !parseEndpoint(
-            _scenarioSimulatorEndpoint,
-            _scenarioSimulatorAddress,
-            true) ||
-        (!_operatorConsoleAddress.has_value() &&
-         !_scenarioSimulatorAddress.has_value()))
-    {
-        return
-        {
-            OperationStatus::INVALID_ARGUMENT,
-            NetworkOperation::CONFIGURATION,
-            0
-        };
-    }
-
-    if (_operatorConsoleAddress.has_value() &&
-        _scenarioSimulatorAddress.has_value() &&
-        _operatorConsoleAddress == _scenarioSimulatorAddress &&
-        _operatorConsoleEndpoint.port == _scenarioSimulatorEndpoint.port)
-    {
-        return
-        {
-            OperationStatus::INVALID_ARGUMENT,
-            NetworkOperation::CONFIGURATION,
-            0
-        };
-    }
-
-    return {};
-}
-
 OperationResult NetworkManager::start()
 {
     if (_listenSocket != INVALID_SOCKET_HANDLE)
@@ -277,9 +65,7 @@ OperationResult NetworkManager::start()
         return configuration;
     }
 
-#ifdef _WIN32
-    WSADATA socketApiData{};
-    int startupError = WSAStartup(MAKEWORD(2, 2), &socketApiData);
+    const int startupError = native_socket::startup();
     if (startupError != 0)
     {
         return
@@ -289,60 +75,43 @@ OperationResult NetworkManager::start()
             startupError
         };
     }
-#endif
     _socketApiStarted = true;
 
-    auto failStart = [this](NetworkOperation operation, int errorCode) {
+    auto failStart = [this](NetworkOperation operation) {
+        const int errorCode = native_socket::lastError();
         closeSocket(_listenSocket);
-#ifdef _WIN32
-        WSACleanup();
-#endif
+        native_socket::cleanup();
         _socketApiStarted = false;
         return OperationResult{OperationStatus::ERROR, operation, errorCode};
     };
 
-    _listenSocket = static_cast<SocketHandle>(socket(AF_INET, SOCK_STREAM, 0));
+    _listenSocket = native_socket::createTcpSocket();
     if (_listenSocket == INVALID_SOCKET_HANDLE)
     {
-        return failStart(NetworkOperation::CREATE_SOCKET, lastSocketError());
+        return failStart(NetworkOperation::CREATE_SOCKET);
     }
 
-    int reuseAddress = 1;
-    if (setsockopt(
+    if (native_socket::setReuseAddress(_listenSocket) < 0)
+    {
+        return failStart(NetworkOperation::SET_SOCKET_OPTION);
+    }
+
+    if (native_socket::bindSocket(
             _listenSocket,
-            SOL_SOCKET,
-            SO_REUSEADDR,
-#ifdef _WIN32
-            reinterpret_cast<const char*>(&reuseAddress),
-#else
-            &reuseAddress,
-#endif
-            sizeof(reuseAddress)) < 0)
+            *_serverAddress,
+            _serverEndpoint.port) < 0)
     {
-        return failStart(NetworkOperation::SET_SOCKET_OPTION, lastSocketError());
+        return failStart(NetworkOperation::BIND);
     }
 
-    sockaddr_in serverAddress{};
-    serverAddress.sin_family = AF_INET;
-    serverAddress.sin_addr.s_addr = *_serverAddress;
-    serverAddress.sin_port = htons(_serverEndpoint.port);
-
-    if (bind(
-            _listenSocket,
-            reinterpret_cast<sockaddr*>(&serverAddress),
-            sizeof(serverAddress)) < 0)
+    if (native_socket::listenSocket(_listenSocket, LISTEN_BACKLOG) < 0)
     {
-        return failStart(NetworkOperation::BIND, lastSocketError());
+        return failStart(NetworkOperation::LISTEN);
     }
 
-    if (listen(_listenSocket, 2) < 0)
+    if (native_socket::setNonBlocking(_listenSocket) < 0)
     {
-        return failStart(NetworkOperation::LISTEN, lastSocketError());
-    }
-
-    if (setNonBlocking(_listenSocket) < 0)
-    {
-        return failStart(NetworkOperation::SET_SOCKET_OPTION, lastSocketError());
+        return failStart(NetworkOperation::SET_SOCKET_OPTION);
     }
 
     return {};
@@ -371,54 +140,32 @@ PollResult NetworkManager::poll(std::chrono::milliseconds timeout)
         int closeError = closeRequestedSockets();
         if (closeError != 0)
         {
-            PollResult result;
-            result.status = PollStatus::ERROR;
-            result.failedOperation = NetworkOperation::CLOSE;
-            result.errorCode = closeError;
-            return result;
+            return pollFailure(NetworkOperation::CLOSE, closeError);
         }
 
-        fd_set readSockets;
-        FD_ZERO(&readSockets);
-        FD_SET(_listenSocket, &readSockets);
-
-        SocketHandle maximumSocket = _listenSocket;
         const SocketHandle operatorConsoleSocket = _operatorConsoleSocket;
         const SocketHandle scenarioSimulatorSocket = _scenarioSimulatorSocket;
 
+        std::vector<SocketHandle> sockets{_listenSocket};
         if (operatorConsoleSocket != INVALID_SOCKET_HANDLE)
         {
-            FD_SET(operatorConsoleSocket, &readSockets);
-            if (operatorConsoleSocket > maximumSocket)
-            {
-                maximumSocket = operatorConsoleSocket;
-            }
+            sockets.push_back(operatorConsoleSocket);
         }
-
         if (scenarioSimulatorSocket != INVALID_SOCKET_HANDLE)
         {
-            FD_SET(scenarioSimulatorSocket, &readSockets);
-            if (scenarioSimulatorSocket > maximumSocket)
-            {
-                maximumSocket = scenarioSimulatorSocket;
-            }
+            sockets.push_back(scenarioSimulatorSocket);
         }
 
-        timeval selectTimeout = makeTimeval(remainingTime(deadline));
-        int selectedCount = socketSelect(
-            maximumSocket,
-            &readSockets,
-            nullptr,
-            &selectTimeout);
+        std::vector<SocketHandle> readySockets;
+        const int selectedCount = native_socket::waitReadable(
+            sockets,
+            remainingTime(deadline),
+            readySockets);
 
         closeError = closeRequestedSockets();
         if (closeError != 0)
         {
-            PollResult result;
-            result.status = PollStatus::ERROR;
-            result.failedOperation = NetworkOperation::CLOSE;
-            result.errorCode = closeError;
-            return result;
+            return pollFailure(NetworkOperation::CLOSE, closeError);
         }
 
         if (selectedCount == 0)
@@ -430,23 +177,20 @@ PollResult NetworkManager::poll(std::chrono::milliseconds timeout)
 
         if (selectedCount < 0)
         {
-            int errorCode = lastSocketError();
-            if (isInterrupted(errorCode) && Clock::now() < deadline)
+            const int errorCode = native_socket::lastError();
+            if (native_socket::isInterrupted(errorCode) &&
+                Clock::now() < deadline)
             {
                 continue;
             }
 
-            PollResult result;
-            result.status = PollStatus::ERROR;
-            result.failedOperation = NetworkOperation::SELECT;
-            result.errorCode = errorCode;
-            return result;
+            return pollFailure(NetworkOperation::SELECT, errorCode);
         }
 
         PollResult result;
         result.status = PollStatus::EVENTS;
 
-        if (FD_ISSET(_listenSocket, &readSockets))
+        if (contains(readySockets, _listenSocket))
         {
             if (!acceptConnection(
                     result.events,
@@ -459,9 +203,10 @@ PollResult NetworkManager::poll(std::chrono::milliseconds timeout)
             }
         }
 
+        // A socket replaced by a reconnection during this poll is skipped.
         if (operatorConsoleSocket != INVALID_SOCKET_HANDLE &&
             operatorConsoleSocket == _operatorConsoleSocket &&
-            FD_ISSET(operatorConsoleSocket, &readSockets))
+            contains(readySockets, operatorConsoleSocket))
         {
             receiveFromSocket(
                 operatorConsoleSocket,
@@ -471,7 +216,7 @@ PollResult NetworkManager::poll(std::chrono::milliseconds timeout)
 
         if (scenarioSimulatorSocket != INVALID_SOCKET_HANDLE &&
             scenarioSimulatorSocket == _scenarioSimulatorSocket &&
-            FD_ISSET(scenarioSimulatorSocket, &readSockets))
+            contains(readySockets, scenarioSimulatorSocket))
         {
             receiveFromSocket(
                 scenarioSimulatorSocket,
@@ -525,6 +270,16 @@ SendResult NetworkManager::send(
 
     const Clock::time_point deadline = Clock::now() + timeout;
 
+    // A partially sent message corrupts the stream, so the peer is closed.
+    auto failSend = [&](SendStatus status) {
+        if (result.bytesSent > 0)
+        {
+            synchro.closeRequested.store(true);
+        }
+        result.status = status;
+        return result;
+    };
+
     while (result.bytesSent < data.size())
     {
         std::size_t remainingSize = data.size() - result.bytesSent;
@@ -533,7 +288,7 @@ SendResult NetworkManager::send(
             ? std::numeric_limits<int>::max()
             : static_cast<int>(remainingSize);
 
-        int sentSize = sendBytes(
+        int sentSize = native_socket::sendBytes(
             socket,
             data.data() + result.bytesSent,
             sendSize);
@@ -552,13 +307,13 @@ SendResult NetworkManager::send(
             return result;
         }
 
-        int errorCode = lastSocketError();
-        if (isInterrupted(errorCode))
+        int errorCode = native_socket::lastError();
+        if (native_socket::isInterrupted(errorCode))
         {
             continue;
         }
 
-        if (!isWouldBlock(errorCode))
+        if (!native_socket::isWouldBlock(errorCode))
         {
             synchro.closeRequested.store(true);
             result.status = SendStatus::CONNECTION_LOST;
@@ -570,25 +325,10 @@ SendResult NetworkManager::send(
         std::chrono::microseconds remaining = remainingTime(deadline);
         if (remaining.count() == 0)
         {
-            if (result.bytesSent > 0)
-            {
-                synchro.closeRequested.store(true);
-            }
-            result.status = SendStatus::TIMEOUT;
-            return result;
+            return failSend(SendStatus::TIMEOUT);
         }
 
-        fd_set writeSockets;
-        FD_ZERO(&writeSockets);
-        FD_SET(socket, &writeSockets);
-        timeval selectTimeout = makeTimeval(remaining);
-
-        int selectedCount = socketSelect(
-            socket,
-            nullptr,
-            &writeSockets,
-            &selectTimeout);
-
+        int selectedCount = native_socket::waitWritable(socket, remaining);
         if (selectedCount > 0)
         {
             continue;
@@ -596,76 +336,23 @@ SendResult NetworkManager::send(
 
         if (selectedCount == 0)
         {
-            if (result.bytesSent > 0)
-            {
-                synchro.closeRequested.store(true);
-            }
-            result.status = SendStatus::TIMEOUT;
-            return result;
+            return failSend(SendStatus::TIMEOUT);
         }
 
-        errorCode = lastSocketError();
-        if (isInterrupted(errorCode) && Clock::now() < deadline)
+        errorCode = native_socket::lastError();
+        if (native_socket::isInterrupted(errorCode) &&
+            Clock::now() < deadline)
         {
             continue;
         }
 
-        if (result.bytesSent > 0)
-        {
-            synchro.closeRequested.store(true);
-        }
-        result.status = SendStatus::ERROR;
         result.failedOperation = NetworkOperation::SELECT;
         result.errorCode = errorCode;
-        return result;
+        return failSend(SendStatus::ERROR);
     }
 
     result.status = SendStatus::SUCCESS;
     return result;
-}
-
-bool NetworkManager::isConnected(NetworkPeer peer) const
-{
-    PeerSynchro& synchro = getPeerSynchro(peer);
-    std::lock_guard<std::mutex> lock(synchro.sendCloseMutex);
-    return !synchro.closeRequested.load() &&
-        getSocket(peer) != INVALID_SOCKET_HANDLE;
-}
-
-OperationResult NetworkManager::disconnect(NetworkPeer peer)
-{
-    if (_listenSocket == INVALID_SOCKET_HANDLE)
-    {
-        return
-        {
-            OperationStatus::NOT_STARTED,
-            NetworkOperation::NONE,
-            0
-        };
-    }
-
-    if (getSocket(peer) == INVALID_SOCKET_HANDLE)
-    {
-        return
-        {
-            OperationStatus::NOT_CONNECTED,
-            NetworkOperation::NONE,
-            0
-        };
-    }
-
-    int errorCode = closeSocket(peer);
-    if (errorCode != 0)
-    {
-        return
-        {
-            OperationStatus::ERROR,
-            NetworkOperation::CLOSE,
-            errorCode
-        };
-    }
-
-    return {};
 }
 
 OperationResult NetworkManager::stop()
@@ -702,12 +389,7 @@ OperationResult NetworkManager::stop()
     int cleanupError = 0;
     if (_socketApiStarted)
     {
-#ifdef _WIN32
-        if (WSACleanup() == SOCKET_ERROR)
-        {
-            cleanupError = lastSocketError();
-        }
-#endif
+        cleanupError = native_socket::cleanup();
         _socketApiStarted = false;
     }
 
@@ -734,24 +416,62 @@ OperationResult NetworkManager::stop()
     return {};
 }
 
+OperationResult NetworkManager::validateConfiguration()
+{
+    _serverAddress.reset();
+    _operatorConsoleAddress.reset();
+    _scenarioSimulatorAddress.reset();
+
+    const OperationResult invalidConfiguration
+    {
+        OperationStatus::INVALID_ARGUMENT,
+        NetworkOperation::CONFIGURATION,
+        0
+    };
+
+    if (!parseEndpoint(_serverEndpoint, _serverAddress, false) ||
+        !parseEndpoint(
+            _operatorConsoleEndpoint,
+            _operatorConsoleAddress,
+            true) ||
+        !parseEndpoint(
+            _scenarioSimulatorEndpoint,
+            _scenarioSimulatorAddress,
+            true) ||
+        (!_operatorConsoleAddress.has_value() &&
+         !_scenarioSimulatorAddress.has_value()))
+    {
+        return invalidConfiguration;
+    }
+
+    if (_operatorConsoleAddress.has_value() &&
+        _scenarioSimulatorAddress.has_value() &&
+        _operatorConsoleAddress == _scenarioSimulatorAddress &&
+        _operatorConsoleEndpoint.port == _scenarioSimulatorEndpoint.port)
+    {
+        return invalidConfiguration;
+    }
+
+    return {};
+}
+
 bool NetworkManager::acceptConnection(
     std::vector<NetworkEvent>& events,
     NetworkOperation& failedOperation,
     int& errorCode
 )
 {
-    sockaddr_in clientAddress{};
-    SocketLength clientAddressSize = sizeof(clientAddress);
-
-    SocketHandle clientSocket = static_cast<SocketHandle>(accept(
+    uint32_t clientAddress = 0;
+    uint16_t clientPort = 0;
+    SocketHandle clientSocket = native_socket::acceptSocket(
         _listenSocket,
-        reinterpret_cast<sockaddr*>(&clientAddress),
-        &clientAddressSize));
+        clientAddress,
+        clientPort);
 
     if (clientSocket == INVALID_SOCKET_HANDLE)
     {
-        errorCode = lastSocketError();
-        if (isWouldBlock(errorCode))
+        errorCode = native_socket::lastError();
+        if (native_socket::isWouldBlock(errorCode))
         {
             errorCode = 0;
             return true;
@@ -761,24 +481,21 @@ bool NetworkManager::acceptConnection(
         return false;
     }
 
-    if (setNonBlocking(clientSocket) < 0)
+    if (native_socket::setNonBlocking(clientSocket) < 0)
     {
-        errorCode = lastSocketError();
+        errorCode = native_socket::lastError();
         failedOperation = NetworkOperation::SET_SOCKET_OPTION;
-        closeNativeSocket(clientSocket);
+        native_socket::closeSocket(clientSocket);
         return false;
     }
 
-    const uint16_t clientPort = ntohs(clientAddress.sin_port);
     std::optional<NetworkPeer> peer;
-    if (_operatorConsoleAddress.has_value() &&
-        clientAddress.sin_addr.s_addr == *_operatorConsoleAddress &&
+    if (_operatorConsoleAddress == clientAddress &&
         clientPort == _operatorConsoleEndpoint.port)
     {
         peer = NetworkPeer::OPERATOR_CONSOLE;
     }
-    else if (_scenarioSimulatorAddress.has_value() &&
-             clientAddress.sin_addr.s_addr == *_scenarioSimulatorAddress &&
+    else if (_scenarioSimulatorAddress == clientAddress &&
              clientPort == _scenarioSimulatorEndpoint.port)
     {
         peer = NetworkPeer::SCENARIO_SIMULATOR;
@@ -786,26 +503,22 @@ bool NetworkManager::acceptConnection(
 
     if (!peer.has_value())
     {
-        char addressBuffer[INET_ADDRSTRLEN]{};
-        const char* address = inet_ntop(
-            AF_INET,
-            &clientAddress.sin_addr,
-            addressBuffer,
-            sizeof(addressBuffer));
+        const std::optional<std::string> address =
+            native_socket::formatIpv4(clientAddress);
 
-        if (address == nullptr)
+        if (!address.has_value())
         {
-            errorCode = lastSocketError();
+            errorCode = native_socket::lastError();
             failedOperation = NetworkOperation::ADDRESS_CONVERSION;
-            closeNativeSocket(clientSocket);
+            native_socket::closeSocket(clientSocket);
             return false;
         }
 
         ConnectionRejectedEvent event;
-        event.remoteAddress = address;
+        event.remoteAddress = *address;
         event.remotePort = clientPort;
         events.emplace_back(std::move(event));
-        closeNativeSocket(clientSocket);
+        native_socket::closeSocket(clientSocket);
         return true;
     }
 
@@ -835,7 +548,10 @@ void NetworkManager::receiveFromSocket(
 )
 {
     uint8_t buffer[RECEIVE_BUFFER_SIZE];
-    int receivedSize = receiveBytes(socket, buffer, sizeof(buffer));
+    int receivedSize = native_socket::receiveBytes(
+        socket,
+        buffer,
+        sizeof(buffer));
 
     if (receivedSize > 0)
     {
@@ -856,8 +572,8 @@ void NetworkManager::receiveFromSocket(
     }
     else
     {
-        event.errorCode = lastSocketError();
-        if (isWouldBlock(event.errorCode))
+        event.errorCode = native_socket::lastError();
+        if (native_socket::isWouldBlock(event.errorCode))
         {
             return;
         }
@@ -952,13 +668,67 @@ int NetworkManager::closeSocket(SocketHandle& socket)
     SocketHandle socketToClose = socket;
     socket = INVALID_SOCKET_HANDLE;
 
-    shutdownNativeSocket(socketToClose);
-    if (closeNativeSocket(socketToClose) < 0)
+    if (native_socket::closeSocket(socketToClose) < 0)
     {
-        return lastSocketError();
+        return native_socket::lastError();
     }
 
     return 0;
 }
 
+namespace
+{
+
+std::chrono::microseconds remainingTime(
+    std::chrono::steady_clock::time_point deadline
+)
+{
+    const auto now = std::chrono::steady_clock::now();
+    if (now >= deadline)
+    {
+        return std::chrono::microseconds{0};
+    }
+
+    return std::chrono::duration_cast<std::chrono::microseconds>(deadline - now);
+}
+
+bool parseEndpoint(
+    const NetworkEndpoint& endpoint,
+    std::optional<uint32_t>& parsedAddress,
+    bool allowDisabled
+)
+{
+    const bool disabled = endpoint.address.empty() && endpoint.port == 0;
+    if (disabled)
+    {
+        return allowDisabled;
+    }
+
+    if (endpoint.address.empty() || endpoint.port == 0)
+    {
+        return false;
+    }
+
+    parsedAddress = native_socket::parseIpv4(endpoint.address);
+    return parsedAddress.has_value();
+}
+
+bool contains(
+    const std::vector<SocketHandle>& sockets,
+    SocketHandle socket
+)
+{
+    return std::find(sockets.begin(), sockets.end(), socket) != sockets.end();
+}
+
+PollResult pollFailure(NetworkOperation operation, int errorCode)
+{
+    PollResult result;
+    result.status = PollStatus::ERROR;
+    result.failedOperation = operation;
+    result.errorCode = errorCode;
+    return result;
+}
+
+} // namespace
 } // namespace comm

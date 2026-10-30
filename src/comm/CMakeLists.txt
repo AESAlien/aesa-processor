@@ -5,6 +5,7 @@ add_library(comm STATIC
     src/network/message_decoder/message_decoder.cpp
     src/network/message_encoder/message_encoder.cpp
     src/network/message_framer/message_framer.cpp
+    src/network/native_socket/native_socket.cpp
     src/network/network_manager/network_manager.cpp
 )
 target_include_directories(comm

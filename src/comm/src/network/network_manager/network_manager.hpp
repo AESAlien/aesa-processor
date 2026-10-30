@@ -1,5 +1,6 @@
 #pragma once
 
+#include <network/native_socket/native_socket.hpp>
 #include <network/network_manager/network_types.hpp>
 
 #include <atomic>
@@ -11,20 +12,6 @@
 
 namespace comm
 {
-
-#ifdef _WIN32
-using SocketHandle = std::uintptr_t;
-#else
-using SocketHandle = int;
-#endif
-
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
 
 // IPv4 TCP server. Call every method except send() from the receive thread.
 // send() may run concurrently with poll().
@@ -55,8 +42,6 @@ public:
         std::chrono::milliseconds timeout = std::chrono::milliseconds{1000}
     );
 
-    bool isConnected(NetworkPeer peer) const;
-    OperationResult disconnect(NetworkPeer peer);
     OperationResult stop();
 
 private:
