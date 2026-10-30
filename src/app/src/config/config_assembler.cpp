@@ -67,6 +67,14 @@ beam::BeamConfig ConfigAssembler::createBeamConfig()
             _reader.requireDouble("BEAM_CONFIRMATION_WIDTH_DEG");
         const double TRACKING_WIDTH_DEG =
             _reader.requireDouble("BEAM_TRACKING_WIDTH_DEG");
+        const double REQUEST_COVERAGE_AZIMUTH_MIN_DEG =
+            _reader.requireDouble("BEAM_REQUEST_COVERAGE_AZIMUTH_MIN_DEG");
+        const double REQUEST_COVERAGE_AZIMUTH_MAX_DEG =
+            _reader.requireDouble("BEAM_REQUEST_COVERAGE_AZIMUTH_MAX_DEG");
+        const double REQUEST_COVERAGE_ELEVATION_MIN_DEG =
+            _reader.requireDouble("BEAM_REQUEST_COVERAGE_ELEVATION_MIN_DEG");
+        const double REQUEST_COVERAGE_ELEVATION_MAX_DEG =
+            _reader.requireDouble("BEAM_REQUEST_COVERAGE_ELEVATION_MAX_DEG");
 
         return beam::BeamConfig(
             beam::AttitudeConfig(
@@ -91,7 +99,12 @@ beam::BeamConfig ConfigAssembler::createBeamConfig()
                     math::AngularWidth(math::Angle::fromDegrees(CONFIRMATION_WIDTH_DEG))),
                 beam::BeamWidth(
                     math::AngularWidth(math::Angle::fromDegrees(TRACKING_WIDTH_DEG)),
-                    math::AngularWidth(math::Angle::fromDegrees(TRACKING_WIDTH_DEG)))));
+                    math::AngularWidth(math::Angle::fromDegrees(TRACKING_WIDTH_DEG)))),
+            beam::RequestCoverageConfig(
+                math::Angle::fromDegrees(REQUEST_COVERAGE_AZIMUTH_MIN_DEG),
+                math::Angle::fromDegrees(REQUEST_COVERAGE_AZIMUTH_MAX_DEG),
+                math::Elevation::fromDegrees(REQUEST_COVERAGE_ELEVATION_MIN_DEG),
+                math::Elevation::fromDegrees(REQUEST_COVERAGE_ELEVATION_MAX_DEG)));
     }
     catch (const std::invalid_argument& error)
     {

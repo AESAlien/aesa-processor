@@ -106,11 +106,11 @@ int main(int argc, char** argv)
         return usage(argv[0]);
     }
 
-    const beam::SearchGrid grid = [&]() {
+    const beam::AttitudeFrame frame = [&]() {
         try
         {
             // 잘못된 자세정보이면 RadarAttitude 생성자나 AntEnuTransform 생성자가 std::invalid_argument를 던진다.
-            return schedule_scenario::makeSearchGrid(roll, pitch, yaw);
+            return schedule_scenario::makeAttitudeFrame(roll, pitch, yaw);
         }
         catch (const std::invalid_argument& e)
         {
@@ -121,7 +121,7 @@ int main(int argc, char** argv)
 
     try
     {
-        const schedule_scenario::Result result = schedule_scenario::run(scenario, grid);
+        const schedule_scenario::Result result = schedule_scenario::run(scenario, frame);
 
         std::printf("# ticks\n");
         std::printf("tick_ms,status,type,beamID,commandCount,az_deg,el_deg,az_width_deg,el_width_deg\n");
@@ -163,8 +163,9 @@ int main(int argc, char** argv)
 
         std::printf("# grid\n");
         std::printf("idx,beamID,az_deg,el_deg\n");
-        // run()은 grid의 복사본을 쓰므로 여기서는 처음 빔부터 꺼낸다.
-        beam::SearchGrid gridToPrint = grid;
+        // run()은 frame의 복사본을 쓰므로 여기서는 처음 빔부터 꺼낸다.
+        beam::AttitudeFrame frameToPrint = frame;
+        beam::SearchGrid& gridToPrint = frameToPrint.searchGrid();
         const beam::SearchGridConfig gridConfig = schedule_scenario::makeSearchGridConfig();
         const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
         for (std::size_t index = 0; index < beamCount; ++index)

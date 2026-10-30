@@ -1,6 +1,7 @@
 #include <beam/config/attitude_config.hpp>
 #include <beam/config/beam_config.hpp>
 #include <beam/config/request_beam_config.hpp>
+#include <beam/config/request_coverage_config.hpp>
 #include <beam/config/search_grid_config.hpp>
 
 
@@ -19,6 +20,7 @@ namespace
 static_assert(std::is_copy_assignable_v<beam::AttitudeConfig>);
 static_assert(std::is_copy_assignable_v<beam::SearchGridConfig>);
 static_assert(std::is_copy_assignable_v<beam::RequestBeamConfig>);
+static_assert(std::is_copy_assignable_v<beam::RequestCoverageConfig>);
 static_assert(std::is_copy_assignable_v<beam::BeamConfig>);
 
 const double NAN_VALUE = std::numeric_limits<double>::quiet_NaN();
@@ -53,6 +55,15 @@ beam::RequestBeamConfig::Builder requestBuilder()
     return beam::RequestBeamConfig::Builder()
         .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
         .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)));
+}
+
+beam::RequestCoverageConfig::Builder coverageBuilder()
+{
+    return beam::RequestCoverageConfig::Builder()
+        .azimuthMin(-60_deg)
+        .azimuthMax(60_deg)
+        .elevationMin(math::Elevation(-10_deg))
+        .elevationMax(math::Elevation(60_deg));
 }
 
 } // namespace
@@ -399,6 +410,64 @@ TEST(RequestBeamConfigTest, ConstructorValidatesLikeBuilder)
     EXPECT_THROW(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(0_deg), math::AngularWidth(0_deg)), beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))), std::invalid_argument);
 }
 
+// ================================================================ RequestCoverageConfig
+
+TEST(RequestCoverageConfigTest, BuilderRequiresEveryValue)
+{
+    EXPECT_THROW(beam::RequestCoverageConfig::Builder().build(), std::logic_error);
+    EXPECT_THROW(beam::RequestCoverageConfig::Builder().azimuthMin(-60_deg).azimuthMax(60_deg).build(), std::logic_error);
+}
+
+TEST(RequestCoverageConfigTest, BuilderOverridesGivenValues)
+{
+    const beam::RequestCoverageConfig config = coverageBuilder()
+        .azimuthMin(-50_deg)
+        .azimuthMax(40_deg)
+        .elevationMin(math::Elevation(-5_deg))
+        .elevationMax(math::Elevation(70_deg))
+        .build();
+
+    EXPECT_EQ(config.azimuthMin(), -50_deg);
+    EXPECT_EQ(config.azimuthMax(), 40_deg);
+    EXPECT_EQ(config.elevationMin(), -5_deg);
+    EXPECT_EQ(config.elevationMax(), 70_deg);
+}
+
+TEST(RequestCoverageConfigTest, AzimuthOutsideHalfTurnThrows)
+{
+    EXPECT_NO_THROW(coverageBuilder().azimuthMin(-180_deg).azimuthMax(180_deg).build());
+    EXPECT_THROW(coverageBuilder().azimuthMin(-180.001_deg).build(), std::invalid_argument);
+    EXPECT_THROW(coverageBuilder().azimuthMax(180.001_deg).build(), std::invalid_argument);
+    EXPECT_THROW(coverageBuilder().azimuthMin(-MAX_ANGLE).build(), std::invalid_argument);
+    EXPECT_THROW(coverageBuilder().azimuthMax(MAX_ANGLE).build(), std::invalid_argument);
+}
+
+TEST(RequestCoverageConfigTest, MinNotLessThanMaxThrows)
+{
+    EXPECT_THROW(coverageBuilder().azimuthMin(10_deg).azimuthMax(10_deg).build(), std::invalid_argument);
+    EXPECT_THROW(coverageBuilder().azimuthMin(20_deg).azimuthMax(10_deg).build(), std::invalid_argument);
+    EXPECT_THROW(
+        coverageBuilder().elevationMin(math::Elevation(30_deg)).elevationMax(math::Elevation(30_deg)).build(),
+        std::invalid_argument);
+    EXPECT_THROW(
+        coverageBuilder().elevationMin(math::Elevation(40_deg)).elevationMax(math::Elevation(30_deg)).build(),
+        std::invalid_argument);
+}
+
+TEST(RequestCoverageConfigTest, ElevationOutsideQuarterTurnIsRejectedByElevation)
+{
+    EXPECT_NO_THROW(coverageBuilder().elevationMin(math::Elevation(-90_deg)).elevationMax(math::Elevation(90_deg)).build());
+    EXPECT_THROW(math::Elevation(91_deg), std::invalid_argument);
+}
+
+TEST(RequestCoverageConfigTest, ConstructorValidatesLikeBuilder)
+{
+    EXPECT_NO_THROW(beam::RequestCoverageConfig(-60_deg, 60_deg, math::Elevation(-10_deg), math::Elevation(60_deg)));
+    EXPECT_THROW(
+        beam::RequestCoverageConfig(60_deg, -60_deg, math::Elevation(-10_deg), math::Elevation(60_deg)),
+        std::invalid_argument);
+}
+
 // ================================================================ BeamConfig
 
 TEST(BeamConfigTest, BuilderRequiresEveryValue)
@@ -412,6 +481,7 @@ TEST(BeamConfigTest, BuilderReplacesOnlyGivenSubConfigs)
         .attitudeConfig(attitudeBuilder().build())
         .searchGridConfig(gridBuilder().build())
         .requestBeamConfig(requestBuilder().build())
+        .requestCoverageConfig(coverageBuilder().build())
         .searchGridConfig(gridBuilder().azimuthCount(5).build())
         .requestBeamConfig(requestBuilder().trackingBeamWidth(beam::BeamWidth(math::AngularWidth(4_deg), math::AngularWidth(4_deg))).build())
         .build();
@@ -422,6 +492,18 @@ TEST(BeamConfigTest, BuilderReplacesOnlyGivenSubConfigs)
     EXPECT_EQ(config.requestBeam.confirmationBeamWidth.azimuth, 3_deg);
     EXPECT_EQ(config.requestBeam.confirmationBeamWidth.elevation, 3_deg);
     EXPECT_EQ(config.attitude.maxAbsPitch(), 89_deg);
+    EXPECT_EQ(config.requestCoverage.azimuthMax(), 60_deg);
+}
+
+TEST(BeamConfigTest, BuilderRequiresRequestCoverageConfig)
+{
+    EXPECT_THROW(
+        beam::BeamConfig::Builder()
+            .attitudeConfig(attitudeBuilder().build())
+            .searchGridConfig(gridBuilder().build())
+            .requestBeamConfig(requestBuilder().build())
+            .build(),
+        std::logic_error);
 }
 
 TEST(BeamConfigTest, ConstructorKeepsGivenSubConfigs)
@@ -429,10 +511,12 @@ TEST(BeamConfigTest, ConstructorKeepsGivenSubConfigs)
     const beam::BeamConfig config(
         attitudeBuilder().maxAbsPitch(70_deg).build(),
         gridBuilder().elevationCount(4).build(),
-        requestBuilder().confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(2_deg), math::AngularWidth(2_deg))).build());
+        requestBuilder().confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(2_deg), math::AngularWidth(2_deg))).build(),
+        coverageBuilder().elevationMin(math::Elevation(-5_deg)).build());
 
     EXPECT_EQ(config.attitude.maxAbsPitch(), 70_deg);
     EXPECT_EQ(config.searchGrid.elevationCount(), 4u);
     EXPECT_EQ(config.requestBeam.confirmationBeamWidth.azimuth, 2_deg);
     EXPECT_EQ(config.requestBeam.confirmationBeamWidth.elevation, 2_deg);
+    EXPECT_EQ(config.requestCoverage.elevationMin(), -5_deg);
 }

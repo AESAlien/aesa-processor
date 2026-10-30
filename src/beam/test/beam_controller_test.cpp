@@ -47,6 +47,25 @@ beam::RequestBeamCommand makeRequestCommand(
         .build();
 }
 
+// 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도
+beam::RequestCoverageConfig makeCoverageConfig()
+{
+    return beam::RequestCoverageConfig(-60_deg, 60_deg, math::Elevation(-10_deg), math::Elevation(60_deg));
+}
+
+beam::BeamController makeDefaultController()
+{
+    return beam::BeamController(beam::BeamConfig(
+        beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}),
+        beam::SearchGridConfig(
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+        makeCoverageConfig()));
+}
+
 } // namespace
 
 TEST(BeamControllerTest, ReturnsNothingBeforeStart)
@@ -58,7 +77,8 @@ TEST(BeamControllerTest, ReturnsNothingBeforeStart)
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+        makeCoverageConfig()));
 
     EXPECT_FALSE(controller.nextBeamCommand(0ms).has_value());
 }
@@ -72,7 +92,8 @@ TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+        makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -97,7 +118,8 @@ TEST(BeamControllerTest, AttitudeCommandFieldsReachTheSearchGrid)
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+        makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(roll, pitch, yaw));
 
@@ -131,7 +153,8 @@ TEST(BeamControllerTest, RequestBeamIsDeliveredToScheduler)
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+        makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -156,7 +179,8 @@ TEST(BeamControllerTest, RequestWhileOffIsIgnored)
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+        makeCoverageConfig()));
     controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
@@ -173,7 +197,8 @@ TEST(BeamControllerTest, InvalidRequestThrowsEvenWhileOff)
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+        makeCoverageConfig()));
 
     EXPECT_THROW(
         controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 7.5_deg, 15.5_deg)),
@@ -195,7 +220,8 @@ TEST(BeamControllerTest, InvalidRequestIsNotQueued)
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+        makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -219,7 +245,8 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+        makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
@@ -246,7 +273,8 @@ TEST(BeamControllerTest, MovedControllerKeepsState)
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+        makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
     controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
@@ -270,6 +298,7 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+        .requestCoverageConfig(makeCoverageConfig())
         .searchGridConfig(beam::SearchGridConfig::Builder()
             .azimuthCount(21)
             .elevationCount(9)
@@ -309,6 +338,7 @@ TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+        .requestCoverageConfig(makeCoverageConfig())
         .requestBeamConfig(beam::RequestBeamConfig::Builder()
             .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
             .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
@@ -338,6 +368,7 @@ TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+        .requestCoverageConfig(makeCoverageConfig())
         .requestBeamConfig(beam::RequestBeamConfig::Builder()
             .confirmationBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
             .trackingBeamWidth(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))
@@ -368,6 +399,7 @@ TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+        .requestCoverageConfig(makeCoverageConfig())
         .attitudeConfig(beam::AttitudeConfig(
             60_deg,
             math::SquareMatrix::identity(3),
@@ -394,6 +426,7 @@ TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+        .requestCoverageConfig(makeCoverageConfig())
         .attitudeConfig(beam::AttitudeConfig(
             60_deg,
             math::SquareMatrix::identity(3),
@@ -422,7 +455,8 @@ TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+        makeCoverageConfig()));
 
     // roll 181도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
     const beam::SetAttitudeCommand command(37_deg, 127_deg, 0.1_km, 181_deg, 0_deg, 0_deg);
@@ -438,7 +472,8 @@ TEST(BeamControllerTest, LatitudeLongitudeAltitudeAreNotValidated)
             math::Tolerance{1e-6, 0.0}),
         beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))),
-        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)))));
+        beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))),
+        makeCoverageConfig()));
     controller.setOperationState(makeOperationState(beam::OperationState::ON));
 
     // 위도·경도·고도는 빔 모듈에서 쓰지 않으므로 범위를 벗어나도 탐색을 시작한다.
@@ -457,6 +492,7 @@ TEST(BeamControllerTest, ControllerWithInjectedConfigCanBeMoved)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+        .requestCoverageConfig(makeCoverageConfig())
         .searchGridConfig(beam::SearchGridConfig(
             2, 1, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
         .build();
@@ -469,4 +505,128 @@ TEST(BeamControllerTest, ControllerWithInjectedConfigCanBeMoved)
 
     EXPECT_EQ(moved.nextBeamCommand(10ms)->beamId, 2u);
     EXPECT_EQ(moved.nextBeamCommand(20ms)->beamId, 1u);
+}
+
+// ---------- 추적 영역 판정 ----------
+
+TEST(BeamControllerTest, RequestBeamReturnsResult)
+{
+    beam::BeamController controller = makeDefaultController();
+
+    EXPECT_EQ(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg)).status,
+        beam::RequestBeamStatus::NOT_READY);
+
+    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    EXPECT_EQ(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg)).status,
+        beam::RequestBeamStatus::NOT_READY);
+
+    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    EXPECT_EQ(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg)).status,
+        beam::RequestBeamStatus::ACCEPTED);
+    EXPECT_EQ(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 6, 70_deg, 15.5_deg)).status,
+        beam::RequestBeamStatus::OUT_OF_COVERAGE);
+}
+
+TEST(BeamControllerTest, RequestOutsideCoverageIsNotTransmitted)
+{
+    beam::BeamController controller = makeDefaultController();
+    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+
+    ASSERT_EQ(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 0_deg, 61_deg)).status,
+        beam::RequestBeamStatus::OUT_OF_COVERAGE);
+
+    const auto command = controller.nextBeamCommand(0ms);
+    ASSERT_TRUE(command.has_value());
+    EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
+}
+
+TEST(BeamControllerTest, CoverageUsesAttitudeOfAttitudeCommand)
+{
+    beam::BeamController controller = makeDefaultController();
+    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 13.02429_deg));
+
+    // ENU 75도는 안테나 기준 약 62도이므로 거부된다.
+    EXPECT_EQ(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 75_deg, 0_deg)).status,
+        beam::RequestBeamStatus::OUT_OF_COVERAGE);
+    // ENU -50도는 ENU 기준이면 안이지만 안테나 기준 약 -63도이므로 거부된다.
+    EXPECT_EQ(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 6, -50_deg, 0_deg)).status,
+        beam::RequestBeamStatus::OUT_OF_COVERAGE);
+}
+
+TEST(BeamControllerTest, InjectedRequestCoverageConfigIsUsed)
+{
+    const beam::BeamConfig config = beam::BeamConfig::Builder()
+        .attitudeConfig(beam::AttitudeConfig(
+            89_deg,
+            math::SquareMatrix::identity(3),
+            math::Tolerance{1e-6, 0.0}))
+        .searchGridConfig(beam::SearchGridConfig(
+            21, 9, math::Azimuth(-42_deg), 4.2_deg, math::Elevation(3_deg), 4.4_deg, beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg))))
+        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg)), beam::BeamWidth(math::AngularWidth(3_deg), math::AngularWidth(3_deg))))
+        .requestCoverageConfig(beam::RequestCoverageConfig(-5_deg, 5_deg, math::Elevation(0_deg), math::Elevation(10_deg)))
+        .build();
+    beam::BeamController controller(config);
+    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+
+    // 기본 영역(-60~60도)이면 받아들일 7.5도가 이 설정(-5~5도)에서는 거부된다.
+    EXPECT_EQ(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 5_deg)).status,
+        beam::RequestBeamStatus::OUT_OF_COVERAGE);
+    EXPECT_EQ(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 6, 4.5_deg, 5_deg)).status,
+        beam::RequestBeamStatus::ACCEPTED);
+}
+
+TEST(BeamControllerTest, InvalidRequestThrowsBeforeCoverageCheck)
+{
+    beam::BeamController controller = makeDefaultController();
+    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+
+    // 영역 밖이어도 잘못된 요청 값이면 결과 대신 예외를 던진다.
+    EXPECT_THROW(
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 90_deg, 0_deg)),
+        std::invalid_argument);
+}
+
+TEST(BeamControllerTest, RequestBeamResultCarriesRequestFieldsForEveryStatus)
+{
+    beam::BeamController controller = makeDefaultController();
+
+    // NOT_READY
+    const beam::RequestBeamResult notReady =
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::CONFIRMATION, 120ms, 11, 7.5_deg, 15.5_deg));
+    EXPECT_EQ(notReady.status, beam::RequestBeamStatus::NOT_READY);
+    EXPECT_EQ(notReady.beamType, beam::RequestBeamType::CONFIRMATION);
+    EXPECT_EQ(notReady.transmitTime, 120ms);
+    EXPECT_EQ(notReady.requestId, 11u);
+
+    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+
+    // ACCEPTED
+    const beam::RequestBeamResult accepted =
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 1000ms, 12, 7.5_deg, 15.5_deg));
+    EXPECT_EQ(accepted.status, beam::RequestBeamStatus::ACCEPTED);
+    EXPECT_EQ(accepted.beamType, beam::RequestBeamType::TRACKING);
+    EXPECT_EQ(accepted.transmitTime, 1000ms);
+    EXPECT_EQ(accepted.requestId, 12u);
+
+    // OUT_OF_COVERAGE
+    const beam::RequestBeamResult outOfCoverage =
+        controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 2000ms, 13, 90_deg, 15.5_deg));
+    EXPECT_EQ(outOfCoverage.status, beam::RequestBeamStatus::OUT_OF_COVERAGE);
+    EXPECT_EQ(outOfCoverage.beamType, beam::RequestBeamType::TRACKING);
+    EXPECT_EQ(outOfCoverage.transmitTime, 2000ms);
+    EXPECT_EQ(outOfCoverage.requestId, 13u);
 }

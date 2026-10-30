@@ -1,4 +1,5 @@
 #include "scheduler/scheduler.hpp"
+#include "scheduler/attitude_frame.hpp"
 #include "scheduler/beam_request_factory.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
@@ -28,8 +29,14 @@ const beam::SearchGridConfig GRID_CONFIG(
     4.4_deg,
     beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
 
-// 자세정보로 탐색 격자를 만드는 일은 BeamController가 맡으므로, 테스트에서는 격자를 직접 만들어 넘긴다.
-beam::SearchGrid makeSearchGrid(math::Angle roll, math::Angle pitch, math::Angle yaw)
+// 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도
+beam::RequestCoverageConfig makeCoverageConfig()
+{
+    return beam::RequestCoverageConfig(-60_deg, 60_deg, math::Elevation(-10_deg), math::Elevation(60_deg));
+}
+
+// 자세정보로 탐색 격자와 영역 판정을 만드는 일은 BeamController가 맡으므로, 테스트에서는 직접 만들어 넘긴다.
+beam::AttitudeFrame makeAttitudeFrame(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     const beam::AntEnuTransform transform(
         beam::RadarAttitude(roll, pitch, yaw),
@@ -37,24 +44,24 @@ beam::SearchGrid makeSearchGrid(math::Angle roll, math::Angle pitch, math::Angle
             89_deg,
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}));
-    return beam::SearchGrid(transform, GRID_CONFIG);
+    return beam::AttitudeFrame(transform, GRID_CONFIG, makeCoverageConfig());
 }
 
-beam::SearchGrid makeZeroSearchGrid()
+beam::AttitudeFrame makeZeroAttitudeFrame()
 {
-    return makeSearchGrid(0_deg, 0_deg, 0_deg);
+    return makeAttitudeFrame(0_deg, 0_deg, 0_deg);
 }
 
-// ON으로 바꾸고 탐색 격자까지 넣어 준비 상태로 만든다.
-void makeReady(beam::Scheduler& scheduler, beam::SearchGrid searchGrid)
+// ON으로 바꾸고 AttitudeFrame까지 넣어 준비 상태로 만든다.
+void makeReady(beam::Scheduler& scheduler, beam::AttitudeFrame attitudeFrame)
 {
     scheduler.setOperationState(beam::OperationState::ON);
-    scheduler.setSearchGrid(std::move(searchGrid));
+    scheduler.setAttitudeFrame(std::move(attitudeFrame));
 }
 
 void makeReady(beam::Scheduler& scheduler)
 {
-    makeReady(scheduler, makeZeroSearchGrid());
+    makeReady(scheduler, makeZeroAttitudeFrame());
 }
 
 // 요청의 빔 폭과 우선순위는 팩토리가 정한다. 설정을 지정하지 않으면 기본 설정의 팩토리를 쓴다.
@@ -104,7 +111,7 @@ TEST(SchedulerTest, ReturnsNothingInitially)
     EXPECT_FALSE(scheduler.next(0ms).has_value());
 }
 
-TEST(SchedulerTest, ReturnsNothingWhenOnButSearchGridNotReceived)
+TEST(SchedulerTest, ReturnsNothingWhenOnButAttitudeFrameNotReceived)
 {
     beam::Scheduler scheduler;
     scheduler.setOperationState(beam::OperationState::ON);
@@ -112,16 +119,16 @@ TEST(SchedulerTest, ReturnsNothingWhenOnButSearchGridNotReceived)
     EXPECT_FALSE(scheduler.next(0ms).has_value());
 }
 
-TEST(SchedulerTest, SearchGridReceivedWhileOffIsIgnored)
+TEST(SchedulerTest, AttitudeFrameReceivedWhileOffIsIgnored)
 {
     beam::Scheduler scheduler;
-    scheduler.setSearchGrid(makeZeroSearchGrid());
+    scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
     scheduler.setOperationState(beam::OperationState::ON);
 
     EXPECT_FALSE(scheduler.next(0ms).has_value());
 }
 
-TEST(SchedulerTest, SearchGridAfterOnMakesSchedulerReady)
+TEST(SchedulerTest, AttitudeFrameAfterOnMakesSchedulerReady)
 {
     beam::Scheduler scheduler;
     makeReady(scheduler);
@@ -140,12 +147,12 @@ TEST(SchedulerTest, ReturnsNothingAfterTurnedOff)
     EXPECT_FALSE(scheduler.next(10ms).has_value());
 }
 
-TEST(SchedulerTest, SecondSearchGridIsIgnored)
+TEST(SchedulerTest, SecondAttitudeFrameIsIgnored)
 {
     beam::Scheduler scheduler;
-    makeReady(scheduler, makeZeroSearchGrid());
+    makeReady(scheduler, makeZeroAttitudeFrame());
 
-    scheduler.setSearchGrid(makeSearchGrid(0_deg, 0_deg, 10_deg));
+    scheduler.setAttitudeFrame(makeAttitudeFrame(0_deg, 0_deg, 10_deg));
     const auto command = scheduler.next(0ms);
 
     ASSERT_TRUE(command.has_value());
@@ -203,7 +210,7 @@ TEST(SchedulerTest, SearchBeamsFollowGivenSearchGrid)
 {
     // 격자는 안테나 정면 기준이므로 안테나가 yaw 만큼 돌아가 있으면 ENU 방위각도 +yaw 만큼 이동한다.
     beam::Scheduler scheduler;
-    makeReady(scheduler, makeSearchGrid(0_deg, 0_deg, 10_deg));
+    makeReady(scheduler, makeAttitudeFrame(0_deg, 0_deg, 10_deg));
 
     const auto command = scheduler.next(0ms);
 
@@ -367,7 +374,7 @@ TEST(SchedulerTest, CommandCountDoesNotIncreaseWhenNothingIsSent)
 
     EXPECT_FALSE(scheduler.next(0ms).has_value());
 
-    scheduler.setSearchGrid(makeZeroSearchGrid());
+    scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
 
     EXPECT_EQ(scheduler.next(10ms)->commandCount, 1u);
 }
@@ -383,14 +390,101 @@ TEST(SchedulerTest, RequestWhileOffIsIgnored)
     EXPECT_EQ(scheduler.next(0ms)->beamType, beam::BeamType::SEARCH);
 }
 
-TEST(SchedulerTest, RequestBeforeSearchGridIsIgnored)
+TEST(SchedulerTest, RequestBeforeAttitudeFrameIsIgnored)
 {
     beam::Scheduler scheduler;
     scheduler.setOperationState(beam::OperationState::ON);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 4, 1_deg, 2_deg));
-    scheduler.setSearchGrid(makeZeroSearchGrid());
+    scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
 
     EXPECT_EQ(scheduler.next(0ms)->beamType, beam::BeamType::SEARCH);
+}
+
+TEST(SchedulerTest, AddRequestReturnsNotReadyWhileOffOrBeforeAttitudeFrame)
+{
+    beam::Scheduler scheduler;
+    EXPECT_EQ(
+        scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 3, 1_deg, 2_deg)),
+        beam::RequestBeamStatus::NOT_READY);
+
+    scheduler.setOperationState(beam::OperationState::ON);
+    EXPECT_EQ(
+        scheduler.addRequest(makeRequest(beam::RequestBeamType::CONFIRMATION, 0ms, 4, 1_deg, 2_deg)),
+        beam::RequestBeamStatus::NOT_READY);
+}
+
+TEST(SchedulerTest, AddRequestReturnsAcceptedWhenQueued)
+{
+    beam::Scheduler scheduler;
+    makeReady(scheduler);
+
+    EXPECT_EQ(
+        scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 5, 1_deg, 2_deg)),
+        beam::RequestBeamStatus::ACCEPTED);
+    EXPECT_EQ(scheduler.next(0ms)->beamType, beam::BeamType::TRACKING);
+}
+
+// ---------- 추적 영역 판정 ----------
+
+TEST(SchedulerTest, RequestOutsideCoverageIsNotQueued)
+{
+    beam::Scheduler scheduler;
+    makeReady(scheduler);
+
+    // 확인·추적 빔 모두 같은 영역으로 판정한다.
+    EXPECT_EQ(
+        scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 6, 61_deg, 10_deg)),
+        beam::RequestBeamStatus::OUT_OF_COVERAGE);
+    EXPECT_EQ(
+        scheduler.addRequest(makeRequest(beam::RequestBeamType::CONFIRMATION, 0ms, 7, 0_deg, -11_deg)),
+        beam::RequestBeamStatus::OUT_OF_COVERAGE);
+
+    const auto command = scheduler.next(0ms);
+    ASSERT_TRUE(command.has_value());
+    EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
+    EXPECT_EQ(command->beamId, 1u);
+}
+
+TEST(SchedulerTest, CoverageIsJudgedInAntennaFrameOfReceivedAttitude)
+{
+    beam::Scheduler scheduler;
+    makeReady(scheduler, makeAttitudeFrame(0_deg, 0_deg, 13.02429_deg));
+
+    // ENU 75도 → 안테나 약 62도: 밖
+    EXPECT_EQ(
+        scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 8, 75_deg, 0_deg)),
+        beam::RequestBeamStatus::OUT_OF_COVERAGE);
+    // ENU 72도 → 안테나 약 59도: 안. 송신 방향은 요청 그대로(ENU)다.
+    EXPECT_EQ(
+        scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 9, 72_deg, 0_deg)),
+        beam::RequestBeamStatus::ACCEPTED);
+
+    const auto command = scheduler.next(0ms);
+    ASSERT_TRUE(command.has_value());
+    EXPECT_EQ(command->beamType, beam::BeamType::TRACKING);
+    EXPECT_EQ(command->beamId, 9u);
+    EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(72_deg));
+}
+
+TEST(SchedulerTest, CoverageFollowsAttitudeFrameReceivedAfterRestart)
+{
+    beam::Scheduler scheduler;
+    makeReady(scheduler, makeAttitudeFrame(0_deg, 0_deg, 13.02429_deg));
+    ASSERT_EQ(
+        scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 10, -50_deg, 0_deg)),
+        beam::RequestBeamStatus::OUT_OF_COVERAGE);
+
+    scheduler.setOperationState(beam::OperationState::OFF);
+    scheduler.setOperationState(beam::OperationState::ON);
+    EXPECT_EQ(
+        scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 11, -50_deg, 0_deg)),
+        beam::RequestBeamStatus::NOT_READY);
+
+    // 새 운용에서는 새로 받은 자세(영 자세)로 판정한다.
+    scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
+    EXPECT_EQ(
+        scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 0ms, 12, -50_deg, 0_deg)),
+        beam::RequestBeamStatus::ACCEPTED);
 }
 
 // ---------- 초기화 ----------
@@ -398,7 +492,7 @@ TEST(SchedulerTest, RequestBeforeSearchGridIsIgnored)
 TEST(SchedulerTest, TurningOnAgainAfterOffResetsEverything)
 {
     beam::Scheduler scheduler;
-    makeReady(scheduler, makeSearchGrid(0_deg, 0_deg, 10_deg));
+    makeReady(scheduler, makeAttitudeFrame(0_deg, 0_deg, 10_deg));
     scheduler.next(0ms);
     scheduler.next(10ms);
     scheduler.addRequest(makeRequest(beam::RequestBeamType::TRACKING, 1000ms, 6, 1_deg, 2_deg));
@@ -410,7 +504,7 @@ TEST(SchedulerTest, TurningOnAgainAfterOffResetsEverything)
     EXPECT_FALSE(scheduler.next(20ms).has_value());
 
     // 새 운용에서는 새로 받은 격자(영 자세), 처음 구역, 카운트 1부터 시작한다.
-    scheduler.setSearchGrid(makeZeroSearchGrid());
+    scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
     const auto first = scheduler.next(1000ms);
 
     ASSERT_TRUE(first.has_value());

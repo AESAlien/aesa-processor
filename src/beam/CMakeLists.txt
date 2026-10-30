@@ -3,8 +3,10 @@ add_library(beam STATIC
 
     src/domain/beam_width.cpp
 
+    src/scheduler/attitude_frame.cpp
     src/scheduler/beam_request.cpp
     src/scheduler/beam_request_factory.cpp
+    src/scheduler/request_coverage.cpp
     src/scheduler/search_grid.cpp
     src/scheduler/request_queue.cpp
     src/scheduler/scheduler.cpp
@@ -15,6 +17,7 @@ add_library(beam STATIC
     src/config/attitude_config.cpp
     src/config/search_grid_config.cpp
     src/config/request_beam_config.cpp
+    src/config/request_coverage_config.cpp
     src/config/beam_config.cpp
 )
 
@@ -106,6 +109,18 @@ if(BUILD_TESTING)
         GTest::gtest_main
     )
     gtest_discover_tests(beam_request_queue_test)
+
+    add_executable(beam_request_coverage_test
+        test/request_coverage_test.cpp
+    )
+    target_include_directories(beam_request_coverage_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_link_libraries(beam_request_coverage_test PRIVATE
+        beam
+        GTest::gtest_main
+    )
+    gtest_discover_tests(beam_request_coverage_test)
 
     add_executable(beam_scheduler_test
         test/scheduler_test.cpp
