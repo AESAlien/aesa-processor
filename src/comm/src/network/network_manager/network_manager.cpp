@@ -1,8 +1,11 @@
 #include <network/network_manager/network_manager.hpp>
 
+#include <comm/error/comm_error.hpp>
+#include <network/network_error.hpp>
+
 #include <algorithm>
-#include <chrono>
-#include <limits>
+#include <iostream>
+#include <stdexcept>
 #include <utility>
 
 namespace comm
@@ -10,18 +13,18 @@ namespace comm
 namespace
 {
 
-constexpr int RECEIVE_BUFFER_SIZE = 4096;
-constexpr int LISTEN_BACKLOG = 2;
+constexpr char RECEIVE_FAILURE[] = "Communication data could not be received";
 
-std::chrono::microseconds remainingTime(
-    std::chrono::steady_clock::time_point deadline
-);
+// Throws std::invalid_argument for an invalid endpoint.
+Ipv4Endpoint parseEndpoint(const NetworkEndpoint& endpoint);
 
-// An endpoint with neither address nor port is treated as disabled.
-bool parseEndpoint(
-    const NetworkEndpoint& endpoint,
-    std::optional<uint32_t>& parsedAddress,
-    bool allowDisabled
+// Returns nullopt for an endpoint with neither address nor port, which
+// disables the peer. Throws std::invalid_argument for an invalid endpoint.
+std::optional<Ipv4Endpoint> parsePeerEndpoint(const NetworkEndpoint& endpoint);
+
+bool matches(
+    const std::optional<Ipv4Endpoint>& endpoint,
+    const AcceptedSocket& accepted
 );
 
 bool contains(
@@ -29,688 +32,308 @@ bool contains(
     SocketHandle socket
 );
 
-PollResult pollFailure(NetworkOperation operation, int errorCode);
+void reportRejectedConnection(const AcceptedSocket& accepted);
 
 } // namespace
+
+
+/********************************network manager 구현부****************************************** */
 
 NetworkManager::NetworkManager(
     NetworkEndpoint serverEndpoint,
     NetworkEndpoint operatorConsoleEndpoint,
     NetworkEndpoint scenarioSimulatorEndpoint
-) : _serverEndpoint(std::move(serverEndpoint)),
-    _operatorConsoleEndpoint(std::move(operatorConsoleEndpoint)),
-    _scenarioSimulatorEndpoint(std::move(scenarioSimulatorEndpoint)),
-    _socketApiStarted(false),
-    _listenSocket(INVALID_SOCKET_HANDLE),
-    _operatorConsoleSocket(INVALID_SOCKET_HANDLE),
-    _scenarioSimulatorSocket(INVALID_SOCKET_HANDLE)
+) : _serverEndpoint(parseEndpoint(serverEndpoint)),
+    _operatorConsoleEndpoint(parsePeerEndpoint(operatorConsoleEndpoint)),
+    _scenarioSimulatorEndpoint(parsePeerEndpoint(scenarioSimulatorEndpoint))
 {
+    validatePeers();
 }
 
-NetworkManager::~NetworkManager()
+void NetworkManager::start()
 {
-    stop();
+    if (_server)
+    {
+        return;
+    }
+
+    _server = std::make_unique<TcpServer>(_serverEndpoint);
 }
 
-OperationResult NetworkManager::start()
+std::optional<ReceivedFrames> NetworkManager::receiveFrames(
+    std::chrono::milliseconds timeout
+)
 {
-    if (_listenSocket != INVALID_SOCKET_HANDLE)
+    if (!_server)
     {
-        return {};
-    }
-
-    OperationResult configuration = validateConfiguration();
-    if (configuration.status != OperationStatus::SUCCESS)
-    {
-        return configuration;
-    }
-
-    const int startupError = native_socket::startup();
-    if (startupError != 0)
-    {
-        return
-        {
-            OperationStatus::ERROR,
-            NetworkOperation::SOCKET_API_STARTUP,
-            startupError
-        };
-    }
-    _socketApiStarted = true;
-
-    auto failStart = [this](NetworkOperation operation) {
-        const int errorCode = native_socket::lastError();
-        closeSocket(_listenSocket);
-        native_socket::cleanup();
-        _socketApiStarted = false;
-        return OperationResult{OperationStatus::ERROR, operation, errorCode};
-    };
-
-    _listenSocket = native_socket::createTcpSocket();
-    if (_listenSocket == INVALID_SOCKET_HANDLE)
-    {
-        return failStart(NetworkOperation::CREATE_SOCKET);
-    }
-
-    if (native_socket::setReuseAddress(_listenSocket) < 0)
-    {
-        return failStart(NetworkOperation::SET_SOCKET_OPTION);
-    }
-
-    if (native_socket::bindSocket(
-            _listenSocket,
-            *_serverAddress,
-            _serverEndpoint.port) < 0)
-    {
-        return failStart(NetworkOperation::BIND);
-    }
-
-    if (native_socket::listenSocket(_listenSocket, LISTEN_BACKLOG) < 0)
-    {
-        return failStart(NetworkOperation::LISTEN);
-    }
-
-    if (native_socket::setNonBlocking(_listenSocket) < 0)
-    {
-        return failStart(NetworkOperation::SET_SOCKET_OPTION);
-    }
-
-    return {};
-}
-
-PollResult NetworkManager::poll(std::chrono::milliseconds timeout)
-{
-    if (_listenSocket == INVALID_SOCKET_HANDLE)
-    {
-        PollResult result;
-        result.status = PollStatus::NOT_STARTED;
-        return result;
+        throw ReceiveError(
+            std::string(RECEIVE_FAILURE) + ": server is not started");
     }
 
     if (timeout.count() < 0)
     {
-        PollResult result;
-        result.status = PollStatus::INVALID_ARGUMENT;
-        return result;
+        throw std::invalid_argument("Receive timeout must not be negative");
     }
 
-    const Clock::time_point deadline = Clock::now() + timeout;
+    
+    //session pointer는 락을 잡고 접근(sender receive 공통)
+    const std::shared_ptr<Session> operatorConsole =
+        getSession(NetworkPeer::OPERATOR_CONSOLE);
+    const std::shared_ptr<Session> scenarioSimulator =
+        getSession(NetworkPeer::SCENARIO_SIMULATOR);
 
-    while (true)
+    std::vector<SocketHandle> sockets{_server->socket()};
+    if (operatorConsole)
     {
-        int closeError = closeRequestedSockets();
-        if (closeError != 0)
-        {
-            return pollFailure(NetworkOperation::CLOSE, closeError);
-        }
-
-        const SocketHandle operatorConsoleSocket = _operatorConsoleSocket;
-        const SocketHandle scenarioSimulatorSocket = _scenarioSimulatorSocket;
-
-        std::vector<SocketHandle> sockets{_listenSocket};
-        if (operatorConsoleSocket != INVALID_SOCKET_HANDLE)
-        {
-            sockets.push_back(operatorConsoleSocket);
-        }
-        if (scenarioSimulatorSocket != INVALID_SOCKET_HANDLE)
-        {
-            sockets.push_back(scenarioSimulatorSocket);
-        }
-
-        std::vector<SocketHandle> readySockets;
-        const int selectedCount = native_socket::waitReadable(
-            sockets,
-            remainingTime(deadline),
-            readySockets);
-
-        closeError = closeRequestedSockets();
-        if (closeError != 0)
-        {
-            return pollFailure(NetworkOperation::CLOSE, closeError);
-        }
-
-        if (selectedCount == 0)
-        {
-            PollResult result;
-            result.status = PollStatus::TIMEOUT;
-            return result;
-        }
-
-        if (selectedCount < 0)
-        {
-            const int errorCode = native_socket::lastError();
-            if (native_socket::isInterrupted(errorCode) &&
-                Clock::now() < deadline)
-            {
-                continue;
-            }
-
-            return pollFailure(NetworkOperation::SELECT, errorCode);
-        }
-
-        PollResult result;
-        result.status = PollStatus::EVENTS;
-
-        if (contains(readySockets, _listenSocket))
-        {
-            if (!acceptConnection(
-                    result.events,
-                    result.failedOperation,
-                    result.errorCode))
-            {
-                result.status = PollStatus::ERROR;
-                result.events.clear();
-                return result;
-            }
-        }
-
-        // A socket replaced by a reconnection during this poll is skipped.
-        if (operatorConsoleSocket != INVALID_SOCKET_HANDLE &&
-            operatorConsoleSocket == _operatorConsoleSocket &&
-            contains(readySockets, operatorConsoleSocket))
-        {
-            receiveFromSocket(
-                operatorConsoleSocket,
-                NetworkPeer::OPERATOR_CONSOLE,
-                result.events);
-        }
-
-        if (scenarioSimulatorSocket != INVALID_SOCKET_HANDLE &&
-            scenarioSimulatorSocket == _scenarioSimulatorSocket &&
-            contains(readySockets, scenarioSimulatorSocket))
-        {
-            receiveFromSocket(
-                scenarioSimulatorSocket,
-                NetworkPeer::SCENARIO_SIMULATOR,
-                result.events);
-        }
-
-        if (!result.events.empty())
-        {
-            return result;
-        }
-
-        if (Clock::now() >= deadline)
-        {
-            result.status = PollStatus::TIMEOUT;
-            return result;
-        }
+        sockets.push_back(operatorConsole->socket());
     }
+    if (scenarioSimulator)
+    {
+        sockets.push_back(scenarioSimulator->socket());
+    }
+
+    std::vector<SocketHandle> readySockets;
+    const int selectedCount =
+        native_socket::waitReadable(sockets, timeout, readySockets); //select
+
+    if (selectedCount < 0)
+    {
+        const int errorCode = native_socket::lastError();
+        if (native_socket::isInterrupted(errorCode))
+        {
+            return std::nullopt;
+        }
+
+        throwSystemError<ReceiveError>(RECEIVE_FAILURE, "select", errorCode);
+    }
+
+    if (contains(readySockets, _server->socket()))
+    {
+        acceptSession();
+        return std::nullopt;
+    }
+
+    const bool operatorConsoleReady =
+        operatorConsole && contains(readySockets, operatorConsole->socket());
+    const bool scenarioSimulatorReady =
+        scenarioSimulator && contains(readySockets, scenarioSimulator->socket());
+
+    //console, simulator 가 모두 ready일 때, 이전에 선택하지 않은 소켓을 선택
+    if (operatorConsoleReady &&
+        (!scenarioSimulatorReady ||
+         _nextPeer == NetworkPeer::OPERATOR_CONSOLE))
+    {
+        _nextPeer = NetworkPeer::SCENARIO_SIMULATOR;
+        return receiveFrom(NetworkPeer::OPERATOR_CONSOLE, operatorConsole);
+    }
+
+    if (scenarioSimulatorReady)
+    {
+        _nextPeer = NetworkPeer::OPERATOR_CONSOLE;
+        return receiveFrom(NetworkPeer::SCENARIO_SIMULATOR, scenarioSimulator);
+    }
+
+    return std::nullopt;
 }
 
-SendResult NetworkManager::send(
+void NetworkManager::send(
     NetworkPeer peer,
     const std::vector<uint8_t>& data,
     std::chrono::milliseconds timeout
 )
 {
-    SendResult result;
-
     if (data.empty() || timeout.count() < 0)
     {
-        result.status = SendStatus::INVALID_ARGUMENT;
-        return result;
+        throw std::invalid_argument(
+            "Send requires data and a non-negative timeout");
     }
 
-    PeerSynchro& synchro = getPeerSynchro(peer);
-    std::lock_guard<std::mutex> lock(synchro.sendCloseMutex);
-
-    if (_listenSocket == INVALID_SOCKET_HANDLE)
+    // The copy keeps the session alive even if it is replaced meanwhile.
+    const std::shared_ptr<Session> session = getSession(peer);
+    if (!session)
     {
-        result.status = SendStatus::NOT_STARTED;
-        return result;
-    }
-
-    SocketHandle socket = getSocket(peer);
-    if (synchro.closeRequested.load() ||
-        socket == INVALID_SOCKET_HANDLE)
-    {
-        result.status = SendStatus::NOT_CONNECTED;
-        return result;
-    }
-
-    const Clock::time_point deadline = Clock::now() + timeout;
-
-    // A partially sent message corrupts the stream, so the peer is closed.
-    auto failSend = [&](SendStatus status) {
-        if (result.bytesSent > 0)
-        {
-            synchro.closeRequested.store(true);
-        }
-        result.status = status;
-        return result;
-    };
-
-    while (result.bytesSent < data.size())
-    {
-        std::size_t remainingSize = data.size() - result.bytesSent;
-        int sendSize = remainingSize > static_cast<std::size_t>(
-            std::numeric_limits<int>::max())
-            ? std::numeric_limits<int>::max()
-            : static_cast<int>(remainingSize);
-
-        int sentSize = native_socket::sendBytes(
-            socket,
-            data.data() + result.bytesSent,
-            sendSize);
-
-        if (sentSize > 0)
-        {
-            result.bytesSent += static_cast<std::size_t>(sentSize);
-            continue;
-        }
-
-        if (sentSize == 0)
-        {
-            synchro.closeRequested.store(true);
-            result.status = SendStatus::CONNECTION_LOST;
-            result.failedOperation = NetworkOperation::SEND;
-            return result;
-        }
-
-        int errorCode = native_socket::lastError();
-        if (native_socket::isInterrupted(errorCode))
-        {
-            continue;
-        }
-
-        if (!native_socket::isWouldBlock(errorCode))
-        {
-            synchro.closeRequested.store(true);
-            result.status = SendStatus::CONNECTION_LOST;
-            result.failedOperation = NetworkOperation::SEND;
-            result.errorCode = errorCode;
-            return result;
-        }
-
-        std::chrono::microseconds remaining = remainingTime(deadline);
-        if (remaining.count() == 0)
-        {
-            return failSend(SendStatus::TIMEOUT);
-        }
-
-        int selectedCount = native_socket::waitWritable(socket, remaining);
-        if (selectedCount > 0)
-        {
-            continue;
-        }
-
-        if (selectedCount == 0)
-        {
-            return failSend(SendStatus::TIMEOUT);
-        }
-
-        errorCode = native_socket::lastError();
-        if (native_socket::isInterrupted(errorCode) &&
-            Clock::now() < deadline)
-        {
-            continue;
-        }
-
-        result.failedOperation = NetworkOperation::SELECT;
-        result.errorCode = errorCode;
-        return failSend(SendStatus::ERROR);
-    }
-
-    result.status = SendStatus::SUCCESS;
-    return result;
-}
-
-OperationResult NetworkManager::stop()
-{
-    _operatorConsoleSynchro.closeRequested.store(true);
-    _scenarioSimulatorSynchro.closeRequested.store(true);
-    std::scoped_lock lock(
-        _operatorConsoleSynchro.sendCloseMutex,
-        _scenarioSimulatorSynchro.sendCloseMutex);
-
-    int firstError = 0;
-
-    int operatorError = closeSocket(_operatorConsoleSocket);
-    if (operatorError != 0)
-    {
-        firstError = operatorError;
-    }
-
-    int simulatorError = closeSocket(_scenarioSimulatorSocket);
-    if (firstError == 0 && simulatorError != 0)
-    {
-        firstError = simulatorError;
-    }
-
-    int listenerError = closeSocket(_listenSocket);
-    if (firstError == 0 && listenerError != 0)
-    {
-        firstError = listenerError;
-    }
-
-    _operatorConsoleSynchro.closeRequested.store(false);
-    _scenarioSimulatorSynchro.closeRequested.store(false);
-
-    int cleanupError = 0;
-    if (_socketApiStarted)
-    {
-        cleanupError = native_socket::cleanup();
-        _socketApiStarted = false;
-    }
-
-    if (firstError != 0)
-    {
-        return
-        {
-            OperationStatus::ERROR,
-            NetworkOperation::CLOSE,
-            firstError
-        };
-    }
-
-    if (cleanupError != 0)
-    {
-        return
-        {
-            OperationStatus::ERROR,
-            NetworkOperation::SOCKET_API_CLEANUP,
-            cleanupError
-        };
-    }
-
-    return {};
-}
-
-OperationResult NetworkManager::validateConfiguration()
-{
-    _serverAddress.reset();
-    _operatorConsoleAddress.reset();
-    _scenarioSimulatorAddress.reset();
-
-    const OperationResult invalidConfiguration
-    {
-        OperationStatus::INVALID_ARGUMENT,
-        NetworkOperation::CONFIGURATION,
-        0
-    };
-
-    if (!parseEndpoint(_serverEndpoint, _serverAddress, false) ||
-        !parseEndpoint(
-            _operatorConsoleEndpoint,
-            _operatorConsoleAddress,
-            true) ||
-        !parseEndpoint(
-            _scenarioSimulatorEndpoint,
-            _scenarioSimulatorAddress,
-            true) ||
-        (!_operatorConsoleAddress.has_value() &&
-         !_scenarioSimulatorAddress.has_value()))
-    {
-        return invalidConfiguration;
-    }
-
-    if (_operatorConsoleAddress.has_value() &&
-        _scenarioSimulatorAddress.has_value() &&
-        _operatorConsoleAddress == _scenarioSimulatorAddress &&
-        _operatorConsoleEndpoint.port == _scenarioSimulatorEndpoint.port)
-    {
-        return invalidConfiguration;
-    }
-
-    return {};
-}
-
-bool NetworkManager::acceptConnection(
-    std::vector<NetworkEvent>& events,
-    NetworkOperation& failedOperation,
-    int& errorCode
-)
-{
-    uint32_t clientAddress = 0;
-    uint16_t clientPort = 0;
-    SocketHandle clientSocket = native_socket::acceptSocket(
-        _listenSocket,
-        clientAddress,
-        clientPort);
-
-    if (clientSocket == INVALID_SOCKET_HANDLE)
-    {
-        errorCode = native_socket::lastError();
-        if (native_socket::isWouldBlock(errorCode))
-        {
-            errorCode = 0;
-            return true;
-        }
-
-        failedOperation = NetworkOperation::ACCEPT;
-        return false;
-    }
-
-    if (native_socket::setNonBlocking(clientSocket) < 0)
-    {
-        errorCode = native_socket::lastError();
-        failedOperation = NetworkOperation::SET_SOCKET_OPTION;
-        native_socket::closeSocket(clientSocket);
-        return false;
-    }
-
-    std::optional<NetworkPeer> peer;
-    if (_operatorConsoleAddress == clientAddress &&
-        clientPort == _operatorConsoleEndpoint.port)
-    {
-        peer = NetworkPeer::OPERATOR_CONSOLE;
-    }
-    else if (_scenarioSimulatorAddress == clientAddress &&
-             clientPort == _scenarioSimulatorEndpoint.port)
-    {
-        peer = NetworkPeer::SCENARIO_SIMULATOR;
-    }
-
-    if (!peer.has_value())
-    {
-        const std::optional<std::string> address =
-            native_socket::formatIpv4(clientAddress);
-
-        if (!address.has_value())
-        {
-            errorCode = native_socket::lastError();
-            failedOperation = NetworkOperation::ADDRESS_CONVERSION;
-            native_socket::closeSocket(clientSocket);
-            return false;
-        }
-
-        ConnectionRejectedEvent event;
-        event.remoteAddress = *address;
-        event.remotePort = clientPort;
-        events.emplace_back(std::move(event));
-        native_socket::closeSocket(clientSocket);
-        return true;
-    }
-
-    PeerSynchro& synchro = getPeerSynchro(*peer);
-    synchro.closeRequested.store(true);
-    std::lock_guard<std::mutex> lock(synchro.sendCloseMutex);
-
-    SocketHandle previousSocket = getSocket(*peer);
-    bool reconnected = previousSocket != INVALID_SOCKET_HANDLE;
-    closeSocket(previousSocket);
-    setSocket(*peer, clientSocket);
-    synchro.closeRequested.store(false);
-
-    ConnectionEvent event;
-    event.peer = *peer;
-    event.state = reconnected
-        ? ConnectionState::RECONNECTED
-        : ConnectionState::CONNECTED;
-    events.emplace_back(event);
-    return true;
-}
-
-void NetworkManager::receiveFromSocket(
-    SocketHandle socket,
-    NetworkPeer peer,
-    std::vector<NetworkEvent>& events
-)
-{
-    uint8_t buffer[RECEIVE_BUFFER_SIZE];
-    int receivedSize = native_socket::receiveBytes(
-        socket,
-        buffer,
-        sizeof(buffer));
-
-    if (receivedSize > 0)
-    {
-        DataReceivedEvent event;
-        event.peer = peer;
-        event.bytes.assign(buffer, buffer + receivedSize);
-        events.emplace_back(std::move(event));
         return;
     }
 
-    ConnectionEvent event;
-    event.peer = peer;
-    event.state = ConnectionState::DISCONNECTED;
-
-    if (receivedSize == 0)
-    {
-        event.disconnectReason = DisconnectReason::REMOTE_CLOSED;
-    }
-    else
-    {
-        event.errorCode = native_socket::lastError();
-        if (native_socket::isWouldBlock(event.errorCode))
-        {
-            return;
-        }
-        event.disconnectReason = DisconnectReason::RECEIVE_ERROR;
-    }
-
-    closeSocket(peer);
-    events.emplace_back(event);
+    session->send(data, timeout);
 }
 
-SocketHandle NetworkManager::getSocket(NetworkPeer peer) const
+void NetworkManager::validatePeers() const
 {
-    switch (peer)
+    if (!_operatorConsoleEndpoint.has_value() && !_scenarioSimulatorEndpoint.has_value())
     {
-    case NetworkPeer::OPERATOR_CONSOLE:
-        return _operatorConsoleSocket;
-
-    case NetworkPeer::SCENARIO_SIMULATOR:
-        return _scenarioSimulatorSocket;
+        throw std::invalid_argument("At least one peer must be enabled");
     }
 
-    return INVALID_SOCKET_HANDLE;
-}
-
-void NetworkManager::setSocket(NetworkPeer peer, SocketHandle socket)
-{
-    switch (peer)
+    if (_operatorConsoleEndpoint.has_value() &&
+        _scenarioSimulatorEndpoint.has_value() &&
+        _operatorConsoleEndpoint->address == _scenarioSimulatorEndpoint->address &&
+        _operatorConsoleEndpoint->port == _scenarioSimulatorEndpoint->port)
     {
-    case NetworkPeer::OPERATOR_CONSOLE:
-        _operatorConsoleSocket = socket;
-        return;
-
-    case NetworkPeer::SCENARIO_SIMULATOR:
-        _scenarioSimulatorSocket = socket;
-        return;
+        throw std::invalid_argument("Peer endpoints must be distinct");
     }
 }
 
-NetworkManager::PeerSynchro& NetworkManager::getPeerSynchro(
-    NetworkPeer peer
+std::optional<NetworkPeer> NetworkManager::identifyPeer(
+    const AcceptedSocket& accepted
 ) const
 {
+    if (matches(_operatorConsoleEndpoint, accepted))
+    {
+        return NetworkPeer::OPERATOR_CONSOLE;
+    }
+
+    if (matches(_scenarioSimulatorEndpoint, accepted))
+    {
+        return NetworkPeer::SCENARIO_SIMULATOR;
+    }
+
+    return std::nullopt;
+}
+
+void NetworkManager::acceptSession()
+{
+    const std::optional<AcceptedSocket> accepted = _server->accept();
+    if (!accepted.has_value())
+    {
+        return;
+    }
+
+    const std::optional<NetworkPeer> peer = identifyPeer(*accepted);
+    if (!peer.has_value())
+    {
+        reportRejectedConnection(*accepted);
+        native_socket::closeSocket(accepted->socket);
+        return;
+    }
+
+    // A reconnection replaces the previous session, which closes its socket
+    // once no send() is using it anymore.
+    setSession(*peer, std::make_shared<Session>(accepted->socket, *peer));
+}
+
+std::optional<ReceivedFrames> NetworkManager::receiveFrom(
+    NetworkPeer peer,
+    const std::shared_ptr<Session>& session
+)
+{
+    ReceivedFrames received{peer, {}};
+    try
+    {
+        received.frames = session->receive();
+    }
+    //recv < 0 receive error 또는 framing error
+    catch (const ReceiveError&)
+    {
+        if (!session->isOpen())
+        {
+            setSession(peer, nullptr);
+        }
+        throw;
+    }
+
+    //recv = 0 상대방 정상 연결 종료
+    if (!session->isOpen())
+    {
+        setSession(peer, nullptr);
+    }
+
+    //recv = 0 또는 수신 byte < frame size 또는 would block
+    if (received.frames.empty())
+    {
+        return std::nullopt;
+    }
+
+    return received;
+}
+
+std::shared_ptr<Session> NetworkManager::getSession(NetworkPeer peer) const
+{
+    std::lock_guard<std::mutex> lock(_sessionMutex);
     switch (peer)
     {
     case NetworkPeer::OPERATOR_CONSOLE:
-        return _operatorConsoleSynchro;
+        return _operatorConsoleSession;
 
     case NetworkPeer::SCENARIO_SIMULATOR:
-        return _scenarioSimulatorSynchro;
+        return _scenarioSimulatorSession;
     }
 
-    return _operatorConsoleSynchro;
+    return nullptr;
 }
 
-int NetworkManager::closeRequestedSockets()
+// peer의 Session을 교체한다. 재연결이면 새 Session, 연결 종료면 nullptr를 넘긴다.
+void NetworkManager::setSession(
+    NetworkPeer peer,
+    std::shared_ptr<Session> session
+)
 {
-    int operatorError = 0;
-    if (_operatorConsoleSynchro.closeRequested.load())
+    // 교체되어 나가는 이전 Session을 락 밖에서 해제하기 위해 잠시 보관한다.
+    std::shared_ptr<Session> previousSession;
     {
-        operatorError = closeSocket(NetworkPeer::OPERATOR_CONSOLE);
-    }
+        // send()의 getSession()이 포인터를 복사하는 것과 겹치지 않도록 보호한다.
+        std::lock_guard<std::mutex> lock(_sessionMutex);
 
-    int simulatorError = 0;
-    if (_scenarioSimulatorSynchro.closeRequested.load())
-    {
-        simulatorError = closeSocket(NetworkPeer::SCENARIO_SIMULATOR);
-    }
+        // std::exchange: 멤버에 새 Session을 넣고, 원래 있던 Session을 반환한다.
+        switch (peer)
+        {
+        case NetworkPeer::OPERATOR_CONSOLE:
+            previousSession = std::exchange(
+                _operatorConsoleSession,
+                std::move(session));
+            break;
 
-    return operatorError != 0 ? operatorError : simulatorError;
+        case NetworkPeer::SCENARIO_SIMULATOR:
+            previousSession = std::exchange(
+                _scenarioSimulatorSession,
+                std::move(session));
+            break;
+        }
+    } // 여기서 락이 풀린다.
+
+    // 함수가 끝나면 previousSession의 참조가 하나 줄어든다.
+    // - 참조가 0이 되면 ~Session()이 실행되어 소켓을 닫는다.
+    //   소켓을 닫는 시스템 호출이 락 밖에서 실행되므로 send()를 막지 않는다.
+    // - 송신 스레드가 send() 중이라 복사본을 들고 있으면 아직 해제되지 않고,
+    //   그 send()가 끝나 복사본이 사라질 때 소켓이 닫힌다.
 }
 
-int NetworkManager::closeSocket(NetworkPeer peer)
-{
-    PeerSynchro& synchro = getPeerSynchro(peer);
-    synchro.closeRequested.store(true);
-    std::lock_guard<std::mutex> lock(synchro.sendCloseMutex);
-
-    SocketHandle socket = getSocket(peer);
-    int errorCode = closeSocket(socket);
-    setSocket(peer, socket);
-    synchro.closeRequested.store(false);
-    return errorCode;
-}
-
-int NetworkManager::closeSocket(SocketHandle& socket)
-{
-    if (socket == INVALID_SOCKET_HANDLE)
-    {
-        return 0;
-    }
-
-    SocketHandle socketToClose = socket;
-    socket = INVALID_SOCKET_HANDLE;
-
-    if (native_socket::closeSocket(socketToClose) < 0)
-    {
-        return native_socket::lastError();
-    }
-
-    return 0;
-}
+/******************************************************************************************* */
 
 namespace
 {
 
-std::chrono::microseconds remainingTime(
-    std::chrono::steady_clock::time_point deadline
-)
+Ipv4Endpoint parseEndpoint(const NetworkEndpoint& endpoint)
 {
-    const auto now = std::chrono::steady_clock::now();
-    if (now >= deadline)
+    const std::optional<uint32_t> address =
+        native_socket::parseIpv4(endpoint.address);
+    if (!address.has_value() || endpoint.port == 0)
     {
-        return std::chrono::microseconds{0};
+        throw std::invalid_argument(
+            "Endpoint requires a valid IPv4 address and port");
     }
 
-    return std::chrono::duration_cast<std::chrono::microseconds>(deadline - now);
+    return Ipv4Endpoint{*address, endpoint.port};
 }
 
-bool parseEndpoint(
-    const NetworkEndpoint& endpoint,
-    std::optional<uint32_t>& parsedAddress,
-    bool allowDisabled
+std::optional<Ipv4Endpoint> parsePeerEndpoint(const NetworkEndpoint& endpoint)
+{
+    if (endpoint.address.empty() && endpoint.port == 0)
+    {
+        return std::nullopt;
+    }
+
+    return parseEndpoint(endpoint);
+}
+
+bool matches(
+    const std::optional<Ipv4Endpoint>& endpoint,
+    const AcceptedSocket& accepted
 )
 {
-    const bool disabled = endpoint.address.empty() && endpoint.port == 0;
-    if (disabled)
-    {
-        return allowDisabled;
-    }
-
-    if (endpoint.address.empty() || endpoint.port == 0)
-    {
-        return false;
-    }
-
-    parsedAddress = native_socket::parseIpv4(endpoint.address);
-    return parsedAddress.has_value();
+    return endpoint.has_value() &&
+        endpoint->address == accepted.address &&
+        endpoint->port == accepted.port;
 }
 
 bool contains(
@@ -721,13 +344,16 @@ bool contains(
     return std::find(sockets.begin(), sockets.end(), socket) != sockets.end();
 }
 
-PollResult pollFailure(NetworkOperation operation, int errorCode)
+
+//올바르지 않은 주소에서 연결을 시도했을 때
+void reportRejectedConnection(const AcceptedSocket& accepted)
 {
-    PollResult result;
-    result.status = PollStatus::ERROR;
-    result.failedOperation = operation;
-    result.errorCode = errorCode;
-    return result;
+    std::cerr
+        << "[NetworkManager] Rejected unknown connection: remoteAddress="
+        << native_socket::formatIpv4(accepted.address).value_or("unknown")
+        << ", remotePort="
+        << accepted.port
+        << '\n';
 }
 
 } // namespace

@@ -23,11 +23,11 @@ void MessageFramer::validate() const
     }
 }
 
-FrameResult MessageFramer::append(
+std::vector<MessageFrame> MessageFramer::append(
     const std::vector<uint8_t>& bytes
 )
 {
-    FrameResult result;
+    std::vector<MessageFrame> frames;
 
     _buffer.insert(
         _buffer.end(),
@@ -39,12 +39,7 @@ FrameResult MessageFramer::append(
     {
         const protocol::ST_MsgHeader header = peekHeader();
 
-        const FramingError validationError = validateHeader(header);
-        if (validationError != FramingError::NONE)
-        {
-            result.error = validationError;
-            return result;
-        }
+        validateHeader(header);
 
         const std::size_t frameSize = getFrameSize(header);
 
@@ -53,14 +48,14 @@ FrameResult MessageFramer::append(
             break;
         }
 
-        result.frames.push_back(
+        frames.push_back(
             extractFrame(
                 header,
                 frameSize));
     }
 
     compactBuffer();
-    return result;
+    return frames;
 }
 
 void MessageFramer::reset()
@@ -81,13 +76,13 @@ protocol::ST_MsgHeader MessageFramer::peekHeader() const
     return header;
 }
 
-FramingError MessageFramer::validateHeader(
+void MessageFramer::validateHeader(
     const protocol::ST_MsgHeader& header
 ) const
 {
     if (!isKnownMessageId(header.message_Id))
     {
-        return FramingError::UNKNOWN_MESSAGE_ID;
+        throw FramingError("unknown-message-id");
     }
 
     const std::size_t frameSize = getFrameSize(header);
@@ -95,10 +90,8 @@ FramingError MessageFramer::validateHeader(
     if (frameSize < sizeof(protocol::ST_MsgHeader) ||
         frameSize > _maximumFrameSize)
     {
-        return FramingError::INVALID_FRAME_SIZE;
+        throw FramingError("invalid-frame-size");
     }
-
-    return FramingError::NONE;
 }
 
 bool MessageFramer::isKnownMessageId(

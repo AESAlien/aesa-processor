@@ -3,7 +3,6 @@
 #include <controller/comm_error_handler.hpp>
 #include <network/message_decoder/message_decoder.hpp>
 #include <network/message_encoder/message_encoder.hpp>
-#include <network/message_framer/message_framer.hpp>
 #include <network/network_manager/network_manager.hpp>
 
 #include <chrono>
@@ -41,51 +40,25 @@ public:
 
     void openServer()
     {
-        const OperationResult result = _networkManager.start();
-        if (result.status == OperationStatus::SUCCESS)
-        {
-            return;
-        }
-
-        controller_error::throwServerOpenFailure(result);
+        _networkManager.start();
     }
 
     std::optional<IncomingDto> receiveData()
     {
-        if (!_pendingMessages.empty())
+        while (_pendingMessages.empty())
         {
-            return takePendingMessage();
-        }
+            const std::optional<ReceivedFrames> received =
+                _networkManager.receiveFrames(RECEIVE_POLL_TIMEOUT);
 
-        while (true)
-        {
-            const PollResult result =
-                _networkManager.poll(RECEIVE_POLL_TIMEOUT);
-
-            switch (result.status)
+            if (received.has_value())
             {
-            case PollStatus::EVENTS:
-                processEvents(result.events);
-                if (!_pendingMessages.empty())
-                {
-                    return takePendingMessage();
-                }
-                break;
-
-            case PollStatus::TIMEOUT:
-                break;
-
-            case PollStatus::ERROR:
-                controller_error::throwPollFailure(result);
-                break;
-
-            case PollStatus::NOT_STARTED:
-            case PollStatus::INVALID_ARGUMENT:
-                controller_error::throwReceiveFailure(
-                    result.failedOperation,
-                    result.errorCode);
+                decodeFrames(*received);
             }
         }
+
+        IncomingDto message = std::move(_pendingMessages.front());
+        _pendingMessages.pop_front();
+        return message;
     }
 
     void sendBeamCommand(const beam::TransmitBeamCommand& command)
@@ -117,122 +90,28 @@ private:
                 encodeResult.error);
         }
 
-        const SendResult sendResult = _networkManager.send(
-            peer,
-            *encodeResult.bytes);
-
-        if (sendResult.status == SendStatus::SUCCESS ||
-            sendResult.status == SendStatus::NOT_CONNECTED)
-        {
-            return;
-        }
-
-        controller_error::throwSendFailure(peer, sendResult);
+        _networkManager.send(peer, *encodeResult.bytes);
     }
 
-    std::optional<IncomingDto> takePendingMessage()
+    // Messages decoded before a failing frame stay queued.
+    void decodeFrames(const ReceivedFrames& received)
     {
-        IncomingDto message = std::move(_pendingMessages.front());
-        _pendingMessages.pop_front();
-        return message;
-    }
-
-    MessageFramer& getFramer(NetworkPeer peer)
-    {
-        switch (peer)
-        {
-        case NetworkPeer::OPERATOR_CONSOLE:
-            return _operatorConsoleFramer;
-
-        case NetworkPeer::SCENARIO_SIMULATOR:
-            return _scenarioSimulatorFramer;
-        }
-
-        return _operatorConsoleFramer;
-    }
-
-    void processEvents(const std::vector<NetworkEvent>& events)
-    {
-        std::vector<IncomingDto> decodedMessages;
-
-        for (const NetworkEvent& event : events)
-        {
-            if (const auto* connection =
-                    std::get_if<ConnectionEvent>(&event))
-            {
-                processConnectionEvent(*connection);
-                continue;
-            }
-
-            if (const auto* data =
-                    std::get_if<DataReceivedEvent>(&event))
-            {
-                decodeData(*data, decodedMessages);
-                continue;
-            }
-
-            controller_error::reportRejectedConnection(
-                std::get<ConnectionRejectedEvent>(event));
-        }
-
-        for (IncomingDto& message : decodedMessages)
-        {
-            _pendingMessages.push_back(std::move(message));
-        }
-    }
-
-    void processConnectionEvent(const ConnectionEvent& event)
-    {
-        MessageFramer& framer = getFramer(event.peer);
-        framer.reset();
-
-        if (event.state != ConnectionState::DISCONNECTED ||
-            event.disconnectReason != DisconnectReason::RECEIVE_ERROR)
-        {
-            return;
-        }
-
-        controller_error::throwReceiveFailure(
-            NetworkOperation::RECEIVE,
-            event.errorCode);
-    }
-
-    void decodeData(
-        const DataReceivedEvent& event,
-        std::vector<IncomingDto>& decodedMessages
-    )
-    {
-        MessageFramer& framer = getFramer(event.peer);
-        FrameResult frameResult = framer.append(event.bytes);
-
-        if (frameResult.error != FramingError::NONE)
-        {
-            framer.reset();
-            controller_error::throwFramingFailure(
-                event.peer,
-                frameResult.error);
-        }
-
-        for (const MessageFrame& frame : frameResult.frames)
+        for (const MessageFrame& frame : received.frames)
         {
             DecodeResult decodeResult = _messageDecoder.decode(frame);
             if (decodeResult.error != DecodingError::NONE ||
                 !decodeResult.message.has_value())
             {
-                framer.reset();
                 controller_error::throwDecodingFailure(
-                    event.peer,
+                    received.peer,
                     decodeResult.error);
             }
 
-            decodedMessages.push_back(
-                std::move(*decodeResult.message));
+            _pendingMessages.push_back(std::move(*decodeResult.message));
         }
     }
 
     NetworkManager _networkManager;
-    MessageFramer _operatorConsoleFramer;
-    MessageFramer _scenarioSimulatorFramer;
     MessageDecoder _messageDecoder;
     std::deque<IncomingDto> _pendingMessages;
 };

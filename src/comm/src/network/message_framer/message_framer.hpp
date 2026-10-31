@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 namespace comm
@@ -15,17 +16,12 @@ struct MessageFrame
     std::vector<uint8_t> bytes;
 };
 
-enum class FramingError
+// Thrown when the buffered bytes cannot form a valid frame.
+// The message names the cause, such as "invalid-frame-size".
+class FramingError : public std::runtime_error
 {
-    NONE,
-    UNKNOWN_MESSAGE_ID,
-    INVALID_FRAME_SIZE
-};
-
-struct FrameResult
-{
-    std::vector<MessageFrame> frames;
-    FramingError error = FramingError::NONE;
+public:
+    using std::runtime_error::runtime_error;
 };
 
 class MessageFramer
@@ -38,7 +34,8 @@ public:
         std::size_t maximumFrameSize = DEFAULT_MAXIMUM_FRAME_SIZE
     );
 
-    FrameResult append(const std::vector<uint8_t>& bytes);
+    // Returns the completed frames. Throws FramingError.
+    std::vector<MessageFrame> append(const std::vector<uint8_t>& bytes);
 
     void reset();
 
@@ -47,7 +44,7 @@ private:
 
     protocol::ST_MsgHeader peekHeader() const;
 
-    FramingError validateHeader(
+    void validateHeader(
         const protocol::ST_MsgHeader& header
     ) const;
 

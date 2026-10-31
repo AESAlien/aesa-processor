@@ -269,13 +269,21 @@ int receiveBytes(SocketHandle socket, uint8_t* buffer, int size)
 #endif
 }
 
-int closeSocket(SocketHandle socket)
+void shutdownSocket(SocketHandle socket)
 {
 #ifdef _WIN32
     shutdown(socket, SD_BOTH);
-    return closesocket(socket);
 #else
     shutdown(socket, SHUT_RDWR);
+#endif
+}
+
+int closeSocket(SocketHandle socket)
+{
+    shutdownSocket(socket);
+#ifdef _WIN32
+    return closesocket(socket);
+#else
     return close(socket);
 #endif
 }

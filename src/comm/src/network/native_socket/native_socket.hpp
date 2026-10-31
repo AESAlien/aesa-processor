@@ -65,6 +65,9 @@ int waitWritable(
 int sendBytes(SocketHandle socket, const uint8_t* data, int size);
 int receiveBytes(SocketHandle socket, uint8_t* buffer, int size);
 
+// Stops both directions without releasing the handle.
+void shutdownSocket(SocketHandle socket);
+
 // Shuts down both directions, then closes the socket.
 int closeSocket(SocketHandle socket);
 

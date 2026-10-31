@@ -7,6 +7,8 @@ add_library(comm STATIC
     src/network/message_framer/message_framer.cpp
     src/network/native_socket/native_socket.cpp
     src/network/network_manager/network_manager.cpp
+    src/network/session/session.cpp
+    src/network/tcp_server/tcp_server.cpp
 )
 target_include_directories(comm
     PUBLIC
@@ -71,4 +73,14 @@ if(BUILD_TESTING)
         GTest::gtest_main
     )
     gtest_discover_tests(comm_message_encoder_test)
+
+    add_executable(comm_message_framer_test test/message_framer_test.cpp)
+    target_include_directories(comm_message_framer_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_link_libraries(comm_message_framer_test PRIVATE
+        comm
+        GTest::gtest_main
+    )
+    gtest_discover_tests(comm_message_framer_test)
 endif()
