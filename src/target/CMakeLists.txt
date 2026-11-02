@@ -70,6 +70,7 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
     target_link_libraries(target_track_reporting_limit_test PRIVATE target GTest::gtest_main)
+    target_link_libraries(target PUBLIC radar_logging)
 
     gtest_discover_tests(target_track_reporting_limit_test)
 endif()

@@ -160,4 +160,5 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
     target_link_libraries(beam_schedule_dump PRIVATE beam)
+    target_link_libraries(beam PUBLIC radar_logging)
 endif()
