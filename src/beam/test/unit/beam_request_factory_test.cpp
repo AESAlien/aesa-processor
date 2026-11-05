@@ -19,13 +19,14 @@ math::SphericalDirection makeDirection()
 // 확인 빔 폭과 추적 빔 폭을 서로 다른 값으로 두어 두 값이 뒤바뀌면 테스트가 실패하게 한다.
 beam::BeamRequestFactory makeFactory()
 {
-    return beam::BeamRequestFactory(
-        beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
-            .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg))
-            .confirmationBeamWidth(beam::BeamWidth(4_deg, 4_deg))
-            .trackingBeamWidth(beam::BeamWidth(2_deg, 2_deg))
-            .build());
+    const beam::RequestBeamConfig config = beam::RequestBeamConfig::Builder()
+        .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+        .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+        .confirmationBeamWidth(beam::BeamWidth(4_deg, 4_deg))
+        .trackingBeamWidth(beam::BeamWidth(2_deg, 2_deg))
+        .build();
+
+    return beam::BeamRequestFactory(config);
 }
 
 } // namespace
@@ -84,8 +85,7 @@ TEST(BeamRequestFactoryTest, RejectsInvalidCommand)
     const beam::RequestBeamCommand negativeTime(beam::RequestBeamType::TRACKING, -10ms, 1, makeDirection());
     const beam::RequestBeamCommand zeroType(static_cast<beam::RequestBeamType>(0), 0ms, 1, makeDirection());
     const beam::RequestBeamCommand unknownType(static_cast<beam::RequestBeamType>(9), 0ms, 1, makeDirection());
-    const beam::RequestBeamCommand searchType(
-        static_cast<beam::RequestBeamType>(beam::BeamType::SEARCH), 0ms, 1, makeDirection());
+    const beam::RequestBeamCommand searchType(static_cast<beam::RequestBeamType>(beam::BeamType::SEARCH), 0ms, 1, makeDirection());
 
     // When: 각 명령으로 요청 생성을 시도한다.
     const auto create = [&](const beam::RequestBeamCommand& command) { return factory.create(command); };

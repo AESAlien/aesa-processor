@@ -27,7 +27,11 @@ TEST(RequestCoverageConfigTest, ElevationOutsideQuarterTurnThrows)
     // Given: 검증할 입력과 설정을 준비한다.
     const math::AngleRange boundary(-90_deg, 90_deg);
     const math::AngleRange invalidRanges[] = {
-        {-90.001_deg, 60_deg}, {-10_deg, 90.001_deg}, {-91_deg, 60_deg}, {-10_deg, 91_deg}};
+        {-90.001_deg, 60_deg},
+        {-10_deg, 90.001_deg},
+        {-91_deg, 60_deg},
+        {-10_deg, 91_deg}
+    };
     const math::CircularAngleRange azimuth(-60_deg, 60_deg);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.

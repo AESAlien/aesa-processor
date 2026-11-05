@@ -17,8 +17,13 @@ beam::BeamRequest makeRequest(
 ) {
     const int priority = beamType == beam::BeamType::CONFIRMATION ? 1 : 0;
     return beam::BeamRequest(
-        beamType, beam::BeamWidth(3_deg, 3_deg), priority,
-        transmitTime, 1, math::SphericalDirection(azimuth, 0_deg));
+        beamType,
+        beam::BeamWidth(3_deg, 3_deg),
+        priority,
+        transmitTime,
+        1,
+        math::SphericalDirection(azimuth, 0_deg)
+    );
 }
 
 } // namespace

@@ -7,9 +7,14 @@ TEST(BeamTypeTest, RequestBeamTypeValuesMatchBeamType)
 {
     // Given: 송신 빔과 요청 빔의 각 종류를 준비한다.
     const beam::BeamType types[] = {
-        beam::BeamType::SEARCH, beam::BeamType::CONFIRMATION, beam::BeamType::TRACKING};
+        beam::BeamType::SEARCH,
+        beam::BeamType::CONFIRMATION,
+        beam::BeamType::TRACKING
+    };
     const beam::RequestBeamType requestTypes[] = {
-        beam::RequestBeamType::CONFIRMATION, beam::RequestBeamType::TRACKING};
+        beam::RequestBeamType::CONFIRMATION,
+        beam::RequestBeamType::TRACKING
+    };
 
     // When: 각 종류를 와이어로 전송하는 정수 값으로 변환한다.
     const int search = static_cast<int>(types[0]);

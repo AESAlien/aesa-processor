@@ -69,7 +69,8 @@ TEST(AttitudeConfigTest, NonRotationMountThrows)
         {{2, 0, 0}, {0, 1, 0}, {0, 0, 1}}, // 스케일
         {{1, 0, 0}, {0, 1, 0}, {0, 0, -1}}, // 반사
         {{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}, // 특이 행렬
-        math::SquareMatrix::identity(2)};
+        math::SquareMatrix::identity(2)
+    };
     const auto builder = validConfigBuilder();
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
@@ -91,11 +92,14 @@ TEST(AttitudeConfigTest, NonFiniteMountEntriesAndOverflowThrow)
     const math::SquareMatrix invalidMounts[] = {
         {{NAN_VALUE, 0, 0}, {0, 1, 0}, {0, 0, 1}},
         {{INF_VALUE, 0, 0}, {0, 1, 0}, {0, 0, 1}},
-        {{MAX_VALUE, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+        {{MAX_VALUE, 0, 0}, {0, 1, 0}, {0, 0, 1}}
+    };
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [](const math::SquareMatrix& mount) {
-        return validConfigBuilder().mountAntToBodyRotation(mount).build();
+        return validConfigBuilder()
+            .mountAntToBodyRotation(mount)
+            .build();
     };
 
     // Then: 자세 설정은 비유한 성분이나 연산 오버플로가 있는 장착행렬을 거부한다.
@@ -115,8 +119,10 @@ TEST(AttitudeConfigTest, MountOrthogonalityUsesConfiguredTolerance)
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [&](const math::Tolerance& tolerance) {
-        return validConfigBuilder().mountAntToBodyRotation(skewed)
-            .mountOrthogonalTolerance(tolerance).build();
+        return validConfigBuilder()
+            .mountAntToBodyRotation(skewed)
+            .mountOrthogonalTolerance(tolerance)
+            .build();
     };
 
     // Then: 자세 설정은 지정한 절대 허용오차로 장착행렬을 검사한다.
@@ -134,8 +140,10 @@ TEST(AttitudeConfigTest, MountRotationUsesRelativeTolerance)
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [&](const math::Tolerance& tolerance) {
-        return validConfigBuilder().mountAntToBodyRotation(slightlyScaled)
-            .mountOrthogonalTolerance(tolerance).build();
+        return validConfigBuilder()
+            .mountAntToBodyRotation(slightlyScaled)
+            .mountOrthogonalTolerance(tolerance)
+            .build();
     };
 
     // Then: 자세 설정은 지정한 상대 허용오차로 장착행렬을 검사한다.
