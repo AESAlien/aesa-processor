@@ -1,16 +1,7 @@
 #pragma once
 
-#include <cstdint>
-
 namespace comm
 {
-
-// CommConfiguration의 문자열을 정수형으로 변환
-struct Ipv4Endpoint
-{
-    uint32_t address;   // network byte order
-    uint16_t port;
-};
 
 enum class NetworkPeer
 {

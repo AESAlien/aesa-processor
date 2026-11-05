@@ -92,17 +92,6 @@ bool isWouldBlock(int errorCode)
 #endif
 }
 
-std::optional<uint32_t> parseIpv4(const std::string& address)
-{
-    in_addr parsedAddress{};
-    if (inet_pton(AF_INET, address.c_str(), &parsedAddress) != 1)
-    {
-        return std::nullopt;
-    }
-
-    return parsedAddress.s_addr;
-}
-
 std::optional<std::string> formatIpv4(uint32_t address)
 {
     in_addr nativeAddress{};

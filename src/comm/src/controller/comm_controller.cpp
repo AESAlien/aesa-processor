@@ -23,10 +23,7 @@ class CommController::Impl
 {
 public:
     explicit Impl(CommConfig configuration)
-        : _networkManager(
-            configuration.server(),
-            configuration.operatorConsole(),
-            configuration.scenarioSimulator())
+        : _networkManager(std::move(configuration))
     {
     }
 

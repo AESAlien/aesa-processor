@@ -15,11 +15,8 @@ namespace
 
 constexpr char RECEIVE_FAILURE[] = "Communication data could not be received";
 
-// Throws std::invalid_argument for an invalid endpoint.
-Ipv4Endpoint parseEndpoint(const CommEndpoint& endpoint);
-
 bool matches(
-    const Ipv4Endpoint& endpoint,
+    const CommEndpoint& endpoint,
     const AcceptedSocket& accepted
 );
 
@@ -35,15 +32,9 @@ void reportRejectedConnection(const AcceptedSocket& accepted);
 
 /********************************network manager 구현부****************************************** */
 
-NetworkManager::NetworkManager(
-    const CommEndpoint& serverEndpoint,
-    const CommEndpoint& operatorConsoleEndpoint,
-    const CommEndpoint& scenarioSimulatorEndpoint
-) : _serverEndpoint(parseEndpoint(serverEndpoint)),
-    _operatorConsoleEndpoint(parseEndpoint(operatorConsoleEndpoint)),
-    _scenarioSimulatorEndpoint(parseEndpoint(scenarioSimulatorEndpoint))
+NetworkManager::NetworkManager(CommConfig config)
+    : _config(std::move(config))
 {
-    validatePeers();
 }
 
 void NetworkManager::start()
@@ -53,7 +44,7 @@ void NetworkManager::start()
         return;
     }
 
-    _server = std::make_unique<TcpServer>(_serverEndpoint);
+    _server = std::make_unique<TcpServer>(_config.server());
 }
 
 
@@ -148,25 +139,16 @@ void NetworkManager::send(
     session->send(data, timeout);
 }
 
-void NetworkManager::validatePeers() const
-{
-    if (_operatorConsoleEndpoint.address == _scenarioSimulatorEndpoint.address &&
-        _operatorConsoleEndpoint.port == _scenarioSimulatorEndpoint.port)
-    {
-        throw std::invalid_argument("Peer endpoints must be distinct");
-    }
-}
-
 std::optional<NetworkPeer> NetworkManager::identifyPeer(
     const AcceptedSocket& accepted
 ) const
 {
-    if (matches(_operatorConsoleEndpoint, accepted))
+    if (matches(_config.operatorConsole(), accepted))
     {
         return NetworkPeer::OPERATOR_CONSOLE;
     }
 
-    if (matches(_scenarioSimulatorEndpoint, accepted))
+    if (matches(_config.scenarioSimulator(), accepted))
     {
         return NetworkPeer::SCENARIO_SIMULATOR;
     }
@@ -286,26 +268,13 @@ void NetworkManager::setSession(
 namespace
 {
 
-Ipv4Endpoint parseEndpoint(const CommEndpoint& endpoint)
-{
-    const std::optional<uint32_t> address =
-        native_socket::parseIpv4(endpoint.getAddress());
-    if (!address.has_value())
-    {
-        throw std::invalid_argument(
-            "Endpoint requires a valid IPv4 address");
-    }
-
-    return Ipv4Endpoint{*address, endpoint.getPort()};
-}
-
 bool matches(
-    const Ipv4Endpoint& endpoint,
+    const CommEndpoint& endpoint,
     const AcceptedSocket& accepted
 )
 {
-    return endpoint.address == accepted.address &&
-        endpoint.port == accepted.port;
+    return endpoint.getIntAddress() == accepted.address &&
+        endpoint.getPort() == accepted.port;
 }
 
 bool contains(

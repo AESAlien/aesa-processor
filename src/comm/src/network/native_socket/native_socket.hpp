@@ -34,7 +34,6 @@ int lastError();
 bool isInterrupted(int errorCode);
 bool isWouldBlock(int errorCode);
 
-std::optional<uint32_t> parseIpv4(const std::string& address);
 std::optional<std::string> formatIpv4(uint32_t address);
 
 SocketHandle createTcpSocket();

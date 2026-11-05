@@ -1,5 +1,6 @@
 add_library(comm STATIC
     src/config/comm_config.cpp
+    src/config/comm_endpoint.cpp
     src/controller/comm_controller.cpp
     src/controller/comm_error_handler.cpp
     src/network/message_decoder/message_decoder.cpp

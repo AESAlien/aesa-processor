@@ -1,24 +1,9 @@
 #pragma once
 
-#include <cstdint>
-#include <string>
+#include <comm/config/comm_endpoint.hpp>
 
 namespace comm
 {
-
-class CommEndpoint
-{
-public:
-    CommEndpoint(std::string address, std::uint16_t port);
-
-    const std::string& getAddress() const noexcept;
-    std::uint16_t getPort() const noexcept;
-
-private:
-    std::string _address;
-    std::uint16_t _port;
-    void validate() const;
-};
 
 class CommConfig
 {

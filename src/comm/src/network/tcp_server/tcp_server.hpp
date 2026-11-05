@@ -1,7 +1,7 @@
 #pragma once
 
+#include <comm/config/comm_endpoint.hpp>
 #include <network/native_socket/native_socket.hpp>
-#include <network/network_manager/network_types.hpp>
 
 #include <cstdint>
 #include <optional>
@@ -21,7 +21,7 @@ class TcpServer
 {
 public:
     // Throws ServerOpenError.
-    explicit TcpServer(const Ipv4Endpoint& endpoint);
+    explicit TcpServer(const CommEndpoint& endpoint);
     ~TcpServer();
 
     TcpServer(const TcpServer&) = delete;

@@ -14,7 +14,7 @@ constexpr char ACCEPT_FAILURE[] = "Communication connection could not be establi
 
 } // namespace
 
-TcpServer::TcpServer(const Ipv4Endpoint& endpoint)
+TcpServer::TcpServer(const CommEndpoint& endpoint)
 {
     const int startupError = native_socket::startup();
     if (startupError != 0)
@@ -36,7 +36,10 @@ TcpServer::TcpServer(const Ipv4Endpoint& endpoint)
         failOpen("set-socket-option");
     }
 
-    if (native_socket::bindSocket(_listenSocket, endpoint.address, endpoint.port) < 0)
+    if (native_socket::bindSocket(
+            _listenSocket,
+            endpoint.getIntAddress(),
+            endpoint.getPort()) < 0)
     {
         failOpen("bind");
     }

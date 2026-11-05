@@ -2,7 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstdint>
+#include <cstring>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -25,6 +27,34 @@ TEST(CommEndpointTest, StoresValidEndpointBehindAccessors)
     const comm::CommEndpoint endpoint("127.0.0.1", 3200);
     EXPECT_EQ(endpoint.getAddress(), "127.0.0.1");
     EXPECT_EQ(endpoint.getPort(), 3200);
+}
+
+TEST(CommEndpointTest, StoresIntAddressForSocketApi)
+{
+    const comm::CommEndpoint endpoint("1.2.3.4", 3200);
+    const std::uint32_t intAddress = endpoint.getIntAddress();
+
+    std::array<std::uint8_t, 4> octets{};
+    std::memcpy(octets.data(), &intAddress, octets.size());
+
+    EXPECT_EQ(octets, (std::array<std::uint8_t, 4>{1, 2, 3, 4}));
+}
+
+TEST(CommEndpointTest, RejectsMalformedAddresses)
+{
+    for (const char* address : {
+             "1.2.3",
+             "1.2.3.4.5",
+             "1.2.3.",
+             ".1.2.3",
+             "256.0.0.1",
+             "01.2.3.4",
+             "1.2.3.a"})
+    {
+        EXPECT_THROW(
+            comm::CommEndpoint(address, 3200),
+            std::invalid_argument) << address;
+    }
 }
 
 TEST(CommEndpointTest, RejectsMissingAddressOrPort)

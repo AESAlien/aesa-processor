@@ -27,12 +27,7 @@ struct ReceivedFrames
 class NetworkManager
 {
 public:
-    // Throws std::invalid_argument for an invalid peer configuration.
-    NetworkManager(
-        const CommEndpoint& serverEndpoint,
-        const CommEndpoint& operatorConsoleEndpoint,
-        const CommEndpoint& scenarioSimulatorEndpoint
-    );
+    explicit NetworkManager(CommConfig config);
 
     NetworkManager(const NetworkManager&) = delete;
     NetworkManager& operator=(const NetworkManager&) = delete;
@@ -60,8 +55,6 @@ public:
     );
 
 private:
-    //CommConfiguration이 올바른지 검사
-    void validatePeers() const;
     //accpet 하기 전 올바른 주소인지 검사
     std::optional<NetworkPeer> identifyPeer(
         const AcceptedSocket& accepted
@@ -76,9 +69,7 @@ private:
     std::shared_ptr<Session> getSession(NetworkPeer peer) const;
     void setSession(NetworkPeer peer, std::shared_ptr<Session> session);
 
-    Ipv4Endpoint _serverEndpoint;
-    Ipv4Endpoint _operatorConsoleEndpoint;
-    Ipv4Endpoint _scenarioSimulatorEndpoint;
+    CommConfig _config;
 
     
     // Declared before the sessions so that it is destroyed after them.
