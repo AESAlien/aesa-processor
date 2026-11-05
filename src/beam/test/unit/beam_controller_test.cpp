@@ -12,12 +12,7 @@ using namespace math::literals;
 namespace
 {
 
-beam::SetOperationStateCommand makeOperationState(beam::OperationState state)
-{
-    return beam::SetOperationStateCommand(state);
-}
-
-beam::SetAttitudeCommand makeAttitudeCommand(math::Angle roll, math::Angle pitch, math::Angle yaw)
+beam::SetAttitudeCommand makeSetAttitudeCommand(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     return beam::SetAttitudeCommand::Builder()
         .latitude(37.0_deg)
@@ -29,7 +24,7 @@ beam::SetAttitudeCommand makeAttitudeCommand(math::Angle roll, math::Angle pitch
         .build();
 }
 
-beam::RequestBeamCommand makeRequestCommand(
+beam::RequestBeamCommand makeRequestBeamCommand(
     beam::RequestBeamType beamType,
     std::chrono::milliseconds transmitTime,
     uint32_t requestId,
@@ -45,9 +40,11 @@ beam::RequestBeamCommand makeRequestCommand(
 }
 
 // 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도
-beam::RequestCoverageConfig makeCoverageConfig()
+beam::RequestCoverageConfig::Builder validRequestCoverageConfigBuilder()
 {
-    return beam::RequestCoverageConfig(math::CircularAngleRange(-60_deg, 60_deg), math::AngleRange(-10_deg, 60_deg));
+    return beam::RequestCoverageConfig::Builder()
+        .azimuthRange(math::CircularAngleRange(-60_deg, 60_deg))
+        .elevationRange(math::AngleRange(-10_deg, 60_deg));
 }
 
 beam::BeamController makeDefaultController()
@@ -60,7 +57,7 @@ beam::BeamController makeDefaultController()
         beam::SearchGridConfig(
             21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
         beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
-        makeCoverageConfig()));
+        validRequestCoverageConfigBuilder().build()));
 }
 
 } // namespace
@@ -90,9 +87,9 @@ TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
         beam::SearchGridConfig(
             21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
         beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
-        makeCoverageConfig()));
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+        validRequestCoverageConfigBuilder().build()));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
     // When: 송신 명령을 요청한다.
     const auto command = controller.nextBeamCommand(0ms);
@@ -131,12 +128,12 @@ TEST(BeamControllerTest, AttitudeCommandChangesSearchDirection)
                 1, 1, math::CircularAngle(attitudeCase.gridAzimuth), 0_deg, math::TiltAngle(0_deg), 0_deg,
                 beam::BeamWidth(6_deg, 6_deg)),
             beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
-            makeCoverageConfig());
+            validRequestCoverageConfigBuilder().build());
         beam::BeamController controller(config);
-        controller.setOperationState(makeOperationState(beam::OperationState::ON));
+        controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
 
         // When: 롤과 피치 및 요가 지정된 자세 명령을 전달하고 송신 명령을 꺼낸다.
-        controller.setAttitude(makeAttitudeCommand(attitudeCase.roll, attitudeCase.pitch, attitudeCase.yaw));
+        controller.setAttitude(makeSetAttitudeCommand(attitudeCase.roll, attitudeCase.pitch, attitudeCase.yaw));
         const auto command = controller.nextBeamCommand(0ms);
 
         // Then: 알려진 축 방향의 회전 결과가 송신 명령에 반영된다.
@@ -158,12 +155,12 @@ TEST(BeamControllerTest, RequestBeamIsDeliveredToBeamScheduler)
         beam::SearchGridConfig(
             21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
         beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
-        makeCoverageConfig()));
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+        validRequestCoverageConfigBuilder().build()));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
     // When: 추적 빔을 요청하고 예정 시각의 송신 명령을 꺼낸다.
-    controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 100ms, 5, 7.5_deg, 15.5_deg));
+    controller.requestBeam(makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 100ms, 5, 7.5_deg, 15.5_deg));
 
     const auto command = controller.nextBeamCommand(100ms);
 
@@ -181,12 +178,12 @@ TEST(BeamControllerTest, RequestWhileOffIsIgnored)
 {
     // Given: 꺼진 컨트롤러와 유효한 추적 요청을 준비한다.
     beam::BeamController controller = makeDefaultController();
-    const auto request = makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg);
+    const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg);
 
     // When: 꺼진 상태에서 요청한 뒤 운용과 자세를 설정한다.
     const auto result = controller.requestBeam(request);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
     const auto command = controller.nextBeamCommand(0ms);
 
     // Then: 준비 전 결과를 반환하고 거부된 요청 대신 탐색 빔을 송신한다.
@@ -200,7 +197,7 @@ TEST(BeamControllerTest, InvalidRequestThrowsEvenWhileOff)
 {
     // Given: 꺼진 컨트롤러와 요청 ID가 잘못된 명령을 준비한다.
     beam::BeamController controller = makeDefaultController();
-    const auto request = makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 7.5_deg, 15.5_deg);
+    const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 7.5_deg, 15.5_deg);
 
     // When: 잘못된 요청을 접수한다.
     const auto requestBeam = [&] { return controller.requestBeam(request); };
@@ -214,9 +211,9 @@ TEST(BeamControllerTest, InvalidRequestIsNotQueued)
 {
     // Given: 운용 준비된 컨트롤러와 요청 ID가 잘못된 명령을 준비한다.
     beam::BeamController controller = makeDefaultController();
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
-    const auto request = makeRequestCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 0, 7.5_deg, 15.5_deg);
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    const auto request = makeRequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 0, 7.5_deg, 15.5_deg);
 
     // When: 잘못된 요청을 접수한다.
     const auto requestBeam = [&] { return controller.requestBeam(request); };
@@ -238,21 +235,21 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
 {
     // Given: 탐색 명령을 두 번 송신한 컨트롤러를 준비한다.
     beam::BeamController controller = makeDefaultController();
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
     controller.nextBeamCommand(10ms);
 
     // When: 운용을 끄고 송신 명령을 요청한다.
-    controller.setOperationState(makeOperationState(beam::OperationState::OFF));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::OFF));
     const auto whileOff = controller.nextBeamCommand(20ms);
 
     // Then: 운용 종료 뒤에는 송신하지 않는다.
     EXPECT_FALSE(whileOff.has_value());
 
     // When: 운용을 다시 시작하고 자세를 받아 송신 명령을 요청한다.
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
     const auto restarted = controller.nextBeamCommand(30ms);
 
     // Then: 첫 탐색 빔과 첫 명령 수부터 다시 시작한다.
@@ -273,7 +270,7 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(makeCoverageConfig())
+        .requestCoverageConfig(validRequestCoverageConfigBuilder().build())
         .searchGridConfig(beam::SearchGridConfig::Builder()
             .azimuthCount(21)
             .elevationCount(9)
@@ -290,8 +287,8 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
     beam::BeamController controller(config);
 
     // When: 운용과 자세를 설정하고 사용자 격자의 명령을 꺼낸다.
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
     // 빔이 3개뿐이므로 ID가 1, 2, 3, 1 순서로 순환한다.
     const uint32_t expectedIds[] = {1, 2, 3, 1};
@@ -318,7 +315,7 @@ TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(makeCoverageConfig())
+        .requestCoverageConfig(validRequestCoverageConfigBuilder().build())
         .requestBeamConfig(beam::RequestBeamConfig::Builder()
             .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
             .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg))
@@ -326,11 +323,11 @@ TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
             .build())
         .build();
     beam::BeamController controller(config);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
     // When: 추적 빔을 요청하고 송신 명령을 꺼낸다.
-    controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 7, 7.5_deg, 15.5_deg));
+    controller.requestBeam(makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 7, 7.5_deg, 15.5_deg));
     const auto command = controller.nextBeamCommand(0ms);
 
     // Then: 컨트롤러는 주입된 추적 빔 폭을 요청 송신에 반영한다.
@@ -352,7 +349,7 @@ TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(makeCoverageConfig())
+        .requestCoverageConfig(validRequestCoverageConfigBuilder().build())
         .requestBeamConfig(beam::RequestBeamConfig::Builder()
             .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
             .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg))
@@ -361,11 +358,11 @@ TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
             .build())
         .build();
     beam::BeamController controller(config);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
     // When: 확인 빔을 요청하고 송신 명령을 꺼낸다.
-    controller.requestBeam(makeRequestCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 7, 7.5_deg, 15.5_deg));
+    controller.requestBeam(makeRequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 7, 7.5_deg, 15.5_deg));
     const auto command = controller.nextBeamCommand(0ms);
 
     // Then: 컨트롤러는 주입된 확인 빔 폭을 요청 송신에 반영한다.
@@ -387,17 +384,17 @@ TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(makeCoverageConfig())
+        .requestCoverageConfig(validRequestCoverageConfigBuilder().build())
         .attitudeConfig(beam::AttitudeConfig(
             60_deg,
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}))
         .build();
     beam::BeamController controller(config);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
 
     // 기본 설정(89도)에서는 통과하는 pitch 70도가 이 설정(60도)에서는 짐벌락이다.
-    const auto invalidAttitude = makeAttitudeCommand(0_deg, 70_deg, 0_deg);
+    const auto invalidAttitude = makeSetAttitudeCommand(0_deg, 70_deg, 0_deg);
 
     // When: 설정된 피치 한계를 넘는 자세를 전달한다.
     const auto setInvalidAttitude = [&] { controller.setAttitude(invalidAttitude); };
@@ -407,7 +404,7 @@ TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
     EXPECT_FALSE(controller.nextBeamCommand(0ms).has_value());
 
     // When: 유효한 자세를 다시 전달한다.
-    EXPECT_NO_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 50_deg, 0_deg)));
+    EXPECT_NO_THROW(controller.setAttitude(makeSetAttitudeCommand(0_deg, 50_deg, 0_deg)));
 
     // Then: 유효한 자세를 받은 뒤에는 송신할 수 있다.
     EXPECT_TRUE(controller.nextBeamCommand(10ms).has_value());
@@ -425,7 +422,7 @@ TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(makeCoverageConfig())
+        .requestCoverageConfig(validRequestCoverageConfigBuilder().build())
         .attitudeConfig(beam::AttitudeConfig(
             60_deg,
             math::SquareMatrix::identity(3),
@@ -434,26 +431,26 @@ TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
     beam::BeamController controller(config);
 
     // OFF 상태에서도 설정 기준의 짐벌락 자세는 거부한다. 음의 pitch도 마찬가지다.
-    const auto invalidAttitude = makeAttitudeCommand(0_deg, 70_deg, 0_deg);
+    const auto invalidAttitude = makeSetAttitudeCommand(0_deg, 70_deg, 0_deg);
 
     // When: 설정된 피치 한계를 넘는 자세를 전달한다.
     const auto setInvalidAttitude = [&] { controller.setAttitude(invalidAttitude); };
 
     // Then: 자세 검증 예외를 전달한다.
     EXPECT_THROW(setInvalidAttitude(), std::invalid_argument);
-    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, -70_deg, 0_deg)), std::invalid_argument);
+    EXPECT_THROW(controller.setAttitude(makeSetAttitudeCommand(0_deg, -70_deg, 0_deg)), std::invalid_argument);
 
     // 탐색 빔 테이블이 만들어진 뒤에도 마찬가지이며, 기존 상태는 유지된다.
 
     // When: 운용을 시작하고 정상 자세를 받아 탐색을 진행한다.
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
     // Then: 첫 탐색 명령을 반환한다.
     ASSERT_EQ(controller.nextBeamCommand(0ms)->beamId, 1u);
 
     // When: 이미 준비된 상태에서 잘못된 자세를 전달한다.
-    EXPECT_THROW(controller.setAttitude(makeAttitudeCommand(0_deg, 70_deg, 0_deg)), std::invalid_argument);
+    EXPECT_THROW(controller.setAttitude(makeSetAttitudeCommand(0_deg, 70_deg, 0_deg)), std::invalid_argument);
 
     // Then: 예외 이후에도 기존 송신 상태는 유지된다.
     EXPECT_EQ(controller.nextBeamCommand(10ms)->beamId, 2u);
@@ -471,7 +468,7 @@ TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
         beam::SearchGridConfig(
             21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
         beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
-        makeCoverageConfig()));
+        validRequestCoverageConfigBuilder().build()));
 
     // roll 181도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
     const beam::SetAttitudeCommand command(
@@ -491,9 +488,9 @@ TEST(BeamControllerTest, IgnoresLocationFieldsWhenSettingAttitude)
     // Given: 같은 설정의 컨트롤러 두 개와 서로 다른 위치의 자세 명령을 준비한다.
     beam::BeamController first = makeDefaultController();
     beam::BeamController second = makeDefaultController();
-    first.setOperationState(makeOperationState(beam::OperationState::ON));
-    second.setOperationState(makeOperationState(beam::OperationState::ON));
-    const auto defaultLocation = makeAttitudeCommand(0_deg, 0_deg, 0_deg);
+    first.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    second.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    const auto defaultLocation = makeSetAttitudeCommand(0_deg, 0_deg, 0_deg);
     const beam::SetAttitudeCommand otherLocation(
         math::TiltAngle(-30_deg), math::CircularAngle(-179_deg), 101_km,
         0_deg, math::TiltAngle(0_deg), 0_deg);
@@ -523,13 +520,13 @@ TEST(BeamControllerTest, MovedControllerKeepsInjectedConfigAndState)
         .searchGridConfig(beam::SearchGridConfig(
             21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
         .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(makeCoverageConfig())
+        .requestCoverageConfig(validRequestCoverageConfigBuilder().build())
         .searchGridConfig(beam::SearchGridConfig(
             2, 1, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
         .build();
     beam::BeamController controller(config);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
 
     // When: 사용자 설정으로 운용 중인 컨트롤러를 이동하고 다음 명령들을 꺼낸다.
@@ -549,14 +546,14 @@ TEST(BeamControllerTest, RequestBeamReturnsResult)
 {
     // Given: 초기 컨트롤러와 영역 안팎의 요청을 준비한다.
     beam::BeamController controller = makeDefaultController();
-    const auto inside = makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg);
-    const auto outside = makeRequestCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 6, 70_deg, 15.5_deg);
+    const auto inside = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg);
+    const auto outside = makeRequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 6, 70_deg, 15.5_deg);
 
     // When: 운용 준비 단계별로 요청을 접수한다.
     const auto whileOff = controller.requestBeam(inside);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     const auto beforeAttitude = controller.requestBeam(inside);
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
     const auto accepted = controller.requestBeam(inside);
     const auto outOfCoverage = controller.requestBeam(outside);
 
@@ -572,9 +569,9 @@ TEST(BeamControllerTest, RequestOutsideCoverageIsNotTransmitted)
 {
     // Given: 운용 준비된 컨트롤러와 영역 밖 요청을 준비한다.
     beam::BeamController controller = makeDefaultController();
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
-    const auto request = makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 0_deg, 61_deg);
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 0_deg, 61_deg);
 
     // When: 영역 밖 요청을 접수한 뒤 송신 명령을 꺼낸다.
     const auto result = controller.requestBeam(request);
@@ -591,15 +588,15 @@ TEST(BeamControllerTest, CoverageUsesAttitudeOfAttitudeCommand)
 {
     // Given: 검사할 자세와 설정으로 운용 준비된 컨트롤러를 만든다.
     beam::BeamController controller = makeDefaultController();
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 13.02429_deg));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 13.02429_deg));
 
     // ENU 75도는 안테나 기준 약 62도이므로 거부된다.
 
     // When: 설정된 영역 안팎의 요청을 접수한다.
-    const auto result1 = controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 75_deg, 0_deg));
+    const auto result1 = controller.requestBeam(makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 75_deg, 0_deg));
     // ENU -50도는 ENU 기준이면 안이지만 안테나 기준 약 -63도이므로 거부된다.
-    const auto result2 = controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 6, -50_deg, 0_deg));
+    const auto result2 = controller.requestBeam(makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 6, -50_deg, 0_deg));
 
     // Then: 컨트롤러는 전달받은 자세를 요청 영역 판정에 반영한다.
     EXPECT_EQ(result1.status, beam::RequestBeamStatus::OUT_OF_COVERAGE);
@@ -621,14 +618,14 @@ TEST(BeamControllerTest, InjectedRequestCoverageConfigIsUsed)
         .requestCoverageConfig(beam::RequestCoverageConfig(math::CircularAngleRange(-5_deg, 5_deg), math::AngleRange(0_deg, 10_deg)))
         .build();
     beam::BeamController controller(config);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
     // 기본 영역(-60~60도)이면 받아들일 7.5도가 이 설정(-5~5도)에서는 거부된다.
 
     // When: 설정된 영역 안팎의 요청을 접수한다.
-    const auto result1 = controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 5_deg));
-    const auto result2 = controller.requestBeam(makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 6, 4.5_deg, 5_deg));
+    const auto result1 = controller.requestBeam(makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 5_deg));
+    const auto result2 = controller.requestBeam(makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 6, 4.5_deg, 5_deg));
 
     // Then: 컨트롤러는 주입된 요청 영역 설정을 접수 결과에 반영한다.
     EXPECT_EQ(result1.status, beam::RequestBeamStatus::OUT_OF_COVERAGE);
@@ -640,9 +637,9 @@ TEST(BeamControllerTest, InvalidRequestThrowsBeforeCoverageCheck)
 {
     // Given: 운용 준비된 컨트롤러와 ID가 잘못된 영역 밖 요청을 준비한다.
     beam::BeamController controller = makeDefaultController();
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
-    const auto request = makeRequestCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 90_deg, 0_deg);
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 90_deg, 0_deg);
 
     // When: 잘못된 요청을 접수한다.
     const auto requestBeam = [&] { return controller.requestBeam(request); };
@@ -656,14 +653,14 @@ TEST(BeamControllerTest, RequestBeamResultCarriesRequestIdForEveryStatus)
 {
     // Given: 각 접수 상태를 구분할 요청 ID를 가진 명령들을 준비한다.
     beam::BeamController controller = makeDefaultController();
-    const auto first = makeRequestCommand(beam::RequestBeamType::CONFIRMATION, 120ms, 11, 7.5_deg, 15.5_deg);
-    const auto second = makeRequestCommand(beam::RequestBeamType::TRACKING, 1000ms, 12, 7.5_deg, 15.5_deg);
-    const auto third = makeRequestCommand(beam::RequestBeamType::TRACKING, 2000ms, 13, 90_deg, 15.5_deg);
+    const auto first = makeRequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 120ms, 11, 7.5_deg, 15.5_deg);
+    const auto second = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 1000ms, 12, 7.5_deg, 15.5_deg);
+    const auto third = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 2000ms, 13, 90_deg, 15.5_deg);
 
     // When: 준비 전과 준비 후에 영역 안팎의 요청을 접수한다.
     const auto notReady = controller.requestBeam(first);
-    controller.setOperationState(makeOperationState(beam::OperationState::ON));
-    controller.setAttitude(makeAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
     const auto accepted = controller.requestBeam(second);
     const auto outOfCoverage = controller.requestBeam(third);
 

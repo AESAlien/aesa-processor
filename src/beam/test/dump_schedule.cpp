@@ -166,7 +166,7 @@ int main(int argc, char** argv)
         // run()은 frame의 복사본을 쓰므로 여기서는 처음 빔부터 꺼낸다.
         beam::AttitudeFrame frameToPrint = frame;
         beam::SearchGrid& gridToPrint = frameToPrint.searchGrid();
-        const beam::SearchGridConfig gridConfig = schedule_scenario::makeSearchGridConfig();
+        const beam::SearchGridConfig gridConfig = schedule_scenario::validSearchGridConfigBuilder().build();
         const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
         for (std::size_t index = 0; index < beamCount; ++index)
         {

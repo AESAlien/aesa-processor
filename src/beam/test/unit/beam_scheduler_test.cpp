@@ -19,19 +19,24 @@ namespace
 
 constexpr std::size_t AZIMUTH_COUNT = 21;
 
-const beam::SearchGridConfig GRID_CONFIG(
-    AZIMUTH_COUNT,
-    9,
-    math::CircularAngle(-42_deg),
-    4.2_deg,
-    math::TiltAngle(3_deg),
-    4.4_deg,
-    beam::BeamWidth(6_deg, 6_deg));
+beam::SearchGridConfig::Builder validSearchGridConfigBuilder()
+{
+    return beam::SearchGridConfig::Builder()
+        .azimuthCount(AZIMUTH_COUNT)
+        .elevationCount(9)
+        .azimuthStart(math::CircularAngle(-42_deg))
+        .azimuthStep(4.2_deg)
+        .elevationStart(math::TiltAngle(3_deg))
+        .elevationStep(4.4_deg)
+        .beamWidth(beam::BeamWidth(6_deg, 6_deg));
+}
 
 // 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도
-beam::RequestCoverageConfig makeCoverageConfig()
+beam::RequestCoverageConfig::Builder validRequestCoverageConfigBuilder()
 {
-    return beam::RequestCoverageConfig(math::CircularAngleRange(-60_deg, 60_deg), math::AngleRange(-10_deg, 60_deg));
+    return beam::RequestCoverageConfig::Builder()
+        .azimuthRange(math::CircularAngleRange(-60_deg, 60_deg))
+        .elevationRange(math::AngleRange(-10_deg, 60_deg));
 }
 
 // 자세정보로 탐색 격자와 영역 판정을 만드는 일은 BeamController가 맡으므로, 테스트에서는 직접 만들어 넘긴다.
@@ -43,7 +48,10 @@ beam::AttitudeFrame makeAttitudeFrame(math::Angle roll, math::Angle pitch, math:
             89_deg,
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}));
-    return beam::AttitudeFrame(transform, GRID_CONFIG, makeCoverageConfig());
+    return beam::AttitudeFrame(
+        transform,
+        validSearchGridConfigBuilder().build(),
+        validRequestCoverageConfigBuilder().build());
 }
 
 beam::AttitudeFrame makeZeroAttitudeFrame()
@@ -209,7 +217,8 @@ TEST(BeamSchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
     makeReady(scheduler);
 
     // When: 한 바퀴의 탐색 명령을 송신한 뒤 다음 명령을 꺼낸다.
-    const std::size_t beamCount = GRID_CONFIG.azimuthCount() * GRID_CONFIG.elevationCount();
+    const beam::SearchGridConfig config = validSearchGridConfigBuilder().build();
+    const std::size_t beamCount = config.azimuthCount() * config.elevationCount();
     for (std::size_t index = 0; index < beamCount; ++index)
     {
 

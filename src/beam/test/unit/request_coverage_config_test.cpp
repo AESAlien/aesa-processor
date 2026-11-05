@@ -12,7 +12,7 @@ namespace
 
 static_assert(std::is_copy_assignable_v<beam::RequestCoverageConfig>);
 
-beam::RequestCoverageConfig::Builder coverageBuilder()
+beam::RequestCoverageConfig::Builder validConfigBuilder()
 {
     return beam::RequestCoverageConfig::Builder()
         .azimuthRange(math::CircularAngleRange(-60_deg, 60_deg))
@@ -32,7 +32,7 @@ TEST(RequestCoverageConfigTest, ElevationOutsideQuarterTurnThrows)
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [](const math::AngleRange& range) {
-        return coverageBuilder().elevationRange(range).build();
+        return validConfigBuilder().elevationRange(range).build();
     };
     const auto construct = [&](const math::AngleRange& range) {
         return beam::RequestCoverageConfig(azimuth, range);

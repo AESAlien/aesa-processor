@@ -21,16 +21,6 @@ beam::BeamRequest makeRequest(
         transmitTime, 1, math::SphericalDirection(azimuth, 0_deg));
 }
 
-beam::BeamRequest makeConfirmation(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)
-{
-    return makeRequest(beam::BeamType::CONFIRMATION, transmitTime, azimuth);
-}
-
-beam::BeamRequest makeTracking(std::chrono::milliseconds transmitTime, math::Angle azimuth = 0_deg)
-{
-    return makeRequest(beam::BeamType::TRACKING, transmitTime, azimuth);
-}
-
 } // namespace
 
 // 빈 요청 큐에서는 꺼낼 요청이 없다.
@@ -51,7 +41,7 @@ TEST(RequestQueueTest, FutureRequestIsNotPoppedAndStaysQueued)
 {
     // Given: 미래에 송신할 요청이 있는 큐를 준비한다.
     beam::RequestQueue queue;
-    queue.add(makeTracking(1010ms));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1010ms));
 
     // When: 예정 시각 전과 예정 시각에 각각 요청을 꺼낸다.
     const auto beforeDue = queue.popNextDue(1000ms);
@@ -68,7 +58,7 @@ TEST(RequestQueueTest, RequestExactlyAtCurrentTimeIsDue)
 {
     // Given: 검사할 시각과 우선순위를 가진 요청들을 큐에 넣는다.
     beam::RequestQueue queue;
-    queue.add(makeTracking(1000ms));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1000ms));
 
     // When: 요청의 예정 시각에 요청을 꺼낸다.
     const auto request = queue.popNextDue(1000ms);
@@ -83,7 +73,7 @@ TEST(RequestQueueTest, PoppedRequestIsRemovedFromQueue)
 {
     // Given: 송신할 요청 하나를 큐에 넣는다.
     beam::RequestQueue queue;
-    queue.add(makeTracking(1000ms));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1000ms));
 
     // When: 같은 시각으로 요청을 두 번 꺼낸다.
     const auto first = queue.popNextDue(1000ms);
@@ -99,9 +89,9 @@ TEST(RequestQueueTest, EarliestDueRequestComesFirstRegardlessOfInsertionOrder)
 {
     // Given: 순서를 구분할 수 있는 여러 요청을 큐에 넣는다.
     beam::RequestQueue queue;
-    queue.add(makeTracking(1010ms, 3_deg));
-    queue.add(makeTracking(1000ms, 1_deg));
-    queue.add(makeTracking(1005ms, 2_deg));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1010ms, 3_deg));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1000ms, 1_deg));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1005ms, 2_deg));
 
     // When: 송신 시각이 된 요청을 차례로 꺼낸다.
     const auto request1 = queue.popNextDue(1010ms);
@@ -145,9 +135,9 @@ TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
 {
     // Given: 순서를 구분할 수 있는 여러 요청을 큐에 넣는다.
     beam::RequestQueue queue;
-    queue.add(makeTracking(1000ms, 1_deg));
-    queue.add(makeTracking(1000ms, 2_deg));
-    queue.add(makeTracking(1000ms, 3_deg));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1000ms, 1_deg));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1000ms, 2_deg));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1000ms, 3_deg));
 
     // When: 송신 시각이 된 요청을 차례로 꺼낸다.
     const auto request1 = queue.popNextDue(1000ms);
@@ -168,8 +158,8 @@ TEST(RequestQueueTest, EarlierTrackingStillComesBeforeLaterConfirmation)
 {
     // Given: 검사할 시각과 우선순위를 가진 요청들을 큐에 넣는다.
     beam::RequestQueue queue;
-    queue.add(makeConfirmation(1010ms));
-    queue.add(makeTracking(1000ms));
+    queue.add(makeRequest(beam::BeamType::CONFIRMATION, 1010ms));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1000ms));
 
     // When: 두 요청의 예정 시각이 지난 뒤 요청을 꺼낸다.
     const auto request = queue.popNextDue(1010ms);
@@ -185,8 +175,8 @@ TEST(RequestQueueTest, VeryOldRequestIsStillPopped)
     // Given: 검사할 시각과 우선순위를 가진 요청들을 큐에 넣는다.
     // 요청은 만료로 폐기되지 않는다. 아무리 오래 기다렸어도 꺼낼 수 있다.
     beam::RequestQueue queue;
-    queue.add(makeConfirmation(1000ms, 1_deg));
-    queue.add(makeTracking(1000ms, 2_deg));
+    queue.add(makeRequest(beam::BeamType::CONFIRMATION, 1000ms, 1_deg));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1000ms, 2_deg));
 
     // When: 예정 시각이 한참 지난 뒤 요청을 꺼낸다.
     const auto first = queue.popNextDue(100000ms);
@@ -206,11 +196,11 @@ TEST(RequestQueueTest, CrowdedRequestsAreAllPoppedInTimeOrderWithoutDrop)
     // Given: 검사할 시각과 우선순위를 가진 요청들을 큐에 넣는다.
     // 방위각으로 기대 순서를 표시한다. 일부러 시각 순서와 다르게 넣는다.
     beam::RequestQueue queue;
-    queue.add(makeTracking(1020ms, 5_deg));
-    queue.add(makeConfirmation(1010ms, 2_deg));
-    queue.add(makeTracking(1010ms, 3_deg));
-    queue.add(makeTracking(1000ms, 1_deg));
-    queue.add(makeConfirmation(1020ms, 4_deg));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1020ms, 5_deg));
+    queue.add(makeRequest(beam::BeamType::CONFIRMATION, 1010ms, 2_deg));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1010ms, 3_deg));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1000ms, 1_deg));
+    queue.add(makeRequest(beam::BeamType::CONFIRMATION, 1020ms, 4_deg));
 
     // 모든 요청이 한참 지난 시각에 꺼내도 하나도 사라지지 않고 시각 순(같은 시각이면 확인 빔 먼저)으로 나온다.
 
@@ -232,8 +222,8 @@ TEST(RequestQueueTest, ClearRemovesAllRequests)
 {
     // Given: 검사할 시각과 우선순위를 가진 요청들을 큐에 넣는다.
     beam::RequestQueue queue;
-    queue.add(makeTracking(1000ms));
-    queue.add(makeConfirmation(2000ms));
+    queue.add(makeRequest(beam::BeamType::TRACKING, 1000ms));
+    queue.add(makeRequest(beam::BeamType::CONFIRMATION, 2000ms));
 
     // When: 큐를 초기화한다.
     queue.clear();

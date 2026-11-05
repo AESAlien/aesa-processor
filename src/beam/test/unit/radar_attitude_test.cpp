@@ -6,16 +6,6 @@
 
 using namespace math::literals;
 
-namespace
-{
-
-beam::RadarAttitude makeAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw)
-{
-    return beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw);
-}
-
-} // namespace
-
 // 자세 객체는 전달받은 롤과 피치 및 요를 보관한다.
 TEST(RadarAttitudeTest, StoresGivenValues)
 {

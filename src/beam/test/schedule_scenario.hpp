@@ -33,23 +33,25 @@ constexpr std::chrono::milliseconds TICK_PERIOD = 10ms;
 constexpr std::uint32_t REQUEST_ID = 1;
 
 // 시나리오에서 쓰는 탐색 격자 설정(방위각 21개 x 고각 9개 = 189개)
-inline beam::SearchGridConfig makeSearchGridConfig()
+inline beam::SearchGridConfig::Builder validSearchGridConfigBuilder()
 {
-    return beam::SearchGridConfig(
-        21,
-        9,
-        math::CircularAngle(-42_deg),
-        4.2_deg,
-        math::TiltAngle(3_deg),
-        4.4_deg,
-        beam::BeamWidth(6_deg, 6_deg));
+    return beam::SearchGridConfig::Builder()
+        .azimuthCount(21)
+        .elevationCount(9)
+        .azimuthStart(math::CircularAngle(-42_deg))
+        .azimuthStep(4.2_deg)
+        .elevationStart(math::TiltAngle(3_deg))
+        .elevationStep(4.4_deg)
+        .beamWidth(beam::BeamWidth(6_deg, 6_deg));
 }
 
 // 시나리오는 스케줄링 순서를 보기 위한 것이므로, 추적 영역 판정으로 요청이 걸러지지 않도록 모든 방향을 허용한다.
 // 추적 영역 판정은 request_coverage_test, scheduler_test, beam_controller_test에서 확인한다.
-inline beam::RequestCoverageConfig makeOpenRequestCoverageConfig()
+inline beam::RequestCoverageConfig::Builder openRequestCoverageConfigBuilder()
 {
-    return beam::RequestCoverageConfig(math::CircularAngleRange(-180_deg, 180_deg), math::AngleRange(-90_deg, 90_deg));
+    return beam::RequestCoverageConfig::Builder()
+        .azimuthRange(math::CircularAngleRange(-180_deg, 180_deg))
+        .elevationRange(math::AngleRange(-90_deg, 90_deg));
 }
 
 // 주어진 자세로 탐색 격자와 영역 판정(AttitudeFrame)을 만든다. 실제 운용에서는 BeamController가 하는 일이다.
@@ -62,7 +64,10 @@ inline beam::AttitudeFrame makeAttitudeFrame(math::Angle roll, math::Angle pitch
             89_deg,
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}));
-    return beam::AttitudeFrame(transform, makeSearchGridConfig(), makeOpenRequestCoverageConfig());
+    return beam::AttitudeFrame(
+        transform,
+        validSearchGridConfigBuilder().build(),
+        openRequestCoverageConfigBuilder().build());
 }
 
 enum class Status

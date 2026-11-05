@@ -18,7 +18,7 @@ const double MAX_VALUE = std::numeric_limits<double>::max();
 // NaN·Inf Angle은 math::Angle 생성 단계에서 std::invalid_argument로 거부되므로 설정 검증 대상이 아니다.
 const math::Angle MAX_ANGLE = math::Angle::fromDegrees(MAX_VALUE);
 
-beam::SearchGridConfig::Builder gridBuilder()
+beam::SearchGridConfig::Builder validConfigBuilder()
 {
     return beam::SearchGridConfig::Builder()
         .azimuthCount(21)
@@ -36,9 +36,9 @@ beam::SearchGridConfig::Builder gridBuilder()
 TEST(SearchGridConfigTest, ZeroCountThrowsWithoutDividingByZero)
 {
     // Given: 한 축 또는 두 축의 개수가 0인 설정을 준비한다.
-    const auto zeroAzimuth = gridBuilder().azimuthCount(0);
-    const auto zeroElevation = gridBuilder().elevationCount(0);
-    const auto bothZero = gridBuilder().azimuthCount(0).elevationCount(0);
+    const auto zeroAzimuth = validConfigBuilder().azimuthCount(0);
+    const auto zeroElevation = validConfigBuilder().elevationCount(0);
+    const auto bothZero = validConfigBuilder().azimuthCount(0).elevationCount(0);
     const auto build = [](const beam::SearchGridConfig::Builder& builder) { return builder.build(); };
 
     // When & Then: 0인 축의 조합과 무관하게 나눗셈 전에 거부한다.
@@ -51,7 +51,7 @@ TEST(SearchGridConfigTest, ZeroCountThrowsWithoutDividingByZero)
 TEST(SearchGridConfigTest, BeamCountBeyondUint32Throws)
 {
     // Given: 검증할 입력과 설정을 준비한다.
-    const auto builder = gridBuilder().azimuthCount(70000).elevationCount(70000);
+    const auto builder = validConfigBuilder().azimuthCount(70000).elevationCount(70000);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [&builder] { return builder.build(); };
@@ -65,7 +65,7 @@ TEST(SearchGridConfigTest, KeepsGivenBeamWidth)
 {
     // Given: 방위각과 고각의 폭이 서로 다른 빔 폭을 준비한다.
     const beam::BeamWidth width(4_deg, 5_deg);
-    const auto builder = gridBuilder().beamWidth(width);
+    const auto builder = validConfigBuilder().beamWidth(width);
 
     // When: 빔 폭이 지정된 격자 설정을 생성한다.
     const beam::SearchGridConfig config = builder.build();
@@ -78,9 +78,9 @@ TEST(SearchGridConfigTest, KeepsGivenBeamWidth)
 TEST(SearchGridConfigTest, GridAngleOverflowThrows)
 {
     // Given: 검증할 입력과 설정을 준비한다.
-    const auto azimuthOverflow = gridBuilder().azimuthCount(3).azimuthStep(MAX_ANGLE);
-    const auto elevationOverflow = gridBuilder().elevationCount(3).elevationStep(MAX_ANGLE);
-    const auto endOverflow = gridBuilder()
+    const auto azimuthOverflow = validConfigBuilder().azimuthCount(3).azimuthStep(MAX_ANGLE);
+    const auto elevationOverflow = validConfigBuilder().elevationCount(3).elevationStep(MAX_ANGLE);
+    const auto endOverflow = validConfigBuilder()
         .elevationCount(2).elevationStart(math::TiltAngle(90_deg)).elevationStep(MAX_ANGLE);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
@@ -96,7 +96,7 @@ TEST(SearchGridConfigTest, GridAngleOverflowThrows)
 TEST(SearchGridConfigTest, LargeStepWithSingleBeamPerAxisIsAccepted)
 {
     // Given: 검증할 입력과 설정을 준비한다.
-    const auto builder = gridBuilder().azimuthCount(1).elevationCount(1).azimuthStep(MAX_ANGLE).elevationStep(MAX_ANGLE);
+    const auto builder = validConfigBuilder().azimuthCount(1).elevationCount(1).azimuthStep(MAX_ANGLE).elevationStep(MAX_ANGLE);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [&builder] { return builder.build(); };
@@ -109,9 +109,9 @@ TEST(SearchGridConfigTest, LargeStepWithSingleBeamPerAxisIsAccepted)
 TEST(SearchGridConfigTest, ElevationOutsideSphericalRangeThrows)
 {
     // Given: 검증할 입력과 설정을 준비한다.
-    const auto rising = gridBuilder()
+    const auto rising = validConfigBuilder()
         .elevationCount(3).elevationStart(math::TiltAngle(80_deg)).elevationStep(6_deg);
-    const auto falling = gridBuilder()
+    const auto falling = validConfigBuilder()
         .elevationCount(3).elevationStart(math::TiltAngle(0_deg)).elevationStep(-50_deg);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
@@ -126,7 +126,7 @@ TEST(SearchGridConfigTest, ElevationOutsideSphericalRangeThrows)
 TEST(SearchGridConfigTest, ElevationEquivalentByPeriodToValidRangeThrows)
 {
     // Given: 시작 고각은 유효하지만 끝 고각은 450도가 되는 격자를 준비한다.
-    const auto builder = gridBuilder()
+    const auto builder = validConfigBuilder()
         .elevationCount(2)
         .elevationStart(math::TiltAngle(90_deg))
         .elevationStep(360_deg);
@@ -142,7 +142,7 @@ TEST(SearchGridConfigTest, ElevationEquivalentByPeriodToValidRangeThrows)
 TEST(SearchGridConfigTest, AngleAtIndexIsStartPlusStepTimesIndex)
 {
     // Given: 시작각과 간격이 지정된 격자 설정을 준비한다.
-    const beam::SearchGridConfig config = gridBuilder().build();
+    const beam::SearchGridConfig config = validConfigBuilder().build();
 
     // When: 각 축의 처음과 마지막 인덱스에 해당하는 각도를 구한다.
     const auto firstAzimuth = config.azimuthAt(0);

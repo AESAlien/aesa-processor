@@ -21,14 +21,16 @@ beam::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::A
 }
 
 // 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도
-beam::RequestCoverageConfig makeDefaultConfig()
+beam::RequestCoverageConfig::Builder validConfigBuilder()
 {
-    return beam::RequestCoverageConfig(math::CircularAngleRange(-60_deg, 60_deg), math::AngleRange(-10_deg, 60_deg));
+    return beam::RequestCoverageConfig::Builder()
+        .azimuthRange(math::CircularAngleRange(-60_deg, 60_deg))
+        .elevationRange(math::AngleRange(-10_deg, 60_deg));
 }
 
 beam::RequestCoverage makeCoverage(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    return beam::RequestCoverage(makeTransform(roll, pitch, yaw), makeDefaultConfig());
+    return beam::RequestCoverage(makeTransform(roll, pitch, yaw), validConfigBuilder().build());
 }
 
 math::SphericalDirection direction(math::Angle azimuth, math::Angle elevation)

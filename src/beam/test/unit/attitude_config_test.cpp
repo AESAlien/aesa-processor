@@ -18,7 +18,7 @@ const double NAN_VALUE = std::numeric_limits<double>::quiet_NaN();
 const double INF_VALUE = std::numeric_limits<double>::infinity();
 const double MAX_VALUE = std::numeric_limits<double>::max();
 
-beam::AttitudeConfig::Builder attitudeBuilder()
+beam::AttitudeConfig::Builder validConfigBuilder()
 {
     return beam::AttitudeConfig::Builder()
         .maxAbsPitch(89_deg)
@@ -32,7 +32,7 @@ beam::AttitudeConfig::Builder attitudeBuilder()
 TEST(AttitudeConfigTest, AcceptsRotationMount)
 {
     // Given: 검증할 입력과 설정을 준비한다.
-    const auto builder = attitudeBuilder()
+    const auto builder = validConfigBuilder()
         .mountAntToBodyRotation(math::SquareMatrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}});
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
@@ -52,7 +52,7 @@ TEST(AttitudeConfigTest, AcceptsRotationMountWithFloatingPointEntries)
 
     // When: 부동소수점 성분의 장착행렬로 설정을 생성한다.
     const auto build = [&] {
-        return attitudeBuilder()
+        return validConfigBuilder()
             .mountAntToBodyRotation(math::SquareMatrix{{c, -s, 0}, {s, c, 0}, {0, 0, 1}})
             .build();
     };
@@ -70,7 +70,7 @@ TEST(AttitudeConfigTest, NonRotationMountThrows)
         {{1, 0, 0}, {0, 1, 0}, {0, 0, -1}}, // 반사
         {{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}, // 특이 행렬
         math::SquareMatrix::identity(2)};
-    const auto builder = attitudeBuilder();
+    const auto builder = validConfigBuilder();
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [&](const math::SquareMatrix& mount) {
@@ -95,7 +95,7 @@ TEST(AttitudeConfigTest, NonFiniteMountEntriesAndOverflowThrow)
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [](const math::SquareMatrix& mount) {
-        return attitudeBuilder().mountAntToBodyRotation(mount).build();
+        return validConfigBuilder().mountAntToBodyRotation(mount).build();
     };
 
     // Then: 자세 설정은 비유한 성분이나 연산 오버플로가 있는 장착행렬을 거부한다.
@@ -115,7 +115,7 @@ TEST(AttitudeConfigTest, MountOrthogonalityUsesConfiguredTolerance)
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [&](const math::Tolerance& tolerance) {
-        return attitudeBuilder().mountAntToBodyRotation(skewed)
+        return validConfigBuilder().mountAntToBodyRotation(skewed)
             .mountOrthogonalTolerance(tolerance).build();
     };
 
@@ -134,7 +134,7 @@ TEST(AttitudeConfigTest, MountRotationUsesRelativeTolerance)
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [&](const math::Tolerance& tolerance) {
-        return attitudeBuilder().mountAntToBodyRotation(slightlyScaled)
+        return validConfigBuilder().mountAntToBodyRotation(slightlyScaled)
             .mountOrthogonalTolerance(tolerance).build();
     };
 
@@ -147,7 +147,7 @@ TEST(AttitudeConfigTest, MountRotationUsesRelativeTolerance)
 TEST(AttitudeConfigTest, AcceptsZeroMountOrthogonalTolerance)
 {
     // Given: 정확한 단위행렬과 오차를 허용하지 않는 설정을 준비한다.
-    const auto builder = attitudeBuilder()
+    const auto builder = validConfigBuilder()
         .mountOrthogonalTolerance(math::Tolerance{0.0, 0.0});
 
     // When: 해당 허용오차로 설정 생성을 시도한다.
@@ -161,7 +161,7 @@ TEST(AttitudeConfigTest, AcceptsZeroMountOrthogonalTolerance)
 TEST(AttitudeConfigTest, MaxAbsPitchMustBeInZeroToNinetyDegrees)
 {
     // Given: 검증할 입력과 설정을 준비한다.
-    const auto builder = attitudeBuilder();
+    const auto builder = validConfigBuilder();
     const math::Angle validPitches[] = {90_deg, 0.1_deg};
     const math::Angle invalidPitches[] = {0_deg, -1_deg, 91_deg};
 
@@ -190,7 +190,7 @@ TEST(AttitudeConfigTest, MaxAbsPitchRejectsAnglesEquivalentToNinetyDegreesByPeri
     const math::Tolerance tolerance{1e-6, 0.0};
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
-    const auto build = [](math::Angle pitch) { return attitudeBuilder().maxAbsPitch(pitch).build(); };
+    const auto build = [](math::Angle pitch) { return validConfigBuilder().maxAbsPitch(pitch).build(); };
     const auto construct = [&] { return beam::AttitudeConfig(450_deg, mount, tolerance); };
 
     // Then: 최대 피치는 주기상 90도와 같아도 실제 값이 범위 밖이면 거부한다.

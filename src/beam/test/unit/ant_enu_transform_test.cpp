@@ -11,15 +11,15 @@ using namespace math::literals;
 namespace
 {
 
-beam::RadarAttitude makeAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw)
+beam::RadarAttitude makeRadarAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     return beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw);
 }
 
-beam::AntEnuTransform makeValidTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
+beam::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     return beam::AntEnuTransform(
-        makeAttitude(roll, pitch, yaw),
+        makeRadarAttitude(roll, pitch, yaw),
         beam::AttitudeConfig(
             89_deg,
             math::SquareMatrix::identity(3),
@@ -32,7 +32,7 @@ beam::AntEnuTransform makeValidTransform(math::Angle roll, math::Angle pitch, ma
 TEST(AttitudeTransformTest, ZeroAttitudeKeepsAngles)
 {
     // Given: 영 자세의 좌표 변환을 준비한다.
-    const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 0_deg);
+    const beam::AntEnuTransform transform = makeTransform(0_deg, 0_deg, 0_deg);
 
     // When: 안테나 방향을 ENU 방향으로 변환한다.
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(-30.0_deg, 10.0_deg));
@@ -48,9 +48,9 @@ TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
     // Given: 생성자에 전달할 입력을 준비한다.
     const beam::AttitudeConfig config(89_deg, math::SquareMatrix::identity(3), math::Tolerance{1e-6, 0.0});
     const beam::RadarAttitude rejected[] = {
-        makeAttitude(0_deg, 89_deg, 0_deg), makeAttitude(0_deg, 88.9999999999_deg, 0_deg),
-        makeAttitude(0_deg, -88.9999999999_deg, 0_deg), makeAttitude(0_deg, -90_deg, 0_deg)};
-    const auto accepted = makeAttitude(0_deg, 88.9_deg, 0_deg);
+        makeRadarAttitude(0_deg, 89_deg, 0_deg), makeRadarAttitude(0_deg, 88.9999999999_deg, 0_deg),
+        makeRadarAttitude(0_deg, -88.9999999999_deg, 0_deg), makeRadarAttitude(0_deg, -90_deg, 0_deg)};
+    const auto accepted = makeRadarAttitude(0_deg, 88.9_deg, 0_deg);
 
     // When: 준비한 값으로 대상 객체 생성을 시도한다.
     const auto construct = [&](const beam::RadarAttitude& attitude) {
@@ -75,7 +75,7 @@ TEST(AttitudeTransformTest, MountRotationIsAppliedToAntDirection)
         .mountOrthogonalTolerance(math::Tolerance{1e-6, 0.0})
         .mountAntToBodyRotation(math::SquareMatrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}})
         .build();
-    const beam::AntEnuTransform transform(makeAttitude(0_deg, 0_deg, 0_deg), config);
+    const beam::AntEnuTransform transform(makeRadarAttitude(0_deg, 0_deg, 0_deg), config);
 
     // When: 안테나 정면을 ENU 방향으로 변환한다.
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
@@ -90,8 +90,8 @@ TEST(AttitudeTransformTest, MaxAbsPitchFromConfigIsUsedForGimbalLock)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
     const beam::AttitudeConfig config(60_deg, math::SquareMatrix::identity(3), math::Tolerance{1e-6, 0.0});
-    const auto rejected = makeAttitude(0_deg, 60_deg, 0_deg);
-    const auto accepted = makeAttitude(0_deg, 59.9_deg, 0_deg);
+    const auto rejected = makeRadarAttitude(0_deg, 60_deg, 0_deg);
+    const auto accepted = makeRadarAttitude(0_deg, 59.9_deg, 0_deg);
 
     // When: 준비한 값으로 대상 객체 생성을 시도한다.
     const auto construct = [&](const beam::RadarAttitude& attitude) {
@@ -107,7 +107,7 @@ TEST(AttitudeTransformTest, MaxAbsPitchFromConfigIsUsedForGimbalLock)
 TEST(AttitudeTransformTest, YawRotatesAzimuthClockwise)
 {
     // Given: 요가 90도인 좌표 변환을 준비한다.
-    const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 90_deg); // 정면이 동쪽
+    const beam::AntEnuTransform transform = makeTransform(0_deg, 0_deg, 90_deg); // 정면이 동쪽
 
     // When: 안테나 정면을 ENU 방향으로 변환한다.
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
@@ -121,7 +121,7 @@ TEST(AttitudeTransformTest, YawRotatesAzimuthClockwise)
 TEST(AttitudeTransformTest, PitchRaisesBoresight)
 {
     // Given: 피치가 10도인 좌표 변환을 준비한다.
-    const beam::AntEnuTransform transform = makeValidTransform(0_deg, 10_deg, 0_deg);
+    const beam::AntEnuTransform transform = makeTransform(0_deg, 10_deg, 0_deg);
 
     // When: 안테나 정면을 ENU 방향으로 변환한다.
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
@@ -135,7 +135,7 @@ TEST(AttitudeTransformTest, PitchRaisesBoresight)
 TEST(AttitudeTransformTest, AntToEnuAndBackRestoresAngles)
 {
     // Given: 세 축으로 회전한 좌표 변환을 준비한다.
-    const beam::AntEnuTransform transform = makeValidTransform(10_deg, 20_deg, 30_deg);
+    const beam::AntEnuTransform transform = makeTransform(10_deg, 20_deg, 30_deg);
 
     // When: 여러 방향을 ENU로 변환한 뒤 안테나 방향으로 되돌린다.
     for (math::Angle azimuth_ant : {-45.0_deg, -30.0_deg, 0.0_deg, 15.0_deg, 45.0_deg})
