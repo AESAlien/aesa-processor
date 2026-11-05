@@ -2,8 +2,10 @@
 
 #include <comm/error/comm_error.hpp>
 
-#include <limits>
+#include <stdexcept>
 #include <string>
+#include <system_error>
+#include <utility>
 
 namespace comm
 {
@@ -12,25 +14,19 @@ namespace
 
 using Clock = std::chrono::steady_clock;
 
-constexpr int RECEIVE_BUFFER_SIZE = 4096;
+constexpr std::size_t RECEIVE_BUFFER_SIZE = 4096;
 constexpr char RECEIVE_FAILURE[] = "Communication data could not be received";
-
-std::chrono::microseconds remainingTime(Clock::time_point deadline);
 
 } // namespace
 
-Session::Session(SocketHandle socket, NetworkPeer peer)
-    : _socket(socket),
+Session::Session(TcpSocket socket, NetworkPeer peer)
+    : _socket(std::move(socket)),
       _peer(peer)
 {
+    _socket.setNonBlocking();
 }
 
-Session::~Session()
-{
-    native_socket::closeSocket(_socket);
-}
-
-SocketHandle Session::getSocket() const noexcept
+const TcpSocket& Session::getSocket() const noexcept
 {
     return _socket;
 }
@@ -42,37 +38,33 @@ bool Session::isOpen() const noexcept
 
 std::vector<MessageFrame> Session::receive()
 {
-    uint8_t buffer[RECEIVE_BUFFER_SIZE];
-    const int receivedSize = native_socket::receiveBytes(
-        _socket,
-        buffer,
-        sizeof(buffer));
+    std::optional<std::vector<uint8_t>> received;
+    try
+    {
+        received = _socket.receiveBytes(RECEIVE_BUFFER_SIZE);
+    }
+    catch (const std::system_error& error)
+    {
+        _open = false;
+        throw ReceiveError(
+            std::string(RECEIVE_FAILURE) +
+            ": peer=" + peerName(_peer) +
+            ", operation=receive, systemError=" + std::to_string(error.code().value()));
+    }
 
-    if (receivedSize == 0)
+    if (!received)
+    {
+        return {};
+    }
+    if (received->empty())
     {
         _open = false;
         return {};
     }
 
-    if (receivedSize < 0)
-    {
-        const int errorCode = native_socket::lastError();
-        if (native_socket::isWouldBlock(errorCode))
-        {
-            return {};
-        }
-
-        _open = false;
-        throw ReceiveError(
-            std::string(RECEIVE_FAILURE) +
-            ": peer=" + peerName(_peer) +
-            ", operation=receive, systemError=" + std::to_string(errorCode));
-    }
-
     try
     {
-        return _framer.append(
-            std::vector<uint8_t>(buffer, buffer + receivedSize));
+        return _framer.append(*received);
     }
     catch (const FramingError& error)
     {
@@ -87,71 +79,62 @@ std::vector<MessageFrame> Session::receive()
 void Session::send(
     const std::vector<uint8_t>& data,
     std::chrono::milliseconds timeout
-)
-{
+) {
+    if (timeout.count() < 0)
+    {
+        throw std::invalid_argument("Send requires a non-negative timeout");
+    }
     const Clock::time_point deadline = Clock::now() + timeout;
     std::size_t bytesSent = 0;
+    bool attempted = false;
 
     while (bytesSent < data.size())
     {
-        const std::size_t remainingSize = data.size() - bytesSent;
-        const int sendSize = remainingSize > static_cast<std::size_t>(std::numeric_limits<int>::max())
-            ? std::numeric_limits<int>::max()
-            : static_cast<int>(remainingSize);
-
-        const int sentSize = native_socket::sendBytes(
-            _socket,
-            data.data() + bytesSent,
-            sendSize);
-
-        if (sentSize > 0)
+        // A zero timeout still permits one immediate non-blocking attempt.
+        // Every retry shares the original deadline, including interruptions.
+        if (attempted && Clock::now() >= deadline)
         {
-            bytesSent += static_cast<std::size_t>(sentSize);
+            failSend("timeout", "send", 0, bytesSent);
+        }
+        attempted = true;
+
+        std::optional<std::size_t> sent;
+        try
+        {
+            sent = _socket.sendBytes(data, bytesSent);
+        }
+        catch (const std::system_error& error)
+        {
+            failSend("connection-lost", "send", error.code().value(), bytesSent);
+        }
+
+        if (sent)
+        {
+            if (*sent == 0)
+            {
+                failSend("connection-lost", "send", 0, bytesSent);
+            }
+            bytesSent += *sent;
             continue;
         }
 
-        if (sentSize == 0)
+        if (Clock::now() >= deadline)
         {
-            failSend("connection-lost", "send", 0, bytesSent);
+            failSend("timeout", "wait-writable", 0, bytesSent);
         }
 
-        int errorCode = native_socket::lastError();
-        if (native_socket::isInterrupted(errorCode))
+        try
         {
-            continue;
+            _socket.waitWritableUntil(deadline);
         }
-
-        if (!native_socket::isWouldBlock(errorCode))
+        catch (const std::system_error& error)
         {
-            failSend("connection-lost", "send", errorCode, bytesSent);
+            if (error.code() == std::errc::timed_out)
+            {
+                failSend("timeout", "wait-writable", 0, bytesSent);
+            }
+            failSend("error", "wait-writable", error.code().value(), bytesSent);
         }
-
-        const std::chrono::microseconds remaining = remainingTime(deadline);
-        if (remaining.count() == 0)
-        {
-            failSend("timeout", "select", 0, bytesSent);
-        }
-
-        const int selectedCount =
-            native_socket::waitWritable(_socket, remaining);
-        if (selectedCount > 0)
-        {
-            continue;
-        }
-
-        if (selectedCount == 0)
-        {
-            failSend("timeout", "select", 0, bytesSent);
-        }
-
-        errorCode = native_socket::lastError();
-        if (native_socket::isInterrupted(errorCode) &&
-            Clock::now() < deadline)
-        {
-            continue;
-        }
-
-        failSend("error", "select", errorCode, bytesSent);
     }
 }
 
@@ -162,11 +145,17 @@ void Session::failSend(
     const char* operation,
     int errorCode,
     std::size_t bytesSent
-)
-{
+) {
     if (bytesSent > 0)
     {
-        native_socket::shutdownSocket(_socket);
+        try
+        {
+            _socket.shutdown();
+        }
+        catch (const std::system_error&)
+        {
+            // Preserve the send failure if the peer has already disconnected.
+        }
     }
 
     throw SendError(
@@ -178,20 +167,4 @@ void Session::failSend(
         ", bytesSent=" + std::to_string(bytesSent));
 }
 
-namespace
-{
-
-std::chrono::microseconds remainingTime(Clock::time_point deadline)
-{
-    const Clock::time_point now = Clock::now();
-    if (now >= deadline)
-    {
-        return std::chrono::microseconds{0};
-    }
-
-    return std::chrono::duration_cast<std::chrono::microseconds>(
-        deadline - now);
-}
-
-} // namespace
 } // namespace comm

@@ -1,115 +1,57 @@
 #include <network/tcp_server/tcp_server.hpp>
 
 #include <comm/error/comm_error.hpp>
-#include <network/network_error.hpp>
+
+#include <string>
+#include <system_error>
 
 namespace comm
 {
 namespace
 {
 
-constexpr int LISTEN_BACKLOG = 2;
 constexpr char OPEN_FAILURE[] = "Communication server could not be opened";
 constexpr char ACCEPT_FAILURE[] = "Communication connection could not be established";
 
 } // namespace
 
 TcpServer::TcpServer(const CommEndpoint& endpoint)
+try
 {
-    const int startupError = native_socket::startup();
-    if (startupError != 0)
-    {
-        throwSystemError<ServerOpenError>(
-            OPEN_FAILURE,
-            "socket-api-startup",
-            startupError);
-    }
-
-    _listenSocket = native_socket::createTcpSocket();
-    if (_listenSocket == INVALID_SOCKET_HANDLE)
-    {
-        failOpen("create-socket");
-    }
-
-    if (native_socket::setReuseAddress(_listenSocket) < 0)
-    {
-        failOpen("set-socket-option");
-    }
-
-    if (native_socket::bindSocket(
-            _listenSocket,
-            endpoint.getIntAddress(),
-            endpoint.getPort()) < 0)
-    {
-        failOpen("bind");
-    }
-
-    if (native_socket::listenSocket(_listenSocket, LISTEN_BACKLOG) < 0)
-    {
-        failOpen("listen");
-    }
-
-    if (native_socket::setNonBlocking(_listenSocket) < 0)
-    {
-        failOpen("set-socket-option");
-    }
+    _listenSocket.setReuseAddress();
+    _listenSocket.bind(endpoint);
+    _listenSocket.listen();
+    _listenSocket.setNonBlocking();
+}
+catch (const std::system_error& error)
+{
+    throw ServerOpenError(
+        std::string(OPEN_FAILURE) + ": " + error.what() +
+        ", systemError=" + std::to_string(error.code().value()));
 }
 
-TcpServer::~TcpServer()
-{
-    native_socket::closeSocket(_listenSocket);
-    native_socket::cleanup();
-}
-
-SocketHandle TcpServer::getSocket() const noexcept
+const TcpSocket& TcpServer::getSocket() const noexcept
 {
     return _listenSocket;
 }
 
-std::optional<AcceptedSocket> TcpServer::accept()
+std::optional<TcpSocket> TcpServer::accept()
 {
-    AcceptedSocket accepted{};
-    accepted.socket = native_socket::acceptSocket(
-        _listenSocket,
-        accepted.address,
-        accepted.port);
-
-    if (accepted.socket == INVALID_SOCKET_HANDLE)
+    try
     {
-        const int errorCode = native_socket::lastError();
-        if (native_socket::isWouldBlock(errorCode))
+        std::optional<TcpSocket> accepted = _listenSocket.accept();
+        if (accepted)
         {
-            return std::nullopt;
+            accepted->setNonBlocking();
         }
-
-        throwSystemError<ConnectionError>(ACCEPT_FAILURE, "accept", errorCode);
+        return accepted;
     }
-
-    if (native_socket::setNonBlocking(accepted.socket) < 0)
+    catch (const std::system_error& error)
     {
-        const int errorCode = native_socket::lastError();
-        native_socket::closeSocket(accepted.socket);
-        throwSystemError<ConnectionError>(
-            ACCEPT_FAILURE,
-            "set-socket-option",
-            errorCode);
+        throw ConnectionError(
+            std::string(ACCEPT_FAILURE) + ": " + error.what() +
+            ", systemError=" + std::to_string(error.code().value()));
     }
-
-    return accepted;
-}
-
-// The destructor does not run when the constructor throws,
-// so release what the constructor acquired before throwing.
-void TcpServer::failOpen(const char* operation)
-{
-    const int errorCode = native_socket::lastError();
-    if (_listenSocket != INVALID_SOCKET_HANDLE)
-    {
-        native_socket::closeSocket(_listenSocket);
-    }
-    native_socket::cleanup();
-
-    throwSystemError<ServerOpenError>(OPEN_FAILURE, operation, errorCode);
 }
 
 } // namespace comm

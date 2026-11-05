@@ -1,8 +1,8 @@
 #pragma once
 
 #include <network/message_framer/message_framer.hpp>
-#include <network/native_socket/native_socket.hpp>
 #include <network/network_manager/network_types.hpp>
+#include <network/tcp_socket/tcp_socket.hpp>
 
 #include <chrono>
 #include <cstdint>
@@ -12,21 +12,22 @@ namespace comm
 {
 
 // One accepted peer connection. Owns the socket and closes it on destruction.
+// Construction makes the owned socket non-blocking for bounded send/receive.
 // receive() is called from the receive thread only.
 // send() may run concurrently with receive(), but must not run concurrently
 // with another send(); each peer has a single sending thread.
 class Session
 {
 public:
-    Session(SocketHandle socket, NetworkPeer peer);
-    ~Session();
+    // Throws std::system_error if configuring the socket fails.
+    Session(TcpSocket socket, NetworkPeer peer);
 
     Session(const Session&) = delete;
     Session& operator=(const Session&) = delete;
     Session(Session&&) = delete;
     Session& operator=(Session&&) = delete;
 
-    SocketHandle getSocket() const noexcept;
+    const TcpSocket& getSocket() const noexcept;
 
     // False once the connection has ended; the session should be discarded.
     bool isOpen() const noexcept;
@@ -49,7 +50,7 @@ private:
         std::size_t bytesSent
     );
 
-    SocketHandle _socket;
+    TcpSocket _socket;
     NetworkPeer _peer;
     bool _open = true;
     MessageFramer _framer;

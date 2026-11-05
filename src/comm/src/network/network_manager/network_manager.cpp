@@ -2,10 +2,12 @@
 
 #include <comm/error/comm_error.hpp>
 #include <network/network_error.hpp>
+#include <network/socket_selector/socket_selector.hpp>
 
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
+#include <system_error>
 #include <utility>
 
 namespace comm
@@ -17,15 +19,16 @@ constexpr char RECEIVE_FAILURE[] = "Communication data could not be received";
 
 bool matches(
     const CommEndpoint& endpoint,
-    const AcceptedSocket& accepted
+    const CommEndpoint& remoteEndpoint
 );
 
 bool contains(
-    const std::vector<SocketHandle>& sockets,
-    SocketHandle socket
+    const std::vector<const TcpSocket*>& sockets,
+    const TcpSocket& socket
 );
 
-void reportRejectedConnection(const AcceptedSocket& accepted);
+CommEndpoint readRemoteEndpoint(const TcpSocket& socket);
+void reportRejectedConnection(const CommEndpoint& remoteEndpoint);
 
 } // namespace
 
@@ -68,29 +71,30 @@ std::optional<ReceivedFrames> NetworkManager::poll(
     const std::shared_ptr<Session> operatorConsole = getSession(NetworkPeer::OPERATOR_CONSOLE);
     const std::shared_ptr<Session> scenarioSimulator = getSession(NetworkPeer::SCENARIO_SIMULATOR);
 
-    std::vector<SocketHandle> sockets{_server->getSocket()};
+    std::vector<const TcpSocket*> sockets{&_server->getSocket()};
     if (operatorConsole)
     {
-        sockets.push_back(operatorConsole->getSocket());
+        sockets.push_back(&operatorConsole->getSocket());
     }
     if (scenarioSimulator)
     {
-        sockets.push_back(scenarioSimulator->getSocket());
+        sockets.push_back(&scenarioSimulator->getSocket());
     }
 
-    std::vector<SocketHandle> readySockets;
-    const int selectedCount =
-        native_socket::waitReadable(sockets, timeout, readySockets); //select
-
-    if (selectedCount < 0)
+    std::vector<const TcpSocket*> readySockets;
+    SocketWaitStatus status;
+    try
     {
-        const int errorCode = native_socket::lastError();
-        if (native_socket::isInterrupted(errorCode))
-        {
-            return std::nullopt;
-        }
-
-        throwSystemError<ReceiveError>(RECEIVE_FAILURE, "select", errorCode);
+        const SocketSelector selector(std::move(sockets));
+        status = selector.waitReadable(timeout, readySockets);
+    }
+    catch (const std::system_error& error)
+    {
+        throwSystemError<ReceiveError>(RECEIVE_FAILURE, "wait-readable", error.code().value());
+    }
+    if (status != SocketWaitStatus::READY)
+    {
+        return std::nullopt;
     }
 
     if (contains(readySockets, _server->getSocket()))
@@ -145,15 +149,15 @@ void NetworkManager::send(
 }
 
 std::optional<NetworkPeer> NetworkManager::identifyPeer(
-    const AcceptedSocket& accepted
+    const CommEndpoint& remoteEndpoint
 ) const
 {
-    if (matches(_operatorConsoleEndpoint, accepted))
+    if (matches(_operatorConsoleEndpoint, remoteEndpoint))
     {
         return NetworkPeer::OPERATOR_CONSOLE;
     }
 
-    if (matches(_scenarioSimulatorEndpoint, accepted))
+    if (matches(_scenarioSimulatorEndpoint, remoteEndpoint))
     {
         return NetworkPeer::SCENARIO_SIMULATOR;
     }
@@ -163,23 +167,23 @@ std::optional<NetworkPeer> NetworkManager::identifyPeer(
 
 void NetworkManager::acceptSession()
 {
-    const std::optional<AcceptedSocket> accepted = _server->accept();
+    std::optional<TcpSocket> accepted = _server->accept();
     if (!accepted.has_value())
     {
         return;
     }
 
-    const std::optional<NetworkPeer> peer = identifyPeer(*accepted);
+    const CommEndpoint remoteEndpoint = readRemoteEndpoint(*accepted);
+    const std::optional<NetworkPeer> peer = identifyPeer(remoteEndpoint);
     if (!peer.has_value())
     {
-        reportRejectedConnection(*accepted);
-        native_socket::closeSocket(accepted->socket);
+        reportRejectedConnection(remoteEndpoint);
         return;
     }
 
     // A reconnection replaces the previous session, which closes its socket
     // once no send() is using it anymore.
-    setSession(*peer, std::make_shared<Session>(accepted->socket, *peer));
+    setSession(*peer, std::make_shared<Session>(std::move(*accepted), *peer));
 }
 
 std::optional<ReceivedFrames> NetworkManager::receiveFrom(
@@ -275,30 +279,45 @@ namespace
 
 bool matches(
     const CommEndpoint& endpoint,
-    const AcceptedSocket& accepted
+    const CommEndpoint& remoteEndpoint
 )
 {
-    return endpoint.getIntAddress() == accepted.address &&
-        endpoint.getPort() == accepted.port;
+    return endpoint.getIntAddress() == remoteEndpoint.getIntAddress() &&
+        endpoint.getPort() == remoteEndpoint.getPort();
 }
 
 bool contains(
-    const std::vector<SocketHandle>& sockets,
-    SocketHandle socket
+    const std::vector<const TcpSocket*>& sockets,
+    const TcpSocket& socket
 )
 {
-    return std::find(sockets.begin(), sockets.end(), socket) != sockets.end();
+    return std::find(sockets.begin(), sockets.end(), &socket) != sockets.end();
 }
 
 
+CommEndpoint readRemoteEndpoint(const TcpSocket& socket)
+{
+    try
+    {
+        return socket.getRemoteEndpoint();
+    }
+    catch (const std::system_error& error)
+    {
+        throwSystemError<ConnectionError>(
+            "Communication connection could not be established",
+            "get-remote-endpoint",
+            error.code().value());
+    }
+}
+
 //올바르지 않은 주소에서 연결을 시도했을 때
-void reportRejectedConnection(const AcceptedSocket& accepted)
+void reportRejectedConnection(const CommEndpoint& remoteEndpoint)
 {
     std::cerr
         << "[NetworkManager] Rejected unknown connection: remoteAddress="
-        << native_socket::formatIpv4(accepted.address).value_or("unknown")
+        << remoteEndpoint.getAddress()
         << ", remotePort="
-        << accepted.port
+        << remoteEndpoint.getPort()
         << '\n';
 }
 

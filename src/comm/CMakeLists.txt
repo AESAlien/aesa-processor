@@ -6,9 +6,11 @@ add_library(comm STATIC
     src/network/message_decoder/message_decoder.cpp
     src/network/message_encoder/message_encoder.cpp
     src/network/message_framer/message_framer.cpp
-    src/network/native_socket/native_socket.cpp
     src/network/network_manager/network_manager.cpp
     src/network/session/session.cpp
+    src/network/socket_error/socket_error.cpp
+    src/network/socket_selector/socket_selector.cpp
+    src/network/tcp_socket/tcp_socket.cpp
     src/network/tcp_server/tcp_server.cpp
 )
 target_include_directories(comm
@@ -46,7 +48,29 @@ if(BUILD_TESTING)
     )
 
     find_package(GTest REQUIRED)
+    find_package(Threads REQUIRED)
     include(GoogleTest)
+
+    add_executable(comm_tcp_socket_test test/tcp_socket_test.cpp)
+    target_include_directories(comm_tcp_socket_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_link_libraries(comm_tcp_socket_test PRIVATE
+        comm
+        GTest::gtest_main
+        Threads::Threads
+    )
+    gtest_discover_tests(comm_tcp_socket_test)
+
+    add_executable(comm_socket_error_test test/socket_error_test.cpp)
+    target_include_directories(comm_socket_error_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_link_libraries(comm_socket_error_test PRIVATE
+        comm
+        GTest::gtest_main
+    )
+    gtest_discover_tests(comm_socket_error_test)
 
     add_executable(comm_config_test test/comm_config_test.cpp)
     target_link_libraries(comm_config_test PRIVATE

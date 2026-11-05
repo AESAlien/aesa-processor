@@ -61,7 +61,7 @@ public:
 private:
     //accpet 하기 전 올바른 주소인지 검사
     std::optional<NetworkPeer> identifyPeer(
-        const AcceptedSocket& accepted
+        const CommEndpoint& remoteEndpoint
     ) const;
 
     void acceptSession();
@@ -78,7 +78,6 @@ private:
     CommEndpoint _scenarioSimulatorEndpoint;
 
     
-    // Declared before the sessions so that it is destroyed after them.
     std::unique_ptr<TcpServer> _server;
 
     // Guards replacing the session pointers against send() copying them.
