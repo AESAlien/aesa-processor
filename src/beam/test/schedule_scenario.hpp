@@ -1,4 +1,4 @@
-// Scheduler를 시나리오로 실행하는 테스트/시각화 공용 헤더
+// BeamScheduler를 시나리오로 실행하는 테스트/시각화 공용 헤더
 //
 // beam_schedule_dump(시각화용 도구)와 scheduler_scenario_test(GTest)가 같은 시나리오와 실행 로직을
 // 쓰도록 한 곳에 둔다. 그림으로 본 동작과 테스트가 검증하는 동작이 어긋나지 않게 하기 위함이다.
@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "scheduler/scheduler.hpp"
+#include "scheduler/beam_scheduler.hpp"
 #include "scheduler/attitude_frame.hpp"
 #include "scheduler/beam_request_factory.hpp"
 
@@ -33,23 +33,25 @@ constexpr std::chrono::milliseconds TICK_PERIOD = 10ms;
 constexpr std::uint32_t REQUEST_ID = 1;
 
 // 시나리오에서 쓰는 탐색 격자 설정(방위각 21개 x 고각 9개 = 189개)
-inline beam::SearchGridConfig makeSearchGridConfig()
+inline beam::SearchGridConfig::Builder validSearchGridConfigBuilder()
 {
-    return beam::SearchGridConfig(
-        21,
-        9,
-        math::CircularAngle(-42_deg),
-        4.2_deg,
-        math::TiltAngle(3_deg),
-        4.4_deg,
-        beam::BeamWidth(6_deg, 6_deg));
+    return beam::SearchGridConfig::Builder()
+        .azimuthCount(21)
+        .elevationCount(9)
+        .azimuthStart(-42_deg)
+        .azimuthStep(4.2_deg)
+        .elevationStart(3_deg)
+        .elevationStep(4.4_deg)
+        .beamWidth(beam::BeamWidth(6_deg, 6_deg));
 }
 
 // 시나리오는 스케줄링 순서를 보기 위한 것이므로, 추적 영역 판정으로 요청이 걸러지지 않도록 모든 방향을 허용한다.
 // 추적 영역 판정은 request_coverage_test, scheduler_test, beam_controller_test에서 확인한다.
-inline beam::RequestCoverageConfig makeOpenRequestCoverageConfig()
+inline beam::RequestCoverageConfig::Builder openRequestCoverageConfigBuilder()
 {
-    return beam::RequestCoverageConfig(math::CircularAngleRange(-180_deg, 180_deg), math::AngleRange(-90_deg, 90_deg));
+    return beam::RequestCoverageConfig::Builder()
+        .azimuthRange(math::CircularAngleRange(-180_deg, 180_deg))
+        .elevationRange(math::AngleRange(-90_deg, 90_deg));
 }
 
 // 주어진 자세로 탐색 격자와 영역 판정(AttitudeFrame)을 만든다. 실제 운용에서는 BeamController가 하는 일이다.
@@ -62,7 +64,10 @@ inline beam::AttitudeFrame makeAttitudeFrame(math::Angle roll, math::Angle pitch
             89_deg,
             math::SquareMatrix::identity(3),
             math::Tolerance{1e-6, 0.0}));
-    return beam::AttitudeFrame(transform, makeSearchGridConfig(), makeOpenRequestCoverageConfig());
+    return beam::AttitudeFrame(
+        transform,
+        validSearchGridConfigBuilder().build(),
+        openRequestCoverageConfigBuilder().build());
 }
 
 enum class Status
@@ -173,8 +178,8 @@ inline Scenario makeTracksScenario()
             }
 
             // 요청과 송신 결과를 짝지을 수 있도록 각도가 요청마다 서로 다르게 정한다.
-            const double azimuth_deg = -55.0 + 5.5 * track + 0.25 * round;
-            const double elevation_deg = 3.0 + 5.0 * (track % 10) + 0.1 * round;
+            const auto azimuth_deg = -55.0 + 5.5 * track + 0.25 * round;
+            const auto elevation_deg = 3.0 + 5.0 * (track % 10) + 0.1 * round;
             scenario.requests.push_back(makeRequestSpec(
                 "T" + std::to_string(track + 1) + "." + std::to_string(round + 1),
                 Type::TRACKING, transmitTime, azimuth_deg, elevation_deg));
@@ -194,7 +199,7 @@ inline void markSent(
 ) {
     for (RequestSpec& spec : requests)
     {
-        const bool sameType = spec.request.transmitBeamType() == command.beamType;
+        const auto sameType = spec.request.transmitBeamType() == command.beamType;
         if (spec.sentTick_ms < 0 && sameType &&
             spec.request.direction_enu().azimuth == command.direction_ant.azimuth &&
             spec.request.direction_enu().elevation == command.direction_ant.elevation)
@@ -207,11 +212,11 @@ inline void markSent(
 
 } // namespace detail
 
-// 시나리오를 새 Scheduler로 실행한다. 자세정보 시각에 attitudeFrame의 복사본을 넘긴다.
+// 시나리오를 새 BeamScheduler로 실행한다. 자세정보 시각에 attitudeFrame의 복사본을 넘긴다.
 inline Result run(Scenario scenario, const beam::AttitudeFrame& attitudeFrame)
 {
     Result result;
-    beam::Scheduler scheduler;
+    beam::BeamScheduler scheduler;
     Status status = Status::OFF;
 
     for (auto time = 0ms; time <= scenario.duration; time += TICK_PERIOD)

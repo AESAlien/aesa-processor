@@ -17,7 +17,7 @@ namespace beam
 
 // 빔 스케줄링 본체. 타이머나 스레드를 갖지 않고, 호출자(app)가 틱마다 next()를 호출한다.
 // 탐색 격자와 요청 빔 영역 판정(AttitudeFrame)은 BeamController가 자세정보와 설정으로 만들어 넘기므로,
-// Scheduler는 자세정보와 설정을 직접 알지 못한다.
+// BeamScheduler는 자세정보와 설정을 직접 알지 못한다.
 //
 // 가정(계약):
 // - 모든 메서드는 같은 스레드에서 직렬로 호출된다. 스레드 안전하지 않다.
@@ -29,7 +29,7 @@ namespace beam
 // - OFF에서는 모든 입력을 무시하고 next()는 std::nullopt를 반환한다.
 // - OFF에서 ON으로 바뀌는 순간 모든 상태를 초기화한다.
 // - ON이고 AttitudeFrame을 받은 상태에서만 빔을 송신한다.
-class Scheduler
+class BeamScheduler
 {
 public:
     void setOperationState(OperationState state);

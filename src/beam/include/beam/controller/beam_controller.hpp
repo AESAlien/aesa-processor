@@ -15,7 +15,7 @@ namespace beam
 {
 
 class BeamRequestFactory;
-class Scheduler;
+class BeamScheduler;
 
 // 빔 모듈의 외부 인터페이스. 내부 스케줄러에 호출을 전달한다.
 // 스레드 안전하지 않으므로 모든 메서드를 같은 스레드에서 호출해야 한다.
@@ -51,7 +51,7 @@ public:
 private:
     // 자세정보를 받을 때 탐색 격자와 추적 영역 판정을 만드는 데 쓴다.
     BeamConfig _config;
-    std::unique_ptr<Scheduler> _scheduler;
+    std::unique_ptr<BeamScheduler> _scheduler;
     // RequestBeamCommand를 BeamRequest로 바꾼다. 요청 빔 설정은 생성 시 한 번 주입된다.
     std::unique_ptr<BeamRequestFactory> _requestFactory;
 };

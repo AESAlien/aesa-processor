@@ -1,4 +1,4 @@
-// Scheduler를 시나리오로 실행해 틱별 결과를 CSV로 출력하는 시각화용 도구
+// BeamScheduler를 시나리오로 실행해 틱별 결과를 CSV로 출력하는 시각화용 도구
 //
 // 사용법: beam_schedule_dump [--scenario mixed|tracks] [roll_deg pitch_deg yaw_deg]
 // 출력  : 빈 줄 없이 "# ticks", "# requests", "# grid" 세 구역을 차례로 출력한다.
@@ -106,7 +106,7 @@ int main(int argc, char** argv)
         return usage(argv[0]);
     }
 
-    const beam::AttitudeFrame frame = [&]() {
+    const auto frame = [&]() {
         try
         {
             // 잘못된 자세정보이면 RadarAttitude 생성자나 AntEnuTransform 생성자가 std::invalid_argument를 던진다.
@@ -133,7 +133,7 @@ int main(int argc, char** argv)
                 continue;
             }
 
-            const beam::TransmitBeamCommand& command = *tick.command;
+            const auto& command = *tick.command;
             std::printf(
                 "%lld,%s,%s,%u,%u,%.6f,%.6f,%.2f,%.2f\n",
                 tick.tick_ms,
@@ -164,13 +164,13 @@ int main(int argc, char** argv)
         std::printf("# grid\n");
         std::printf("idx,beamID,az_deg,el_deg\n");
         // run()은 frame의 복사본을 쓰므로 여기서는 처음 빔부터 꺼낸다.
-        beam::AttitudeFrame frameToPrint = frame;
-        beam::SearchGrid& gridToPrint = frameToPrint.searchGrid();
-        const beam::SearchGridConfig gridConfig = schedule_scenario::makeSearchGridConfig();
-        const std::size_t beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
+        auto frameToPrint = frame;
+        auto& gridToPrint = frameToPrint.searchGrid();
+        const auto gridConfig = schedule_scenario::validSearchGridConfigBuilder().build();
+        const auto beamCount = gridConfig.azimuthCount() * gridConfig.elevationCount();
         for (std::size_t index = 0; index < beamCount; ++index)
         {
-            const beam::SearchBeam& info = gridToPrint.nextBeam();
+            const auto& info = gridToPrint.nextBeam();
             std::printf("%zu,%u,%.6f,%.6f\n", index, info.beamId, info.direction_enu.azimuth.deg(), info.direction_enu.elevation.deg());
         }
     }

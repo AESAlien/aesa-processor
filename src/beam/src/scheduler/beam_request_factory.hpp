@@ -10,7 +10,7 @@ namespace beam
 
 // 공개 DTO인 RequestBeamCommand를 내부 요청(BeamRequest)으로 바꾸는 유일한 곳이다.
 // 요청 빔 종류에 따른 분기(송신 빔 종류, 빔 폭, 우선순위)는 여기에만 두므로,
-// 사용하는 쪽(BeamController)과 Scheduler는 종류별 분기를 알 필요가 없다.
+// 사용하는 쪽(BeamController)과 BeamScheduler는 종류별 분기를 알 필요가 없다.
 class BeamRequestFactory
 {
 public:

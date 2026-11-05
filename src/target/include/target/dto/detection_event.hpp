@@ -4,6 +4,7 @@
 #include <math/bounded/circular_angle.hpp>
 #include <math/bounded/tilt_angle.hpp>
 #include <math/bounded/distance.hpp>
+#include <math/quantity/angle.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
 #include <chrono>
@@ -50,7 +51,9 @@ struct DetectionEvent
         {
         public:
             Builder& slantRange(math::Distance value) { _slantRange = value; return *this; }
+            Builder& azimuth(math::Angle value) { return azimuth(math::CircularAngle(value)); }
             Builder& azimuth(math::CircularAngle value) { _azimuth = value; return *this; }
+            Builder& elevation(math::Angle value) { return elevation(math::TiltAngle(value)); }
             Builder& elevation(math::TiltAngle value) { _elevation = value; return *this; }
             Builder& dopplerVelocity(math::LinearVelocity value) { _dopplerVelocity = value; return *this; }
             Builder& power_db(float value) { _power_db = value; return *this; }
