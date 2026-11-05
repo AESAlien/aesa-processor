@@ -39,6 +39,33 @@ beam::RequestBeamCommand makeRequestBeamCommand(
         .build();
 }
 
+beam::AttitudeConfig::Builder validAttitudeConfigBuilder()
+{
+    return beam::AttitudeConfig::Builder()
+        .maxAbsPitch(89_deg)
+        .mountAntToBodyRotation(math::SquareMatrix::identity(3))
+        .mountOrthogonalTolerance(math::Tolerance{1e-6, 0.0});
+}
+
+beam::SearchGridConfig::Builder validSearchGridConfigBuilder()
+{
+    return beam::SearchGridConfig::Builder()
+        .azimuthCount(21)
+        .elevationCount(9)
+        .azimuthStart(-42_deg)
+        .azimuthStep(4.2_deg)
+        .elevationStart(3_deg)
+        .elevationStep(4.4_deg)
+        .beamWidth(beam::BeamWidth(6_deg, 6_deg));
+}
+
+beam::RequestBeamConfig::Builder validRequestBeamConfigBuilder()
+{
+    return beam::RequestBeamConfig::Builder()
+        .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+        .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg));
+}
+
 // 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도
 beam::RequestCoverageConfig::Builder validRequestCoverageConfigBuilder()
 {
@@ -47,17 +74,18 @@ beam::RequestCoverageConfig::Builder validRequestCoverageConfigBuilder()
         .elevationRange(math::AngleRange(-10_deg, 60_deg));
 }
 
+beam::BeamConfig::Builder validBeamConfigBuilder()
+{
+    return beam::BeamConfig::Builder()
+        .attitudeConfig(validAttitudeConfigBuilder().build())
+        .searchGridConfig(validSearchGridConfigBuilder().build())
+        .requestBeamConfig(validRequestBeamConfigBuilder().build())
+        .requestCoverageConfig(validRequestCoverageConfigBuilder().build());
+}
+
 beam::BeamController makeDefaultController()
 {
-    return beam::BeamController(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
-        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
-        validRequestCoverageConfigBuilder().build()));
+    return beam::BeamController(validBeamConfigBuilder().build());
 }
 
 } // namespace
@@ -79,15 +107,7 @@ TEST(BeamControllerTest, ReturnsNothingBeforeStart)
 TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
-    beam::BeamController controller(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
-        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
-        validRequestCoverageConfigBuilder().build()));
+    beam::BeamController controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -122,13 +142,16 @@ TEST(BeamControllerTest, AttitudeCommandChangesSearchDirection)
 
     for (const auto& attitudeCase : cases)
     {
-        const beam::BeamConfig config(
-            beam::AttitudeConfig(89_deg, math::SquareMatrix::identity(3), math::Tolerance{1e-6, 0.0}),
-            beam::SearchGridConfig(
-                1, 1, math::CircularAngle(attitudeCase.gridAzimuth), 0_deg, math::TiltAngle(0_deg), 0_deg,
-                beam::BeamWidth(6_deg, 6_deg)),
-            beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
-            validRequestCoverageConfigBuilder().build());
+        const beam::BeamConfig config = validBeamConfigBuilder()
+            .searchGridConfig(validSearchGridConfigBuilder()
+                .azimuthCount(1)
+                .elevationCount(1)
+                .azimuthStart(attitudeCase.gridAzimuth)
+                .azimuthStep(0_deg)
+                .elevationStart(0_deg)
+                .elevationStep(0_deg)
+                .build())
+            .build();
         beam::BeamController controller(config);
         controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
 
@@ -147,15 +170,7 @@ TEST(BeamControllerTest, AttitudeCommandChangesSearchDirection)
 TEST(BeamControllerTest, RequestBeamIsDeliveredToBeamScheduler)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
-    beam::BeamController controller(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
-        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
-        validRequestCoverageConfigBuilder().build()));
+    beam::BeamController controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -262,23 +277,8 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
 TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .attitudeConfig(beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}))
-        .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(validRequestCoverageConfigBuilder().build())
-        .searchGridConfig(beam::SearchGridConfig::Builder()
-            .azimuthCount(21)
-            .elevationCount(9)
-            .azimuthStart(-42_deg)
-            .azimuthStep(4.2_deg)
-            .elevationStart(3_deg)
-            .elevationStep(4.4_deg)
-            .beamWidth(beam::BeamWidth(6_deg, 6_deg))
+    const beam::BeamConfig config = validBeamConfigBuilder()
+        .searchGridConfig(validSearchGridConfigBuilder()
             .azimuthCount(3)
             .elevationCount(1)
             .beamWidth(beam::BeamWidth(4_deg, 4_deg))
@@ -307,18 +307,8 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
 TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .attitudeConfig(beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}))
-        .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(validRequestCoverageConfigBuilder().build())
-        .requestBeamConfig(beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
-            .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+    const beam::BeamConfig config = validBeamConfigBuilder()
+        .requestBeamConfig(validRequestBeamConfigBuilder()
             .trackingBeamWidth(beam::BeamWidth(4_deg, 4_deg))
             .build())
         .build();
@@ -341,18 +331,8 @@ TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
 TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .attitudeConfig(beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}))
-        .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(validRequestCoverageConfigBuilder().build())
-        .requestBeamConfig(beam::RequestBeamConfig::Builder()
-            .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
-            .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg))
+    const beam::BeamConfig config = validBeamConfigBuilder()
+        .requestBeamConfig(validRequestBeamConfigBuilder()
             .confirmationBeamWidth(beam::BeamWidth(5_deg, 5_deg))
             .trackingBeamWidth(beam::BeamWidth(4_deg, 4_deg))
             .build())
@@ -376,19 +356,10 @@ TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
 TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
 {
     // Given: 사용자 피치 한계를 가진 컨트롤러를 준비한다.
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .attitudeConfig(beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}))
-        .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(validRequestCoverageConfigBuilder().build())
-        .attitudeConfig(beam::AttitudeConfig(
-            60_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}))
+    const beam::BeamConfig config = validBeamConfigBuilder()
+        .attitudeConfig(validAttitudeConfigBuilder()
+            .maxAbsPitch(60_deg)
+            .build())
         .build();
     beam::BeamController controller(config);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
@@ -414,19 +385,10 @@ TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
 TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
 {
     // Given: 사용자 피치 한계를 가진 컨트롤러를 준비한다.
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .attitudeConfig(beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}))
-        .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(validRequestCoverageConfigBuilder().build())
-        .attitudeConfig(beam::AttitudeConfig(
-            60_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}))
+    const beam::BeamConfig config = validBeamConfigBuilder()
+        .attitudeConfig(validAttitudeConfigBuilder()
+            .maxAbsPitch(60_deg)
+            .build())
         .build();
     beam::BeamController controller(config);
 
@@ -460,15 +422,7 @@ TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
 TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
 {
     // Given: 꺼진 컨트롤러와 잘못된 롤 값을 가진 자세 명령을 준비한다.
-    beam::BeamController controller(beam::BeamConfig(
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}),
-        beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)),
-        beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)),
-        validRequestCoverageConfigBuilder().build()));
+    beam::BeamController controller = makeDefaultController();
 
     // roll 181도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
     const beam::SetAttitudeCommand command(
@@ -512,17 +466,11 @@ TEST(BeamControllerTest, IgnoresLocationFieldsWhenSettingAttitude)
 TEST(BeamControllerTest, MovedControllerKeepsInjectedConfigAndState)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .attitudeConfig(beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}))
-        .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(validRequestCoverageConfigBuilder().build())
-        .searchGridConfig(beam::SearchGridConfig(
-            2, 1, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
+    const beam::BeamConfig config = validBeamConfigBuilder()
+        .searchGridConfig(validSearchGridConfigBuilder()
+            .azimuthCount(2)
+            .elevationCount(1)
+            .build())
         .build();
     beam::BeamController controller(config);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
@@ -607,15 +555,11 @@ TEST(BeamControllerTest, CoverageUsesAttitudeOfAttitudeCommand)
 TEST(BeamControllerTest, InjectedRequestCoverageConfigIsUsed)
 {
     // Given: 검사할 자세와 설정으로 운용 준비된 컨트롤러를 만든다.
-    const beam::BeamConfig config = beam::BeamConfig::Builder()
-        .attitudeConfig(beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}))
-        .searchGridConfig(beam::SearchGridConfig(
-            21, 9, math::CircularAngle(-42_deg), 4.2_deg, math::TiltAngle(3_deg), 4.4_deg, beam::BeamWidth(6_deg, 6_deg)))
-        .requestBeamConfig(beam::RequestBeamConfig(beam::BeamWidth(3_deg, 3_deg), beam::BeamWidth(3_deg, 3_deg)))
-        .requestCoverageConfig(beam::RequestCoverageConfig(math::CircularAngleRange(-5_deg, 5_deg), math::AngleRange(0_deg, 10_deg)))
+    const beam::BeamConfig config = validBeamConfigBuilder()
+        .requestCoverageConfig(validRequestCoverageConfigBuilder()
+            .azimuthRange(math::CircularAngleRange(-5_deg, 5_deg))
+            .elevationRange(math::AngleRange(0_deg, 10_deg))
+            .build())
         .build();
     beam::BeamController controller(config);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));

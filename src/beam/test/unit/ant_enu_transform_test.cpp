@@ -11,6 +11,14 @@ using namespace math::literals;
 namespace
 {
 
+beam::AttitudeConfig::Builder validConfigBuilder()
+{
+    return beam::AttitudeConfig::Builder()
+        .maxAbsPitch(89_deg)
+        .mountAntToBodyRotation(math::SquareMatrix::identity(3))
+        .mountOrthogonalTolerance(math::Tolerance{1e-6, 0.0});
+}
+
 beam::RadarAttitude makeRadarAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
     return beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw);
@@ -20,10 +28,8 @@ beam::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::A
 {
     return beam::AntEnuTransform(
         makeRadarAttitude(roll, pitch, yaw),
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}));
+        validConfigBuilder().build()
+    );
 }
 
 } // namespace
@@ -46,10 +52,13 @@ TEST(AttitudeTransformTest, ZeroAttitudeKeepsAngles)
 TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
-    const beam::AttitudeConfig config(89_deg, math::SquareMatrix::identity(3), math::Tolerance{1e-6, 0.0});
+    const beam::AttitudeConfig config = validConfigBuilder().build();
     const beam::RadarAttitude rejected[] = {
-        makeRadarAttitude(0_deg, 89_deg, 0_deg), makeRadarAttitude(0_deg, 88.9999999999_deg, 0_deg),
-        makeRadarAttitude(0_deg, -88.9999999999_deg, 0_deg), makeRadarAttitude(0_deg, -90_deg, 0_deg)};
+        makeRadarAttitude(0_deg, 89_deg, 0_deg),
+        makeRadarAttitude(0_deg, 88.9999999999_deg, 0_deg),
+        makeRadarAttitude(0_deg, -88.9999999999_deg, 0_deg),
+        makeRadarAttitude(0_deg, -90_deg, 0_deg)
+    };
     const auto accepted = makeRadarAttitude(0_deg, 88.9_deg, 0_deg);
 
     // When: 준비한 값으로 대상 객체 생성을 시도한다.
@@ -70,9 +79,6 @@ TEST(AttitudeTransformTest, MountRotationIsAppliedToAntDirection)
 {
     // Given: 90도 장착 회전이 있는 좌표 변환을 준비한다.
     const beam::AttitudeConfig config = beam::AttitudeConfig::Builder()
-        .maxAbsPitch(89_deg)
-        .mountAntToBodyRotation(math::SquareMatrix::identity(3))
-        .mountOrthogonalTolerance(math::Tolerance{1e-6, 0.0})
         .mountAntToBodyRotation(math::SquareMatrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}})
         .build();
     const beam::AntEnuTransform transform(makeRadarAttitude(0_deg, 0_deg, 0_deg), config);
@@ -89,7 +95,9 @@ TEST(AttitudeTransformTest, MountRotationIsAppliedToAntDirection)
 TEST(AttitudeTransformTest, MaxAbsPitchFromConfigIsUsedForGimbalLock)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
-    const beam::AttitudeConfig config(60_deg, math::SquareMatrix::identity(3), math::Tolerance{1e-6, 0.0});
+    const beam::AttitudeConfig config = validConfigBuilder()
+        .maxAbsPitch(60_deg)
+        .build();
     const auto rejected = makeRadarAttitude(0_deg, 60_deg, 0_deg);
     const auto accepted = makeRadarAttitude(0_deg, 59.9_deg, 0_deg);
 
