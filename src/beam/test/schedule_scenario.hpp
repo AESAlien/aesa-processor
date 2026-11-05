@@ -38,9 +38,9 @@ inline beam::SearchGridConfig::Builder validSearchGridConfigBuilder()
     return beam::SearchGridConfig::Builder()
         .azimuthCount(21)
         .elevationCount(9)
-        .azimuthStart(math::CircularAngle(-42_deg))
+        .azimuthStart(-42_deg)
         .azimuthStep(4.2_deg)
-        .elevationStart(math::TiltAngle(3_deg))
+        .elevationStart(3_deg)
         .elevationStep(4.4_deg)
         .beamWidth(beam::BeamWidth(6_deg, 6_deg));
 }

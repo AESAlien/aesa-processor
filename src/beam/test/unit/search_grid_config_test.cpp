@@ -23,11 +23,11 @@ beam::SearchGridConfig::Builder validConfigBuilder()
     return beam::SearchGridConfig::Builder()
         .azimuthCount(21)
         .elevationCount(9)
-        .azimuthStart(math::CircularAngle(-42_deg))
+        .azimuthStart(-42_deg)
         .azimuthStep(4.2_deg)
-        .elevationStart(math::TiltAngle(3_deg))
+        .elevationStart(3_deg)
         .elevationStep(4.4_deg)
-        .beamWidth(beam::BeamWidth(math::AngularWidth(6_deg), math::AngularWidth(6_deg)));
+        .beamWidth(beam::BeamWidth(6_deg, 6_deg));
 }
 
 } // namespace
@@ -81,7 +81,7 @@ TEST(SearchGridConfigTest, GridAngleOverflowThrows)
     const auto azimuthOverflow = validConfigBuilder().azimuthCount(3).azimuthStep(MAX_ANGLE);
     const auto elevationOverflow = validConfigBuilder().elevationCount(3).elevationStep(MAX_ANGLE);
     const auto endOverflow = validConfigBuilder()
-        .elevationCount(2).elevationStart(math::TiltAngle(90_deg)).elevationStep(MAX_ANGLE);
+        .elevationCount(2).elevationStart(90_deg).elevationStep(MAX_ANGLE);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [](const beam::SearchGridConfig::Builder& builder) { return builder.build(); };
@@ -110,9 +110,9 @@ TEST(SearchGridConfigTest, ElevationOutsideSphericalRangeThrows)
 {
     // Given: 검증할 입력과 설정을 준비한다.
     const auto rising = validConfigBuilder()
-        .elevationCount(3).elevationStart(math::TiltAngle(80_deg)).elevationStep(6_deg);
+        .elevationCount(3).elevationStart(80_deg).elevationStep(6_deg);
     const auto falling = validConfigBuilder()
-        .elevationCount(3).elevationStart(math::TiltAngle(0_deg)).elevationStep(-50_deg);
+        .elevationCount(3).elevationStart(0_deg).elevationStep(-50_deg);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [](const beam::SearchGridConfig::Builder& builder) { return builder.build(); };
@@ -128,7 +128,7 @@ TEST(SearchGridConfigTest, ElevationEquivalentByPeriodToValidRangeThrows)
     // Given: 시작 고각은 유효하지만 끝 고각은 450도가 되는 격자를 준비한다.
     const auto builder = validConfigBuilder()
         .elevationCount(2)
-        .elevationStart(math::TiltAngle(90_deg))
+        .elevationStart(90_deg)
         .elevationStep(360_deg);
 
     // When: 격자 설정 생성을 시도한다.

@@ -19,8 +19,10 @@ public:
     public:
         Builder& azimuthCount(std::size_t value)    { _azimuthCount = value; return *this; }
         Builder& elevationCount(std::size_t value)  { _elevationCount = value; return *this; }
+        Builder& azimuthStart(math::Angle value) { return azimuthStart(math::CircularAngle(value)); }
         Builder& azimuthStart(math::CircularAngle value)  { _azimuthStart = value; return *this; }
         Builder& azimuthStep(math::Angle value)     { _azimuthStep = value; return *this; }
+        Builder& elevationStart(math::Angle value) { return elevationStart(math::TiltAngle(value)); }
         Builder& elevationStart(math::TiltAngle value) { _elevationStart = value; return *this; }
         Builder& elevationStep(math::Angle value)   { _elevationStep = value; return *this; }
         Builder& beamWidth(BeamWidth value)         { _beamWidth = value; return *this; }
