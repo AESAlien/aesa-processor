@@ -35,7 +35,7 @@ beam::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::A
 } // namespace
 
 // 영 자세 변환은 입력 방향의 방위각과 고각을 유지한다.
-TEST(AttitudeTransformTest, ZeroAttitudeKeepsAngles)
+TEST(AntEnuTransformTest, ZeroAttitudeKeepsAngles)
 {
     // Given: 영 자세의 좌표 변환을 준비한다.
     const beam::AntEnuTransform transform = makeTransform(0_deg, 0_deg, 0_deg);
@@ -49,7 +49,7 @@ TEST(AttitudeTransformTest, ZeroAttitudeKeepsAngles)
 }
 
 // 좌표 변환은 피치 한계의 양쪽 경계와 허용오차 안의 값을 거부한다.
-TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
+TEST(AntEnuTransformTest, ThrowsOnGimbalLockPitch)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
     const beam::AttitudeConfig config = validConfigBuilder().build();
@@ -75,7 +75,7 @@ TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
 }
 
 // 좌표 변환은 장착 회전을 안테나 방향에 반영한다.
-TEST(AttitudeTransformTest, MountRotationIsAppliedToAntDirection)
+TEST(AntEnuTransformTest, MountRotationIsAppliedToAntDirection)
 {
     // Given: 90도 장착 회전이 있는 좌표 변환을 준비한다.
     const beam::AttitudeConfig config = beam::AttitudeConfig::Builder()
@@ -92,7 +92,7 @@ TEST(AttitudeTransformTest, MountRotationIsAppliedToAntDirection)
 }
 
 // 좌표 변환은 설정에서 받은 피치 한계로 짐벌락을 판정한다.
-TEST(AttitudeTransformTest, MaxAbsPitchFromConfigIsUsedForGimbalLock)
+TEST(AntEnuTransformTest, MaxAbsPitchFromConfigIsUsedForGimbalLock)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
     const beam::AttitudeConfig config = validConfigBuilder()
@@ -112,7 +112,7 @@ TEST(AttitudeTransformTest, MaxAbsPitchFromConfigIsUsedForGimbalLock)
 }
 
 // 요 회전은 방위각을 시계 방향으로 회전시킨다.
-TEST(AttitudeTransformTest, YawRotatesAzimuthClockwise)
+TEST(AntEnuTransformTest, YawRotatesAzimuthClockwise)
 {
     // Given: 요가 90도인 좌표 변환을 준비한다.
     const beam::AntEnuTransform transform = makeTransform(0_deg, 0_deg, 90_deg); // 정면이 동쪽
@@ -126,7 +126,7 @@ TEST(AttitudeTransformTest, YawRotatesAzimuthClockwise)
 }
 
 // 피치 회전은 안테나 정면의 고각을 올린다.
-TEST(AttitudeTransformTest, PitchRaisesBoresight)
+TEST(AntEnuTransformTest, PitchRaisesBoresight)
 {
     // Given: 피치가 10도인 좌표 변환을 준비한다.
     const beam::AntEnuTransform transform = makeTransform(0_deg, 10_deg, 0_deg);
@@ -140,7 +140,7 @@ TEST(AttitudeTransformTest, PitchRaisesBoresight)
 }
 
 // 정방향 변환 후 역방향 변환은 원래 방향을 복원한다.
-TEST(AttitudeTransformTest, AntToEnuAndBackRestoresAngles)
+TEST(AntEnuTransformTest, AntToEnuAndBackRestoresAngles)
 {
     // Given: 세 축으로 회전한 좌표 변환을 준비한다.
     const beam::AntEnuTransform transform = makeTransform(10_deg, 20_deg, 30_deg);
