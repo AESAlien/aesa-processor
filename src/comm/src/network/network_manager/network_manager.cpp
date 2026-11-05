@@ -32,8 +32,13 @@ void reportRejectedConnection(const AcceptedSocket& accepted);
 
 /********************************network manager 구현부****************************************** */
 
-NetworkManager::NetworkManager(CommConfig config)
-    : _config(std::move(config))
+NetworkManager::NetworkManager(
+    const CommEndpoint& serverEndpoint,
+    const CommEndpoint& operatorConsoleEndpoint,
+    const CommEndpoint& scenarioSimulatorEndpoint
+) : _serverEndpoint(serverEndpoint),
+    _operatorConsoleEndpoint(operatorConsoleEndpoint),
+    _scenarioSimulatorEndpoint(scenarioSimulatorEndpoint)
 {
 }
 
@@ -44,7 +49,7 @@ void NetworkManager::start()
         return;
     }
 
-    _server = std::make_unique<TcpServer>(_config.server());
+    _server = std::make_unique<TcpServer>(_serverEndpoint);
 }
 
 
@@ -143,12 +148,12 @@ std::optional<NetworkPeer> NetworkManager::identifyPeer(
     const AcceptedSocket& accepted
 ) const
 {
-    if (matches(_config.operatorConsole(), accepted))
+    if (matches(_operatorConsoleEndpoint, accepted))
     {
         return NetworkPeer::OPERATOR_CONSOLE;
     }
 
-    if (matches(_config.scenarioSimulator(), accepted))
+    if (matches(_scenarioSimulatorEndpoint, accepted))
     {
         return NetworkPeer::SCENARIO_SIMULATOR;
     }

@@ -155,10 +155,10 @@ void decodeFrames(
 
 int main()
 {
-    comm::NetworkManager networkManager(comm::CommConfig(
+    comm::NetworkManager networkManager(
         comm::CommEndpoint(SERVER_ADDRESS, SERVER_PORT),
         comm::CommEndpoint(OPERATOR_CONSOLE_ADDRESS, OPERATOR_CONSOLE_PORT),
-        comm::CommEndpoint(SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT)));
+        comm::CommEndpoint(SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT));
     const comm::MessageDecoder messageDecoder;
 
     try
