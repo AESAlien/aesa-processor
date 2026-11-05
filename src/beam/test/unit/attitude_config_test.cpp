@@ -46,9 +46,9 @@ TEST(AttitudeConfigTest, AcceptsRotationMount)
 TEST(AttitudeConfigTest, AcceptsRotationMountWithFloatingPointEntries)
 {
     // Given: 라디안 각도로 계산한 회전행렬 성분을 준비한다.
-    const math::Angle angle = 0.37_rad;
-    const double c = std::cos(angle.rad());
-    const double s = std::sin(angle.rad());
+    const auto angle = 0.37_rad;
+    const auto c = std::cos(angle.rad());
+    const auto s = std::sin(angle.rad());
 
     // When: 부동소수점 성분의 장착행렬로 설정을 생성한다.
     const auto build = [&] {

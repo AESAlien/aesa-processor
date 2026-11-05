@@ -178,8 +178,8 @@ inline Scenario makeTracksScenario()
             }
 
             // 요청과 송신 결과를 짝지을 수 있도록 각도가 요청마다 서로 다르게 정한다.
-            const double azimuth_deg = -55.0 + 5.5 * track + 0.25 * round;
-            const double elevation_deg = 3.0 + 5.0 * (track % 10) + 0.1 * round;
+            const auto azimuth_deg = -55.0 + 5.5 * track + 0.25 * round;
+            const auto elevation_deg = 3.0 + 5.0 * (track % 10) + 0.1 * round;
             scenario.requests.push_back(makeRequestSpec(
                 "T" + std::to_string(track + 1) + "." + std::to_string(round + 1),
                 Type::TRACKING, transmitTime, azimuth_deg, elevation_deg));
@@ -199,7 +199,7 @@ inline void markSent(
 ) {
     for (RequestSpec& spec : requests)
     {
-        const bool sameType = spec.request.transmitBeamType() == command.beamType;
+        const auto sameType = spec.request.transmitBeamType() == command.beamType;
         if (spec.sentTick_ms < 0 && sameType &&
             spec.request.direction_enu().azimuth == command.direction_ant.azimuth &&
             spec.request.direction_enu().elevation == command.direction_ant.elevation)

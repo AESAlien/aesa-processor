@@ -64,11 +64,11 @@ TEST(SearchGridConfigTest, BeamCountBeyondUint32Throws)
 TEST(SearchGridConfigTest, KeepsGivenBeamWidth)
 {
     // Given: 방위각과 고각의 폭이 서로 다른 빔 폭을 준비한다.
-    const beam::BeamWidth width(4_deg, 5_deg);
+    const auto width = beam::BeamWidth(4_deg, 5_deg);
     const auto builder = validConfigBuilder().beamWidth(width);
 
     // When: 빔 폭이 지정된 격자 설정을 생성한다.
-    const beam::SearchGridConfig config = builder.build();
+    const auto config = builder.build();
 
     // Then: 설정이 주어진 두 축의 빔 폭을 보관한다.
     EXPECT_EQ(config.beamWidth(), width);
@@ -81,7 +81,9 @@ TEST(SearchGridConfigTest, GridAngleOverflowThrows)
     const auto azimuthOverflow = validConfigBuilder().azimuthCount(3).azimuthStep(MAX_ANGLE);
     const auto elevationOverflow = validConfigBuilder().elevationCount(3).elevationStep(MAX_ANGLE);
     const auto endOverflow = validConfigBuilder()
-        .elevationCount(2).elevationStart(90_deg).elevationStep(MAX_ANGLE);
+        .elevationCount(2)
+        .elevationStart(90_deg)
+        .elevationStep(MAX_ANGLE);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
     const auto build = [](const beam::SearchGridConfig::Builder& builder) { return builder.build(); };
@@ -142,7 +144,7 @@ TEST(SearchGridConfigTest, ElevationEquivalentByPeriodToValidRangeThrows)
 TEST(SearchGridConfigTest, AngleAtIndexIsStartPlusStepTimesIndex)
 {
     // Given: 시작각과 간격이 지정된 격자 설정을 준비한다.
-    const beam::SearchGridConfig config = validConfigBuilder().build();
+    const auto config = validConfigBuilder().build();
 
     // When: 각 축의 처음과 마지막 인덱스에 해당하는 각도를 구한다.
     const auto firstAzimuth = config.azimuthAt(0);

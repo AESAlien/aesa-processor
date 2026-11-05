@@ -24,11 +24,11 @@ math::SphericalDirection makeDirection()
 TEST(BeamRequestTest, KeepsGivenValues)
 {
     // Given: 요청의 빔 폭과 방향을 준비한다.
-    const beam::BeamWidth width(2_deg, 3_deg);
+    const auto width = beam::BeamWidth(2_deg, 3_deg);
     const auto direction = makeDirection();
 
     // When: 각 요청 속성을 지정해 빔 요청을 생성한다.
-    const beam::BeamRequest request(beam::BeamType::TRACKING, width, 0, 1500ms, 7, direction);
+    const auto request = beam::BeamRequest(beam::BeamType::TRACKING, width, 0, 1500ms, 7, direction);
 
     // Then: 빔 요청은 전달받은 종류와 폭 및 식별 정보와 방향을 보관한다.
     EXPECT_EQ(request.transmitBeamType(), beam::BeamType::TRACKING);
@@ -45,10 +45,10 @@ TEST(BeamRequestTest, KeepsGivenValues)
 TEST(BeamRequestTest, AcceptsBoundaryValues)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
-    const beam::BeamWidth width(3_deg, 3_deg);
+    const auto width = beam::BeamWidth(3_deg, 3_deg);
     const auto direction = makeDirection();
     const auto transmitTime = 0ms;
-    const std::uint32_t requestId = std::numeric_limits<std::uint32_t>::max();
+    const auto requestId = std::numeric_limits<std::uint32_t>::max();
 
     // When: 준비한 값으로 대상 객체 생성을 시도한다.
     const auto construct = [&] {
@@ -63,7 +63,7 @@ TEST(BeamRequestTest, AcceptsBoundaryValues)
 TEST(BeamRequestTest, RejectsNegativeTransmitTime)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
-    const beam::BeamWidth width(3_deg, 3_deg);
+    const auto width = beam::BeamWidth(3_deg, 3_deg);
     const auto direction = makeDirection();
     const auto transmitTime = -1ms;
     const std::uint32_t requestId = 1;
@@ -81,7 +81,7 @@ TEST(BeamRequestTest, RejectsNegativeTransmitTime)
 TEST(BeamRequestTest, RejectsZeroRequestId)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
-    const beam::BeamWidth width(3_deg, 3_deg);
+    const auto width = beam::BeamWidth(3_deg, 3_deg);
     const auto direction = makeDirection();
     const auto transmitTime = 0ms;
     const std::uint32_t requestId = 0;

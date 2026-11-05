@@ -42,7 +42,7 @@ beam::RequestCoverageConfig::Builder validRequestCoverageConfigBuilder()
 // 자세정보로 탐색 격자와 영역 판정을 만드는 일은 BeamController가 맡으므로, 테스트에서는 직접 만들어 넘긴다.
 beam::AttitudeFrame makeAttitudeFrame(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    const beam::AntEnuTransform transform(
+    const auto transform = beam::AntEnuTransform(
         beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw),
         beam::AttitudeConfig(
             89_deg,
@@ -217,8 +217,8 @@ TEST(BeamSchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
     makeReady(scheduler);
 
     // When: 한 바퀴의 탐색 명령을 송신한 뒤 다음 명령을 꺼낸다.
-    const beam::SearchGridConfig config = validSearchGridConfigBuilder().build();
-    const std::size_t beamCount = config.azimuthCount() * config.elevationCount();
+    const auto config = validSearchGridConfigBuilder().build();
+    const auto beamCount = config.azimuthCount() * config.elevationCount();
     for (std::size_t index = 0; index < beamCount; ++index)
     {
 

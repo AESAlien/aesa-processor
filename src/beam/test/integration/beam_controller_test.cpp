@@ -94,7 +94,7 @@ beam::BeamController makeDefaultController()
 TEST(BeamControllerTest, ReturnsNothingBeforeStart)
 {
     // Given: 초기 상태의 컨트롤러를 준비한다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
 
     // When: 송신 명령을 요청한다.
     const auto command = controller.nextBeamCommand(0ms);
@@ -107,7 +107,7 @@ TEST(BeamControllerTest, ReturnsNothingBeforeStart)
 TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -142,7 +142,7 @@ TEST(BeamControllerTest, AttitudeCommandChangesSearchDirection)
 
     for (const auto& attitudeCase : cases)
     {
-        const beam::BeamConfig config = validBeamConfigBuilder()
+        const auto config = validBeamConfigBuilder()
             .searchGridConfig(validSearchGridConfigBuilder()
                 .azimuthCount(1)
                 .elevationCount(1)
@@ -152,7 +152,7 @@ TEST(BeamControllerTest, AttitudeCommandChangesSearchDirection)
                 .elevationStep(0_deg)
                 .build())
             .build();
-        beam::BeamController controller(config);
+        auto controller = beam::BeamController(config);
         controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
 
         // When: 롤과 피치 및 요가 지정된 자세 명령을 전달하고 송신 명령을 꺼낸다.
@@ -170,7 +170,7 @@ TEST(BeamControllerTest, AttitudeCommandChangesSearchDirection)
 TEST(BeamControllerTest, RequestBeamIsDeliveredToBeamScheduler)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -192,7 +192,7 @@ TEST(BeamControllerTest, RequestBeamIsDeliveredToBeamScheduler)
 TEST(BeamControllerTest, RequestWhileOffIsIgnored)
 {
     // Given: 꺼진 컨트롤러와 유효한 추적 요청을 준비한다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg);
 
     // When: 꺼진 상태에서 요청한 뒤 운용과 자세를 설정한다.
@@ -211,7 +211,7 @@ TEST(BeamControllerTest, RequestWhileOffIsIgnored)
 TEST(BeamControllerTest, InvalidRequestThrowsEvenWhileOff)
 {
     // Given: 꺼진 컨트롤러와 요청 ID가 잘못된 명령을 준비한다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 7.5_deg, 15.5_deg);
 
     // When: 잘못된 요청을 접수한다.
@@ -225,7 +225,7 @@ TEST(BeamControllerTest, InvalidRequestThrowsEvenWhileOff)
 TEST(BeamControllerTest, InvalidRequestIsNotQueued)
 {
     // Given: 운용 준비된 컨트롤러와 요청 ID가 잘못된 명령을 준비한다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 0, 7.5_deg, 15.5_deg);
@@ -249,7 +249,7 @@ TEST(BeamControllerTest, InvalidRequestIsNotQueued)
 TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
 {
     // Given: 탐색 명령을 두 번 송신한 컨트롤러를 준비한다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
@@ -277,14 +277,14 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
 TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
-    const beam::BeamConfig config = validBeamConfigBuilder()
+    const auto config = validBeamConfigBuilder()
         .searchGridConfig(validSearchGridConfigBuilder()
             .azimuthCount(3)
             .elevationCount(1)
             .beamWidth(beam::BeamWidth(4_deg, 4_deg))
             .build())
         .build();
-    beam::BeamController controller(config);
+    auto controller = beam::BeamController(config);
 
     // When: 운용과 자세를 설정하고 사용자 격자의 명령을 꺼낸다.
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
@@ -307,12 +307,12 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
 TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
-    const beam::BeamConfig config = validBeamConfigBuilder()
+    const auto config = validBeamConfigBuilder()
         .requestBeamConfig(validRequestBeamConfigBuilder()
             .trackingBeamWidth(beam::BeamWidth(4_deg, 4_deg))
             .build())
         .build();
-    beam::BeamController controller(config);
+    auto controller = beam::BeamController(config);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -331,13 +331,13 @@ TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
 TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
-    const beam::BeamConfig config = validBeamConfigBuilder()
+    const auto config = validBeamConfigBuilder()
         .requestBeamConfig(validRequestBeamConfigBuilder()
             .confirmationBeamWidth(beam::BeamWidth(5_deg, 5_deg))
             .trackingBeamWidth(beam::BeamWidth(4_deg, 4_deg))
             .build())
         .build();
-    beam::BeamController controller(config);
+    auto controller = beam::BeamController(config);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -356,12 +356,12 @@ TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
 TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
 {
     // Given: 사용자 피치 한계를 가진 컨트롤러를 준비한다.
-    const beam::BeamConfig config = validBeamConfigBuilder()
+    const auto config = validBeamConfigBuilder()
         .attitudeConfig(validAttitudeConfigBuilder()
             .maxAbsPitch(60_deg)
             .build())
         .build();
-    beam::BeamController controller(config);
+    auto controller = beam::BeamController(config);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
 
     // 기본 설정(89도)에서는 통과하는 pitch 70도가 이 설정(60도)에서는 짐벌락이다.
@@ -385,12 +385,12 @@ TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
 TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
 {
     // Given: 사용자 피치 한계를 가진 컨트롤러를 준비한다.
-    const beam::BeamConfig config = validBeamConfigBuilder()
+    const auto config = validBeamConfigBuilder()
         .attitudeConfig(validAttitudeConfigBuilder()
             .maxAbsPitch(60_deg)
             .build())
         .build();
-    beam::BeamController controller(config);
+    auto controller = beam::BeamController(config);
 
     // OFF 상태에서도 설정 기준의 짐벌락 자세는 거부한다. 음의 pitch도 마찬가지다.
     const auto invalidAttitude = makeSetAttitudeCommand(0_deg, 70_deg, 0_deg);
@@ -422,10 +422,10 @@ TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
 TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
 {
     // Given: 꺼진 컨트롤러와 잘못된 롤 값을 가진 자세 명령을 준비한다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
 
     // roll 181도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
-    const beam::SetAttitudeCommand command(
+    const auto command = beam::SetAttitudeCommand(
         math::TiltAngle(37_deg), math::CircularAngle(127_deg), 0.1_km,
         181_deg, math::TiltAngle(0_deg), 0_deg);
 
@@ -440,12 +440,12 @@ TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
 TEST(BeamControllerTest, IgnoresLocationFieldsWhenSettingAttitude)
 {
     // Given: 같은 설정의 컨트롤러 두 개와 서로 다른 위치의 자세 명령을 준비한다.
-    beam::BeamController first = makeDefaultController();
-    beam::BeamController second = makeDefaultController();
+    auto first = makeDefaultController();
+    auto second = makeDefaultController();
     first.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     second.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     const auto defaultLocation = makeSetAttitudeCommand(0_deg, 0_deg, 0_deg);
-    const beam::SetAttitudeCommand otherLocation(
+    const auto otherLocation = beam::SetAttitudeCommand(
         math::TiltAngle(-30_deg), math::CircularAngle(-179_deg), 101_km,
         0_deg, math::TiltAngle(0_deg), 0_deg);
 
@@ -466,19 +466,19 @@ TEST(BeamControllerTest, IgnoresLocationFieldsWhenSettingAttitude)
 TEST(BeamControllerTest, MovedControllerKeepsInjectedConfigAndState)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
-    const beam::BeamConfig config = validBeamConfigBuilder()
+    const auto config = validBeamConfigBuilder()
         .searchGridConfig(validSearchGridConfigBuilder()
             .azimuthCount(2)
             .elevationCount(1)
             .build())
         .build();
-    beam::BeamController controller(config);
+    auto controller = beam::BeamController(config);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
 
     // When: 사용자 설정으로 운용 중인 컨트롤러를 이동하고 다음 명령들을 꺼낸다.
-    beam::BeamController moved = std::move(controller);
+    auto moved = std::move(controller);
     const auto next = moved.nextBeamCommand(10ms);
     const auto wrapped = moved.nextBeamCommand(20ms);
 
@@ -493,7 +493,7 @@ TEST(BeamControllerTest, MovedControllerKeepsInjectedConfigAndState)
 TEST(BeamControllerTest, RequestBeamReturnsResult)
 {
     // Given: 초기 컨트롤러와 영역 안팎의 요청을 준비한다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
     const auto inside = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 7.5_deg, 15.5_deg);
     const auto outside = makeRequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 6, 70_deg, 15.5_deg);
 
@@ -516,7 +516,7 @@ TEST(BeamControllerTest, RequestBeamReturnsResult)
 TEST(BeamControllerTest, RequestOutsideCoverageIsNotTransmitted)
 {
     // Given: 운용 준비된 컨트롤러와 영역 밖 요청을 준비한다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 0_deg, 61_deg);
@@ -535,7 +535,7 @@ TEST(BeamControllerTest, RequestOutsideCoverageIsNotTransmitted)
 TEST(BeamControllerTest, CoverageUsesAttitudeOfAttitudeCommand)
 {
     // Given: 검사할 자세와 설정으로 운용 준비된 컨트롤러를 만든다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 13.02429_deg));
 
@@ -555,13 +555,13 @@ TEST(BeamControllerTest, CoverageUsesAttitudeOfAttitudeCommand)
 TEST(BeamControllerTest, InjectedRequestCoverageConfigIsUsed)
 {
     // Given: 검사할 자세와 설정으로 운용 준비된 컨트롤러를 만든다.
-    const beam::BeamConfig config = validBeamConfigBuilder()
+    const auto config = validBeamConfigBuilder()
         .requestCoverageConfig(validRequestCoverageConfigBuilder()
             .azimuthRange(math::CircularAngleRange(-5_deg, 5_deg))
             .elevationRange(math::AngleRange(0_deg, 10_deg))
             .build())
         .build();
-    beam::BeamController controller(config);
+    auto controller = beam::BeamController(config);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
@@ -580,7 +580,7 @@ TEST(BeamControllerTest, InjectedRequestCoverageConfigIsUsed)
 TEST(BeamControllerTest, InvalidRequestThrowsBeforeCoverageCheck)
 {
     // Given: 운용 준비된 컨트롤러와 ID가 잘못된 영역 밖 요청을 준비한다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 90_deg, 0_deg);
@@ -596,7 +596,7 @@ TEST(BeamControllerTest, InvalidRequestThrowsBeforeCoverageCheck)
 TEST(BeamControllerTest, RequestBeamResultCarriesRequestIdForEveryStatus)
 {
     // Given: 각 접수 상태를 구분할 요청 ID를 가진 명령들을 준비한다.
-    beam::BeamController controller = makeDefaultController();
+    auto controller = makeDefaultController();
     const auto first = makeRequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 120ms, 11, 7.5_deg, 15.5_deg);
     const auto second = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 1000ms, 12, 7.5_deg, 15.5_deg);
     const auto third = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 2000ms, 13, 90_deg, 15.5_deg);

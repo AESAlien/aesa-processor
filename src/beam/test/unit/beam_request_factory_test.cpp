@@ -19,7 +19,7 @@ math::SphericalDirection makeDirection()
 // 확인 빔 폭과 추적 빔 폭을 서로 다른 값으로 두어 두 값이 뒤바뀌면 테스트가 실패하게 한다.
 beam::BeamRequestFactory makeFactory()
 {
-    const beam::RequestBeamConfig config = beam::RequestBeamConfig::Builder()
+    const auto config = beam::RequestBeamConfig::Builder()
         .confirmationBeamWidth(beam::BeamWidth(3_deg, 3_deg))
         .trackingBeamWidth(beam::BeamWidth(3_deg, 3_deg))
         .confirmationBeamWidth(beam::BeamWidth(4_deg, 4_deg))
@@ -35,7 +35,7 @@ beam::BeamRequestFactory makeFactory()
 TEST(BeamRequestFactoryTest, ConvertsFromRequestBeamCommand)
 {
     // Given: 확인 빔 요청 명령을 준비한다.
-    const beam::RequestBeamCommand command = beam::RequestBeamCommand::Builder()
+    const auto command = beam::RequestBeamCommand::Builder()
         .beamType(beam::RequestBeamType::CONFIRMATION)
         .transmitTime(100ms)
         .requestId(20)
@@ -43,7 +43,7 @@ TEST(BeamRequestFactoryTest, ConvertsFromRequestBeamCommand)
         .build();
 
     // When: 팩토리로 요청 명령을 변환한다.
-    const beam::BeamRequest request = makeFactory().create(command);
+    const auto request = makeFactory().create(command);
 
     // Then: 요청 팩토리는 명령의 송신 시각과 요청 ID 및 방향을 전달한다.
     EXPECT_EQ(request.transmitBeamType(), beam::BeamType::CONFIRMATION);
@@ -57,12 +57,12 @@ TEST(BeamRequestFactoryTest, ConvertsFromRequestBeamCommand)
 TEST(BeamRequestFactoryTest, CreatesRequestMatchingBeamType)
 {
     // Given: 확인 및 추적 빔 폭이 서로 다른 팩토리를 준비한다.
-    const beam::BeamRequestFactory factory = makeFactory();
+    const auto factory = makeFactory();
 
     // When: 각 종류의 요청을 생성한다.
-    const beam::BeamRequest confirmation = factory.create(
+    const auto confirmation = factory.create(
         beam::RequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 1, makeDirection()));
-    const beam::BeamRequest tracking = factory.create(
+    const auto tracking = factory.create(
         beam::RequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 2, makeDirection()));
 
     // Then: 요청 팩토리는 빔 종류에 맞는 폭과 우선순위를 지정한다.
@@ -79,13 +79,14 @@ TEST(BeamRequestFactoryTest, CreatesRequestMatchingBeamType)
 TEST(BeamRequestFactoryTest, RejectsInvalidCommand)
 {
     // Given: 잘못된 값을 하나씩 가진 요청 명령들을 준비한다.
-    const beam::BeamRequestFactory factory = makeFactory();
+    const auto factory = makeFactory();
 
-    const beam::RequestBeamCommand zeroId(beam::RequestBeamType::TRACKING, 0ms, 0, makeDirection());
-    const beam::RequestBeamCommand negativeTime(beam::RequestBeamType::TRACKING, -10ms, 1, makeDirection());
-    const beam::RequestBeamCommand zeroType(static_cast<beam::RequestBeamType>(0), 0ms, 1, makeDirection());
-    const beam::RequestBeamCommand unknownType(static_cast<beam::RequestBeamType>(9), 0ms, 1, makeDirection());
-    const beam::RequestBeamCommand searchType(static_cast<beam::RequestBeamType>(beam::BeamType::SEARCH), 0ms, 1, makeDirection());
+    const auto zeroId = beam::RequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 0, makeDirection());
+    const auto negativeTime = beam::RequestBeamCommand(beam::RequestBeamType::TRACKING, -10ms, 1, makeDirection());
+    const auto zeroType = beam::RequestBeamCommand(static_cast<beam::RequestBeamType>(0), 0ms, 1, makeDirection());
+    const auto unknownType = beam::RequestBeamCommand(static_cast<beam::RequestBeamType>(9), 0ms, 1, makeDirection());
+    const auto searchType = beam::RequestBeamCommand(
+        static_cast<beam::RequestBeamType>(beam::BeamType::SEARCH), 0ms, 1, makeDirection());
 
     // When: 각 명령으로 요청 생성을 시도한다.
     const auto create = [&](const beam::RequestBeamCommand& command) { return factory.create(command); };

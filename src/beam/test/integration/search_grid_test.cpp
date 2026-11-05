@@ -30,9 +30,9 @@ beam::SearchGridConfig::Builder validConfigBuilder()
 
 beam::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    const beam::RadarAttitude attitude(roll, math::TiltAngle(pitch), yaw);
+    const auto attitude = beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw);
 
-    const beam::AttitudeConfig config(
+    const auto config = beam::AttitudeConfig(
         89_deg,
         math::SquareMatrix::identity(3),
         math::Tolerance{1e-6, 0.0}
@@ -46,8 +46,8 @@ std::vector<beam::SearchBeam> takeAllBeams(
     const beam::AntEnuTransform& transform,
     const beam::SearchGridConfig& config = validConfigBuilder().build()
 ) {
-    beam::SearchGrid grid(transform, config);
-    const std::size_t beamCount = config.azimuthCount() * config.elevationCount();
+    auto grid = beam::SearchGrid(transform, config);
+    const auto beamCount = config.azimuthCount() * config.elevationCount();
 
     std::vector<beam::SearchBeam> beams;
     beams.reserve(beamCount);
@@ -73,7 +73,7 @@ math::Angle gridElevation(std::size_t beamIndex)
 TEST(SearchGridTest, DefaultGridWrapsAfterExpectedBeamCount)
 {
     // Given: 기본 설정의 영 자세 격자를 준비한다.
-    beam::SearchGrid grid(makeTransform(0_deg, 0_deg, 0_deg), validConfigBuilder().build());
+    auto grid = beam::SearchGrid(makeTransform(0_deg, 0_deg, 0_deg), validConfigBuilder().build());
     constexpr std::size_t EXPECTED_BEAM_COUNT = 189;
 
     // When: 격자의 모든 빔을 순서대로 꺼낸다.
@@ -98,7 +98,7 @@ TEST(SearchGridTest, BeamIdsAreSequentialFromOne)
     const auto beamsTransform = makeTransform(10_deg, 20_deg, 30_deg);
 
     // When: 주어진 자세와 기본 설정으로 격자를 생성해 빔을 꺼낸다.
-    const std::vector<beam::SearchBeam> beams = takeAllBeams(beamsTransform);
+    const auto beams = takeAllBeams(beamsTransform);
 
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
@@ -115,7 +115,7 @@ TEST(SearchGridTest, ZeroAttitudeKeepsFixedGrid)
     const auto beamsTransform = makeTransform(0_deg, 0_deg, 0_deg);
 
     // When: 주어진 자세와 기본 설정으로 격자를 생성해 빔을 꺼낸다.
-    const std::vector<beam::SearchBeam> beams = takeAllBeams(beamsTransform);
+    const auto beams = takeAllBeams(beamsTransform);
 
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
@@ -134,7 +134,7 @@ TEST(SearchGridTest, GridOrderStartsLowElevationLeftAzimuth)
     const auto beamsTransform = makeTransform(0_deg, 0_deg, 0_deg);
 
     // When: 주어진 자세와 기본 설정으로 격자를 생성해 빔을 꺼낸다.
-    const std::vector<beam::SearchBeam> beams = takeAllBeams(beamsTransform);
+    const auto beams = takeAllBeams(beamsTransform);
 
     // 첫 빔: 가장 낮은 고각, 가장 왼쪽 방위각
 
@@ -160,7 +160,7 @@ TEST(SearchGridTest, YawShiftsAzimuthsBySameAngle)
     const auto beamsTransform = makeTransform(0_deg, 0_deg, 10_deg);
 
     // When: 주어진 자세와 기본 설정으로 격자를 생성해 빔을 꺼낸다.
-    const std::vector<beam::SearchBeam> beams = takeAllBeams(beamsTransform);
+    const auto beams = takeAllBeams(beamsTransform);
 
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
@@ -177,14 +177,14 @@ TEST(SearchGridTest, YawShiftsAzimuthsBySameAngle)
 TEST(SearchGridTest, GridMatchesAnglesConvertedToEnuFrame)
 {
     // Given: 격자의 자세 변환을 준비한다.
-    const beam::AntEnuTransform transform = makeTransform(10_deg, 20_deg, 30_deg);
+    const auto transform = makeTransform(10_deg, 20_deg, 30_deg);
 
     // When: 주어진 자세와 기본 설정으로 격자를 생성해 빔을 꺼낸다.
-    const std::vector<beam::SearchBeam> beams = takeAllBeams(transform);
+    const auto beams = takeAllBeams(transform);
 
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
-        const math::SphericalDirection direction_enu = transform.antToEnu(
+        const auto direction_enu = transform.antToEnu(
             math::SphericalDirection(
                 gridAzimuth(beamIndex),
                 gridElevation(beamIndex)));
@@ -199,14 +199,14 @@ TEST(SearchGridTest, GridMatchesAnglesConvertedToEnuFrame)
 TEST(SearchGridTest, BeamsConvertedBackToAntennaFrameRestoreGrid)
 {
     // Given: 격자의 자세 변환을 준비한다.
-    const beam::AntEnuTransform transform = makeTransform(10_deg, 20_deg, 30_deg);
+    const auto transform = makeTransform(10_deg, 20_deg, 30_deg);
 
     // When: 주어진 자세와 기본 설정으로 격자를 생성해 빔을 꺼낸다.
-    const std::vector<beam::SearchBeam> beams = takeAllBeams(transform);
+    const auto beams = takeAllBeams(transform);
 
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
-        const math::SphericalDirection direction_ant = transform.enuToAnt(beams[beamIndex].direction_enu);
+        const auto direction_ant = transform.enuToAnt(beams[beamIndex].direction_enu);
 
         // Then: 격자의 ENU 방향을 역변환하면 설정된 셀의 방향과 일치한다.
         EXPECT_TRUE(direction_ant.azimuth.isEquivalentTo(math::wrap360(gridAzimuth(beamIndex)))) << "beamIndex=" << beamIndex;
@@ -224,7 +224,7 @@ TEST(SearchGridTest, ScenarioAttitudeMatchesReferenceBeamAngles)
     const auto beamsTransform = makeTransform(0_deg, 0_deg, 13.02429_deg);
 
     // When: 주어진 자세와 기본 설정으로 격자를 생성해 빔을 꺼낸다.
-    const std::vector<beam::SearchBeam> beams = takeAllBeams(beamsTransform);
+    const auto beams = takeAllBeams(beamsTransform);
 
     // Then: 시나리오 자세의 격자는 기준 로그의 탐색 방향과 일치한다.
     EXPECT_TRUE(beams[0].direction_enu.azimuth.isEquivalentTo(331.02429_deg));
@@ -241,13 +241,13 @@ TEST(SearchGridTest, ScenarioAttitudeMatchesReferenceBeamAngles)
 TEST(SearchGridTest, CustomGridChangesBeamCountAndIds)
 {
     // Given: 검사할 설정과 탐색 상태를 준비한다.
-    const beam::SearchGridConfig config = validConfigBuilder()
+    const auto config = validConfigBuilder()
         .azimuthCount(3)
         .elevationCount(2)
         .build();
 
     // When: 사용자 설정으로 격자를 생성하고 빔을 꺼낸다.
-    beam::SearchGrid grid(makeTransform(0_deg, 0_deg, 0_deg), config);
+    auto grid = beam::SearchGrid(makeTransform(0_deg, 0_deg, 0_deg), config);
 
     for (std::size_t beamIndex = 0; beamIndex < 6; ++beamIndex)
     {
@@ -263,7 +263,7 @@ TEST(SearchGridTest, CustomGridChangesBeamCountAndIds)
 TEST(SearchGridTest, CustomGridUsesConfiguredStartStepAndWidth)
 {
     // Given: 검사할 설정과 탐색 상태를 준비한다.
-    const beam::SearchGridConfig config = validConfigBuilder()
+    const auto config = validConfigBuilder()
         .azimuthCount(3)
         .elevationCount(2)
         .azimuthStart(-10_deg)
@@ -274,7 +274,7 @@ TEST(SearchGridTest, CustomGridUsesConfiguredStartStepAndWidth)
         .build();
 
     // When: 사용자 설정의 격자에서 모든 빔을 꺼낸다.
-    const std::vector<beam::SearchBeam> beams = takeAllBeams(makeTransform(0_deg, 0_deg, 0_deg), config);
+    const auto beams = takeAllBeams(makeTransform(0_deg, 0_deg, 0_deg), config);
 
     // 방위각 -10, -5, 0 / 고각 1, 3 (고각 바깥 루프, 방위각 안쪽 루프 순서)
     const math::Angle expectedAzimuth[] = {-10_deg, -5_deg, 0_deg, -10_deg, -5_deg, 0_deg};
@@ -300,7 +300,7 @@ TEST(SearchGridTest, LargeStepWithSingleBeamPerAxisIsAccepted)
     const auto maxAngle = math::Angle::fromDegrees(std::numeric_limits<double>::max());
 
     // count가 1이면 step은 쓰이지 않으므로 큰 step도 문제없다.
-    const beam::SearchGridConfig config = validConfigBuilder()
+    const auto config = validConfigBuilder()
         .azimuthCount(1)
         .azimuthStep(maxAngle)
         .elevationCount(1)
@@ -308,7 +308,7 @@ TEST(SearchGridTest, LargeStepWithSingleBeamPerAxisIsAccepted)
         .build();
 
     // When: 큰 각도 간격 설정으로 단일 빔 격자를 생성한다.
-    beam::SearchGrid grid(makeTransform(0_deg, 0_deg, 0_deg), config);
+    auto grid = beam::SearchGrid(makeTransform(0_deg, 0_deg, 0_deg), config);
 
     // Then: 단일 빔 격자는 큰 각도 간격을 사용하지 않고 같은 빔을 순환한다.
     EXPECT_EQ(grid.nextBeam().beamId, 1u);
@@ -319,11 +319,11 @@ TEST(SearchGridTest, LargeStepWithSingleBeamPerAxisIsAccepted)
 TEST(SearchGridTest, SingleBeamGridReturnsTheSameBeamEveryTime)
 {
     // Given: 검사할 설정과 탐색 상태를 준비한다.
-    const beam::SearchGridConfig config = validConfigBuilder()
+    const auto config = validConfigBuilder()
         .azimuthCount(1)
         .elevationCount(1)
         .build();
-    beam::SearchGrid grid(makeTransform(0_deg, 0_deg, 0_deg), config);
+    auto grid = beam::SearchGrid(makeTransform(0_deg, 0_deg, 0_deg), config);
 
     // When: 단일 빔 격자에서 연속으로 빔을 꺼낸다.
     const auto first = grid.nextBeam();
@@ -340,11 +340,11 @@ TEST(SearchGridTest, SingleBeamGridReturnsTheSameBeamEveryTime)
 TEST(SearchGridTest, CopiedGridKeepsItsOwnCursor)
 {
     // Given: 첫 빔을 꺼낸 격자를 준비한다.
-    beam::SearchGrid grid(makeTransform(0_deg, 0_deg, 0_deg), validConfigBuilder().build());
+    auto grid = beam::SearchGrid(makeTransform(0_deg, 0_deg, 0_deg), validConfigBuilder().build());
     grid.nextBeam();
 
     // When: 격자를 복사하고 원본에서 두 개, 복사본에서 한 개의 빔을 꺼낸다.
-    beam::SearchGrid copied = grid;
+    auto copied = grid;
     const auto originalSecond = grid.nextBeam();
     const auto originalThird = grid.nextBeam();
     const auto copiedSecond = copied.nextBeam();

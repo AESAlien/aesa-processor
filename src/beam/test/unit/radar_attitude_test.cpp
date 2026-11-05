@@ -10,12 +10,12 @@ using namespace math::literals;
 TEST(RadarAttitudeTest, StoresGivenValues)
 {
     // Given: 각 축을 구분할 수 있는 자세 각도를 준비한다.
-    const math::Angle roll = 4_deg;
-    const math::TiltAngle pitch(5_deg);
-    const math::Angle yaw = 6_deg;
+    const auto roll = 4_deg;
+    const auto pitch = math::TiltAngle(5_deg);
+    const auto yaw = 6_deg;
 
     // When: 세 각도로 자세 객체를 생성한다.
-    const beam::RadarAttitude attitude(roll, pitch, yaw);
+    const auto attitude = beam::RadarAttitude(roll, pitch, yaw);
 
     // Then: 각 축의 값이 전달한 자세와 일치한다.
     EXPECT_TRUE(attitude.roll().isEquivalentTo(roll));
@@ -27,7 +27,7 @@ TEST(RadarAttitudeTest, StoresGivenValues)
 TEST(RadarAttitudeTest, ThrowsOnOutOfRangeValues)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
-    const math::TiltAngle pitch(0_deg);
+    const auto pitch = math::TiltAngle(0_deg);
     const math::Angle invalidRolls[] = {181_deg, -181_deg};
     const math::Angle invalidYaws[] = {361_deg, -361_deg};
 
@@ -51,8 +51,8 @@ TEST(RadarAttitudeTest, ThrowsOnOutOfRangeValues)
 TEST(RadarAttitudeTest, ThrowsOnValuesEquivalentByPeriodToValidRange)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
-    const math::TiltAngle pitch(0_deg);
-    const math::Angle invalidRoll = 540_deg;
+    const auto pitch = math::TiltAngle(0_deg);
+    const auto invalidRoll = 540_deg;
     const math::Angle invalidYaws[] = {720_deg, -720_deg};
 
     // When: 준비한 값으로 대상 객체 생성을 시도한다.
@@ -72,11 +72,11 @@ TEST(RadarAttitudeTest, ThrowsOnValuesEquivalentByPeriodToValidRange)
 TEST(RadarAttitudeTest, AcceptsBoundaryAnglesIncludingEndpoints)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
-    const math::TiltAngle pitch(0_deg);
-    const math::Angle upperRoll = 180_deg;
-    const math::Angle lowerRoll = -180_deg;
-    const math::Angle upperYaw = 360_deg;
-    const math::Angle lowerYaw = -360_deg;
+    const auto pitch = math::TiltAngle(0_deg);
+    const auto upperRoll = 180_deg;
+    const auto lowerRoll = -180_deg;
+    const auto upperYaw = 360_deg;
+    const auto lowerYaw = -360_deg;
 
     // When: 준비한 값으로 대상 객체 생성을 시도한다.
     const auto construct = [&](math::Angle roll, math::Angle yaw) {
