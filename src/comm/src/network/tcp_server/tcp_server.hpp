@@ -29,7 +29,7 @@ public:
     TcpServer(TcpServer&&) = delete;
     TcpServer& operator=(TcpServer&&) = delete;
 
-    SocketHandle socket() const noexcept;
+    SocketHandle getSocket() const noexcept;
 
     // Returns a non-blocking socket the caller owns, or nullopt when no
     // connection is pending. Throws ConnectionError.

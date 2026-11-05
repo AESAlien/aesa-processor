@@ -6,7 +6,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <mutex>
 #include <vector>
 
 namespace comm
@@ -14,7 +13,8 @@ namespace comm
 
 // One accepted peer connection. Owns the socket and closes it on destruction.
 // receive() is called from the receive thread only.
-// send() may run concurrently with receive().
+// send() may run concurrently with receive(), but must not run concurrently
+// with another send(); each peer has a single sending thread.
 class Session
 {
 public:
@@ -26,7 +26,7 @@ public:
     Session(Session&&) = delete;
     Session& operator=(Session&&) = delete;
 
-    SocketHandle socket() const noexcept;
+    SocketHandle getSocket() const noexcept;
 
     // False once the connection has ended; the session should be discarded.
     bool isOpen() const noexcept;
@@ -53,7 +53,6 @@ private:
     NetworkPeer _peer;
     bool _open = true;
     MessageFramer _framer;
-    std::mutex _sendMutex;
 };
 
 } // namespace comm

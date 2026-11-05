@@ -59,12 +59,12 @@ CommEndpoint::CommEndpoint(std::string address, std::uint16_t port)
     validate();
 }
 
-const std::string& CommEndpoint::address() const noexcept
+const std::string& CommEndpoint::getAddress() const noexcept
 {
     return _address;
 }
 
-std::uint16_t CommEndpoint::port() const noexcept
+std::uint16_t CommEndpoint::getPort() const noexcept
 {
     return _port;
 }
@@ -111,8 +111,8 @@ const CommEndpoint& CommConfig::scenarioSimulator() const noexcept
 
 void CommConfig::validate() const
 {
-    if (_operatorConsole.address() == _scenarioSimulator.address() &&
-        _operatorConsole.port() == _scenarioSimulator.port())
+    if (_operatorConsole.getAddress() == _scenarioSimulator.getAddress() &&
+        _operatorConsole.getPort() == _scenarioSimulator.getPort())
     {
         throw std::invalid_argument(
             "Communication peer endpoints must be distinct");

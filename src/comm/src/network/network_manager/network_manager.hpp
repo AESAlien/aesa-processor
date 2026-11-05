@@ -41,15 +41,13 @@ public:
     // ServerOpenError를 던짐
     void start();
 
+    
     /*
-        timeout동안 등록된 소켓들을 감시하고, 반환된 소켓을 처리한다.
-        listen 소켓을 반환했을 때 주소 일치 시, 신규 연결 시 accept, 
-        재연결 시 reconnect, 주소 불일치 시 reject
-        operator, simulator 소켓을 반환했을 때는 framing 하여 반환한다.
+        listen socket과 존재하는 console, simulator socket을 감시
+        new socket accept -> nullopt
+        console or simulator byte recv -> framing 후 frame 반환
     */
-
-    // Throws ConnectionError or ReceiveError.
-    std::optional<ReceivedFrames> receiveFrames(
+    std::optional<ReceivedFrames> poll(
         std::chrono::milliseconds timeout
     );
 

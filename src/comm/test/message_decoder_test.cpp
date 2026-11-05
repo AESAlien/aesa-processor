@@ -194,7 +194,7 @@ int main()
         try
         {
             const std::optional<comm::ReceivedFrames> received =
-                networkManager.receiveFrames(std::chrono::milliseconds{250});
+                networkManager.poll(std::chrono::milliseconds{250});
 
             if (received.has_value())
             {

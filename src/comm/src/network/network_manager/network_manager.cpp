@@ -60,7 +60,8 @@ void NetworkManager::start()
     _server = std::make_unique<TcpServer>(_serverEndpoint);
 }
 
-std::optional<ReceivedFrames> NetworkManager::receiveFrames(
+
+std::optional<ReceivedFrames> NetworkManager::poll(
     std::chrono::milliseconds timeout
 )
 {
@@ -70,26 +71,19 @@ std::optional<ReceivedFrames> NetworkManager::receiveFrames(
             std::string(RECEIVE_FAILURE) + ": server is not started");
     }
 
-    if (timeout.count() < 0)
-    {
-        throw std::invalid_argument("Receive timeout must not be negative");
-    }
-
     
-    //session pointer는 락을 잡고 접근(sender receive 공통)
-    const std::shared_ptr<Session> operatorConsole =
-        getSession(NetworkPeer::OPERATOR_CONSOLE);
-    const std::shared_ptr<Session> scenarioSimulator =
-        getSession(NetworkPeer::SCENARIO_SIMULATOR);
+    //session pointer는 락을 잡고 접근(sender receiver 공통)
+    const std::shared_ptr<Session> operatorConsole = getSession(NetworkPeer::OPERATOR_CONSOLE);
+    const std::shared_ptr<Session> scenarioSimulator = getSession(NetworkPeer::SCENARIO_SIMULATOR);
 
-    std::vector<SocketHandle> sockets{_server->socket()};
+    std::vector<SocketHandle> sockets{_server->getSocket()};
     if (operatorConsole)
     {
-        sockets.push_back(operatorConsole->socket());
+        sockets.push_back(operatorConsole->getSocket());
     }
     if (scenarioSimulator)
     {
-        sockets.push_back(scenarioSimulator->socket());
+        sockets.push_back(scenarioSimulator->getSocket());
     }
 
     std::vector<SocketHandle> readySockets;
@@ -107,16 +101,16 @@ std::optional<ReceivedFrames> NetworkManager::receiveFrames(
         throwSystemError<ReceiveError>(RECEIVE_FAILURE, "select", errorCode);
     }
 
-    if (contains(readySockets, _server->socket()))
+    if (contains(readySockets, _server->getSocket()))
     {
         acceptSession();
         return std::nullopt;
     }
 
     const bool operatorConsoleReady =
-        operatorConsole && contains(readySockets, operatorConsole->socket());
+        operatorConsole && contains(readySockets, operatorConsole->getSocket());
     const bool scenarioSimulatorReady =
-        scenarioSimulator && contains(readySockets, scenarioSimulator->socket());
+        scenarioSimulator && contains(readySockets, scenarioSimulator->getSocket());
 
     //console, simulator 가 모두 ready일 때, 이전에 선택하지 않은 소켓을 선택
     if (operatorConsoleReady &&

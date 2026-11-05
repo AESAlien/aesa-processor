@@ -14,7 +14,7 @@ namespace
 static_assert(std::is_copy_assignable_v<comm::CommEndpoint>);
 static_assert(std::is_copy_assignable_v<comm::CommConfig>);
 static_assert(std::is_same_v<
-    decltype(std::declval<const comm::CommEndpoint&>().address()),
+    decltype(std::declval<const comm::CommEndpoint&>().getAddress()),
     const std::string&>);
 static_assert(std::is_same_v<
     decltype(std::declval<const comm::CommConfig&>().operatorConsole()),
@@ -23,8 +23,8 @@ static_assert(std::is_same_v<
 TEST(CommEndpointTest, StoresValidEndpointBehindAccessors)
 {
     const comm::CommEndpoint endpoint("127.0.0.1", 3200);
-    EXPECT_EQ(endpoint.address(), "127.0.0.1");
-    EXPECT_EQ(endpoint.port(), 3200);
+    EXPECT_EQ(endpoint.getAddress(), "127.0.0.1");
+    EXPECT_EQ(endpoint.getPort(), 3200);
 }
 
 TEST(CommEndpointTest, RejectsMissingAddressOrPort)

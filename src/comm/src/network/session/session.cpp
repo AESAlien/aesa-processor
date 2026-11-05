@@ -30,7 +30,7 @@ Session::~Session()
     native_socket::closeSocket(_socket);
 }
 
-SocketHandle Session::socket() const noexcept
+SocketHandle Session::getSocket() const noexcept
 {
     return _socket;
 }
@@ -89,16 +89,13 @@ void Session::send(
     std::chrono::milliseconds timeout
 )
 {
-    std::lock_guard<std::mutex> lock(_sendMutex);
-
     const Clock::time_point deadline = Clock::now() + timeout;
     std::size_t bytesSent = 0;
 
     while (bytesSent < data.size())
     {
         const std::size_t remainingSize = data.size() - bytesSent;
-        const int sendSize = remainingSize > static_cast<std::size_t>(
-            std::numeric_limits<int>::max())
+        const int sendSize = remainingSize > static_cast<std::size_t>(std::numeric_limits<int>::max())
             ? std::numeric_limits<int>::max()
             : static_cast<int>(remainingSize);
 

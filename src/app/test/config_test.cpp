@@ -195,12 +195,12 @@ TEST(AppConfigTest, LoadsEveryConfigurationValue)
     EXPECT_EQ(config.targetConfig.maxReportedTrackCount(), 75u);
     EXPECT_EQ(config.targetConfig.processAccelerationStandardDeviation(), 5_mps2);
 
-    EXPECT_EQ(config.commConfig.server().address(), "127.0.0.1");
-    EXPECT_EQ(config.commConfig.server().port(), 43200);
-    EXPECT_EQ(config.commConfig.operatorConsole().address(), "127.0.0.2");
-    EXPECT_EQ(config.commConfig.operatorConsole().port(), 43201);
-    EXPECT_EQ(config.commConfig.scenarioSimulator().address(), "127.0.0.3");
-    EXPECT_EQ(config.commConfig.scenarioSimulator().port(), 43202);
+    EXPECT_EQ(config.commConfig.server().getAddress(), "127.0.0.1");
+    EXPECT_EQ(config.commConfig.server().getPort(), 43200);
+    EXPECT_EQ(config.commConfig.operatorConsole().getAddress(), "127.0.0.2");
+    EXPECT_EQ(config.commConfig.operatorConsole().getPort(), 43201);
+    EXPECT_EQ(config.commConfig.scenarioSimulator().getAddress(), "127.0.0.3");
+    EXPECT_EQ(config.commConfig.scenarioSimulator().getPort(), 43202);
 }
 
 TEST(AppConfigTest, RejectsDisabledCommunicationPeer)
@@ -230,7 +230,7 @@ TEST(AppConfigTest, LoadsConfigurationFromEnvFilePath)
 
     EXPECT_EQ(config.beamConfig.searchGrid.azimuthCount(), 3u);
     EXPECT_EQ(config.targetConfig.maxReportedTrackCount(), 75u);
-    EXPECT_EQ(config.commConfig.server().port(), 43200);
+    EXPECT_EQ(config.commConfig.server().getPort(), 43200);
 }
 
 TEST(AppConfigTest, MissingRelativeMountOrthogonalToleranceThrows)
@@ -296,7 +296,7 @@ TEST(AppConfigTest, ParsesQuotedValuesAndInlineComments)
 
     EXPECT_EQ(config.beamConfig.attitude.maxAbsPitch(), 60_deg);
     EXPECT_EQ(config.targetConfig.maxAssociationSpeed(), 900_mps);
-    EXPECT_EQ(config.commConfig.server().address(), "127.0.0.1");
+    EXPECT_EQ(config.commConfig.server().getAddress(), "127.0.0.1");
 }
 
 TEST(AppConfigTest, LoadedConfigurationCanBeInjectedIntoEveryController)

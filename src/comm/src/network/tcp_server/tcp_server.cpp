@@ -58,7 +58,7 @@ TcpServer::~TcpServer()
     native_socket::cleanup();
 }
 
-SocketHandle TcpServer::socket() const noexcept
+SocketHandle TcpServer::getSocket() const noexcept
 {
     return _listenSocket;
 }

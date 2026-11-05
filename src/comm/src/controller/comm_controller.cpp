@@ -20,8 +20,8 @@ constexpr std::chrono::milliseconds RECEIVE_POLL_TIMEOUT{100};
 NetworkEndpoint toNetworkEndpoint(const CommEndpoint& endpoint)
 {
     return NetworkEndpoint{
-        endpoint.address(),
-        endpoint.port()
+        endpoint.getAddress(),
+        endpoint.getPort()
     };
 }
 
@@ -48,7 +48,7 @@ public:
         while (_pendingMessages.empty())
         {
             const std::optional<ReceivedFrames> received =
-                _networkManager.receiveFrames(RECEIVE_POLL_TIMEOUT);
+                _networkManager.poll(RECEIVE_POLL_TIMEOUT);
 
             if (received.has_value())
             {
