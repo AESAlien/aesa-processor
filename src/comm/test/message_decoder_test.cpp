@@ -17,6 +17,8 @@ volatile std::sig_atomic_t running = 1;
 
 constexpr char SERVER_ADDRESS[] = "127.0.0.20";
 constexpr uint16_t SERVER_PORT = 3200;
+constexpr char OPERATOR_CONSOLE_ADDRESS[] = "127.0.0.10";
+constexpr uint16_t OPERATOR_CONSOLE_PORT = 3100;
 constexpr char SCENARIO_SIMULATOR_ADDRESS[] = "127.0.0.100";
 constexpr uint16_t SCENARIO_SIMULATOR_PORT = 3300;
 
@@ -153,22 +155,10 @@ void decodeFrames(
 
 int main()
 {
-    const comm::NetworkEndpoint serverEndpoint
-    {
-        SERVER_ADDRESS,
-        SERVER_PORT
-    };
-    const comm::NetworkEndpoint disabledEndpoint{};
-    const comm::NetworkEndpoint scenarioSimulatorEndpoint
-    {
-        SCENARIO_SIMULATOR_ADDRESS,
-        SCENARIO_SIMULATOR_PORT
-    };
-
     comm::NetworkManager networkManager(
-        serverEndpoint,
-        disabledEndpoint,
-        scenarioSimulatorEndpoint);
+        comm::CommEndpoint(SERVER_ADDRESS, SERVER_PORT),
+        comm::CommEndpoint(OPERATOR_CONSOLE_ADDRESS, OPERATOR_CONSOLE_PORT),
+        comm::CommEndpoint(SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT));
     const comm::MessageDecoder messageDecoder;
 
     try
@@ -185,7 +175,9 @@ int main()
     std::signal(SIGTERM, stopRunning);
 
     std::cout << "Listening on " << SERVER_ADDRESS << ':' << SERVER_PORT
-              << " for " << SCENARIO_SIMULATOR_ADDRESS << ':'
+              << " for " << OPERATOR_CONSOLE_ADDRESS << ':'
+              << OPERATOR_CONSOLE_PORT << ", "
+              << SCENARIO_SIMULATOR_ADDRESS << ':'
               << SCENARIO_SIMULATOR_PORT << '\n'
               << "Press Ctrl+C to stop.\n";
 

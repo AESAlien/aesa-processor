@@ -16,14 +16,10 @@ namespace
 constexpr char RECEIVE_FAILURE[] = "Communication data could not be received";
 
 // Throws std::invalid_argument for an invalid endpoint.
-Ipv4Endpoint parseEndpoint(const NetworkEndpoint& endpoint);
-
-// Returns nullopt for an endpoint with neither address nor port, which
-// disables the peer. Throws std::invalid_argument for an invalid endpoint.
-std::optional<Ipv4Endpoint> parsePeerEndpoint(const NetworkEndpoint& endpoint);
+Ipv4Endpoint parseEndpoint(const CommEndpoint& endpoint);
 
 bool matches(
-    const std::optional<Ipv4Endpoint>& endpoint,
+    const Ipv4Endpoint& endpoint,
     const AcceptedSocket& accepted
 );
 
@@ -40,12 +36,12 @@ void reportRejectedConnection(const AcceptedSocket& accepted);
 /********************************network manager 구현부****************************************** */
 
 NetworkManager::NetworkManager(
-    NetworkEndpoint serverEndpoint,
-    NetworkEndpoint operatorConsoleEndpoint,
-    NetworkEndpoint scenarioSimulatorEndpoint
+    const CommEndpoint& serverEndpoint,
+    const CommEndpoint& operatorConsoleEndpoint,
+    const CommEndpoint& scenarioSimulatorEndpoint
 ) : _serverEndpoint(parseEndpoint(serverEndpoint)),
-    _operatorConsoleEndpoint(parsePeerEndpoint(operatorConsoleEndpoint)),
-    _scenarioSimulatorEndpoint(parsePeerEndpoint(scenarioSimulatorEndpoint))
+    _operatorConsoleEndpoint(parseEndpoint(operatorConsoleEndpoint)),
+    _scenarioSimulatorEndpoint(parseEndpoint(scenarioSimulatorEndpoint))
 {
     validatePeers();
 }
@@ -154,15 +150,8 @@ void NetworkManager::send(
 
 void NetworkManager::validatePeers() const
 {
-    if (!_operatorConsoleEndpoint.has_value() && !_scenarioSimulatorEndpoint.has_value())
-    {
-        throw std::invalid_argument("At least one peer must be enabled");
-    }
-
-    if (_operatorConsoleEndpoint.has_value() &&
-        _scenarioSimulatorEndpoint.has_value() &&
-        _operatorConsoleEndpoint->address == _scenarioSimulatorEndpoint->address &&
-        _operatorConsoleEndpoint->port == _scenarioSimulatorEndpoint->port)
+    if (_operatorConsoleEndpoint.address == _scenarioSimulatorEndpoint.address &&
+        _operatorConsoleEndpoint.port == _scenarioSimulatorEndpoint.port)
     {
         throw std::invalid_argument("Peer endpoints must be distinct");
     }
@@ -297,37 +286,26 @@ void NetworkManager::setSession(
 namespace
 {
 
-Ipv4Endpoint parseEndpoint(const NetworkEndpoint& endpoint)
+Ipv4Endpoint parseEndpoint(const CommEndpoint& endpoint)
 {
     const std::optional<uint32_t> address =
-        native_socket::parseIpv4(endpoint.address);
-    if (!address.has_value() || endpoint.port == 0)
+        native_socket::parseIpv4(endpoint.getAddress());
+    if (!address.has_value())
     {
         throw std::invalid_argument(
-            "Endpoint requires a valid IPv4 address and port");
+            "Endpoint requires a valid IPv4 address");
     }
 
-    return Ipv4Endpoint{*address, endpoint.port};
-}
-
-std::optional<Ipv4Endpoint> parsePeerEndpoint(const NetworkEndpoint& endpoint)
-{
-    if (endpoint.address.empty() && endpoint.port == 0)
-    {
-        return std::nullopt;
-    }
-
-    return parseEndpoint(endpoint);
+    return Ipv4Endpoint{*address, endpoint.getPort()};
 }
 
 bool matches(
-    const std::optional<Ipv4Endpoint>& endpoint,
+    const Ipv4Endpoint& endpoint,
     const AcceptedSocket& accepted
 )
 {
-    return endpoint.has_value() &&
-        endpoint->address == accepted.address &&
-        endpoint->port == accepted.port;
+    return endpoint.address == accepted.address &&
+        endpoint.port == accepted.port;
 }
 
 bool contains(

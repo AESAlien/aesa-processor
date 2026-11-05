@@ -1,17 +1,9 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 
 namespace comm
 {
-
-//CommConfiguration에서 받는 문자열 값
-struct NetworkEndpoint
-{
-    std::string address;
-    uint16_t port = 0;
-};
 
 // CommConfiguration의 문자열을 정수형으로 변환
 struct Ipv4Endpoint

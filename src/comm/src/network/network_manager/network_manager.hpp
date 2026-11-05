@@ -1,5 +1,6 @@
 #pragma once
 
+#include <comm/config/comm_config.hpp>
 #include <network/message_framer/message_framer.hpp>
 #include <network/network_manager/network_types.hpp>
 #include <network/session/session.hpp>
@@ -28,9 +29,9 @@ class NetworkManager
 public:
     // Throws std::invalid_argument for an invalid peer configuration.
     NetworkManager(
-        NetworkEndpoint serverEndpoint,
-        NetworkEndpoint operatorConsoleEndpoint,
-        NetworkEndpoint scenarioSimulatorEndpoint
+        const CommEndpoint& serverEndpoint,
+        const CommEndpoint& operatorConsoleEndpoint,
+        const CommEndpoint& scenarioSimulatorEndpoint
     );
 
     NetworkManager(const NetworkManager&) = delete;
@@ -76,8 +77,8 @@ private:
     void setSession(NetworkPeer peer, std::shared_ptr<Session> session);
 
     Ipv4Endpoint _serverEndpoint;
-    std::optional<Ipv4Endpoint> _operatorConsoleEndpoint;     // nullopt = 비활성
-    std::optional<Ipv4Endpoint> _scenarioSimulatorEndpoint;   // nullopt = 비활성
+    Ipv4Endpoint _operatorConsoleEndpoint;
+    Ipv4Endpoint _scenarioSimulatorEndpoint;
 
     
     // Declared before the sessions so that it is destroyed after them.
