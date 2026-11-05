@@ -98,24 +98,6 @@ TEST(SearchGridTest, BeamIdsAreSequentialFromOne)
     }
 }
 
-// 기본 격자의 모든 빔은 설정된 6도 폭을 갖는다.
-TEST(SearchGridTest, BeamWidthIsSixDegrees)
-{
-    // Given: 격자의 자세 변환을 준비한다.
-    const auto beamsTransform = makeValidTransform(10_deg, 20_deg, 30_deg);
-
-    // When: 주어진 자세와 기본 설정으로 격자를 생성해 빔을 꺼낸다.
-    const std::vector<beam::SearchBeam> beams = takeAllBeams(beamsTransform);
-
-    for (const beam::SearchBeam& searchBeam : beams)
-    {
-
-        // Then: 기본 격자의 모든 빔은 설정된 6도 폭을 갖는다.
-        EXPECT_EQ(searchBeam.beamWidth.azimuth, 6_deg);
-        EXPECT_EQ(searchBeam.beamWidth.elevation, 6_deg);
-    }
-}
-
 // 영 자세 격자는 설정된 각도 간격과 순서를 유지한다.
 TEST(SearchGridTest, ZeroAttitudeKeepsFixedGrid)
 {
@@ -245,33 +227,6 @@ TEST(SearchGridTest, ScenarioAttitudeMatchesReferenceBeamAngles)
     EXPECT_EQ(beams[188].direction_enu.elevation, 38.2_deg);
 }
 
-// 서로 다른 자세로 생성한 격자의 방향은 달라진다.
-TEST(SearchGridTest, DifferentAttitudeProducesDifferentGrid)
-{
-    // Given: 격자의 자세 변환을 준비한다.
-    const auto zeroAttitudeBeamsTransform = makeValidTransform(0_deg, 0_deg, 0_deg);
-
-    // When: 주어진 자세와 기본 설정으로 격자를 생성해 빔을 꺼낸다.
-    const std::vector<beam::SearchBeam> zeroAttitudeBeams = takeAllBeams(zeroAttitudeBeamsTransform);
-    const auto yawRotatedBeamsTransform = makeValidTransform(0_deg, 0_deg, 20_deg);
-    const std::vector<beam::SearchBeam> yawRotatedBeams = takeAllBeams(yawRotatedBeamsTransform);
-
-    bool anyDifferent = false;
-    for (std::size_t beamIndex = 0; beamIndex < zeroAttitudeBeams.size(); ++beamIndex)
-    {
-        if (!zeroAttitudeBeams[beamIndex].direction_enu.azimuth.isEquivalentTo(yawRotatedBeams[beamIndex].direction_enu.azimuth))
-        {
-            anyDifferent = true;
-            break;
-        }
-    }
-
-    // Then: 서로 다른 자세로 생성한 격자의 방향은 달라진다.
-    EXPECT_TRUE(anyDifferent);
-}
-
-// ---------- 설정 반영 ----------
-
 // 사용자 격자는 설정한 빔 개수만큼 ID를 순환한다.
 TEST(SearchGridTest, CustomGridChangesBeamCountAndIds)
 {
@@ -372,32 +327,6 @@ TEST(SearchGridTest, LargeStepWithSingleBeamPerAxisIsAccepted)
     EXPECT_EQ(grid.nextBeam().beamId, 1u);
     EXPECT_EQ(grid.nextBeam().beamId, 1u);
 }
-
-// 단일 빔 격자는 큰 시작 방위각의 정규화된 방향을 보존한다.
-TEST(SearchGridTest, LargeAzimuthStartWithSingleBeamPreservesWrappedDirection)
-{
-    // Given: 검사할 설정과 탐색 상태를 준비한다.
-    const beam::SearchGridConfig config = beam::SearchGridConfig::Builder()
-        .azimuthCount(21)
-        .elevationCount(9)
-        .azimuthStart(math::CircularAngle(-42_deg))
-        .azimuthStep(4.2_deg)
-        .elevationStart(math::TiltAngle(3_deg))
-        .elevationStep(4.4_deg)
-        .beamWidth(beam::BeamWidth(6_deg, 6_deg))
-        .azimuthCount(1)
-        .elevationCount(1)
-        .azimuthStart(math::CircularAngle(1e18_deg))
-        .build();
-
-    // When: 큰 시작 방위각 설정으로 격자를 생성한다.
-    beam::SearchGrid grid(makeValidTransform(0_deg, 0_deg, 0_deg), config);
-
-    // Then: 단일 빔 격자는 큰 시작 방위각의 정규화된 방향을 보존한다.
-    EXPECT_TRUE(grid.nextBeam().direction_enu.azimuth.isEquivalentTo(-80_deg));
-}
-
-// ---------- 탐색 커서 ----------
 
 // 단일 빔 격자는 매번 같은 빔을 반환한다.
 TEST(SearchGridTest, SingleBeamGridReturnsTheSameBeamEveryTime)

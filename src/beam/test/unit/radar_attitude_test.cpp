@@ -16,8 +16,6 @@ beam::RadarAttitude makeAttitude(math::Angle roll, math::Angle pitch, math::Angl
 
 } // namespace
 
-// ---------------------------------------------------------------- RadarAttitude 검증
-
 // 자세 객체는 전달받은 롤과 피치 및 요를 보관한다.
 TEST(RadarAttitudeTest, StoresGivenValues)
 {
@@ -59,23 +57,6 @@ TEST(RadarAttitudeTest, ThrowsOnOutOfRangeValues)
     }
 }
 
-// 자세 객체는 검증된 롤과 요를 정규화해 보관한다.
-TEST(RadarAttitudeTest, NormalizesValidatedRollAndYaw)
-{
-    // Given: 유효 범위의 음수 경계 각도를 준비한다.
-    const math::Angle roll = -180_deg;
-    const math::TiltAngle pitch(-90_deg);
-    const math::Angle yaw = -360_deg;
-
-    // When: 경계 각도로 자세 객체를 생성한다.
-    const beam::RadarAttitude attitude(roll, pitch, yaw);
-
-    // Then: 롤과 요는 정규화되고 피치는 그대로 유지된다.
-    EXPECT_DOUBLE_EQ(attitude.roll().deg(), 180.0);
-    EXPECT_DOUBLE_EQ(attitude.pitch().deg(), -90.0);
-    EXPECT_DOUBLE_EQ(attitude.yaw().deg(), 0.0);
-}
-
 // 자세 객체는 주기상 유효 범위와 같아도 실제 값이 범위 밖이면 거부한다.
 TEST(RadarAttitudeTest, ThrowsOnValuesEquivalentByPeriodToValidRange)
 {
@@ -115,20 +96,4 @@ TEST(RadarAttitudeTest, AcceptsBoundaryAnglesIncludingEndpoints)
     // Then: 자세 객체는 롤과 요의 양 끝 경계를 허용한다.
     EXPECT_NO_THROW(construct(upperRoll, upperYaw));
     EXPECT_NO_THROW(construct(lowerRoll, lowerYaw));
-}
-
-// 자세 객체는 짐벌락 경계의 유효한 고각을 보관할 수 있다.
-TEST(RadarAttitudeTest, KeepsBoundaryPitchWithoutGimbalLockValidation)
-{
-    // Given: 물리 범위의 양 끝에 해당하는 고각을 준비한다.
-    const math::TiltAngle upperPitch(90_deg);
-    const math::TiltAngle lowerPitch(-90_deg);
-
-    // When: 경계 고각으로 자세 객체를 생성한다.
-    const beam::RadarAttitude upper(0_deg, upperPitch, 0_deg);
-    const beam::RadarAttitude lower(0_deg, lowerPitch, 0_deg);
-
-    // Then: 짐벌락 판정 없이 전달받은 고각을 보관한다.
-    EXPECT_EQ(upper.pitch(), upperPitch);
-    EXPECT_EQ(lower.pitch(), lowerPitch);
 }

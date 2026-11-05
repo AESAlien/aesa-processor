@@ -261,8 +261,6 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
     EXPECT_EQ(restarted->commandCount, 1u);
 }
 
-// ---------- 설정 주입 ----------
-
 // 컨트롤러는 주입된 탐색 격자 설정을 송신에 반영한다.
 TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
 {
@@ -545,8 +543,6 @@ TEST(BeamControllerTest, MovedControllerKeepsInjectedConfigAndState)
     EXPECT_EQ(next->beamId, 2u);
     EXPECT_EQ(wrapped->beamId, 1u);
 }
-
-// ---------- 추적 영역 판정 ----------
 
 // 컨트롤러는 요청 접수 시 준비 전과 접수 성공 및 영역 밖 상태를 반환한다.
 TEST(BeamControllerTest, RequestBeamReturnsResult)

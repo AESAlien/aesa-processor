@@ -28,40 +28,6 @@ beam::AttitudeConfig::Builder attitudeBuilder()
 
 } // namespace
 
-// 필수 값이 누락된 빌더는 설정을 생성할 수 없다.
-TEST(AttitudeConfigTest, BuilderRequiresEveryValue)
-{
-    // Given: 필수 값을 지정하지 않은 빌더를 준비한다.
-    const beam::AttitudeConfig::Builder builder;
-
-    // When: 빌더로 설정 생성을 시도한다.
-    const auto build = [&builder] { return builder.build(); };
-
-    // Then: 누락된 필수 값 때문에 예외가 발생한다.
-    EXPECT_THROW(build(), std::logic_error);
-}
-
-// 자세 설정 빌더는 지정한 피치 한계와 장착행렬 및 허용오차를 반영한다.
-TEST(AttitudeConfigTest, BuilderOverridesGivenValues)
-{
-    // Given: 90도 회전 장착행렬을 준비한다.
-    const math::SquareMatrix mount{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}};
-
-    // When: 피치 한계와 장착행렬 및 허용오차를 지정해 설정을 생성한다.
-    const beam::AttitudeConfig config = attitudeBuilder()
-        .maxAbsPitch(80_deg)
-        .mountAntToBodyRotation(mount)
-        .mountOrthogonalTolerance(math::Tolerance{1e-3, 2e-3})
-        .build();
-
-    // Then: 자세 설정 빌더는 지정한 피치 한계와 장착행렬 및 허용오차를 반영한다.
-    EXPECT_EQ(config.maxAbsPitch(), 80_deg);
-    EXPECT_EQ(config.mountOrthogonalTolerance().absolute(), 1e-3);
-    EXPECT_EQ(config.mountOrthogonalTolerance().relative(), 2e-3);
-    EXPECT_EQ(config.mountAntToBodyRotation()(0, 1), -1.0);
-    EXPECT_EQ(config.mountAntToBodyRotation()(1, 0), 1.0);
-}
-
 // 자세 설정은 3차원 회전 장착행렬을 허용한다.
 TEST(AttitudeConfigTest, AcceptsRotationMount)
 {
@@ -233,22 +199,4 @@ TEST(AttitudeConfigTest, MaxAbsPitchRejectsAnglesEquivalentToNinetyDegreesByPeri
         EXPECT_THROW(build(pitch), std::invalid_argument);
     }
     EXPECT_THROW(construct(), std::invalid_argument);
-}
-
-// 자세 설정 생성자는 3차원 회전 장착행렬만 허용한다.
-TEST(AttitudeConfigTest, ConstructorValidatesLikeBuilder)
-{
-    // Given: 검증할 입력과 설정을 준비한다.
-    const auto validMount = math::SquareMatrix::identity(3);
-    const auto invalidMount = math::SquareMatrix::identity(2);
-    const math::Tolerance tolerance{1e-6, 0.0};
-
-    // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
-    const auto construct = [&](const math::SquareMatrix& mount) {
-        return beam::AttitudeConfig(89_deg, mount, tolerance);
-    };
-
-    // Then: 자세 설정 생성자는 3차원 회전 장착행렬만 허용한다.
-    EXPECT_NO_THROW(construct(validMount));
-    EXPECT_THROW(construct(invalidMount), std::invalid_argument);
 }

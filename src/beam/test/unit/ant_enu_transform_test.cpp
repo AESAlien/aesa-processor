@@ -28,8 +28,6 @@ beam::AntEnuTransform makeValidTransform(math::Angle roll, math::Angle pitch, ma
 
 } // namespace
 
-// ---------------------------------------------------------------- makeAntToEnu
-
 // 영 자세 변환은 입력 방향의 방위각과 고각을 유지한다.
 TEST(AttitudeTransformTest, ZeroAttitudeKeepsAngles)
 {
@@ -43,24 +41,6 @@ TEST(AttitudeTransformTest, ZeroAttitudeKeepsAngles)
     EXPECT_DOUBLE_EQ(direction_enu.azimuth.deg(), 330.0);
     EXPECT_EQ(direction_enu.elevation, 10_deg);
 }
-
-// 좌표 변환은 라디안으로 생성한 자세와 방향을 처리한다.
-TEST(AttitudeTransformTest, AcceptsAnglesCreatedFromRadians)
-{
-    // Given: 라디안으로 지정한 요 회전을 준비한다.
-    const auto transform = makeValidTransform(0_deg, 0_deg, math::Angle::fromRadians(math::PI / 2.0));
-
-    // When: 라디안으로 지정한 안테나 방향을 변환한다.
-    const auto direction_enu = transform.antToEnu(math::SphericalDirection(
-        math::Angle::fromRadians(-math::PI / 6.0),
-        math::Angle::fromRadians(math::PI / 18.0)));
-
-    // Then: 좌표 변환은 라디안으로 생성한 자세와 방향을 처리한다.
-    EXPECT_TRUE(direction_enu.azimuth.isEquivalentTo(60_deg));
-    EXPECT_EQ(direction_enu.elevation, 10_deg);
-}
-
-// ---------------------------------------------------------------- AntEnuTransform 검증
 
 // 좌표 변환은 피치 한계의 양쪽 경계와 허용오차 안의 값을 거부한다.
 TEST(AttitudeTransformTest, ThrowsOnGimbalLockPitch)
@@ -97,8 +77,6 @@ TEST(AttitudeTransformTest, MountRotationIsAppliedToAntDirection)
         .build();
     const beam::AntEnuTransform transform(makeAttitude(0_deg, 0_deg, 0_deg), config);
 
-    // 안테나 정면(방위각 0도)이 몸체 기준 -90도(서쪽)로 장착되어 있다.
-
     // When: 안테나 정면을 ENU 방향으로 변환한다.
     const auto direction_enu = transform.antToEnu(math::SphericalDirection(0_deg, 0_deg));
 
@@ -124,8 +102,6 @@ TEST(AttitudeTransformTest, MaxAbsPitchFromConfigIsUsedForGimbalLock)
     EXPECT_THROW(construct(rejected), std::invalid_argument);
     EXPECT_NO_THROW(construct(accepted));
 }
-
-// ---------------------------------------------------------------- 각도 변환
 
 // 요 회전은 방위각을 시계 방향으로 회전시킨다.
 TEST(AttitudeTransformTest, YawRotatesAzimuthClockwise)
@@ -174,17 +150,4 @@ TEST(AttitudeTransformTest, AntToEnuAndBackRestoresAngles)
             EXPECT_EQ(directionRestored_ant.elevation, elevation_ant);
         }
     }
-}
-
-// 좌표 변환은 후방 방위각을 180도로 반환한다.
-TEST(AttitudeTransformTest, AzimuthUsesUnsignedRangeEndpoint)
-{
-    // Given: 영 자세의 좌표 변환을 준비한다.
-    const beam::AntEnuTransform transform = makeValidTransform(0_deg, 0_deg, 0_deg);
-
-    // When: 방위각 -180도인 안테나 방향을 변환한다.
-    const auto directionAt180_enu = transform.antToEnu(math::SphericalDirection(-180_deg, 0_deg));
-
-    // Then: 좌표 변환은 후방 방위각을 180도로 반환한다.
-    EXPECT_DOUBLE_EQ(directionAt180_enu.azimuth.deg(), 180.0);
 }

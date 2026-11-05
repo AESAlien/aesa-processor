@@ -90,8 +90,6 @@ math::Angle gridElevation(std::size_t index)
 
 } // namespace
 
-// ---------- 준비 상태 ----------
-
 // 스케줄러는 초기 상태에서 송신 명령을 반환하지 않는다.
 TEST(BeamSchedulerTest, ReturnsNothingInitially)
 {
@@ -180,8 +178,6 @@ TEST(BeamSchedulerTest, SecondAttitudeFrameIsIgnored)
     EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0)));
 }
 
-// ---------- 탐색 빔 ----------
-
 // 요청이 없는 스케줄러는 격자 순서로 탐색 빔을 송신한다.
 TEST(BeamSchedulerTest, ReturnsSearchBeamsInGridOrderWhenNoRequests)
 {
@@ -261,8 +257,6 @@ TEST(BeamSchedulerTest, SearchBeamsFollowGivenSearchGrid)
     EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0) + 10_deg));
     EXPECT_EQ(command->direction_ant.elevation, gridElevation(0));
 }
-
-// ---------- 요청 빔 ----------
 
 // 스케줄러는 확인 요청을 확인 빔 명령으로 송신한다.
 TEST(BeamSchedulerTest, ConfirmationRequestProducesConfirmationBeam)
@@ -440,8 +434,6 @@ TEST(BeamSchedulerTest, CrowdedTicksFollowDesignedScenario)
     EXPECT_EQ(at1050->beamId, 2u);
 }
 
-// ---------- 명령 카운트 ----------
-
 // 송신 명령 수는 빔 종류와 관계없이 1부터 연속 증가한다.
 TEST(BeamSchedulerTest, CommandCountStartsAtOneAndIncreasesPerCommand)
 {
@@ -484,8 +476,6 @@ TEST(BeamSchedulerTest, CommandCountDoesNotIncreaseWhenNothingIsSent)
     ASSERT_TRUE(first.has_value());
     EXPECT_EQ(first->commandCount, 1u);
 }
-
-// ---------- 요청 접수 조건 ----------
 
 // 꺼진 상태에서 받은 요청은 이후 운용에 남지 않는다.
 TEST(BeamSchedulerTest, RequestWhileOffIsIgnored)
@@ -557,8 +547,6 @@ TEST(BeamSchedulerTest, AddRequestReturnsAcceptedWhenQueued)
     EXPECT_EQ(command->beamId, request.requestId());
 }
 
-// ---------- 추적 영역 판정 ----------
-
 // 스케줄러는 영역 밖 요청을 거부하고 탐색을 계속한다.
 TEST(BeamSchedulerTest, RequestOutsideCoverageIsNotQueued)
 {
@@ -628,8 +616,6 @@ TEST(BeamSchedulerTest, CoverageFollowsAttitudeFrameReceivedAfterRestart)
     EXPECT_EQ(afterAttitude, beam::RequestBeamStatus::ACCEPTED);
 }
 
-// ---------- 초기화 ----------
-
 // 운용 재시작은 요청과 자세 프레임 및 탐색 순서와 명령 수를 초기화한다.
 TEST(BeamSchedulerTest, TurningOnAgainAfterOffResetsEverything)
 {
@@ -690,7 +676,6 @@ TEST(BeamSchedulerTest, TurningOffWhileAlreadyOffDoesNothing)
     EXPECT_TRUE(command.has_value());
 }
 
-// ---------- 요청 빔 설정 반영 ----------
 // BeamScheduler는 요청에 담긴 빔 폭을 송신 명령에 전달한다.
 
 // 스케줄러는 각 요청의 빔 폭을 송신 명령에 전달한다.

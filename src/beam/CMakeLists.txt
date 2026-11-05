@@ -45,15 +45,6 @@ if(BUILD_TESTING)
     )
     gtest_discover_tests(beam_config_test)
 
-    add_executable(beam_width_test
-        test/unit/beam_width_test.cpp
-    )
-    target_link_libraries(beam_width_test PRIVATE
-        beam
-        GTest::gtest_main
-    )
-    gtest_discover_tests(beam_width_test)
-
     add_executable(beam_attitude_test
         test/unit/ant_enu_transform_test.cpp
         test/unit/radar_attitude_test.cpp

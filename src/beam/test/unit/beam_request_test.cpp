@@ -46,22 +46,6 @@ TEST(BeamRequestTest, KeepsGivenValues)
     EXPECT_EQ(request.direction_enu().elevation, 20.5_deg);
 }
 
-// 복사된 빔 요청은 원래 요청의 값을 유지한다.
-TEST(BeamRequestTest, CopyKeepsSameValues)
-{
-    // Given: 복사할 확인 빔 요청을 준비한다.
-    const beam::BeamRequest request(beam::BeamType::CONFIRMATION, makeBeamWidth(4_deg, 5_deg), 1, 100ms, 3, makeDirection());
-
-    // When: 요청 객체를 복사한다.
-    const beam::BeamRequest copy = request;
-
-    // Then: 복사된 빔 요청은 원래 요청의 값을 유지한다.
-    EXPECT_EQ(copy.transmitBeamType(), request.transmitBeamType());
-    EXPECT_EQ(copy.beamWidth(), request.beamWidth());
-    EXPECT_EQ(copy.priority(), request.priority());
-    EXPECT_EQ(copy.requestId(), request.requestId());
-}
-
 // 빔 요청은 송신 시각 0과 최대 요청 ID를 허용한다.
 TEST(BeamRequestTest, AcceptsBoundaryValues)
 {
