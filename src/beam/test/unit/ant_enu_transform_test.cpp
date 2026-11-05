@@ -78,7 +78,7 @@ TEST(AntEnuTransformTest, ThrowsOnGimbalLockPitch)
 TEST(AntEnuTransformTest, MountRotationIsAppliedToAntDirection)
 {
     // Given: 90도 장착 회전이 있는 좌표 변환을 준비한다.
-    const auto config = beam::AttitudeConfig::Builder()
+    const auto config = validConfigBuilder()
         .mountAntToBodyRotation(math::SquareMatrix{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}})
         .build();
     const auto transform = beam::AntEnuTransform(makeRadarAttitude(0_deg, 0_deg, 0_deg), config);
