@@ -63,12 +63,12 @@ math::Distance Target::slantRange() const
     return sphericalPosition().radius;
 }
 
-math::Azimuth Target::azimuth() const
+math::CircularAngle Target::azimuth() const
 {
     return sphericalPosition().direction.azimuth;
 }
 
-math::Elevation Target::elevation() const
+math::TiltAngle Target::elevation() const
 {
     return sphericalPosition().direction.elevation;
 }

@@ -4,6 +4,13 @@ namespace beam
 {
 
 BeamWidth::BeamWidth(
+    math::Angle azimuth,
+    math::Angle elevation
+) : BeamWidth(math::AngularWidth(azimuth), math::AngularWidth(elevation))
+{
+}
+
+BeamWidth::BeamWidth(
     math::AngularWidth azimuth,
     math::AngularWidth elevation
 ) : azimuth(azimuth),

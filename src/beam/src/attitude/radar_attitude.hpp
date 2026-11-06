@@ -1,5 +1,7 @@
 #pragma once
 
+#include <math/bounded/circular_angle.hpp>
+#include <math/bounded/tilt_angle.hpp>
 #include <math/quantity/angle.hpp>
 
 namespace beam
@@ -12,19 +14,21 @@ class RadarAttitude
 public:
     // 범위를 벗어나면 std::invalid_argument를 던진다. Angle은 항상 유한한 값만 가지므로 유한성은 검사하지 않는다.
     // 범위(경계 포함): roll [-180, 180]도, yaw [-360, 360]도.
-    // pitch는 범위를 검사하지 않는다. 짐벌락 판정은 AttitudeConfig에 의존하므로 AntEnuTransform에서 한다.
-    RadarAttitude(math::Angle roll, math::Angle pitch, math::Angle yaw);
+    // roll/yaw는 원래 입력을 검증한 뒤 [0, 360)도 범위로 저장한다.
+    // pitch의 [-90, 90]도 범위는 TiltAngle이 보장한다.
+    // 짐벌락 판정은 AttitudeConfig에 의존하므로 AntEnuTransform에서 한다.
+    RadarAttitude(math::Angle roll, math::TiltAngle pitch, math::Angle yaw);
 
-    math::Angle roll() const noexcept;
-    math::Angle pitch() const noexcept;
-    math::Angle yaw() const noexcept;
+    math::CircularAngle roll() const noexcept;
+    math::TiltAngle pitch() const noexcept;
+    math::CircularAngle yaw() const noexcept;
 
 private:
-    void validate() const;
+    static void validate(math::Angle roll, math::Angle yaw);
 
-    math::Angle _roll;
-    math::Angle _pitch;
-    math::Angle _yaw;
+    math::CircularAngle _roll;
+    math::TiltAngle _pitch;
+    math::CircularAngle _yaw;
 };
 
 } // namespace beam

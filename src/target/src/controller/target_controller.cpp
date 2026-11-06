@@ -93,12 +93,12 @@ TrackEvent trackEvent(const Target& target)
     const auto horizontalRange = position.horizontalDistance();
     const auto horizontalSpeed = velocity.horizontalSpeed();
     const auto speed = velocity.speed();
-    const math::Angle heading = horizontalSpeed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+    const math::CircularAngle heading(horizontalSpeed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         ? math::atan2(velocity.x, velocity.y)
-        : 0_deg;
-    const math::Angle flightPathAngle = speed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+        : 0_deg);
+    const math::TiltAngle flightPathAngle(speed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
         ? math::atan2(velocity.z, horizontalSpeed)
-        : 0_deg;
+        : 0_deg);
     return TrackEvent(
         static_cast<std::uint16_t>(target.id()),
         TrackEvent::TrackState::TRACKING,
@@ -107,8 +107,8 @@ TrackEvent trackEvent(const Target& target)
         target.azimuth(),
         target.elevation(),
         target.dopplerVelocity(),
-        0_deg,
-        0_deg,
+        math::TiltAngle(0_deg),
+        math::CircularAngle(0_deg),
         position.z,
         speed,
         heading,

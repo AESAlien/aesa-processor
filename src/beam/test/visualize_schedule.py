@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """빔 스케줄러 동작 시각화 / 검증 도구.
 
-beam_schedule_dump 가 Scheduler 를 시나리오로 실행해 틱(10ms)마다 어떤 빔이 나갔는지 CSV 로 출력하면,
-이 도구가 그 결과를 "처음 보는 사람도 읽을 수 있는" 그림으로 보여준다. 값은 모두 C++ Scheduler 의 출력이다.
+beam_schedule_dump 가 BeamScheduler 를 시나리오로 실행해 틱(10ms)마다 어떤 빔이 나갔는지 CSV 로 출력하면,
+이 도구가 그 결과를 "처음 보는 사람도 읽을 수 있는" 그림으로 보여준다. 값은 모두 C++ BeamScheduler 의 출력이다.
 
 만드는 그림 (시나리오마다 한 장, 한 장에는 한 가지 이야기만 담는다)
   <접두어>_mixed.png   요청이 끼어들 때

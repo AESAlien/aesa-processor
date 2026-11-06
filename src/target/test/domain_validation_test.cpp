@@ -41,7 +41,7 @@ static_assert(std::is_same_v<decltype(std::declval<const Target&>().trackingStat
 
 math::SphericalPosition position(math::Length range = 1000_m)
 {
-    return math::SphericalPosition{math::Distance(range), math::SphericalDirection(math::Azimuth(0_deg), math::Elevation(0_deg))};
+    return math::SphericalPosition{range, 0_deg, 0_deg};
 }
 
 Target observation(
@@ -65,7 +65,7 @@ DetectionEvent result(BeamType type, std::uint32_t id, Time time, bool detected 
     std::vector<DetectionEvent::Plot> plots;
     if (detected)
     {
-        plots.emplace_back(math::Distance(1000_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f);
+        plots.emplace_back(math::Distance(1000_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f);
     }
     return DetectionEvent(type, id, time, std::move(plots));
 }
@@ -346,7 +346,7 @@ TEST(TargetConfigTest, ControllerPassesInjectedSpeedLimitToConfirmationMatcher)
 
         // A 100 m displacement in 100 ms passes only the default 1000 m/s limit.
         const auto tracking = controller.handleDetection(DetectionEvent(BeamType::CONFIRMATION,
-            confirmation->requestId, 1100ms, {{math::Distance(1100_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f}}));
+            confirmation->requestId, 1100ms, {{math::Distance(1100_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f}}));
         EXPECT_EQ(tracking.has_value(), !restricted);
         EXPECT_EQ(controller.nextTrackEvents().size(), restricted ? 0u : 1u);
     }
@@ -356,8 +356,8 @@ TEST(DomainValidationTest, InvalidPlotBatchDoesNotPartiallyRegisterCandidates)
 {
     TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
     EXPECT_THROW(controller.handleDetection(DetectionEvent(BeamType::SEARCH, 1, 0ms,
-        {{math::Distance(1000_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f},
-            {math::Distance(0_m), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f}})), std::invalid_argument);
+        {{math::Distance(1000_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f},
+            {math::Distance(0_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f}})), std::invalid_argument);
     const auto request = controller.handleDetection(result(BeamType::SEARCH, 1, 0ms));
     ASSERT_TRUE(request);
     EXPECT_EQ(request->requestId, 1u);

@@ -31,7 +31,7 @@ DetectionEvent result(BeamType type, std::uint32_t id, Time time, bool detected 
     std::vector<DetectionEvent::Plot> plots;
     if (detected)
     {
-        plots.emplace_back(range(id), math::Azimuth(0_deg), math::Elevation(0_deg), 0_mps, -10.0f);
+        plots.emplace_back(range(id), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f);
     }
     return DetectionEvent(type, id, time, std::move(plots));
 }

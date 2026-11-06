@@ -10,16 +10,18 @@ namespace beam
 BeamConfig::BeamConfig(
     AttitudeConfig attitude,
     SearchGridConfig searchGrid,
-    RequestBeamConfig requestBeam
+    RequestBeamConfig requestBeam,
+    RequestCoverageConfig requestCoverage
 ) : attitude(std::move(attitude)),
     searchGrid(std::move(searchGrid)),
-    requestBeam(std::move(requestBeam))
+    requestBeam(std::move(requestBeam)),
+    requestCoverage(std::move(requestCoverage))
 {
 }
 
 BeamConfig BeamConfig::Builder::build() const
 {
-    if (!_attitude || !_searchGrid || !_requestBeam)
+    if (!_attitude || !_searchGrid || !_requestBeam || !_requestCoverage)
     {
         throw std::logic_error("BeamConfig::Builder requires every value");
     }
@@ -27,7 +29,8 @@ BeamConfig BeamConfig::Builder::build() const
     return BeamConfig(
         *_attitude,
         *_searchGrid,
-        *_requestBeam);
+        *_requestBeam,
+        *_requestCoverage);
 }
 
 } // namespace beam

@@ -21,34 +21,34 @@ double tan(Angle angle)
     return std::tan(wrap180(angle).rad());
 }
 
-double sin(Azimuth azimuth)
+double sin(CircularAngle angle)
 {
-    return std::sin(azimuth.rad());
+    return std::sin(angle.rad());
 }
 
-double cos(Azimuth azimuth)
+double cos(CircularAngle angle)
 {
-    return std::cos(azimuth.rad());
+    return std::cos(angle.rad());
 }
 
-double tan(Azimuth azimuth)
+double tan(CircularAngle angle)
 {
-    return std::tan(azimuth.rad());
+    return std::tan(angle.rad());
 }
 
-double sin(Elevation elevation)
+double sin(TiltAngle angle)
 {
-    return std::sin(elevation.rad());
+    return std::sin(angle.rad());
 }
 
-double cos(Elevation elevation)
+double cos(TiltAngle angle)
 {
-    return std::cos(elevation.rad());
+    return std::cos(angle.rad());
 }
 
-double tan(Elevation elevation)
+double tan(TiltAngle angle)
 {
-    return std::tan(elevation.rad());
+    return std::tan(angle.rad());
 }
 
 Angle asin(double value)
