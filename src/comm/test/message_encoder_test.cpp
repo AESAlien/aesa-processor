@@ -24,7 +24,8 @@ using namespace std::chrono_literals;
 beam::TransmitBeamCommand makeBeamCommand(
     std::chrono::milliseconds transmitTime = 1234ms,
     double azimuthBeamWidth = 3.25
-) {
+)
+{
     return beam::TransmitBeamCommand(
         beam::BeamType::TRACKING,
         transmitTime,
@@ -37,7 +38,8 @@ beam::TransmitBeamCommand makeBeamCommand(
 target::TrackEvent makeTrackEvent(
     std::chrono::milliseconds timestamp = 5678ms,
     double slantRangeKilometers = 12.5
-) {
+)
+{
     return target::TrackEvent(
         42,
         target::TrackEvent::TrackState::TRACKING,
@@ -59,7 +61,8 @@ template <typename Value>
 Value readValue(
     const std::vector<uint8_t>& bytes,
     std::size_t offset = 0
-) {
+)
+{
     static_assert(
         std::is_trivially_copyable<Value>::value,
         "Protocol values must be trivially copyable");

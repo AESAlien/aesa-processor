@@ -96,7 +96,8 @@ bool setAddress(
     sockaddr_in& socketAddress,
     const char* ipAddress,
     uint16_t port
-) {
+)
+{
     socketAddress = {};
     socketAddress.sin_family = AF_INET;
     socketAddress.sin_port = htons(port);
@@ -141,7 +142,8 @@ std::vector<uint8_t> makeMessage()
 bool sendAll(
     SocketHandle socket,
     const std::vector<uint8_t>& message
-) {
+)
+{
     std::size_t bytesSent = 0;
     while (bytesSent < message.size())
     {
@@ -194,7 +196,8 @@ bool waitForReadable(SocketHandle socket)
 bool receiveAll(
     SocketHandle socket,
     std::vector<uint8_t>& receivedMessage
-) {
+)
+{
     std::size_t bytesReceived = 0;
     while (bytesReceived < receivedMessage.size())
     {

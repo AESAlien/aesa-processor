@@ -33,7 +33,8 @@ const Angle& AngleRange::end() const noexcept
 bool AngleRange::contains(
     Angle value,
     const QuantityTolerance<Angle>& tolerance
-) const noexcept {
+) const noexcept
+{
     return value.greaterThanOrEqual(_start, tolerance)
         && value.lessThanOrEqual(_end, tolerance);
 }
@@ -41,7 +42,8 @@ bool AngleRange::contains(
 bool AngleRange::contains(
     TiltAngle value,
     const QuantityTolerance<Angle>& tolerance
-) const noexcept {
+) const noexcept
+{
     return contains(Angle::fromDegrees(value.deg()), tolerance);
 }
 
