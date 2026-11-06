@@ -1,8 +1,24 @@
 # Target 모듈
 
-TargetController가 외부 탐지 결과 수신과 추적 정보 조회를 처리한다.
-TargetRepository 하나가 vector<Target>으로 Tentative와 Tracking 표적을 보관한다.
+TargetController는 외부 탐지 결과의 변환·핸들러 호출과 추적 정보 보고를 담당하는 구체 클래스다. DetectionHandler가 검증된 결과의 빔 타입별 수명주기 처리와 다음 빔 요청 생성을 담당한다.
+TrackRepository 하나가 list<variant<TentativeTrack, Track>>으로 잠정 표적과 추적 표적을 등록 순서대로 보관한다.
 신규 등록은 SEARCH에서만 수행하며, CONFIRMATION/TRACKING에서는 요청한 표적 하나만 관리한다.
+
+## 내부 디렉터리 구조
+
+내부 구현은 객체의 역할을 기준으로 나눈다.
+
+| 디렉터리 | 책임 |
+|---|---|
+| src/config | TargetConfig 조합과 하위 설정별 검증 |
+| src/controller | TargetController의 입력 경계·핸들러 연결·추적 정보 보고 |
+| src/domain | 관측·표적·추적 상태와 ITrackingAlgorithm 계약 |
+| src/domain/factory | 검증된 탐지 결과·관측·표적 생성 |
+| src/repository | 표적 보관·조회·교체와 처리 시각 관리 |
+| src/service | DetectionHandler의 빔 결과 처리와 Matcher·Selector의 연관·선택 정책 |
+| src/algorithm | NdsAlgorithm의 NDS 계산과 CA·CV의 구체적인 추적 계산 |
+
+TentativeTrack과 Track은 domain/tracking_algorithm.hpp의 인터페이스에 연산을 위임한다. algorithm의 구현체는 이 계약을 구현하며, Controller에서 생성하여 주입한다. 팩토리는 표적 내부 알고리즘을 직접 호출하지 않으며, 도메인은 구체적인 추적 알고리즘 구현에 의존하지 않는다.
 
 ## 외부 DTO와 내부 도메인 경계
 
@@ -11,6 +27,8 @@ TargetRepository 하나가 vector<Target>으로 Tentative와 Tracking 표적을 
     std::optional<beam::RequestBeamCommand> handleDetection(DetectionEvent detection);
     std::vector<TrackEvent> nextTrackEvents() const;
 
+app과 테스트는 공개 헤더 include/target/controller/target_controller.hpp의 TargetController를 TargetConfig로 직접 생성한다. TargetWorker는 기존처럼 TargetController 참조를 받는다. 탐지 처리 핸들러는 내부 헤더 src/service/detection_handler.hpp에 선언한다.
+
 DetectionEvent 하나는 완료된 빔 하나의 결과다.
 
 - beamType: SEARCH / CONFIRMATION / TRACKING.
@@ -18,77 +36,113 @@ DetectionEvent 하나는 완료된 빔 하나의 결과다.
 - transmitTime: 공유 시작점 기준 실제 빔 송신 시각(milliseconds).
 - plots: 해당 빔의 모든 탐지. 탐지가 없는 완료 결과는 빈 목록으로 전달한다.
 
-Controller의 입력 경계에서만 DetectionEvent와 Plot을 사용한다.
-validateDetection()은 빔 타입·요청 ID·송신 시각 등 메시지 메타데이터만 검사한다.
+Controller의 입력 경계에서 DetectionResultFactory::from()이 DetectionEvent를 검증된 결과로 변환한다.
+DetectionResultBase는 요청 ID·송신 시각·관측 목록을 const 필드로 소유한다. DetectionResult는 세 결과 하위 타입을 담는 variant이며, 빔 종류는 하위 타입으로 구분한다.
+Factory는 SearchDetectionResult, ConfirmationDetectionResult, TrackingDetectionResult 중 하나를 반환하고,
+Controller는 검증된 결과를 DetectionHandler::handle()에 전달하고, 핸들러는 std::visit으로 결과 타입에 맞는 처리를 연결한다. 하위 타입은 Factory로만 생성할 수 있다.
+결과 객체의 생성자는 DetectionEvent를 받지 않는다. DetectionResultFactory가 DTO의 요청 ID·송신 시각을 추출하고 ObservationFactory로 전체 관측 목록을 만든 뒤 하위 타입 생성자에 전달한다. 결과 객체는 빔 타입 필드를 갖지 않으며, DTO와 ObservationFactory에 의존하지 않는다.
+
+결과 생성자는 송신 시각과 요청 ID를 검사한다. SEARCH의 ID는 0도 허용하고 확인·추적 ID는 0일 수 없다.
+알 수 없는 빔 타입은 Factory에서 거부한다.
+ObservationFactory는 모든 Plot을 Observation으로 변환한다.
+Observation 생성자는 양수 거리·비음수 시각·유한한 신호 세기를 검사한다.
 거리·각도·도플러의 NaN·무한대는 math 물리량 생성 단계에서 거부된다.
-toTargets()는 각 Plot의 좌표를 math::SphericalPosition으로 묶어 Target을 생성한다.
-math 좌표 생성자가 음수 거리·고각 범위를 검사하고, Target 생성자가 양수 거리·시각·유한한 신호 세기와 알고리즘 의존성을 검사한다.
-전체 Plot의 Target 생성이 끝난 뒤 저장소를 처리하므로, 뒤쪽 Plot이 잘못되어도 앞쪽 Plot만 저장되는 일은 없다.
-이후 처리에는 빔 메타데이터 지역변수와 vector<Target>만 전달한다.
-Selector, Matcher, Repository, 도메인 및 추적 알고리즘은 DetectionEvent를 포함하거나 사용하지 않는다.
-이미 생성된 Target은 유효한 객체로 신뢰하며, Matcher와 Selector에서 값의 유효성을 반복 검사하지 않는다.
+모든 관측의 생성이 끝난 뒤 저장소를 처리하므로 뒤쪽 Plot이 잘못되어도 일부만 등록되거나 갱신되지 않는다.
+Selector와 Matcher는 검증된 관측을 받으며, DTO나 알고리즘 의존성을 관측 객체에 넣지 않는다.
 
-반환값은 빔 요청 0개(nullopt) 또는 1개다. RequestBeamCommand.requestId에는 등록된 Target ID를 넣는다.
+반환값은 빔 요청 0개(nullopt) 또는 1개다. RequestBeamCommand.requestId에는 등록된 표적 ID를 넣는다.
 메시지 파싱·패키징·직렬화는 Comm의 역할이다.
-TrackEvent 변환도 Controller의 출력 경계에서만 수행한다.
+Track::toTrackEvent()가 추적 상태를 보고 DTO로 변환하며 Controller는 등록 순서와 보고 한도를 적용한다.
 
-## Target의 수신과 등록
+## 관측과 표적의 수명주기
 
-수신 Plot을 변환한 Target은 ID가 0인 UNREGISTERED 상태다.
-이는 비교에 사용할 수신 객체이며, 아직 Repository에 저장된 후보가 아니다.
-신규 후보로 선택된 하나만 Repository.add(Target)에 전달한다.
-Repository는 전달받은 복사본에 순차 ID를 부여하고 Tentative로 저장한 뒤 ID를 반환한다.
-선택되지 않은 수신 Target이나 이미 등록된 표적에 연관된 수신 Target에는 새 ID를 발급하지 않는다.
+기존 UNREGISTERED 상태는 ID와 알고리즘이 없는 불변 Observation으로 표현한다.
+SEARCH의 신규 후보는 DetectionHandler가 자신이 소유한 TrackIdGenerator.nextId()로 다음 ID를 조회하고
+TrackFactory로 TentativeTrack을 생성한 뒤 Repository.add(tentativeTrack)에 전달한다.
+Repository.add(track)으로 이미 생성된 Track도 저장할 수 있다.
+저장소는 ID의 중복 여부를 검사한다. ID 발급 순서나 콘솔 ID 범위는 저장소에서 검사하지 않는다.
+DetectionHandler는 저장에 성공한 뒤에만 TrackIdGenerator.commit()으로 다음 ID를 진행시킨다.
+TentativeTrack은 최초 관측과 알고리즘을 소유한다. initialize(observation)은 시각을 검사한 뒤 알고리즘에 초기화를 위임하고, 반환 시각 계약을 검증한 추적 상태를 반환한다. confirm(observation)은 initialize()를 한 번 호출하고 성공한 상태로 TrackFactory에 Track 생성을 요청한다. 두 연산 모두 최초 관측을 변경하지 않는다.
+Track은 항상 추적 상태를 소유하고 update(), predict(), recordTrackingMiss()를 제공한다.
+TargetState 분기나 추적 상태 존재 여부로 객체의 역할을 판단하지 않는다.
 
-    입력 검증
-      → Plot마다 UNREGISTERED Target 생성
-      → 저장 Target과 Matcher로 연관
-      → 신규 하나만 add() / 기존 Target은 confirm() 또는 update()
-      → RequestBeamCommand 생성
+    DetectionEvent → DetectionResultFactory → ObservationFactory → Observation 목록
+      → 요청 ID·송신 시각·관측 목록으로 타입별 DetectionResult 생성
+      → SEARCH의 신규 후보: TentativeTrack 등록
+      → CONFIRMATION의 연관 성공: 같은 ID의 Track으로 전환
+      → TRACKING의 연관 성공: Track 갱신
+      → RequestBeamCommand / TrackEvent
 
-등록 과정의 registerAs()는 private이며 Repository만 호출할 수 있다.
-이미 등록된 Target의 재등록은 거부한다.
-저장 성공 후에만 다음 ID를 증가시키고, 삭제된 ID는 재사용하지 않는다.
-현재 TrackEvent.id가 uint16_t이므로 ID 범위는 1~65535이며 소진 시 등록 전에 예외를 발생시킨다.
+DetectionHandler가 TrackFactory.from(tentative, observation)으로 계산·검증·할당을 마친 Track을 생성한다.
+계산 중 예외가 발생하면 저장된 잠정 표적은 그대로 유지한다. 결과가 없으면 DetectionHandler가 기존 정책대로 삭제한다.
+생성에 성공하면 Repository.replace(track)이 같은 ID의 객체를 기존 list 노드 안에서 교체한다.
+replace()는 관측이나 추적 알고리즘을 받지 않으며, 해당 ID가 없으면 false를 반환한다.
+전환 과정에서 ID와 등록 순서를 유지한다.
+list를 사용하므로 다른 표적 삭제 시 남은 객체나 추적 상태를 재구성하지 않는다.
+전환된 TentativeTrack과 삭제된 객체의 참조는 재사용하지 않으며 조회 결과를 Selector 멤버에 저장하지 않는다.
+TrackIdGenerator는 저장 성공 후에만 다음 ID를 증가시키며, 삭제된 ID는 다시 발급하지 않는다.
+현재 TrackEvent.id가 uint16_t이므로 발급 범위는 1~65535이며 소진 시 nextId()가 등록 전에 예외를 발생시킨다.
 범위 확대에는 DTO와 콘솔 계약 변경이 필요하다.
-그리드 ID나 수신 빔 requestId를 새 Target ID로 사용하지 않는다.
+그리드 ID나 수신 빔 requestId를 새 표적 ID로 사용하지 않는다.
 
 ## 객체별 역할
 
 | 객체 | 역할과 주요 메서드 |
 |---|---|
-| TargetController | 입력 검증·Target 변환, 빔 타입별 처리 연결, RequestBeamCommand·TrackEvent 생성 |
-| TentativeSelector | selectNewCandidate(targets): 저장된 Tentative·Tracking 모두와 비교하여 첫 신규 Target 인덱스 선택 |
-| TrackSelector | selectObservation(requestId, resultTime, targets): 요청 표적을 조회하고 Matcher로 수신 Target 하나 선택 |
-| DetectionMatcher | matchesPosition: 탐색 중복 비교. matchesConfirmation: 확인 연관. matchesTracking: 추적 연관 |
-| Target | 최초 측정·ID·추적 상태·실패 횟수 관리, confirm/update/predict에서 주입된 알고리즘 호출 |
-| TargetRepository | add/find/remove/targets: 등록·조회·삭제·소유. 다음 ID 및 그리드별 처리 시각 관리 |
-| ITrackingAlgorithm | Target 입력으로 initialize/update/predict 계산, 도메인 상태·예측 결과 반환 |
+| TargetController | 탐지 DTO 변환·핸들러 호출, 보고 순서·한도 적용 |
+| DetectionHandler | 검증된 결과 타입별 처리, 그리드별 탐색 처리 시각 관리, 표적 등록·확인·갱신·삭제, 빔 요청 생성 |
+| TrackIdGenerator | 다음 표적 ID 조회, 저장 성공 후 발급 확정, 콘솔 ID 범위·소진 관리 |
+| DetectionResultFactory | DTO를 검증된 결과 하위 타입으로 변환 |
+| ObservationFactory | Plot 목록을 순수 측정 Observation 목록으로 변환 |
+| TrackFactory | TentativeTrack 생성, from(tentative, observation)은 확인을 표적에 위임, 검증된 상태로 Track 생성 |
+| TentativeSelector | 저장된 잠정·추적 표적 모두와 비교하여 첫 신규 관측 선택 |
+| TrackSelector | selectConfirmation/selectObservation: 타입별 조회와 최소 NDS 관측 선택 |
+| DetectionMatcher | 잠정/추적 타입별 탐색 중복 비교, 확인·추적 연관 점수 계산 |
+| NdsAlgorithm | 공분산 검증·대칭 보정·Cholesky 분해와 잔차의 NDS 계산 |
+| Observation | ID나 알고리즘이 없는 유효한 불변 관측 |
+| TentativeTrack | 최초 관측 보존, initialize/confirm으로 초기화 위임·시각 계약 검증·확인 연결 |
+| Track | ID·추적 상태·미탐 이력 관리, update/predict/toTrackEvent |
+| TrackRepository | add/findTentative/findTrack/replace/remove/targets, 객체 저장·조회·교체·삭제와 ID 중복 검사 |
+| ITrackingAlgorithm | Observation과 Track 입력으로 initialize/update/predict 계산 |
 | ConstantAccelerationAlgorithm | 두 점 차분 초기화, CA 선형 칼만필터 관측 보정, 위치·공분산 예측 |
 | ConstantVelocityAlgorithm | 공분산을 제공하지 않는 기존 등속도 전략. Controller에서는 사용하지 않음 |
-| TargetConfig | 연관 기준·측정 잡음·공정 잡음·빔 요청 간격·연속 미탐 한도 설정 |
+| TargetConfig | 연관·측정·추적·표적 관리 설정의 조합 |
 
-Controller 생성자는 app에서 주입받은 Config를 보관하고 Repository, Matcher, 추적 알고리즘과 두 Selector를 한 번 생성하여 의존성을 연결한다.
-두 Selector는 const TargetRepository&와 const DetectionMatcher&를 생성자로 주입받는다.
+TargetController 생성자는 app에서 주입받은 TargetConfig에서 표적 관리 설정의 복사본을 보관하고 Repository, Matcher, 추적 알고리즘, 두 Selector와 DetectionHandler를 한 번 생성하여 의존성을 연결한다. 핸들러는 표적 관리 설정을 복사하고 Repository·TrackFactory·Selector 참조를 주입받는다. 참조 대상은 핸들러보다 오래 살아야 하며 Controller가 함께 소유한다.
+두 Selector는 const TrackRepository&와 const DetectionMatcher&를 생성자로 주입받는다.
 처리 도중 별도 Matcher나 Selector를 만들지 않으며, 저장소 변경은 다음 조회에 그대로 반영된다.
 Selector는 vector 요소의 포인터나 참조를 멤버에 보관하지 않는다.
-Controller 복사본은 Config·Repository·Matcher·Selector·알고리즘 객체 구성을 함께 공유한다.
+DetectionHandler는 이미 조회한 TentativeTrack 또는 Track을 Selector의 참조 오버로드에 전달하여 같은 ID를 다시 조회하지 않는다. ID 기반 조회 오버로드도 유지한다.
+TargetController 복사본은 표적 관리 설정·Repository·Matcher·Selector·알고리즘·DetectionHandler 객체 구성을 함께 공유한다. 핸들러가 소유한 ID 생성기와 탐색 처리 이력도 함께 공유된다. 원본 Controller가 소멸한 뒤에도 복사본이 핸들러와 참조 대상들을 유지한다.
 외부 app은 공개 헤더 include/target/config/target_config.hpp의 TargetConfig를 생성하여 TargetController(const TargetConfig&)에 명시적으로 주입한다.
-설정 필드 10개는 private으로 보관하며, 전체 설정값을 받는 생성자로 초기화한 뒤 const 접근자로만 조회한다. 잘못된 설정은 Config 생성 시 거부한다.
-Controller는 전달받은 Config의 읽기 전용 복사본을 소유하여 호출자 객체의 수명에 의존하지 않는다. 이 설정을 Matcher와 ConstantAccelerationAlgorithm에 전달하고 요청 시각·미탐 한도 처리에도 사용한다.
+TargetConfig는 BeamConfig처럼 검증된 하위 설정 네 개를 public 멤버로 조합한다. 개별 설정값은 각 하위 설정의 private 필드로 보관하고 const 접근자로 조회한다. 하위 설정은 생성자에서 값을 검증하며, 상위 설정은 검증을 반복하지 않는다.
+
+| 하위 설정 | 소유 값 | 사용처 |
+|---|---|---|
+| association: AssociationConfig | maxAssociationSpeed, maxInitialDopplerDifference, positionNdsThreshold | DetectionMatcher |
+| measurement: MeasurementConfig | standardDeviation | DetectionMatcher, ConstantAccelerationAlgorithm |
+| tracking: TrackingConfig | initialAccelerationStandardDeviation, processAccelerationStandardDeviation | ConstantAccelerationAlgorithm |
+| trackManagement: TrackManagementConfig | confirmationDelay, trackingInterval, maxConsecutiveTrackingMisses, maxReportedTrackCount | DetectionHandler의 요청·미탐 정책, TargetController의 보고 한도 |
+
+측정 잡음은 MeasurementConfig 하나에서 두 계산 객체에 전달하므로 연관과 필터가 같은 값을 사용한다. Matcher와 알고리즘은 TargetConfig 전체에 의존하지 않는다. 각 사용처는 필요한 설정을 복사하여 호출자 객체의 수명이나 이후 하위 설정 교체에 의존하지 않는다.
+모든 설정은 Builder도 제공한다. 필수 값이 빠지면 build()에서 std::logic_error를 발생시키며, 유효하지 않은 값은 하위 설정 생성자에서 std::invalid_argument로 거부한다. 명시적으로 전달한 0은 허용되는 설정에서 그대로 유지한다.
 
 ```cpp
 using namespace math::literals;
 using namespace std::chrono_literals;
 
-const target::TargetConfig targetConfig(
-    1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 10_mps2);
+const auto targetConfig = target::TargetConfig::Builder()
+    .associationConfig(target::AssociationConfig(1000_mps, 30_mps, 11.345))
+    .measurementConfig(target::MeasurementConfig(7_m))
+    .trackingConfig(target::TrackingConfig(10_mps2, 10_mps2))
+    .trackManagementConfig(target::TrackManagementConfig(100ms, 1000ms, 3, 100))
+    .build();
 target::TargetController targetController(targetConfig);
 ```
 
-Config 구현은 src/config/target_config.cpp에 두며, Controller에서 기본 설정을 암묵적으로 생성하거나 별도의 정적 설정 함수를 사용하지 않는다.
+Config 구현과 하위 설정별 검증은 src/config/의 대응하는 cpp 파일에 둔다. Controller에서 기본 설정을 암묵적으로 생성하거나 별도의 정적 설정 함수를 사용하지 않는다.
 
-app은 `.env`의 필수 설정을 읽어 TargetConfig를 생성한다. 생성자 기본값은 없으며, `.env.example`의 시작 설정은 다음과 같다. 설정 생성 시 한 번 검증한다.
+app은 기존 `.env`의 필수 키와 단위를 유지하여 하위 설정을 생성한 뒤 TargetConfig로 조합한다. 생성자 기본값은 없으며, `.env.example`의 시작 설정은 다음과 같다. 하위 설정 생성 시 한 번 검증한다.
 
 | 설정 | 시작 설정 |
 |---|---|
@@ -106,13 +160,13 @@ app은 `.env`의 필수 설정을 읽어 TargetConfig를 생성한다. 생성자
 측정 표준편차와 초기 가속도 표준편차는 양수이며, 각 분산과 2배 측정 분산은 유한한 양수여야 한다. 초기 가속도 표준편차는 math::LinearAcceleration으로 전달한다. 임계값과 속력·도플러 한도는 음수가 될 수 없다.
 공정 가속도 교란 표준편차는 math::LinearAcceleration으로 전달하며 0 이상이어야 한다. 제곱한 분산은 유한해야 하고 양수 표준편차의 제곱이 0으로 언더플로하는 설정도 거부한다. 0은 기존 Q=0 동작을 보존한다.
 요청 간격과 연속 미탐 한도는 양수여야 하며, 잘못된 설정은 std::invalid_argument를 발생시킨다.
-보고 개수는 TargetConfig::MAXIMUM_REPORTED_TRACK_COUNT(100)를 상한으로 1~100에서 설정한다. app이 Config 생성 시 더 작은 값을 주입할 수 있으며, Controller는 maxReportedTrackCount를 참조한다.
+보고 개수는 TrackManagementConfig::MAXIMUM_REPORTED_TRACK_COUNT(100)를 상한으로 1~100에서 설정한다. app이 하위 설정 생성 시 더 작은 값을 주입할 수 있으며, Controller는 trackManagement의 maxReportedTrackCount를 참조한다.
 공정 잡음은 `TARGET_PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2=10`으로 설정한다. 5와 비교하려면 이 값만 5로 바꾸고 앱을 재시작한다. 기존 `.env`에도 이 필수 키를 추가해야 한다.
 
 ## 연관과 추적 계산
 
-모든 탐지 연관은 src/calculation/association/의 DetectionMatcher를 거친다.
-확인 분기에서도 Target.canConfirm()을 호출하지 않는다.
+모든 탐지 연관은 src/service/의 DetectionMatcher를 거친다.
+확인과 추적 연관은 각각 TentativeTrack과 Track만 받는다.
 
 - matchesPosition(observation, other): Tentative는 최초 위치에서 1000m/s × 두 탐지의 시간 차이만큼 이동할 수 있다고 보고, 그 범위를 벗어난 잔여 위치 차이의 NDS가 임시 99% 기준인 11.345 이하이면 탐색 중복으로 판단한다. Tracking은 수신 시각의 예측 위치와 비교하되, 최근 관측보다 과거인 탐색 결과는 최신 저장 위치와 시간 차이로 같은 이동 범위 보정을 적용한다.
 - matchesConfirmation(observation, tentative): 두 점의 안테나 좌표계 Cartesian 거리 / 실제 시간 차이가 1000m/s 이하이고 측정 도플러 차이가 30m/s 이하인 탐지의 NDS 점수를 반환한다. TrackSelector가 가장 작은 점수 하나를 선택한다.
@@ -125,47 +179,48 @@ Tentative 탐색 중복의 허용거리는 1000m/s × |현재 탐지 시각 − 
 기본 설정의 98I 공분산과 11.345 기준에서는 측정오차 허용거리가 약 33.34m이며, 이동 가능한 거리 안의 중복 점수는 0이다.
 최초 관측은 갱신하지 않는다. Tentative는 등방성 2σ²I를 사용한다. 과거 SEARCH와 Tracking의 비교는 저장 위치 공분산에 측정 공분산을 더하고, 이동 가능한 거리만큼 잔차를 줄인 뒤 점수를 구한다. 이는 과거 결과의 중복 억제를 위한 보수적 처리이며 역방향 필터링은 아니다.
 Matcher는 추적 상태를 초기화하거나 변경하지 않는다.
-TrackSelector가 연관에 성공한 Target 하나를 선택하면, 기존 Target.confirm()이 추적 알고리즘을 한 번 호출하여 초기화한다.
+TrackSelector가 연관에 성공한 관측 하나를 선택하면 TentativeTrack.confirm()이 initialize()를 통해 자신의 추적 알고리즘에 초기화를 한 번 위임한다.
 연관 통과와 추적 초기화 성공은 별도 조건이며, 선택 후 초기화가 실패하면 확인 실패로 삭제한다.
 확인 분기에 완전 위치 일치 조건을 추가하지 않으므로 이동한 정상 표적도 확인 조건으로 판단한다.
 
-추적 인터페이스와 구현체는 src/calculation/tracking/에 둔다.
+추적 인터페이스는 src/domain/tracking_algorithm.hpp에, 구현체는 src/algorithm/에 둔다.
 
-    initialize(const Target& first, const Target& second)
-    update(const Target& current, const Target& observation)
-    predict(const Target& current, milliseconds time)
+    initialize(const Observation& first, const Observation& second)
+    update(const Track& current, const Observation& observation)
+    predict(const Track& current, milliseconds time)
 
 반환 형식은 domain/tracking_state.hpp의 TargetTrackingState 및 TargetPrediction이다.
-Target마다 자신의 상태를 보관하고 shared_ptr<const ITrackingAlgorithm>으로 무상태 계산 객체를 공유한다.
-알고리즘은 입력 Target을 수정하지 않는다.
-Repository는 추적 알고리즘에 의존하지 않고 이미 생성된 Target을 보관한다.
-저장한 추적 상태는 shared_ptr<const TargetTrackingState>로 소유한다. 새 상태의 생성·검증·복사를 모두 마친 뒤 포인터를 교체하여, 행렬 복사에 실패해도 이전 상태를 보존한다. Target 이동 시에는 상태 포인터만 이동하므로 Repository 삭제 과정에서 행렬을 다시 복사하지 않는다.
+Track마다 자신의 상태를 보관하고 shared_ptr<const ITrackingAlgorithm>으로 무상태 계산 객체를 공유한다.
+알고리즘은 입력 관측과 Track을 수정하지 않는다.
+TrackFactory는 생성자에서 주입받은 추적 알고리즘을 생성하는 TentativeTrack에 전달한다. Controller는 알고리즘이 주입된 팩토리를 보관하고, DetectionHandler가 팩토리로 생성한 객체를 Repository에 전달한다. 저장소의 add()는 팩토리에 의존하지 않는다. 정적 from(tentative, observation)은 tentative.confirm(observation)에 위임한다. TentativeTrack이 초기화와 반환 시각 검증을 마친 뒤 비공개 from(id, initialTime, state, algorithm)에 검증된 값과 알고리즘 소유권을 전달하여 ID·최초 시각을 유지한 Track을 생성한다. 팩토리는 TentativeTrack의 private 필드에 접근하거나 알고리즘을 실행하지 않는다. Track 생성자는 비공개이며 TrackFactory만 직접 호출할 수 있다.
+저장한 추적 상태는 shared_ptr<const TargetTrackingState>로 소유한다. 알고리즘이 반환한 상태는 공분산을 복사하지 않고 이동한다. 새 상태의 생성·검증·할당을 모두 마친 뒤 포인터를 교체하여, 실패 시 이전 상태를 보존한다. Track 이동 시에는 상태 포인터만 이동하고 Repository 삭제 과정에서도 행렬을 복사하지 않는다.
 
-Target, TargetTrackingState, TargetPrediction은 생성자에서 각자의 private validate()를 호출한다.
+Observation, TentativeTrack, TargetTrackingState, TargetPrediction은 생성자에서 각자의 계약을 검사한다. Track은 확인에 성공한 TentativeTrack만 생성한다.
 추적 상태와 예측 결과는 모든 필드가 const이며, 생성 후 외부에서 필드를 바꿀 수 없다.
-Target의 상태 변경에서는 새 상태 객체의 생성 검증을 신뢰하고, 수신 시각과 반환 시각의 일치 등 변경 조건만 확인한다.
+Track의 상태 변경에서는 새 상태 객체의 생성 검증을 신뢰하고, 수신 시각과 반환 시각의 일치 등 변경 조건만 확인한다.
 이미 저장된 상태를 조회·연관·예측에 사용할 때 유효성을 재검사하지 않는다.
 유효하지 않은 생성 값이나 알고리즘의 시각 계약 위반은 예외를 발생시키며, 상태 반영 전 검사하므로 기존 상태·시각·미탐 횟수를 보존한다.
 연관 실패·과거 결과·잘못된 상태에 대한 처리 조건과 실제 계산 실패의 false/nullopt는 유지한다.
 필터 추정값이 수신 측정값과 같아야 한다는 조건은 두지 않는다.
-최초 측정값은 별도 필드에 보존하고 현재 값 getter는 Tracking일 때 최근 추적 상태를 반환한다.
+잠정 표적은 최초 관측을 보존하고, Track은 최초 시각과 최근 추적 상태를 보존한다. 현재 값 getter는 최근 추적 상태를 반환한다.
 예측은 저장 상태와 관측 시각을 앞당기지 않는다.
 
 position은 math::CartesianPosition, velocity는 math::CartesianVelocity이다.
-acceleration은 math::Vector로 저장하는 [ax, ay, az]이며, 세 성분의 단위는 m/s²이다. 현재 math에 가속도 전용 물리량이 없어 기존 벡터 API를 사용한다. 생성 시 크기 3과 유한한 성분을 검사한다.
+acceleration은 math::CartesianAcceleration이며, 각 축은 math::LinearAcceleration으로 표현한다.
 errorCovariance는 선택적인 math::SquareMatrix이며, 있을 때는 9×9이다. 상태 순서는 [px, py, pz, vx, vy, vz, ax, ay, az]이고, 각 원소의 단위는 대응하는 두 상태 성분의 단위 곱이다.
 Controller가 사용하는 CA 알고리즘은 초기 가속도 [0, 0, 0]과 두 점 차분으로 계산한 공분산을 반환한다. 기존 등속도 전략의 공분산 미설정은 불확실성이 0이라는 뜻이 아니다.
 공분산 생성 검사는 크기·유한성·정확한 대칭·대각 원소의 비음수 여부까지 수행한다. 이는 양의 준정부호를 보장하는 검사가 아니며, 공분산을 생성하는 알고리즘이 그 성질을 보장해야 한다. 현재 math에는 양의 준정부호 검사 API가 없고, 양의 정부호만 허용하는 Cholesky로 이 조건을 대체하지 않는다.
 안테나 고정 좌표계는 math와 동일하게 방위각 0도 방향 y, 방위각 +90도 방향 x, 위쪽 z를 사용한다.
-Target의 최초 위치와 추적 상태·예측 결과의 구면 위치는 math::SphericalPosition으로 저장한다.
-Target.sphericalPosition()은 저장된 구면 위치의 const 참조를 반환하며, 조회할 때 좌표 객체를 다시 생성하지 않는다.
+Observation과 추적 상태·예측 결과의 구면 위치는 math::SphericalPosition으로 저장한다.
+Track.sphericalPosition()은 저장된 구면 위치의 const 참조를 반환하며, 조회할 때 좌표 객체를 다시 생성하지 않는다.
 구면·직교 위치 변환은 math::SphericalPosition::toCartesian()과 math::CartesianPosition::toSpherical()에 위임한다.
 모든 도메인 구면 위치의 방위각은 math의 [0, 360)도 기준으로 정규화된다.
 위치 뺄셈은 math::CartesianDisplacement를 반환한다. Matcher는 toVector()로 NDS 입력을 얻고, 초기화·갱신 알고리즘은 toVelocity()로 속도 벡터를 계산한다.
 확인·추적은 적합한 모든 탐지의 NDS 점수를 비교하여 최소 점수 하나를 선택하며, 동점이면 입력 순서상 첫 탐지를 유지한다. 추적만 위치 NDS 게이트를 적용하고 확인의 속력·도플러 조건과 무게이트 순위 계산은 유지한다.
+추적 관측 선택은 한 결과의 첫 시각 일치 관측에서 TrackingAssociation을 생성하고 예측 위치와 분해된 공분산을 보관한 NdsAlgorithm을 나머지 관측과 공유한다. 예측·분해 실패도 해당 선택 호출 안에서만 재사용하며, 다음 호출에서는 다시 계산한다. 빈 결과·시각 불일치 관측·과거 결과에는 예측을 실행하지 않는다. TrackingAssociation은 표적 참조를 보관하지 않으며 선택이 끝나면 폐기한다.
 CA 계산의 위치(m)·속도(m/s)·가속도(m/s²) 숫자 벡터 구성은 추적 알고리즘 내부에서 처리한다. 새 알고리즘은 직교 위치를 기준으로 계산하고 구면 위치는 math API로 변환하여 함께 반환한다.
 별도의 좌표 변환 보조 헤더는 사용하지 않는다. cmath는 유한값 검사에만 사용한다.
-NDS는 math::cholesky()와 SquareMatrix::solveLowerTriangular()로 계산하며, 분해·연립방정식 풀이의 계산 실패는 점수 없음으로 처리한다.
+NDS 계산은 src/algorithm/nds_algorithm.hpp의 NdsAlgorithm에 위임한다. from(covariance)은 검증·대칭 보정·math::cholesky() 분해 결과를 소유하는 객체를 반환하며, calculate(residual)은 SquareMatrix::solveLowerTriangular()로 r^T S^-1 r을 계산한다. 일회 계산을 위한 calculate(residual, covariance)도 제공한다. 3차원 크기 불일치·비유한 입력·분해 또는 풀이 실패·점수 오버플로는 점수 없음으로 처리한다. NdsAlgorithm은 DTO·표적·설정에 의존하지 않으며 게이트를 적용하지 않는다. Matcher는 잔차·공분산 구성과 속력·도플러·NDS 게이트 정책을 담당한다.
 유효한 두 위치라도 변위나 속력이 수치 범위를 넘으면 Matcher는 계산 실패로 점수 없음을 반환한다.
 기존 대칭 허용오차를 통과한 공분산의 비대각 원소는 같은 평균값으로 맞춘 뒤 분해한다.
 별도의 detection_validation 파일은 제거하고 객체별 검증을 도메인 내부로 옮겼다.
@@ -227,30 +282,30 @@ TargetPrediction은 예측 시각의 구면 위치와 3×3 위치 공분산을 �
 ### SEARCH
 
 1. 그리드별 과거·중복 결과를 무시한다.
-2. 수신 Target들을 저장된 Tentative·Tracking 모두와 Matcher로 비교한다.
-3. 첫 신규 Target 하나만 등록한다. 새 ID와 최초 측정·시각을 보존한다.
+2. 수신 Observation들을 저장된 Tentative·Tracking 모두와 Matcher로 비교한다.
+3. 첫 신규 관측 하나만 등록한다. 새 ID와 최초 측정·시각을 보존한다.
 4. 해당 위치로 실제 송신 시각 +100ms의 확인 요청 하나를 반환한다.
 5. 나머지 신규 물체는 다음 탐색에서 발견되면 다시 등록을 검토한다.
 
 ### CONFIRMATION
 
 1. 요청 ID의 Tentative를 찾는다. 잘못된 ID·상태·과거·중복 결과는 무시한다.
-2. TrackSelector가 Matcher.matchesConfirmation()으로 수신 Target 하나를 선택한다.
+2. TrackSelector가 Matcher.matchesConfirmation()으로 수신 Observation 하나를 선택한다.
 3. 선택된 Target으로 초기화에 성공하면 같은 ID의 Tracking으로 전환한다.
 4. 실제 송신 시각 +1000ms의 예측 위치로 추적 요청 하나를 반환한다.
 5. 빈 결과·연관 실패·초기화 실패이면 Tentative를 삭제한다.
-6. 다른 수신 Target은 등록하거나 갱신에 사용하지 않는다.
+6. 다른 수신 Observation은 등록하거나 갱신에 사용하지 않는다.
 
 ### TRACKING
 
 1. 요청 ID의 Tracking만 처리한다. 잘못된 ID·상태·과거·중복 결과는 무시한다.
-2. TrackSelector가 Matcher.matchesTracking()의 게이트를 통과한 수신 Target 중 최소 NDS 하나를 선택한다.
+2. TrackSelector가 Matcher.matchesTracking()의 게이트를 통과한 수신 Observation 중 최소 NDS 하나를 선택한다.
 3. 선택된 Target으로 기존 표적을 갱신하고, 실제 송신 시각 +1000ms의 추적 요청 하나를 반환한다.
 4. 빈 결과·연관 실패·갱신 실패는 연속 실패 횟수를 1 증가시킨다.
 5. 1·2회 실패는 최근 측정 상태를 보존하고 다음 시각으로 위치를 다시 예측한다.
 6. 3회 연속 실패하면 삭제하며, 정상 갱신 시 실패 횟수는 0으로 초기화한다.
 7. 미탐 결과 처리 시각은 보관하지만 최근 관측 시각은 변경하지 않는다.
-8. 다른 수신 Target은 등록하거나 다른 표적 갱신에 사용하지 않는다.
+8. 다른 수신 Observation은 등록하거나 다른 표적 갱신에 사용하지 않는다.
 
 확인 성공 직후와 추적 갱신·미탐 후에 다음 요청 위치를 예측할 수 없으면 즉시 Target을 삭제한다.
 이는 연속 미탐 3회 삭제와 별개다.
@@ -282,15 +337,35 @@ Beam Scheduler는 확인·추적 요청의 requestId를 BeamCommand.beamId로 �
 
 ## 검증
 
+detection_handler_test.cpp는 Controller 없이 핸들러에 검증된 결과를 전달하여 등록·확인·갱신·미탐 삭제·ID 보존, 잘못된 단계·과거 결과 무시와 요청 시각 오버플로 전 상태 보존·최종 미탐 삭제를 확인한다.
+빈 탐색 결과의 그리드별 이력 갱신, 오래된 결과 무시와 등록 실패 후 ID·처리 이력을 보존한 재시도도 확인한다.
+track_id_generator_test.cpp는 저장 확정 전 ID 보존, 순차 발급과 65535 소진 후 재사용·순환 방지를 검증한다.
+nds_algorithm_test.cpp는 상관 공분산의 독립 계산값, 게이트 밖 점수, 분해 결과의 소유·재사용, 차원·비유한 값·특이/부정부호 공분산 거부, 대칭 허용오차와 작은 점수·수치 오버플로를 검증한다.
+target_config_test.cpp는 설정 조합과 하위 Builder의 필수 값 누락, 분산 검증, 명시적 0 허용, 필요한 하위 설정만 받는 계산 객체의 생성 계약과 호출자 설정 교체 후 Controller의 상태 보존을 확인한다.
+target_lifecycle_test.cpp는 결과 타입·불변 스냅샷·메타데이터 검증·등록 및 전환·확인 선택·시각 경계와 잘못된 입력의 상태 보존을 확인한다.
+저장소는 미리 생성된 두 표적 타입의 등록, ID 중복 거절, 기존 ID만 교체하는 계약과 교체 시 등록 순서 보존을 검증한다.
+세 빔 타입 모두에서 빈 관측 결과의 메타데이터와 여러 관측의 순서·값을 보존하며, 원본 DTO 변경이 생성된 결과에 영향을 주지 않는지도 검증한다.
+Controller 복사·대입으로 공유한 핸들러와 저장소가 원본 소멸 후에도 유효한지 확인한다. 구체 Controller의 설정 주입과 복사 계약은 정적 검사로 검증한다.
+TrackFactory의 직접 Track 생성, 팩토리·잠정 표적이 소멸한 뒤 알고리즘 수명 유지와 생성 실패 후 재시도도 수명주기·도메인 검증 테스트에서 확인한다.
+TentativeTrack의 초기화 위임은 시도별 호출 횟수, 과거·중복 시각의 호출 생략, 직접 초기화·팩토리 확인·표적 확인 경로와 실패 후 최초 관측 보존·재시도도 검증한다.
 test/의 기존 immutable_geometry_test.cpp는 추적 상태 교체·표적 삭제·보고와 math 좌표축 기준을 확인한다.
 domain_validation_test.cpp는 생성 예외, 상태 보존, 불변 필드 및 설정 주입을 검증한다.
 tracking_association_test.cpp는 추적 NDS의 3차원 잔차·예측 시각·게이트·최소 점수 선택과 미탐·ID 보존을 검증한다.
+같은 테스트는 배치별 예측 1회, 갱신 후 재계산, 예측 불필요 입력의 호출 생략, 실패 재시도 범위와 비양의 정부호 혁신 공분산 거부도 확인한다.
 tracking_state_test.cpp는 가속도·공분산의 기본값·구조 검증·불변성·상태 교체·미탐 보존·표적 삭제 후 값 보존을 검증한다.
 constant_acceleration_algorithm_test.cpp는 초기 P, CA 전이, 관측 보정의 독립 계산값, 축간 상관, 가속도 학습, 시간·수치 경계와 설정 검증을 확인한다.
 kalman_controller_test.cpp는 실제 Controller의 필터 좌표 보고, 예측 공분산 게이트와 최소 점수 선택, 3축 정가속·잡음 관측 및 미탐 예측을 검증한다.
 track_reporting_limit_test.cpp는 보고 개수 경계, Tentative 제외, 조회의 비소비성 및 보고에서 제외된 표적의 추적·삭제 후 보고 편입을 확인한다.
-전체 프로젝트 빌드·기존 프로젝트 테스트와 저장소 밖의 Target 회귀 검증으로 변경을 확인한다.
-외부 회귀 검증은 MSVC C++17 /W4 /WX로 실제 Target 소스를 컴파일한다.
-전체 프로젝트 빌드와 프로젝트 테스트 381개를 통과했다. 보고 한도 2개 주입과 1~100 설정 검증을 포함한다. 실제 Tracking 101개를 생성하여 앞 100개가 Comm에서 8824바이트 메시지로 정상 인코딩되고, 보고되지 않은 101번째도 추적 요청을 계속 반환함을 확인했다.
-CA 계산은 별도의 NumPy 계산과 축간 상관이 있는 9차원 공분산의 3회 갱신·예측 결과 306개를 비교해 최대 절대 오차 약 3.4e-13으로 일치함을 확인했다.
-실제 모의기·Comm·운용 콘솔의 통합 실행은 이번 변경 범위에 포함하지 않는다.
+MSVC C++17 Debug / Visual Studio 18 2026 전체 빌드와 CTest 573개를 통과했다.
+연관 계산 재사용 리팩터링에는 배치 처리 회귀 테스트 4개를 추가했고, TrackFactory 통합에는 직접 생성과 알고리즘 수명·생성 실패 후 재시도 테스트 2개를 추가했다.
+Controller 복사·대입에는 핸들러와 저장소의 수명 보존 회귀 테스트 1개를 유지한다.
+TargetConfig 분리에는 Builder와 하위 설정 주입·수명 보존 회귀 테스트 7개를 추가했다.
+초기화 위임에는 호출 횟수·최초 관측 보존·실패 후 재시도 회귀 테스트 2개를 추가했다.
+NdsAlgorithm 분리에는 수치 계산·실패 경계·분해 결과 재사용 독립 테스트 8개를 추가했다.
+DetectionHandler 분리에는 수명주기·과거 결과·시각 오버플로 직접 테스트 3개를 추가했다.
+CA 계산의 초기화·공분산·관측 보정·공정 잡음과 Comm/app 파이프라인의 기존 테스트를 함께 실행한다.
+실제 모의기·장비·운용 콘솔을 연결한 통합 실행은 수행하지 않았다.
+
+## 추가 검토 후보
+
+- TargetController 복사본은 저장소와 알고리즘을 공유한다. 향후 독립 Controller가 필요한 사용처가 생기면 복사 금지 또는 명시적인 공유 API로 계약을 드러내는 방안을 검토한다.

@@ -1,6 +1,6 @@
 #include "constant_acceleration_algorithm.hpp"
 
-#include "domain/target.hpp"
+#include "domain/track.hpp"
 
 #include <math/geometry/cartesian_displacement.hpp>
 #include <math/geometry/cartesian_position.hpp>
@@ -28,8 +28,8 @@ constexpr std::size_t STATE_DIMENSION = TargetTrackingState::STATE_DIMENSION;
 
 double elapsedSeconds(
     std::chrono::milliseconds previous,
-    std::chrono::milliseconds current)
-{
+    std::chrono::milliseconds current
+) {
     return std::chrono::duration<double>(current - previous).count();
 }
 
@@ -53,8 +53,8 @@ math::Matrix measurementMatrix()
 std::optional<math::CartesianVelocity> initialVelocity(
     const math::CartesianPosition& first,
     const math::CartesianPosition& second,
-    double seconds)
-{
+    double seconds
+) {
     try
     {
         const auto velocity = (second - first).toVelocity(std::chrono::duration<double>(seconds));
@@ -113,10 +113,10 @@ struct PredictedState
 
 math::SquareMatrix processNoiseCovariance(
     double seconds,
-    math::LinearAcceleration standardDeviation)
-{
-    if (seconds == 0.0
-        || standardDeviation.equals(0_mps2, math::LinearAcceleration::NONE_TOLERANCE))
+    math::LinearAcceleration standardDeviation
+) {
+    if (seconds == 0.0 ||
+        standardDeviation.equals(0_mps2, math::LinearAcceleration::NONE_TOLERANCE))
     {
         return math::SquareMatrix(STATE_DIMENSION);
     }
@@ -140,8 +140,8 @@ math::SquareMatrix processNoiseCovariance(
 std::optional<PredictedState> predictState(
     const TargetTrackingState& state,
     std::chrono::milliseconds time,
-    math::LinearAcceleration processAccelerationStandardDeviation)
-{
+    math::LinearAcceleration processAccelerationStandardDeviation
+) {
     if (!state.errorCovariance() || time < state.timestamp())
     {
         return std::nullopt;
@@ -210,15 +210,18 @@ std::optional<math::CartesianVelocity> calculatedVelocity(const math::Vector& va
 
 } // namespace
 
-ConstantAccelerationAlgorithm::ConstantAccelerationAlgorithm(TargetConfig config)
-    : _config(std::move(config))
+ConstantAccelerationAlgorithm::ConstantAccelerationAlgorithm(
+    TrackingConfig config,
+    MeasurementConfig measurementConfig
+) : _config(std::move(config)),
+    _measurementConfig(std::move(measurementConfig))
 {
 }
 
 std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::initialize(
-    const Target& first,
-    const Target& second) const
-{
+    const Observation& first,
+    const Observation& second
+) const {
     const auto firstTime = first.lastObservationTime();
     const auto secondTime = second.lastObservationTime();
     if (secondTime <= firstTime)
@@ -234,7 +237,7 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::initialize(
     {
         return std::nullopt;
     }
-    const double sigma = _config.measurementStandardDeviation().m();
+    const double sigma = _measurementConfig.standardDeviation().m();
     const double measurementVariance = sigma * sigma;
     const double accelerationSigma = _config.initialAccelerationStandardDeviation().mps2();
     const double accelerationVariance = accelerationSigma * accelerationSigma;
@@ -264,12 +267,12 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::initialize(
 }
 
 std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
-    const Target& current,
-    const Target& observation) const
-{
+    const Track& current,
+    const Observation& observation
+) const {
     const auto& state = current.trackingState();
     const auto time = observation.lastObservationTime();
-    if (!state || time <= state->timestamp() || time <= current.lastResultTime())
+    if (time <= state->timestamp() || time <= current.lastResultTime())
     {
         return std::nullopt;
     }
@@ -283,7 +286,7 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
     const math::Vector measurement{observationPosition.x.m(),
         observationPosition.y.m(), observationPosition.z.m()};
     const auto measurementMapping = measurementMatrix();
-    const double sigma = _config.measurementStandardDeviation().m();
+    const double sigma = _measurementConfig.standardDeviation().m();
     const auto measurementNoise = math::SquareMatrix::identity(POSITION_DIMENSION) * (sigma * sigma);
     const auto crossCovariance = predicted->covariance.asMatrix() * math::transpose(measurementMapping);
     auto innovationCovariance = symmetricCovariance(
@@ -336,14 +339,10 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
 }
 
 std::optional<TargetPrediction> ConstantAccelerationAlgorithm::predict(
-    const Target& current,
-    std::chrono::milliseconds time) const
-{
+    const Track& current,
+    std::chrono::milliseconds time
+) const {
     const auto& state = current.trackingState();
-    if (!state)
-    {
-        return std::nullopt;
-    }
     const auto predicted = predictState(*state, time, _config.processAccelerationStandardDeviation());
     if (!predicted)
     {

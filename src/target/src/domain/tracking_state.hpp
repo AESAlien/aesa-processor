@@ -24,7 +24,8 @@ public:
     TargetPrediction(
         std::chrono::milliseconds timestamp,
         math::SphericalPosition sphericalPosition,
-        std::optional<math::SquareMatrix> positionCovariance = std::nullopt);
+        std::optional<math::SquareMatrix> positionCovariance = std::nullopt
+    );
 
     std::chrono::milliseconds timestamp() const noexcept;
     const math::SphericalPosition& sphericalPosition() const noexcept;
@@ -56,7 +57,8 @@ public:
             0_mps2,
             0_mps2,
             0_mps2),
-        std::optional<math::SquareMatrix> errorCovariance = std::nullopt);
+        std::optional<math::SquareMatrix> errorCovariance = std::nullopt
+    );
 
     const math::SphericalPosition& sphericalPosition() const noexcept;
     const math::LinearVelocity& dopplerVelocity() const noexcept;

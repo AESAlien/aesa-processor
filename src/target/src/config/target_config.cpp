@@ -1,112 +1,36 @@
 #include <target/config/target_config.hpp>
 
-#include <cmath>
 #include <stdexcept>
+#include <utility>
 
 namespace target
 {
 
-using namespace math::literals;
-
+// Each component validates its own values at construction.
 TargetConfig::TargetConfig(
-    math::LinearVelocity maxAssociationSpeed,
-    math::LinearVelocity maxInitialDopplerDifference,
-    math::Length measurementStandardDeviation,
-    double positionNdsThreshold,
-    std::chrono::milliseconds confirmationDelay,
-    std::chrono::milliseconds trackingInterval,
-    std::uint32_t maxConsecutiveTrackingMisses,
-    math::LinearAcceleration initialAccelerationStandardDeviation,
-    std::size_t maxReportedTrackCount,
-    math::LinearAcceleration processAccelerationStandardDeviation)
-    : _maxAssociationSpeed(maxAssociationSpeed)
-    , _maxInitialDopplerDifference(maxInitialDopplerDifference)
-    , _measurementStandardDeviation(measurementStandardDeviation)
-    , _positionNdsThreshold(positionNdsThreshold)
-    , _confirmationDelay(confirmationDelay)
-    , _trackingInterval(trackingInterval)
-    , _maxConsecutiveTrackingMisses(maxConsecutiveTrackingMisses)
-    , _initialAccelerationStandardDeviation(initialAccelerationStandardDeviation)
-    , _maxReportedTrackCount(maxReportedTrackCount)
-    , _processAccelerationStandardDeviation(processAccelerationStandardDeviation)
+    AssociationConfig association,
+    MeasurementConfig measurement,
+    TrackingConfig tracking,
+    TrackManagementConfig trackManagement
+) : association(std::move(association)),
+    measurement(std::move(measurement)),
+    tracking(std::move(tracking)),
+    trackManagement(std::move(trackManagement))
 {
-    validate();
 }
 
-const math::LinearVelocity& TargetConfig::maxAssociationSpeed() const noexcept
+TargetConfig TargetConfig::Builder::build() const
 {
-    return _maxAssociationSpeed;
-}
-
-const math::LinearVelocity& TargetConfig::maxInitialDopplerDifference() const noexcept
-{
-    return _maxInitialDopplerDifference;
-}
-
-const math::Length& TargetConfig::measurementStandardDeviation() const noexcept
-{
-    return _measurementStandardDeviation;
-}
-
-double TargetConfig::positionNdsThreshold() const noexcept
-{
-    return _positionNdsThreshold;
-}
-
-std::chrono::milliseconds TargetConfig::confirmationDelay() const noexcept
-{
-    return _confirmationDelay;
-}
-
-std::chrono::milliseconds TargetConfig::trackingInterval() const noexcept
-{
-    return _trackingInterval;
-}
-
-std::uint32_t TargetConfig::maxConsecutiveTrackingMisses() const noexcept
-{
-    return _maxConsecutiveTrackingMisses;
-}
-
-const math::LinearAcceleration& TargetConfig::initialAccelerationStandardDeviation() const noexcept
-{
-    return _initialAccelerationStandardDeviation;
-}
-
-std::size_t TargetConfig::maxReportedTrackCount() const noexcept
-{
-    return _maxReportedTrackCount;
-}
-
-const math::LinearAcceleration& TargetConfig::processAccelerationStandardDeviation() const noexcept
-{
-    return _processAccelerationStandardDeviation;
-}
-
-void TargetConfig::validate() const
-{
-    const double sigma = _measurementStandardDeviation.m();
-    const double variance = sigma * sigma;
-    const double differenceVariance = 2.0 * variance;
-    const double accelerationSigma = _initialAccelerationStandardDeviation.mps2();
-    const double accelerationVariance = accelerationSigma * accelerationSigma;
-    const double processSigma = _processAccelerationStandardDeviation.mps2();
-    const double processVariance = processSigma * processSigma;
-    if (_maxAssociationSpeed.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
-        || _maxInitialDopplerDifference.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
-        || sigma <= 0.0 || !std::isfinite(variance) || variance <= 0.0
-        || !std::isfinite(differenceVariance)
-        || !std::isfinite(_positionNdsThreshold) || _positionNdsThreshold < 0.0
-        || _confirmationDelay.count() <= 0 || _trackingInterval.count() <= 0
-        || _maxConsecutiveTrackingMisses == 0
-        || accelerationSigma <= 0.0
-        || !std::isfinite(accelerationVariance) || accelerationVariance <= 0.0
-        || processSigma < 0.0 || !std::isfinite(processVariance)
-        || (processSigma > 0.0 && processVariance == 0.0)
-        || _maxReportedTrackCount == 0 || _maxReportedTrackCount > MAXIMUM_REPORTED_TRACK_COUNT)
+    if (!_association || !_measurement || !_tracking || !_trackManagement)
     {
-        throw std::invalid_argument("Invalid Target configuration");
+        throw std::logic_error("TargetConfig::Builder requires every value");
     }
+
+    return TargetConfig(
+        *_association,
+        *_measurement,
+        *_tracking,
+        *_trackManagement);
 }
 
 } // namespace target

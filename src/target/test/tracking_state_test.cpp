@@ -1,6 +1,7 @@
-#include "calculation/tracking/constant_velocity_algorithm.hpp"
+#include "algorithm/constant_velocity_algorithm.hpp"
 #include "domain/tracking_state.hpp"
-#include "repository/target_repository.hpp"
+#include "domain/factory/track_factory.hpp"
+#include "repository/track_repository.hpp"
 
 #include <gtest/gtest.h>
 
@@ -22,7 +23,7 @@ using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
 
 static_assert(std::is_copy_assignable_v<TargetTrackingState>);
-static_assert(std::is_nothrow_move_constructible_v<Target>);
+static_assert(std::is_nothrow_move_constructible_v<Track>);
 
 math::SphericalPosition position(math::Length range = 1000_m)
 {
@@ -31,20 +32,17 @@ math::SphericalPosition position(math::Length range = 1000_m)
 
 TargetTrackingState state(
     math::CartesianAcceleration acceleration = math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
-    std::optional<math::SquareMatrix> covariance = std::nullopt)
-{
+    std::optional<math::SquareMatrix> covariance = std::nullopt
+) {
     return TargetTrackingState(position(), 0_mps, -10.0f, 100ms,
         math::CartesianPosition(0_m, 1000_m, 0_m),
         math::CartesianVelocity(0_mps, 0_mps, 0_mps),
         std::move(acceleration), std::move(covariance));
 }
 
-Target observation(
-    math::Length range,
-    Time time,
-    std::shared_ptr<const ITrackingAlgorithm> algorithm = std::make_shared<ConstantVelocityAlgorithm>())
+Observation observation(math::Length range, Time time)
 {
-    return Target(position(range), 0_mps, -10.0f, time, std::move(algorithm));
+    return Observation(position(range), 0_mps, -10.0f, time);
 }
 
 class EnrichedAlgorithm final : public ITrackingAlgorithm
@@ -57,17 +55,17 @@ public:
         WRONG_TIME
     };
 
-    std::optional<TargetTrackingState> initialize(const Target& first, const Target& second) const override
+    std::optional<TargetTrackingState> initialize(const Observation& first, const Observation& second) const override
     {
         return enrich(_algorithm.initialize(first, second), false);
     }
 
-    std::optional<TargetTrackingState> update(const Target& current, const Target& incoming) const override
+    std::optional<TargetTrackingState> update(const Track& current, const Observation& incoming) const override
     {
         return enrich(_algorithm.update(current, incoming), true);
     }
 
-    std::optional<TargetPrediction> predict(const Target& current, Time time) const override
+    std::optional<TargetPrediction> predict(const Track& current, Time time) const override
     {
         return _algorithm.predict(current, time);
     }
@@ -77,8 +75,8 @@ public:
 private:
     std::optional<TargetTrackingState> enrich(
         const std::optional<TargetTrackingState>& calculated,
-        bool updating) const
-    {
+        bool updating
+    ) const {
         if (!calculated)
         {
             return std::nullopt;
@@ -109,10 +107,14 @@ TEST(TrackingStateTest, ExistingConstructorAndConstantVelocityLeaveCovarianceUna
     EXPECT_EQ(legacy.acceleration().acceleration(), 0_mps2);
     EXPECT_FALSE(legacy.errorCovariance());
 
-    TargetRepository repository;
-    const auto id = repository.add(observation(1000_m, 0ms));
-    auto& target = *repository.find(id);
-    ASSERT_TRUE(target.confirm(observation(1010_m, 100ms)));
+    TrackRepository repository;
+    const auto id = repository.add(
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).from(
+            1, observation(1000_m, 0ms)));
+    auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(1010_m, 100ms));
+    ASSERT_TRUE(confirmedTrack);
+    ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
+    auto& target = *repository.findTrack(id);
     EXPECT_EQ(target.trackingState()->acceleration().acceleration(), 0_mps2);
     EXPECT_FALSE(target.trackingState()->errorCovariance());
     ASSERT_TRUE(target.update(observation(1020_m, 200ms)));
@@ -198,10 +200,12 @@ TEST(TrackingStateTest, RejectsNegativeDiagonalButAllowsExplicitSingularZeroCova
 TEST(TrackingStateTest, StoresAlgorithmStateAcrossUpdatesAndPreservesItDuringMisses)
 {
     const auto algorithm = std::make_shared<EnrichedAlgorithm>();
-    TargetRepository repository;
-    const auto id = repository.add(observation(1000_m, 0ms, algorithm));
-    auto& target = *repository.find(id);
-    ASSERT_TRUE(target.confirm(observation(1010_m, 100ms)));
+    TrackRepository repository;
+    const auto id = repository.add(TrackFactory(algorithm).from(1, observation(1000_m, 0ms)));
+    auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(1010_m, 100ms));
+    ASSERT_TRUE(confirmedTrack);
+    ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
+    auto& target = *repository.findTrack(id);
     const auto initialSnapshot = target.trackingState();
     EXPECT_EQ(initialSnapshot->acceleration().x, 1_mps2);
     EXPECT_EQ(initialSnapshot->acceleration().y, 2_mps2);
@@ -231,10 +235,12 @@ TEST(TrackingStateTest, StoresAlgorithmStateAcrossUpdatesAndPreservesItDuringMis
 TEST(TrackingStateTest, RejectedAlgorithmStatesPreserveAccelerationCovarianceAndMissHistory)
 {
     const auto algorithm = std::make_shared<EnrichedAlgorithm>();
-    TargetRepository repository;
-    const auto id = repository.add(observation(1000_m, 0ms, algorithm));
-    auto& target = *repository.find(id);
-    ASSERT_TRUE(target.confirm(observation(1010_m, 100ms)));
+    TrackRepository repository;
+    const auto id = repository.add(TrackFactory(algorithm).from(1, observation(1000_m, 0ms)));
+    auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(1010_m, 100ms));
+    ASSERT_TRUE(confirmedTrack);
+    ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
+    auto& target = *repository.findTrack(id);
     ASSERT_TRUE(target.recordTrackingMiss(1100ms));
     const auto saved = target.trackingState();
 
@@ -264,25 +270,37 @@ TEST(TrackingStateTest, RejectedAlgorithmStatesPreserveAccelerationCovarianceAnd
 TEST(TrackingStateTest, RemovingTargetsPreservesRemainingAccelerationAndCovariance)
 {
     const auto algorithm = std::make_shared<EnrichedAlgorithm>();
-    TargetRepository repository;
-    const auto firstId = repository.add(observation(1000_m, 0ms, algorithm));
-    const auto middleId = repository.add(observation(2000_m, 0ms, algorithm));
-    const auto lastId = repository.add(observation(3000_m, 0ms, algorithm));
-    ASSERT_TRUE(repository.find(firstId)->confirm(observation(1001_m, 100ms)));
-    ASSERT_TRUE(repository.find(middleId)->confirm(observation(2001_m, 100ms)));
-    ASSERT_TRUE(repository.find(lastId)->confirm(observation(3001_m, 100ms)));
-    ASSERT_TRUE(repository.find(lastId)->update(observation(3002_m, 200ms)));
-    const auto saved = repository.find(lastId)->trackingState();
+    TrackRepository repository;
+    const auto firstId = repository.add(
+        TrackFactory(algorithm).from(
+            1, observation(1000_m, 0ms)));
+    const auto middleId = repository.add(
+        TrackFactory(algorithm).from(
+            2, observation(2000_m, 0ms)));
+    const auto lastId = repository.add(
+        TrackFactory(algorithm).from(
+            3, observation(3000_m, 0ms)));
+    auto confirmedFirstTrack = TrackFactory::from(*repository.findTentative(firstId), observation(1001_m, 100ms));
+    ASSERT_TRUE(confirmedFirstTrack);
+    ASSERT_TRUE(repository.replace(std::move(confirmedFirstTrack).value()));
+    auto confirmedMiddleTrack = TrackFactory::from(*repository.findTentative(middleId), observation(2001_m, 100ms));
+    ASSERT_TRUE(confirmedMiddleTrack);
+    ASSERT_TRUE(repository.replace(std::move(confirmedMiddleTrack).value()));
+    auto confirmedLastTrack = TrackFactory::from(*repository.findTentative(lastId), observation(3001_m, 100ms));
+    ASSERT_TRUE(confirmedLastTrack);
+    ASSERT_TRUE(repository.replace(std::move(confirmedLastTrack).value()));
+    ASSERT_TRUE(repository.findTrack(lastId)->update(observation(3002_m, 200ms)));
+    const auto saved = repository.findTrack(lastId)->trackingState();
 
     ASSERT_TRUE(repository.remove(middleId));
     ASSERT_EQ(repository.targets().size(), 2u);
-    EXPECT_EQ(repository.targets()[0].id(), firstId);
-    EXPECT_EQ(repository.targets()[1].id(), lastId);
-    EXPECT_EQ(repository.find(firstId)->trackingState()->acceleration().x, 1_mps2);
-    EXPECT_EQ(repository.find(firstId)->trackingState()->acceleration().y, 2_mps2);
-    EXPECT_EQ(repository.find(firstId)->trackingState()->acceleration().z, 3_mps2);
-    EXPECT_EQ((*repository.find(firstId)->trackingState()->errorCovariance())(0, 0), 25.0);
-    EXPECT_EQ(repository.find(lastId)->trackingState().get(), saved.get());
+    EXPECT_EQ(std::get<Track>(repository.targets().front()).id(), firstId);
+    EXPECT_EQ(std::get<Track>(repository.targets().back()).id(), lastId);
+    EXPECT_EQ(repository.findTrack(firstId)->trackingState()->acceleration().x, 1_mps2);
+    EXPECT_EQ(repository.findTrack(firstId)->trackingState()->acceleration().y, 2_mps2);
+    EXPECT_EQ(repository.findTrack(firstId)->trackingState()->acceleration().z, 3_mps2);
+    EXPECT_EQ((*repository.findTrack(firstId)->trackingState()->errorCovariance())(0, 0), 25.0);
+    EXPECT_EQ(repository.findTrack(lastId)->trackingState().get(), saved.get());
     EXPECT_EQ(saved->acceleration().x, 4_mps2);
     EXPECT_EQ(saved->acceleration().y, 5_mps2);
     EXPECT_EQ(saved->acceleration().z, 6_mps2);

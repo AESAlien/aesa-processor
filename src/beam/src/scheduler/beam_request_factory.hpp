@@ -21,7 +21,7 @@ public:
     // - beamType이 RequestBeamType의 값이 아님
     // - transmitTime이 음수
     // - requestId가 0
-    BeamRequest create(const RequestBeamCommand& command) const;
+    BeamRequest from(const RequestBeamCommand& command) const;
 
 private:
     RequestBeamConfig _config;

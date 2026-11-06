@@ -34,8 +34,8 @@ DetectionEvent result(
     BeamType type,
     std::uint32_t id,
     Time time,
-    std::initializer_list<math::CartesianPosition> positions)
-{
+    std::initializer_list<math::CartesianPosition> positions
+) {
     std::vector<DetectionEvent::Plot> plots;
     for (const auto& position : positions)
     {
@@ -49,8 +49,8 @@ DetectionEvent result(
 std::optional<beam::RequestBeamCommand> beginTracking(
     TargetController& controller,
     const math::CartesianPosition& first,
-    const math::CartesianPosition& second)
-{
+    const math::CartesianPosition& second
+) {
     const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 37, 0ms, {first}));
     if (!confirmation)
     {
@@ -81,7 +81,11 @@ math::CartesianPosition trajectory(double seconds)
 
 TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInsteadOfTheRawPlot)
 {
-    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
+    TargetController controller(TargetConfig(
+        AssociationConfig(1000_mps, 30_mps, 11.345),
+        MeasurementConfig(7_m),
+        TrackingConfig(10_mps2, 0_mps2),
+        TrackManagementConfig(100ms, 1000ms, 3, 100)));
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
     EXPECT_EQ(tracking->beamType, beam::RequestBeamType::TRACKING);
@@ -108,7 +112,11 @@ TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInst
 
 TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAndIgnoresExtraPlots)
 {
-    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
+    TargetController controller(TargetConfig(
+        AssociationConfig(1000_mps, 30_mps, 11.345),
+        MeasurementConfig(7_m),
+        TrackingConfig(10_mps2, 0_mps2),
+        TrackManagementConfig(100ms, 1000ms, 3, 100)));
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
     // Both 50 m and 200 m residuals fit the uncertain two-point forecast.
@@ -132,7 +140,11 @@ TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAnd
 
 TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsForecastingDuringMisses)
 {
-    TargetController controller(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2));
+    TargetController controller(TargetConfig(
+        AssociationConfig(1000_mps, 30_mps, 11.345),
+        MeasurementConfig(7_m),
+        TrackingConfig(10_mps2, 0_mps2),
+        TrackManagementConfig(100ms, 1000ms, 3, 100)));
     const auto tracking = beginTracking(controller, trajectory(0.0), trajectory(0.1));
     ASSERT_TRUE(tracking);
     const std::array<std::array<double, 3>, 12> noiseMultipliers{{
@@ -207,9 +219,11 @@ TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAn
     for (double accelerationSigma : {1.0, 100.0})
     {
         SCOPED_TRACE(accelerationSigma);
-        const TargetConfig config(1000_mps, 30_mps, 7_m, 11.345,
-            100ms, 1000ms, 3,
-            math::LinearAcceleration::fromMetersPerSecondSquared(accelerationSigma), 100, 0_mps2);
+        const TargetConfig config(
+            AssociationConfig(1000_mps, 30_mps, 11.345),
+            MeasurementConfig(7_m),
+            TrackingConfig(math::LinearAcceleration::fromMetersPerSecondSquared(accelerationSigma), 0_mps2),
+            TrackManagementConfig(100ms, 1000ms, 3, 100));
         TargetController controller(config);
         const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
         ASSERT_TRUE(tracking);

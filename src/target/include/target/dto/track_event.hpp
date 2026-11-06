@@ -74,26 +74,119 @@ struct TrackEvent
     class Builder
     {
     public:
-        Builder& id(uint16_t value) { _id = value; return *this; }
-        Builder& state(TrackState value) { _state = value; return *this; }
-        Builder& slantRange(math::Distance value) { _slantRange = value; return *this; }
-        Builder& groundRange(math::Distance value) { _groundRange = value; return *this; }
-        Builder& azimuth(math::Angle value) { return azimuth(math::CircularAngle(value)); }
-        Builder& azimuth(math::CircularAngle value) { _azimuth = value; return *this; }
-        Builder& elevation(math::Angle value) { return elevation(math::TiltAngle(value)); }
-        Builder& elevation(math::TiltAngle value) { _elevation = value; return *this; }
-        Builder& dopplerVelocity(math::LinearVelocity value) { _dopplerVelocity = value; return *this; }
-        Builder& latitude(math::Angle value) { return latitude(math::TiltAngle(value)); }
-        Builder& latitude(math::TiltAngle value) { _latitude = value; return *this; }
-        Builder& longitude(math::Angle value) { return longitude(math::CircularAngle(value)); }
-        Builder& longitude(math::CircularAngle value) { _longitude = value; return *this; }
-        Builder& altitude(math::Length value) { _altitude = value; return *this; }
-        Builder& velocity(math::LinearVelocity value) { _velocity = value; return *this; }
-        Builder& heading(math::Angle value) { return heading(math::CircularAngle(value)); }
-        Builder& heading(math::CircularAngle value) { _heading = value; return *this; }
-        Builder& flightPathAngle(math::Angle value) { return flightPathAngle(math::TiltAngle(value)); }
-        Builder& flightPathAngle(math::TiltAngle value) { _flightPathAngle = value; return *this; }
-        Builder& timestamp(std::chrono::milliseconds value) { _timestamp = value; return *this; }
+        Builder& id(uint16_t value)
+        {
+            _id = value;
+            return *this;
+        }
+
+        Builder& state(TrackState value)
+        {
+            _state = value;
+            return *this;
+        }
+
+        Builder& slantRange(math::Distance value)
+        {
+            _slantRange = value;
+            return *this;
+        }
+
+        Builder& groundRange(math::Distance value)
+        {
+            _groundRange = value;
+            return *this;
+        }
+
+        Builder& azimuth(math::Angle value)
+        {
+            return azimuth(math::CircularAngle(value));
+        }
+
+        Builder& azimuth(math::CircularAngle value)
+        {
+            _azimuth = value;
+            return *this;
+        }
+
+        Builder& elevation(math::Angle value)
+        {
+            return elevation(math::TiltAngle(value));
+        }
+
+        Builder& elevation(math::TiltAngle value)
+        {
+            _elevation = value;
+            return *this;
+        }
+
+        Builder& dopplerVelocity(math::LinearVelocity value)
+        {
+            _dopplerVelocity = value;
+            return *this;
+        }
+
+        Builder& latitude(math::Angle value)
+        {
+            return latitude(math::TiltAngle(value));
+        }
+
+        Builder& latitude(math::TiltAngle value)
+        {
+            _latitude = value;
+            return *this;
+        }
+
+        Builder& longitude(math::Angle value)
+        {
+            return longitude(math::CircularAngle(value));
+        }
+
+        Builder& longitude(math::CircularAngle value)
+        {
+            _longitude = value;
+            return *this;
+        }
+
+        Builder& altitude(math::Length value)
+        {
+            _altitude = value;
+            return *this;
+        }
+
+        Builder& velocity(math::LinearVelocity value)
+        {
+            _velocity = value;
+            return *this;
+        }
+
+        Builder& heading(math::Angle value)
+        {
+            return heading(math::CircularAngle(value));
+        }
+
+        Builder& heading(math::CircularAngle value)
+        {
+            _heading = value;
+            return *this;
+        }
+
+        Builder& flightPathAngle(math::Angle value)
+        {
+            return flightPathAngle(math::TiltAngle(value));
+        }
+
+        Builder& flightPathAngle(math::TiltAngle value)
+        {
+            _flightPathAngle = value;
+            return *this;
+        }
+
+        Builder& timestamp(std::chrono::milliseconds value)
+        {
+            _timestamp = value;
+            return *this;
+        }
 
         TrackEvent build() const
         {

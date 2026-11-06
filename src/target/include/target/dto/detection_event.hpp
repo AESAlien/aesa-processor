@@ -50,13 +50,45 @@ struct DetectionEvent
         class Builder
         {
         public:
-            Builder& slantRange(math::Distance value) { _slantRange = value; return *this; }
-            Builder& azimuth(math::Angle value) { return azimuth(math::CircularAngle(value)); }
-            Builder& azimuth(math::CircularAngle value) { _azimuth = value; return *this; }
-            Builder& elevation(math::Angle value) { return elevation(math::TiltAngle(value)); }
-            Builder& elevation(math::TiltAngle value) { _elevation = value; return *this; }
-            Builder& dopplerVelocity(math::LinearVelocity value) { _dopplerVelocity = value; return *this; }
-            Builder& power_db(float value) { _power_db = value; return *this; }
+            Builder& slantRange(math::Distance value)
+            {
+                _slantRange = value;
+                return *this;
+            }
+
+            Builder& azimuth(math::Angle value)
+            {
+                return azimuth(math::CircularAngle(value));
+            }
+
+            Builder& azimuth(math::CircularAngle value)
+            {
+                _azimuth = value;
+                return *this;
+            }
+
+            Builder& elevation(math::Angle value)
+            {
+                return elevation(math::TiltAngle(value));
+            }
+
+            Builder& elevation(math::TiltAngle value)
+            {
+                _elevation = value;
+                return *this;
+            }
+
+            Builder& dopplerVelocity(math::LinearVelocity value)
+            {
+                _dopplerVelocity = value;
+                return *this;
+            }
+
+            Builder& power_db(float value)
+            {
+                _power_db = value;
+                return *this;
+            }
 
             Plot build() const
             {
@@ -89,10 +121,29 @@ struct DetectionEvent
     class Builder
     {
     public:
-        Builder& beamType(beam::BeamType value) { _beamType = value; return *this; }
-        Builder& requestId(uint32_t value) { _requestId = value; return *this; }
-        Builder& transmitTime(std::chrono::milliseconds value) { _transmitTime = value; return *this; }
-        Builder& plots(std::vector<Plot> value) { _plots = std::move(value); return *this; }
+        Builder& beamType(beam::BeamType value)
+        {
+            _beamType = value;
+            return *this;
+        }
+
+        Builder& requestId(uint32_t value)
+        {
+            _requestId = value;
+            return *this;
+        }
+
+        Builder& transmitTime(std::chrono::milliseconds value)
+        {
+            _transmitTime = value;
+            return *this;
+        }
+
+        Builder& plots(std::vector<Plot> value)
+        {
+            _plots = std::move(value);
+            return *this;
+        }
 
         DetectionEvent build() const
         {

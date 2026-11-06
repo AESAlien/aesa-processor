@@ -1,7 +1,10 @@
-#include "calculation/association/detection_matcher.hpp"
-#include "calculation/tracking/constant_acceleration_algorithm.hpp"
-#include "domain/target.hpp"
-#include "repository/target_repository.hpp"
+#include "service/detection_matcher.hpp"
+#include "algorithm/constant_acceleration_algorithm.hpp"
+#include "domain/tentative_track.hpp"
+#include "domain/factory/track_factory.hpp"
+#include "repository/track_repository.hpp"
+
+#include <target/config/target_config.hpp>
 
 #include <math/geometry/cartesian_position.hpp>
 #include <math/geometry/spherical_position.hpp>
@@ -30,41 +33,38 @@ math::CartesianPosition position(double x, double y, double z)
         math::Length::fromMeters(y), math::Length::fromMeters(z));
 }
 
-Target observation(
+Observation observation(
     const math::CartesianPosition& point,
     Time time,
-    std::shared_ptr<const ITrackingAlgorithm> algorithm,
     math::LinearVelocity doppler = 0_mps,
-    float power = -10.0f)
-{
-    return Target(point.toSpherical(), doppler, power, time, std::move(algorithm));
+    float power = -10.0f
+) {
+    return Observation(point.toSpherical(), doppler, power, time);
 }
 
-TargetConfig processNoiseConfig(math::LinearAcceleration sigma)
+TrackingConfig processNoiseConfig(math::LinearAcceleration sigma)
 {
-    return TargetConfig(1000_mps, 30_mps, 7_m, 11.345,
-        100ms, 1000ms, 3, 10_mps2, 100, sigma);
+    return TrackingConfig(10_mps2, sigma);
 }
 
 class SeedStateAlgorithm final : public ITrackingAlgorithm
 {
 public:
-    explicit SeedStateAlgorithm(TargetTrackingState state)
-        : _state(std::move(state))
+    explicit SeedStateAlgorithm(TargetTrackingState state) : _state(std::move(state))
     {
     }
 
-    std::optional<TargetTrackingState> initialize(const Target&, const Target&) const override
+    std::optional<TargetTrackingState> initialize(const Observation&, const Observation&) const override
     {
         return _state;
     }
 
-    std::optional<TargetTrackingState> update(const Target&, const Target&) const override
+    std::optional<TargetTrackingState> update(const Track&, const Observation&) const override
     {
         return std::nullopt;
     }
 
-    std::optional<TargetPrediction> predict(const Target&, Time) const override
+    std::optional<TargetPrediction> predict(const Track&, Time) const override
     {
         return std::nullopt;
     }
@@ -73,48 +73,57 @@ private:
     const TargetTrackingState _state;
 };
 
-Target seededTarget(
+Track seededTarget(
     math::CartesianPosition point,
     math::CartesianVelocity velocity,
     math::CartesianAcceleration acceleration,
     std::optional<math::SquareMatrix> covariance,
-    Time time = 100ms)
-{
+    Time time = 100ms
+) {
     const auto algorithm = std::make_shared<SeedStateAlgorithm>(TargetTrackingState(
         point.toSpherical(), 0_mps, -10.0f, time, point, velocity,
         std::move(acceleration), std::move(covariance)));
-    TargetRepository repository;
-    const auto id = repository.add(observation(point, 0ms, algorithm));
-    auto& target = *repository.find(id);
-    EXPECT_TRUE(target.confirm(observation(point, time, algorithm)));
+    TrackRepository repository;
+    const auto id = repository.add(TrackFactory(algorithm).from(1, observation(point, 0ms)));
+    auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(point, time));
+    EXPECT_TRUE(confirmedTrack);
+    EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
+    auto& target = *repository.findTrack(id);
     return target;
 }
 
 class ConstantAccelerationAlgorithmTest : public ::testing::Test
 {
 protected:
-    Target makeTracking(
+    Track makeTracking(
         math::CartesianPosition first = position(0.0, 1000.0, 0.0),
         math::CartesianPosition second = position(0.0, 1000.0, 0.0),
         Time firstTime = 0ms,
         Time secondTime = 100ms,
-        std::shared_ptr<const ITrackingAlgorithm> algorithm = nullptr)
-    {
+        std::shared_ptr<const ITrackingAlgorithm> algorithm = nullptr
+    ) {
         if (!algorithm)
         {
             algorithm = _algorithm;
         }
-        TargetRepository repository;
-        const auto id = repository.add(observation(first, firstTime, algorithm));
-        auto& target = *repository.find(id);
-        EXPECT_TRUE(target.confirm(observation(second, secondTime, algorithm)));
+        TrackRepository repository;
+        const auto id = repository.add(
+            TrackFactory(algorithm).from(
+                1, observation(first, firstTime)));
+        auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(second, secondTime));
+        EXPECT_TRUE(confirmedTrack);
+        EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
+        auto& target = *repository.findTrack(id);
         return target;
     }
 
     const TargetConfig _config{
-        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2};
+        AssociationConfig(1000_mps, 30_mps, 11.345),
+        MeasurementConfig(7_m),
+        TrackingConfig(10_mps2, 0_mps2),
+        TrackManagementConfig(100ms, 1000ms, 3, 100)};
     const std::shared_ptr<const ConstantAccelerationAlgorithm> _algorithm =
-        std::make_shared<ConstantAccelerationAlgorithm>(_config);
+        std::make_shared<ConstantAccelerationAlgorithm>(_config.tracking, _config.measurement);
 };
 
 TEST_F(ConstantAccelerationAlgorithmTest, InitializesExactTwoPointCovarianceAndZeroAcceleration)
@@ -200,7 +209,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, UsesStoredAccelerationAndUnequalPredic
     EXPECT_NEAR(point.y.m(), 1943.75, 1e-8);
     EXPECT_NEAR(point.z.m(), 3084.375, 1e-8);
     const auto corrected = _algorithm->update(target,
-        observation(point, 2600ms, _algorithm));
+        observation(point, 2600ms));
     ASSERT_TRUE(corrected);
     EXPECT_NEAR(corrected->velocity().x.mps(), 12.5, 1e-8);
     EXPECT_NEAR(corrected->velocity().y.mps(), -25.0, 1e-8);
@@ -215,7 +224,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, MeasurementUpdateMatchesIndependentSca
     const auto target = makeTracking(position(0.0, 1000.0, 0.0),
         position(0.0, 1000.0, 0.0), 0ms, 1000ms);
     const auto updated = _algorithm->update(target,
-        observation(position(0.0, 1010.0, 0.0), 2000ms, _algorithm, -12_mps, 8.0f));
+        observation(position(0.0, 1010.0, 0.0), 2000ms, -12_mps, 8.0f));
     ASSERT_TRUE(updated);
     // At dt_init = dt_predict = 1: Pminus column_y = [345, 297, 100]^T.
     constexpr double INNOVATION_VARIANCE = 394.0;
@@ -248,7 +257,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, PreservesCrossAxisCovarianceInTheGain)
         math::CartesianVelocity(0_mps, 0_mps, 0_mps),
         math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance);
     const auto updated = _algorithm->update(target,
-        observation(position(1000.0, 2010.0, 3000.0), 1100ms, _algorithm));
+        observation(position(1000.0, 2010.0, 3000.0), 1100ms));
     ASSERT_TRUE(updated);
     // Predicted position variances are 1 + 1 + 1/4, with xy covariance 1/2.
     const double expectedCrossGain = 49.0 * 0.5 / (51.25 * 51.25 - 0.25);
@@ -261,7 +270,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, PreservesCrossAxisCovarianceInTheGain)
 
 TEST_F(ConstantAccelerationAlgorithmTest, NonzeroProcessNoisePredictsExactFractionalIntervalOnEveryAxis)
 {
-    const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(processNoiseConfig(10_mps2));
+    const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(processNoiseConfig(10_mps2), MeasurementConfig(7_m));
     const auto target = seededTarget(position(1000.0, 2000.0, 3000.0),
         math::CartesianVelocity(10_mps, -20_mps, 30_mps),
         math::CartesianAcceleration(1_mps2, -2_mps2, 3_mps2),
@@ -288,13 +297,13 @@ TEST_F(ConstantAccelerationAlgorithmTest, NonzeroProcessNoisePredictsExactFracti
 
 TEST_F(ConstantAccelerationAlgorithmTest, NonzeroProcessNoiseUpdateMatchesIndependentScalarClosedForm)
 {
-    const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(processNoiseConfig(10_mps2));
+    const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(processNoiseConfig(10_mps2), MeasurementConfig(7_m));
     const auto target = seededTarget(position(1000.0, 2000.0, 3000.0),
         math::CartesianVelocity(10_mps, -20_mps, 30_mps),
         math::CartesianAcceleration(1_mps2, -2_mps2, 3_mps2),
         math::SquareMatrix::identity(9));
     const auto updated = algorithm->update(target,
-        observation(position(1020.125, 1959.75, 3060.375), 1600ms, algorithm));
+        observation(position(1020.125, 1959.75, 3060.375), 1600ms));
     ASSERT_TRUE(updated);
 
     // Independently expanded scalar [p,v,a] covariance at dt = 1.5 s, sigma^2 = 100.
@@ -352,8 +361,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, DoublingProcessSigmaQuadruplesAddedPre
         math::CartesianVelocity(0_mps, 0_mps, 0_mps),
         math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
         math::SquareMatrix::identity(9));
-    const ConstantAccelerationAlgorithm sigmaFive(processNoiseConfig(5_mps2));
-    const ConstantAccelerationAlgorithm sigmaTen(processNoiseConfig(10_mps2));
+    const ConstantAccelerationAlgorithm sigmaFive(processNoiseConfig(5_mps2), MeasurementConfig(7_m));
+    const ConstantAccelerationAlgorithm sigmaTen(processNoiseConfig(10_mps2), MeasurementConfig(7_m));
     const auto baseline = _algorithm->predict(target, 2600ms);
     const auto five = sigmaFive.predict(target, 2600ms);
     const auto ten = sigmaTen.predict(target, 2600ms);
@@ -376,7 +385,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, DoublingProcessSigmaQuadruplesAddedPre
 
 TEST_F(ConstantAccelerationAlgorithmTest, ZeroElapsedPredictionAddsNoProcessNoise)
 {
-    const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(processNoiseConfig(10_mps2));
+    const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(processNoiseConfig(10_mps2), MeasurementConfig(7_m));
     const auto target = makeTracking(position(0.0, 1000.0, 0.0),
         position(0.0, 1001.0, 0.0), 0ms, 100ms, algorithm);
     const auto saved = target.trackingState();
@@ -402,7 +411,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, ZeroElapsedPredictionAddsNoProcessNois
 
 TEST_F(ConstantAccelerationAlgorithmTest, MissesAndRepeatedPredictionsUseFullElapsedProcessNoise)
 {
-    const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(processNoiseConfig(10_mps2));
+    const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(processNoiseConfig(10_mps2), MeasurementConfig(7_m));
     auto target = makeTracking(position(0.0, 1000.0, 0.0),
         position(0.0, 1001.0, 0.0), 0ms, 100ms, algorithm);
     const auto control = target;
@@ -431,7 +440,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, MissesAndRepeatedPredictionsUseFullEla
     EXPECT_EQ(target.lastResultTime(), 2100ms);
     EXPECT_EQ(target.consecutiveMissCount(), 2u);
 
-    const auto incoming = observation(position(0.0, 1041.0, 0.0), 3100ms, algorithm);
+    const auto incoming = observation(position(0.0, 1041.0, 0.0), 3100ms);
     const auto updated = algorithm->update(target, incoming);
     const auto withoutMisses = algorithm->update(control, incoming);
     ASSERT_TRUE(updated);
@@ -446,14 +455,14 @@ TEST_F(ConstantAccelerationAlgorithmTest, MissesAndRepeatedPredictionsUseFullEla
 
 TEST_F(ConstantAccelerationAlgorithmTest, ProcessNoiseReachesRealTrackingAndSearchNdsGates)
 {
-    const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(processNoiseConfig(10_mps2));
+    const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(processNoiseConfig(10_mps2), MeasurementConfig(7_m));
     const auto zeroNoise = makeTracking(position(0.0, 1000.0, 0.0),
         position(0.0, 1000.0, 0.0), 0ms, 1000ms);
     const auto withNoise = makeTracking(position(0.0, 1000.0, 0.0),
         position(0.0, 1000.0, 0.0), 0ms, 1000ms, algorithm);
     // Use one matcher with unchanged measurement noise and threshold for both real filters.
-    const DetectionMatcher matcher(_config);
-    const auto incoming = observation(position(0.0, 1068.0, 0.0), 2000ms, algorithm);
+    const DetectionMatcher matcher(_config.association, _config.measurement);
+    const auto incoming = observation(position(0.0, 1068.0, 0.0), 2000ms);
     EXPECT_FALSE(matcher.matchesTracking(incoming, zeroNoise));
     EXPECT_FALSE(matcher.matchesPosition(incoming, zeroNoise));
     const auto trackingScore = matcher.matchesTracking(incoming, withNoise);
@@ -463,7 +472,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, ProcessNoiseReachesRealTrackingAndSear
     // S = Ppp + R = (345 + 25) + 49 = 419; the zero-noise S is 394.
     EXPECT_NEAR(*trackingScore, 68.0 * 68.0 / 419.0, 1e-10);
     EXPECT_NEAR(*searchScore, *trackingScore, 1e-10);
-    const auto outside = observation(position(0.0, 1069.0, 0.0), 2000ms, algorithm);
+    const auto outside = observation(position(0.0, 1069.0, 0.0), 2000ms);
     EXPECT_FALSE(matcher.matchesTracking(outside, withNoise));
     EXPECT_FALSE(matcher.matchesPosition(outside, withNoise));
     EXPECT_EQ(withNoise.lastObservationTime(), 1000ms);
@@ -472,15 +481,14 @@ TEST_F(ConstantAccelerationAlgorithmTest, ProcessNoiseReachesRealTrackingAndSear
 
 TEST_F(ConstantAccelerationAlgorithmTest, LearnsAccelerationWithZeroProcessNoise)
 {
-    Target target = makeTracking(position(0.0, 1000.0, 0.0),
+    Track target = makeTracking(position(0.0, 1000.0, 0.0),
         position(0.0, 1011.0, 0.0), 0ms, 1000ms);
     const auto initialAccelerationVariance = (*target.trackingState()->errorCovariance())(7, 7);
     for (int second = 2; second <= 30; ++second)
     {
         const double elapsed = static_cast<double>(second);
         const double y = 1000.0 + 10.0 * elapsed + elapsed * elapsed;
-        ASSERT_TRUE(target.update(observation(position(0.0, y, 0.0),
-            Time(second * 1000), _algorithm)));
+        ASSERT_TRUE(target.update(observation(position(0.0, y, 0.0), Time(second * 1000))));
     }
     EXPECT_NEAR(target.trackingState()->acceleration().y.mps2(), 2.0, 0.001);
     EXPECT_NEAR(target.trackingState()->velocity().y.mps(), 70.0, 0.01);
@@ -490,7 +498,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, LearnsAccelerationWithZeroProcessNoise
 
 TEST_F(ConstantAccelerationAlgorithmTest, MissesDoNotShortenElapsedTimeFromTheLastObservation)
 {
-    Target target = makeTracking(position(0.0, 1000.0, 0.0), position(0.0, 1001.0, 0.0));
+    Track target = makeTracking(position(0.0, 1000.0, 0.0), position(0.0, 1001.0, 0.0));
     const auto saved = target.trackingState();
     ASSERT_TRUE(target.recordTrackingMiss(1100ms));
     ASSERT_TRUE(target.recordTrackingMiss(2100ms));
@@ -510,7 +518,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, MissesDoNotShortenElapsedTimeFromTheLa
 TEST_F(ConstantAccelerationAlgorithmTest, RejectsUnavailableCovarianceAndNonIncreasingTimes)
 {
     const auto target = makeTracking();
-    const auto incoming = observation(position(0.0, 1000.0, 0.0), 100ms, _algorithm);
+    const auto incoming = observation(position(0.0, 1000.0, 0.0), 100ms);
     EXPECT_FALSE(_algorithm->initialize(incoming, incoming));
     EXPECT_FALSE(_algorithm->update(target, incoming));
     EXPECT_FALSE(_algorithm->predict(target, 99ms));
@@ -520,7 +528,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsUnavailableCovarianceAndNonIncr
         math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), std::nullopt);
     EXPECT_FALSE(_algorithm->predict(withoutCovariance, 1100ms));
     EXPECT_FALSE(_algorithm->update(withoutCovariance,
-        observation(position(0.0, 1000.0, 0.0), 1100ms, _algorithm)));
+        observation(position(0.0, 1000.0, 0.0), 1100ms)));
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, RejectsOriginAndNonfinitePredictionsWithoutChangingState)
@@ -551,7 +559,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, PropagatesInvalidInnovationCovarianceA
         math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance);
     const auto saved = target.trackingState();
     EXPECT_THROW(_algorithm->update(target,
-        observation(position(1000.0, 2000.0, 3000.0), 1100ms, _algorithm)), std::domain_error);
+        observation(position(1000.0, 2000.0, 3000.0), 1100ms)), std::domain_error);
     EXPECT_EQ(target.trackingState(), saved);
 }
 
@@ -560,15 +568,24 @@ TEST(ConstantAccelerationConfigTest, ValidatesInitialAccelerationVarianceAndSing
     for (double sigma : {0.0, -1.0, std::numeric_limits<double>::quiet_NaN(),
              std::numeric_limits<double>::infinity(), std::numeric_limits<double>::max(), 1e-300})
     {
-        EXPECT_THROW(TargetConfig(1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3,
-            math::LinearAcceleration::fromMetersPerSecondSquared(sigma), 100, 0_mps2),
+        EXPECT_THROW(TargetConfig(
+            AssociationConfig(1000_mps, 30_mps, 11.345),
+            MeasurementConfig(7_m),
+            TrackingConfig(math::LinearAcceleration::fromMetersPerSecondSquared(sigma), 0_mps2),
+            TrackManagementConfig(100ms, 1000ms, 3, 100)),
             std::invalid_argument);
     }
-    EXPECT_THROW(TargetConfig(1000_mps, 30_mps, 1.2e-162_m,
-        11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2), std::invalid_argument);
+    EXPECT_THROW(TargetConfig(
+        AssociationConfig(1000_mps, 30_mps, 11.345),
+        MeasurementConfig(1.2e-162_m),
+        TrackingConfig(10_mps2, 0_mps2),
+        TrackManagementConfig(100ms, 1000ms, 3, 100)), std::invalid_argument);
     const TargetConfig compatible(
-        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 10_mps2, 100, 0_mps2);
-    EXPECT_EQ(compatible.initialAccelerationStandardDeviation(), 10_mps2);
+        AssociationConfig(1000_mps, 30_mps, 11.345),
+        MeasurementConfig(7_m),
+        TrackingConfig(10_mps2, 0_mps2),
+        TrackManagementConfig(100ms, 1000ms, 3, 100));
+    EXPECT_EQ(compatible.tracking.initialAccelerationStandardDeviation(), 10_mps2);
 }
 
 TEST(ConstantAccelerationConfigTest, AcceptsZeroAndValidatesProcessAccelerationVariance)
@@ -590,10 +607,13 @@ TEST(ConstantAccelerationConfigTest, AcceptsZeroAndValidatesProcessAccelerationV
 TEST(ConstantAccelerationConfigTest, UsesInjectedInitialAccelerationUncertainty)
 {
     const TargetConfig config(
-        1000_mps, 30_mps, 7_m, 11.345, 100ms, 1000ms, 3, 2_mps2, 100, 0_mps2);
-    const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(config);
-    const auto state = algorithm->initialize(observation(position(0.0, 1000.0, 0.0), 0ms, algorithm),
-        observation(position(0.0, 1000.0, 0.0), 100ms, algorithm));
+        AssociationConfig(1000_mps, 30_mps, 11.345),
+        MeasurementConfig(7_m),
+        TrackingConfig(2_mps2, 0_mps2),
+        TrackManagementConfig(100ms, 1000ms, 3, 100));
+    const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(config.tracking, config.measurement);
+    const auto state = algorithm->initialize(observation(position(0.0, 1000.0, 0.0), 0ms),
+        observation(position(0.0, 1000.0, 0.0), 100ms));
     ASSERT_TRUE(state);
     ASSERT_TRUE(state->errorCovariance());
     EXPECT_DOUBLE_EQ((*state->errorCovariance())(6, 6), 4.0);

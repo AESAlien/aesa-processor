@@ -1,6 +1,6 @@
 #pragma once
 
-#include "domain/target.hpp"
+#include "domain/observation.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -9,7 +9,7 @@
 namespace target
 {
 
-class TargetRepository;
+class TrackRepository;
 class DetectionMatcher;
 
 // Select at most one new tentative target from a search beam result.
@@ -17,15 +17,17 @@ class TentativeSelector
 {
 public:
     TentativeSelector(
-        const TargetRepository& repository,
-        const DetectionMatcher& matcher);
+        const TrackRepository& repository,
+        const DetectionMatcher& matcher
+    );
 
     std::optional<std::size_t> selectNewCandidate(
-        const std::vector<Target>& observations) const;
+        const std::vector<Observation>& observations
+    ) const;
 
 private:
     // The injected repository and matcher must outlive this selector.
-    const TargetRepository& _targetRepository;
+    const TrackRepository& _trackRepository;
     const DetectionMatcher& _matcher;
 };
 
