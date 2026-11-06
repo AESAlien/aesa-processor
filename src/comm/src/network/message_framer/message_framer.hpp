@@ -1,21 +1,31 @@
 #pragma once
 
-#include <network/message_framer/message_frame.hpp>
+#include <protocol/ST_MsgHeader.hpp>
 
 #include <cstddef>
 #include <cstdint>
-#include <stdexcept>
 #include <vector>
 
 namespace comm
 {
 
-// Thrown when the buffered bytes cannot form a valid frame.
-// The message names the cause, such as "invalid-frame-size".
-class FramingError : public std::runtime_error
+struct MessageFrame
 {
-public:
-    using std::runtime_error::runtime_error;
+    protocol::ST_MsgHeader header;
+    std::vector<uint8_t> bytes;
+};
+
+enum class FramingError
+{
+    NONE,
+    UNKNOWN_MESSAGE_ID,
+    INVALID_FRAME_SIZE
+};
+
+struct FrameResult
+{
+    std::vector<MessageFrame> frames;
+    FramingError error = FramingError::NONE;
 };
 
 class MessageFramer
@@ -28,8 +38,7 @@ public:
         std::size_t maximumFrameSize = DEFAULT_MAXIMUM_FRAME_SIZE
     );
 
-    // Returns the completed frames. Throws FramingError.
-    std::vector<MessageFrame> append(const std::vector<uint8_t>& bytes);
+    FrameResult append(const std::vector<uint8_t>& bytes);
 
     void reset();
 
@@ -38,7 +47,7 @@ private:
 
     protocol::ST_MsgHeader peekHeader() const;
 
-    void validateHeader(
+    FramingError validateHeader(
         const protocol::ST_MsgHeader& header
     ) const;
 

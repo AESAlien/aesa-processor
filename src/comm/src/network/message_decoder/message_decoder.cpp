@@ -26,7 +26,8 @@ template <typename Value>
 Value readValue(
     const std::vector<uint8_t>& bytes,
     std::size_t offset = 0
-) {
+)
+{
     Value value{};
     std::memcpy(
         &value,
@@ -70,7 +71,8 @@ bool isFinite(const protocol::ST_Plot& plot)
 
 std::optional<beam::BeamType> decodeBeamType(
     uint8_t beamType
-) {
+)
+{
     switch (static_cast<beam::BeamType>(beamType))
     {
     case beam::BeamType::SEARCH:
@@ -84,7 +86,8 @@ std::optional<beam::BeamType> decodeBeamType(
 
 target::DetectionEvent::Plot decodePlot(
     const protocol::ST_Plot& plot
-) {
+)
+{
     return target::DetectionEvent::Plot::Builder()
         .slantRange(math::Distance::fromKilometers(plot.slantR_km))
         .azimuth(math::Angle::fromDegrees(plot.azi_deg))
@@ -99,7 +102,8 @@ target::DetectionEvent::Plot decodePlot(
 
 DecodeResult MessageDecoder::decode(
     const MessageFrame& frame
-) const {
+) const
+{
     if (frame.bytes.size() != frame.header.block_size)
     {
         return failed(DecodingError::INVALID_MESSAGE_SIZE);
@@ -135,7 +139,8 @@ DecodeResult MessageDecoder::decode(
 
 DecodeResult MessageDecoder::decodeOperatorControl(
     const MessageFrame& frame
-) const {
+) const
+{
     if (frame.bytes.size() != sizeof(protocol::ST_OperatorMsg))
     {
         return failed(DecodingError::INVALID_MESSAGE_SIZE);
@@ -164,7 +169,8 @@ DecodeResult MessageDecoder::decodeOperatorControl(
 
 DecodeResult MessageDecoder::decodeRadarAttitude(
     const MessageFrame& frame
-) const {
+) const
+{
     if (frame.bytes.size() != sizeof(protocol::ST_RadarAttMsg))
     {
         return failed(DecodingError::INVALID_MESSAGE_SIZE);
@@ -191,7 +197,8 @@ DecodeResult MessageDecoder::decodeRadarAttitude(
 
 DecodeResult MessageDecoder::decodePlotInformation(
     const MessageFrame& frame
-) const {
+) const
+{
     if (frame.bytes.size() < PLOT_DATA_OFFSET)
     {
         return failed(DecodingError::INVALID_MESSAGE_SIZE);
