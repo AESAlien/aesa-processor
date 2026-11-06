@@ -27,8 +27,7 @@ std::string makeProtocolFailureMessage(
 void throwDecodingFailure(
     std::string_view peerName,
     DecodingError error
-)
-{
+) {
     throw ReceiveError(
         makeProtocolFailureMessage(
             "Communication data could not be received",
@@ -40,8 +39,7 @@ void throwDecodingFailure(
 void throwEncodingFailure(
     std::string_view peerName,
     EncodingError error
-)
-{
+) {
     throw SendError(
         makeProtocolFailureMessage(
             "Communication data could not be sent",
@@ -101,8 +99,7 @@ std::string makeProtocolFailureMessage(
     const char* stage,
     std::string_view peerName,
     const char* error
-)
-{
+) {
     std::ostringstream stream;
     stream
         << message

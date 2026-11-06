@@ -66,8 +66,7 @@ bool CircularAngleRange::isFullCircle() const noexcept
 bool CircularAngleRange::contains(
     CircularAngle value,
     const QuantityTolerance<Angle>& tolerance
-) const noexcept
-{
+) const noexcept {
     const Angle offset = wrap360(value.angle() - _start.angle());
     return isFullCircle()
         || offset.lessThanOrEqual(_sweep, Angle::NONE_TOLERANCE)
@@ -78,8 +77,7 @@ bool CircularAngleRange::contains(
 bool CircularAngleRange::contains(
     Angle value,
     const QuantityTolerance<Angle>& tolerance
-) const noexcept
-{
+) const noexcept {
     return contains(CircularAngle(value), tolerance);
 }
 

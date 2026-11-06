@@ -25,8 +25,7 @@ void MessageFramer::validate() const
 
 std::vector<MessageFrame> MessageFramer::append(
     const std::vector<uint8_t>& bytes
-)
-{
+) {
     std::vector<MessageFrame> frames;
 
     _buffer.insert(
@@ -78,8 +77,7 @@ protocol::ST_MsgHeader MessageFramer::peekHeader() const
 
 void MessageFramer::validateHeader(
     const protocol::ST_MsgHeader& header
-) const
-{
+) const {
     if (!isKnownMessageId(header.message_Id))
     {
         throw FramingError("unknown-message-id");
@@ -96,8 +94,7 @@ void MessageFramer::validateHeader(
 
 bool MessageFramer::isKnownMessageId(
     uint16_t messageId
-) const
-{
+) const {
     switch (static_cast<protocol::MessageId>(messageId))
     {
     case protocol::MessageId::OperatorControl:
@@ -115,16 +112,14 @@ bool MessageFramer::isKnownMessageId(
 
 std::size_t MessageFramer::getFrameSize(
     const protocol::ST_MsgHeader& header
-) const
-{
+) const {
     return static_cast<std::size_t>(header.block_size);
 }
 
 MessageFrame MessageFramer::extractFrame(
     const protocol::ST_MsgHeader& header,
     std::size_t frameSize
-)
-{
+) {
     MessageFrame frame;
     frame.header = header;
 

@@ -41,8 +41,7 @@ EncodeResult failed(EncodingError error)
 protocol::ST_MsgHeader makeHeader(
     protocol::MessageId messageId,
     std::size_t blockSize
-)
-{
+) {
     protocol::ST_MsgHeader header{};
     header.message_Id = static_cast<uint16_t>(messageId);
     header.block_size = static_cast<uint32_t>(blockSize);
@@ -74,8 +73,7 @@ float convertFloat(double value)
 // Converts a DTO timestamp to the protocol uint32 representation.
 uint32_t convertTimestamp(
     std::chrono::milliseconds timestamp
-)
-{
+) {
     const std::chrono::milliseconds::rep count = timestamp.count();
     if (count < 0 ||
         static_cast<uint64_t>(count) >
@@ -90,8 +88,7 @@ uint32_t convertTimestamp(
 
 protocol::ST_BeamTx encodeBeam(
     const beam::TransmitBeamCommand& command
-)
-{
+) {
     protocol::ST_BeamTx encodedBeam{};
     encodedBeam.beamType =      static_cast<uint8_t>(command.beamType);
     encodedBeam.beamID =        command.beamId;
@@ -107,8 +104,7 @@ protocol::ST_BeamTx encodeBeam(
 
 protocol::ST_Trk encodeTrack(
     const target::TrackEvent& event
-)
-{
+) {
     protocol::ST_Trk encodedTrack{};
     encodedTrack.ID =           event.id;
     encodedTrack.type =         static_cast<uint8_t>(event.state);
@@ -145,8 +141,7 @@ std::vector<uint8_t> toBytes(const Message& message)
 
 EncodeResult encodeBeamCommand(
     const beam::TransmitBeamCommand& command
-)
-{
+) {
     try
     {
         const protocol::ST_BeamTx encodedBeam = encodeBeam(command);
@@ -167,8 +162,7 @@ EncodeResult encodeBeamCommand(
 
 EncodeResult encodeTrackEvents(
     const std::vector<target::TrackEvent>& trackEvents
-)
-{
+) {
     if (trackEvents.size() > MAXIMUM_TRACK_COUNT)
     {
         return failed(EncodingError::TOO_MANY_TRACKS);

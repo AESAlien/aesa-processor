@@ -69,8 +69,7 @@ bool PeerConnection::isConnected() const
 
 std::optional<std::vector<MessageFrame>> PeerConnection::receiveIfCurrent(
     const std::shared_ptr<Session>& session
-)
-{
+) {
     if (!session)
     {
         return std::nullopt;

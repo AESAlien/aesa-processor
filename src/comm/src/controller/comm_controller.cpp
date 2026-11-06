@@ -114,8 +114,7 @@ std::optional<IncomingDto> CommController::receiveData()
 
 void CommController::sendBeamCommand(
     const beam::TransmitBeamCommand& command
-)
-{
+) {
     _impl->sendBeamCommand(command);
 }
 

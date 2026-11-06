@@ -12,8 +12,7 @@ template <typename Error>
     const std::string& message,
     const char* operation,
     int errorCode
-)
-{
+) {
     throw Error(
         message +
         ": operation=" + operation +

@@ -133,8 +133,7 @@ void printDecodedMessage(const comm::IncomingDto& message)
 void decodeFrames(
     const comm::MessageDecoder& messageDecoder,
     const std::vector<comm::MessageFrame>& frames
-)
-{
+) {
     for (const comm::MessageFrame& frame : frames)
     {
         const comm::DecodeResult decodeResult = messageDecoder.decode(frame);

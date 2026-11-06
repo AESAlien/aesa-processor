@@ -12,8 +12,7 @@ namespace
 std::vector<uint8_t> makeFrameBytes(
     comm::protocol::MessageId messageId,
     std::size_t frameSize
-)
-{
+) {
     comm::protocol::ST_MsgHeader header{};
     header.message_Id = static_cast<uint16_t>(messageId);
     header.block_size = static_cast<uint32_t>(frameSize);
@@ -26,8 +25,7 @@ std::vector<uint8_t> makeFrameBytes(
 std::vector<uint8_t> concatenate(
     const std::vector<uint8_t>& first,
     const std::vector<uint8_t>& second
-)
-{
+) {
     std::vector<uint8_t> bytes(first);
     bytes.insert(bytes.end(), second.begin(), second.end());
     return bytes;
