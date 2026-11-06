@@ -32,6 +32,9 @@ namespace
 
 constexpr std::chrono::milliseconds BEAM_PERIOD{10};
 
+constexpr char LOG_PATH[] = "logs/radar.log";
+constexpr char ERROR_LOG_PATH[] = "logs/error.log";
+
 volatile std::sig_atomic_t stopRequested = 0;
 
 void requestStop(int) noexcept
@@ -154,10 +157,6 @@ void runWorker(
 
 int main()
 {
-    std::cout
-    << "[LOG FILE] logs/radar.log\n"
-    << "[ERROR LOG FILE] logs/error.log\n";
-    
     // 공용 로그 자원을 관리하는 객체는 main에서 하나만 생성한다.
     logging::LogManager logs;
 
@@ -167,11 +166,18 @@ int main()
 
     try
     {
-        // 1. 공용 로그 파일, 큐, 기록 스레드 1개를 준비한다.
+        // 1. 공용 로그 큐, 기록 스레드와 출력 파일을 준비한다.
         logs.initialize(
-            "logs/radar.log",
-            "logs/error.log",
+            LOG_PATH,
+            ERROR_LOG_PATH,
             4096);
+
+        // 초기화 이후 조기에 종료돼도 로그 위치를 확인할 수 있도록
+        // 설정 파일 로드 전에 안내하고 즉시 출력 버퍼를 비운다.
+        std::cout
+            << "[LOG FILE] " << LOG_PATH << '\n'
+            << "[ERROR LOG FILE] " << ERROR_LOG_PATH << '\n'
+            << std::flush;
 
         // 2. main 스레드용 로거를 등록한다.
         logs.addLogger("main");
@@ -309,8 +315,7 @@ int main()
 
             std::cout
                 << "[START] Five worker threads running\n"
-                << "[BEAM PERIOD] 10 ms\n"
-                << "[LOG FILE] logs/radar.log\n";
+                << "[BEAM PERIOD] 10 ms\n";
 
             printEndpoint(
                 "[SERVER] ",
