@@ -19,21 +19,31 @@ constexpr char RECEIVE_FAILURE[] = "Communication data could not be received";
 
 } // namespace
 
-Session::Session(TcpSocket socket, std::string peerName)
-    : _socket(std::move(socket)),
-      _peerName(std::move(peerName))
+Session::Session(ConnectedSocket socket)
+    : _remoteEndpoint(socket.getRemoteEndpoint()),
+      _socket(std::move(socket))
 {
-    _socket.setNonBlocking();
-}
-
-const TcpSocket& Session::getSocket() const noexcept
-{
-    return _socket;
 }
 
 bool Session::isOpen() const noexcept
 {
     return _open;
+}
+
+const CommEndpoint& Session::getRemoteEndpoint() const noexcept
+{
+    return _remoteEndpoint;
+}
+
+const ConnectedSocket& Session::getSocket() const noexcept
+{
+    return _socket;
+}
+
+std::string Session::remoteDescription() const
+{
+    return _remoteEndpoint.getAddress() + ":" +
+        std::to_string(_remoteEndpoint.getPort());
 }
 
 std::vector<MessageFrame> Session::receive()
@@ -48,7 +58,7 @@ std::vector<MessageFrame> Session::receive()
         _open = false;
         throw ReceiveError(
             std::string(RECEIVE_FAILURE) +
-            ": peer=" + _peerName +
+            ": remote=" + remoteDescription() +
             ", operation=receive, systemError=" + std::to_string(error.code().value()));
     }
 
@@ -71,7 +81,7 @@ std::vector<MessageFrame> Session::receive()
         _framer.reset();
         throw ReceiveError(
             std::string(RECEIVE_FAILURE) +
-            ": stage=framing, peer=" + _peerName +
+            ": stage=framing, remote=" + remoteDescription() +
             ", error=" + error.what());
     }
 }
@@ -159,8 +169,8 @@ void Session::failSend(
     }
 
     throw SendError(
-        std::string("Communication data could not be sent: peer=") +
-        _peerName +
+        std::string("Communication data could not be sent: remote=") +
+        remoteDescription() +
         ", status=" + status +
         ", operation=" + operation +
         ", systemError=" + std::to_string(errorCode) +

@@ -19,6 +19,8 @@ public:
 
     std::uint16_t getPort() const noexcept;
 
+    bool operator==(const CommEndpoint& other) const noexcept;
+
 private:
     std::string _address;
     std::uint32_t _intAddress;

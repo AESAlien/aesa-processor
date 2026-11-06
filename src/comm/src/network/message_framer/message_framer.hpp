@@ -1,6 +1,6 @@
 #pragma once
 
-#include <protocol/ST_MsgHeader.hpp>
+#include <network/message_framer/message_frame.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -9,12 +9,6 @@
 
 namespace comm
 {
-
-struct MessageFrame
-{
-    protocol::ST_MsgHeader header;
-    std::vector<uint8_t> bytes;
-};
 
 // Thrown when the buffered bytes cannot form a valid frame.
 // The message names the cause, such as "invalid-frame-size".

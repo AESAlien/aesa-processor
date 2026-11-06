@@ -1,5 +1,7 @@
 #include <network/peer_connection/peer_connection.hpp>
 
+#include <comm/error/comm_error.hpp>
+
 #include <stdexcept>
 #include <utility>
 
@@ -19,8 +21,7 @@ const std::string& PeerConnection::getName() const noexcept
 
 bool PeerConnection::matches(const CommEndpoint& remoteEndpoint) const
 {
-    return _endpoint.getIntAddress() == remoteEndpoint.getIntAddress() &&
-        _endpoint.getPort() == remoteEndpoint.getPort();
+    return _endpoint == remoteEndpoint;
 }
 
 void PeerConnection::send(
@@ -32,16 +33,22 @@ void PeerConnection::send(
         throw std::invalid_argument("Send requires data and a non-negative timeout");
     }
 
-    const std::shared_ptr<Session> session = getSession();
+    const std::shared_ptr<Session> session = snapshotSession();
     if (session)
     {
-        session->send(data, timeout);
+        try
+        {
+            session->send(data, timeout);
+        }
+        catch (const SendError& error)
+        {
+            throw SendError(std::string(error.what()) + ", peer=" + _name);
+        }
     }
 }
 
-void PeerConnection::attach(TcpSocket socket)
+void PeerConnection::replaceSession(std::shared_ptr<Session> session)
 {
-    auto session = std::make_shared<Session>(std::move(socket), _name);
     {
         std::lock_guard<std::mutex> lock(_mutex);
         _session.swap(session);
@@ -49,10 +56,50 @@ void PeerConnection::attach(TcpSocket socket)
     // Release the previous session outside the lock.
 }
 
-std::shared_ptr<Session> PeerConnection::getSession() const
+std::shared_ptr<Session> PeerConnection::snapshotSession() const
 {
     std::lock_guard<std::mutex> lock(_mutex);
     return _session;
+}
+
+bool PeerConnection::isConnected() const
+{
+    return static_cast<bool>(snapshotSession());
+}
+
+std::optional<std::vector<MessageFrame>> PeerConnection::receiveIfCurrent(
+    const std::shared_ptr<Session>& session
+)
+{
+    if (!session)
+    {
+        return std::nullopt;
+    }
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        if (_session != session)
+        {
+            return std::nullopt;
+        }
+    }
+
+    try
+    {
+        auto frames = session->receive();
+        if (!session->isOpen())
+        {
+            detachIfCurrent(session);
+        }
+        return std::move(frames);
+    }
+    catch (const ReceiveError& error)
+    {
+        if (!session->isOpen())
+        {
+            detachIfCurrent(session);
+        }
+        throw ReceiveError(std::string(error.what()) + ", peer=" + _name);
+    }
 }
 
 void PeerConnection::detachIfCurrent(const std::shared_ptr<Session>& session)

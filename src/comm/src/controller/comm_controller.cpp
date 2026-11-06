@@ -23,11 +23,7 @@ class CommController::Impl
 {
 public:
     explicit Impl(CommConfig configuration)
-        : _operatorConsole("operator-console", configuration.operatorConsole()),
-          _scenarioSimulator("scenario-simulator", configuration.scenarioSimulator()),
-          _networkManager(
-              configuration.server(),
-              {_operatorConsole, _scenarioSimulator})
+        : _networkManager(std::move(configuration))
     {
     }
 
@@ -56,36 +52,26 @@ public:
 
     void sendBeamCommand(const beam::TransmitBeamCommand& command)
     {
-        sendEncodedMessage(
-            _scenarioSimulator,
-            encodeBeamCommand(command)
-        );
+        const EncodeResult result = encodeBeamCommand(command);
+        if (!result.bytes)
+        {
+            controller_error::throwEncodingFailure("scenario-simulator", result.error);
+        }
+        _networkManager.sendToScenarioSimulator(*result.bytes);
     }
 
     void sendTrackEvents(
         const std::vector<target::TrackEvent>& trackEvents
     ) {
-        sendEncodedMessage(
-            _operatorConsole,
-            encodeTrackEvents(trackEvents)
-        );
+        const EncodeResult result = encodeTrackEvents(trackEvents);
+        if (!result.bytes)
+        {
+            controller_error::throwEncodingFailure("operator-console", result.error);
+        }
+        _networkManager.sendToOperatorConsole(*result.bytes);
     }
 
 private:
-    void sendEncodedMessage(
-        PeerConnection& connection,
-        const EncodeResult& encodeResult
-    ) {
-        if (!encodeResult.bytes.has_value())
-        {
-            controller_error::throwEncodingFailure(
-                connection.getName(),
-                encodeResult.error);
-        }
-
-        connection.send(*encodeResult.bytes);
-    }
-
     // Messages decoded before a failing frame stay queued.
     void decodeFrames(const ReceivedFrames& received)
     {
@@ -104,9 +90,6 @@ private:
         }
     }
 
-    // Connections outlive the manager that borrows them (reverse destruction order).
-    PeerConnection _operatorConsole;
-    PeerConnection _scenarioSimulator;
     NetworkManager _networkManager;
     MessageDecoder _messageDecoder;
     std::deque<IncomingDto> _pendingMessages;

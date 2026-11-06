@@ -1,6 +1,8 @@
 #pragma once
 
-#include <network/tcp_socket/tcp_socket.hpp>
+#include <network/socket/socket.hpp>
+
+#include <cstddef>
 
 #include <chrono>
 #include <vector>
@@ -8,36 +10,22 @@
 namespace comm
 {
 
-enum class SocketWaitStatus
-{
-    READY,
-    TIMED_OUT,
-    INTERRUPTED
-};
-
-// Borrows registered sockets without transferring ownership. They must remain
-// alive, open, and unmoved throughout the selector's lifetime. The same selector
-// can wait repeatedly without registering its sockets again.
+// Borrows sockets without transferring ownership. They must remain alive, open,
+// and unmoved throughout the selector's lifetime. The same selector can wait
+// repeatedly without registering its sockets again.
 class SocketSelector
 {
 public:
-    // Rejects null pointers and registrations exceeding the platform's limit.
-    explicit SocketSelector(std::vector<const TcpSocket*> sockets);
+    // Rejects null pointers and socket counts exceeding the platform's limit.
+    explicit SocketSelector(std::vector<const Socket*> sockets);
 
-    // Replaces readySockets on every call. Empty registrations return TIMED_OUT
-    // immediately. Negative timeouts are rejected; zero polls without blocking.
-    // Returns INTERRUPTED for signal interruption; other native failures throw
-    // std::system_error. Ready sockets may represent data, acceptance, or closure.
-    SocketWaitStatus waitReadable(
-        std::chrono::microseconds timeout,
-        std::vector<const TcpSocket*>& readySockets
-    ) const;
+    // Returns ready sockets. Timeout or interruption returns an empty vector;
+    // other native failures throw std::system_error. Negative timeouts are
+    // rejected; zero polls without blocking.
+    std::vector<const Socket*> waitReadable(std::chrono::microseconds timeout) const;
 
     // Uses the same timeout and interruption contract as waitReadable().
-    SocketWaitStatus waitWritable(
-        std::chrono::microseconds timeout,
-        std::vector<const TcpSocket*>& readySockets
-    ) const;
+    std::vector<const Socket*> waitWritable(std::chrono::microseconds timeout) const;
 
 private:
     enum class WaitMode
@@ -46,13 +34,12 @@ private:
         WRITABLE
     };
 
-    SocketWaitStatus wait(
+    std::vector<const Socket*> wait(
         WaitMode mode,
-        std::chrono::microseconds timeout,
-        std::vector<const TcpSocket*>& readySockets
+        std::chrono::microseconds timeout
     ) const;
 
-    std::vector<const TcpSocket*> _sockets;
+    std::vector<const Socket*> _sockets;
 };
 
 } // namespace comm

@@ -1,21 +1,6 @@
 #include <network/socket_selector/socket_selector.hpp>
 
 #include <network/socket_error/socket_error.hpp>
-
-#ifdef _WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-
-#include <winsock2.h>
-#else
-#include <sys/select.h>
-#endif
-
 #include <algorithm>
 #include <stdexcept>
 #include <system_error>
@@ -24,100 +9,65 @@
 namespace comm
 {
 
-SocketSelector::SocketSelector(std::vector<const TcpSocket*> sockets)
-    : _sockets(std::move(sockets))
+SocketSelector::SocketSelector(std::vector<const Socket*> sockets)
+  : _sockets(std::move(sockets))
 {
-#ifdef _WIN32
-    if (_sockets.size() > FD_SETSIZE)
-    {
-        throw std::invalid_argument("Socket count exceeds the select limit");
-    }
-#endif
-    for (const TcpSocket* socket : _sockets)
+    native_socket::validateRegistrationCount(_sockets.size());
+    for (const Socket* socket : _sockets)
     {
         if (socket == nullptr)
         {
-            throw std::invalid_argument("Socket wait requires non-null sockets");
+            throw std::invalid_argument("SocketSelector requires non-null sockets");
         }
     }
 }
 
-SocketWaitStatus SocketSelector::waitReadable(
-    std::chrono::microseconds timeout,
-    std::vector<const TcpSocket*>& readySockets
+std::vector<const Socket*> SocketSelector::waitReadable(
+    std::chrono::microseconds timeout
 ) const {
-    return wait(WaitMode::READABLE, timeout, readySockets);
+    return wait(WaitMode::READABLE, timeout);
 }
 
-SocketWaitStatus SocketSelector::waitWritable(
-    std::chrono::microseconds timeout,
-    std::vector<const TcpSocket*>& readySockets
+std::vector<const Socket*> SocketSelector::waitWritable(
+    std::chrono::microseconds timeout
 ) const {
-    return wait(WaitMode::WRITABLE, timeout, readySockets);
+    return wait(WaitMode::WRITABLE, timeout);
 }
 
-SocketWaitStatus SocketSelector::wait(
+std::vector<const Socket*> SocketSelector::wait(
     WaitMode mode,
-    std::chrono::microseconds timeout,
-    std::vector<const TcpSocket*>& readySockets
+    std::chrono::microseconds timeout
 ) const {
-    readySockets.clear();
-    if (timeout.count() < 0)
-    {
-        throw std::invalid_argument("Socket wait requires a non-negative timeout");
-    }
-    if (_sockets.empty())
-    {
-        return SocketWaitStatus::TIMED_OUT;
-    }
-
-    fd_set watchedSockets;
-    FD_ZERO(&watchedSockets);
-    int descriptorLimit = 0;
-    for (const TcpSocket* socket : _sockets)
-    {
-#ifndef _WIN32
-        if (socket->_handle < 0 || socket->_handle >= FD_SETSIZE)
-        {
-            throw std::invalid_argument("Socket descriptor exceeds the select limit");
-        }
-        descriptorLimit = std::max(descriptorLimit, socket->_handle + 1);
-#endif
-        FD_SET(socket->_handle, &watchedSockets);
-    }
-
-    const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(timeout);
-    const auto microseconds = timeout - seconds;
-    timeval selectTimeout{};
-    selectTimeout.tv_sec = static_cast<decltype(selectTimeout.tv_sec)>(seconds.count());
-    selectTimeout.tv_usec = static_cast<decltype(selectTimeout.tv_usec)>(microseconds.count());
-
-    fd_set* readSockets = mode == WaitMode::READABLE ? &watchedSockets : nullptr;
-    fd_set* writeSockets = mode == WaitMode::WRITABLE ? &watchedSockets : nullptr;
+    const std::vector<SocketHandle> handles = Socket::getHandles(_sockets);
+    std::vector<SocketHandle> readyHandles;
+    const auto nativeMode = mode == WaitMode::READABLE
+        ? native_socket::WaitMode::READABLE
+        : native_socket::WaitMode::WRITABLE;
     const char* operation = mode == WaitMode::READABLE ? "wait-readable" : "wait-writable";
-    const int result = select(descriptorLimit, readSockets, writeSockets, nullptr, &selectTimeout);
+    const int result = native_socket::wait(handles, nativeMode, timeout, readyHandles);
     if (result < 0)
     {
         const SocketError error = SocketError::captureLast();
         if (error.isInterrupted())
         {
-            return SocketWaitStatus::INTERRUPTED;
+            return {};
         }
         throw std::system_error(error.code(), operation);
     }
     if (result == 0)
     {
-        return SocketWaitStatus::TIMED_OUT;
+        return {};
     }
 
-    for (const TcpSocket* socket : _sockets)
+    std::vector<const Socket*> readySockets;
+    for (std::size_t index = 0; index < _sockets.size(); ++index)
     {
-        if (FD_ISSET(socket->_handle, &watchedSockets))
+        if (std::find(readyHandles.begin(), readyHandles.end(), handles[index]) != readyHandles.end())
         {
-            readySockets.push_back(socket);
+            readySockets.push_back(_sockets[index]);
         }
     }
-    return SocketWaitStatus::READY;
+    return readySockets;
 }
 
 } // namespace comm

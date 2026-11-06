@@ -33,8 +33,7 @@ const CommEndpoint& CommConfig::scenarioSimulator() const noexcept
 
 void CommConfig::validate() const
 {
-    if (_operatorConsole.getAddress() == _scenarioSimulator.getAddress() &&
-        _operatorConsole.getPort() == _scenarioSimulator.getPort())
+    if (_operatorConsole == _scenarioSimulator)
     {
         throw std::invalid_argument(
             "Communication peer endpoints must be distinct");

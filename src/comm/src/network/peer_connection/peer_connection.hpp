@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -35,14 +36,20 @@ public:
         std::chrono::milliseconds timeout = std::chrono::milliseconds{1000}
     );
 
-    // Configures a new session before replacing the current one.
-    void attach(TcpSocket socket);
-    std::shared_ptr<Session> getSession() const;
+    bool isConnected() const;
 
-    // A stale snapshot must not detach a replacement connection.
-    void detachIfCurrent(const std::shared_ptr<Session>& session);
+    // Replaces the active session when the configured peer reconnects.
+    void replaceSession(std::shared_ptr<Session> session);
+
+    // Receives only if this is still the active session; nullopt means stale.
+    std::optional<std::vector<MessageFrame>> receiveIfCurrent(
+        const std::shared_ptr<Session>& session
+    );
 
 private:
+    std::shared_ptr<Session> snapshotSession() const;
+    void detachIfCurrent(const std::shared_ptr<Session>& session);
+
     std::string _name;
     CommEndpoint _endpoint;
     mutable std::mutex _mutex;

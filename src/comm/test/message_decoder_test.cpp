@@ -1,6 +1,5 @@
 #include <network/message_decoder/message_decoder.hpp>
 #include <network/network_manager/network_manager.hpp>
-#include <network/peer_connection/peer_connection.hpp>
 
 #include <chrono>
 #include <csignal>
@@ -156,15 +155,10 @@ void decodeFrames(
 
 int main()
 {
-    comm::PeerConnection operatorConsole(
-        "operator-console",
-        comm::CommEndpoint(OPERATOR_CONSOLE_ADDRESS, OPERATOR_CONSOLE_PORT));
-    comm::PeerConnection scenarioSimulator(
-        "scenario-simulator",
-        comm::CommEndpoint(SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT));
-    comm::NetworkManager networkManager(
+    comm::NetworkManager networkManager(comm::CommConfig(
         comm::CommEndpoint(SERVER_ADDRESS, SERVER_PORT),
-        {operatorConsole, scenarioSimulator});
+        comm::CommEndpoint(OPERATOR_CONSOLE_ADDRESS, OPERATOR_CONSOLE_PORT),
+        comm::CommEndpoint(SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT)));
     const comm::MessageDecoder messageDecoder;
 
     try

@@ -98,4 +98,9 @@ std::uint16_t CommEndpoint::getPort() const noexcept
     return _port;
 }
 
+bool CommEndpoint::operator==(const CommEndpoint& other) const noexcept
+{
+    return _intAddress == other._intAddress && _port == other._port;
+}
+
 } // namespace comm
