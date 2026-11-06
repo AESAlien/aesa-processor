@@ -19,9 +19,9 @@ constexpr char RECEIVE_FAILURE[] = "Communication data could not be received";
 
 } // namespace
 
-Session::Session(TcpSocket socket, NetworkPeer peer)
+Session::Session(TcpSocket socket, std::string peerName)
     : _socket(std::move(socket)),
-      _peer(peer)
+      _peerName(std::move(peerName))
 {
     _socket.setNonBlocking();
 }
@@ -48,7 +48,7 @@ std::vector<MessageFrame> Session::receive()
         _open = false;
         throw ReceiveError(
             std::string(RECEIVE_FAILURE) +
-            ": peer=" + peerName(_peer) +
+            ": peer=" + _peerName +
             ", operation=receive, systemError=" + std::to_string(error.code().value()));
     }
 
@@ -71,7 +71,7 @@ std::vector<MessageFrame> Session::receive()
         _framer.reset();
         throw ReceiveError(
             std::string(RECEIVE_FAILURE) +
-            ": stage=framing, peer=" + peerName(_peer) +
+            ": stage=framing, peer=" + _peerName +
             ", error=" + error.what());
     }
 }
@@ -160,7 +160,7 @@ void Session::failSend(
 
     throw SendError(
         std::string("Communication data could not be sent: peer=") +
-        peerName(_peer) +
+        _peerName +
         ", status=" + status +
         ", operation=" + operation +
         ", systemError=" + std::to_string(errorCode) +

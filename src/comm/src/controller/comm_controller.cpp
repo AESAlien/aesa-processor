@@ -23,10 +23,11 @@ class CommController::Impl
 {
 public:
     explicit Impl(CommConfig configuration)
-        : _networkManager(
-            configuration.server(),
-            configuration.operatorConsole(),
-            configuration.scenarioSimulator())
+        : _operatorConsole("operator-console", configuration.operatorConsole()),
+          _scenarioSimulator("scenario-simulator", configuration.scenarioSimulator()),
+          _networkManager(
+              configuration.server(),
+              {_operatorConsole, _scenarioSimulator})
     {
     }
 
@@ -56,33 +57,33 @@ public:
     void sendBeamCommand(const beam::TransmitBeamCommand& command)
     {
         sendEncodedMessage(
-            NetworkPeer::SCENARIO_SIMULATOR,
-            encodeBeamCommand(command));
+            _scenarioSimulator,
+            encodeBeamCommand(command)
+        );
     }
 
     void sendTrackEvents(
         const std::vector<target::TrackEvent>& trackEvents
-    )
-    {
+    ) {
         sendEncodedMessage(
-            NetworkPeer::OPERATOR_CONSOLE,
-            encodeTrackEvents(trackEvents));
+            _operatorConsole,
+            encodeTrackEvents(trackEvents)
+        );
     }
 
 private:
     void sendEncodedMessage(
-        NetworkPeer peer,
+        PeerConnection& connection,
         const EncodeResult& encodeResult
-    )
-    {
+    ) {
         if (!encodeResult.bytes.has_value())
         {
             controller_error::throwEncodingFailure(
-                peer,
+                connection.getName(),
                 encodeResult.error);
         }
 
-        _networkManager.send(peer, *encodeResult.bytes);
+        connection.send(*encodeResult.bytes);
     }
 
     // Messages decoded before a failing frame stay queued.
@@ -95,7 +96,7 @@ private:
                 !decodeResult.message.has_value())
             {
                 controller_error::throwDecodingFailure(
-                    received.peer,
+                    received.peerName,
                     decodeResult.error);
             }
 
@@ -103,6 +104,9 @@ private:
         }
     }
 
+    // Connections outlive the manager that borrows them (reverse destruction order).
+    PeerConnection _operatorConsole;
+    PeerConnection _scenarioSimulator;
     NetworkManager _networkManager;
     MessageDecoder _messageDecoder;
     std::deque<IncomingDto> _pendingMessages;
@@ -134,8 +138,7 @@ void CommController::sendBeamCommand(
 
 void CommController::sendTrackEvents(
     const std::vector<target::TrackEvent>& trackEvents
-)
-{
+) {
     _impl->sendTrackEvents(trackEvents);
 }
 

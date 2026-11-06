@@ -1,11 +1,11 @@
 #pragma once
 
 #include <network/message_framer/message_framer.hpp>
-#include <network/network_manager/network_types.hpp>
 #include <network/tcp_socket/tcp_socket.hpp>
 
 #include <chrono>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace comm
@@ -20,7 +20,7 @@ class Session
 {
 public:
     // Throws std::system_error if configuring the socket fails.
-    Session(TcpSocket socket, NetworkPeer peer);
+    Session(TcpSocket socket, std::string peerName);
 
     Session(const Session&) = delete;
     Session& operator=(const Session&) = delete;
@@ -51,7 +51,7 @@ private:
     );
 
     TcpSocket _socket;
-    NetworkPeer _peer;
+    std::string _peerName;
     bool _open = true;
     MessageFramer _framer;
 };

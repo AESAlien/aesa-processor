@@ -2,14 +2,13 @@
 
 #include <comm/config/comm_endpoint.hpp>
 #include <network/message_framer/message_framer.hpp>
-#include <network/network_manager/network_types.hpp>
-#include <network/session/session.hpp>
+#include <network/peer_connection/peer_connection.hpp>
 #include <network/tcp_server/tcp_server.hpp>
 
 #include <chrono>
-#include <cstdint>
+#include <functional>
+#include <string>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <vector>
 
@@ -18,19 +17,17 @@ namespace comm
 
 struct ReceivedFrames
 {
-    NetworkPeer peer;
+    std::string peerName;
     std::vector<MessageFrame> frames;
 };
-
-
 
 class NetworkManager
 {
 public:
+    // Borrows connections, which must outlive this manager and its operations.
     NetworkManager(
         const CommEndpoint& serverEndpoint,
-        const CommEndpoint& operatorConsoleEndpoint,
-        const CommEndpoint& scenarioSimulatorEndpoint
+        std::vector<std::reference_wrapper<PeerConnection>> connections
     );
 
     NetworkManager(const NetworkManager&) = delete;
@@ -41,51 +38,25 @@ public:
     // ServerOpenError를 던짐
     void start();
 
-    
     /*
-        listen socket과 존재하는 console, simulator socket을 감시
-        new socket accept -> nullopt
-        console or simulator byte recv -> framing 후 frame 반환
+        서버와 등록된 연결을 감시한다.
+        새 연결을 수락하면 nullopt, 수신한 메시지가 완성되면 프레임을 반환한다.
     */
     std::optional<ReceivedFrames> poll(
         std::chrono::milliseconds timeout
     );
 
-    // Does nothing while the peer is not connected. Throws SendError.
-    void send(
-        NetworkPeer peer,
-        const std::vector<uint8_t>& data,
-        std::chrono::milliseconds timeout = std::chrono::milliseconds{1000}
-    );
-
 private:
-    //accpet 하기 전 올바른 주소인지 검사
-    std::optional<NetworkPeer> identifyPeer(
-        const CommEndpoint& remoteEndpoint
-    ) const;
-
     void acceptSession();
     std::optional<ReceivedFrames> receiveFrom(
-        NetworkPeer peer,
+        PeerConnection& connection,
         const std::shared_ptr<Session>& session
     );
 
-    std::shared_ptr<Session> getSession(NetworkPeer peer) const;
-    void setSession(NetworkPeer peer, std::shared_ptr<Session> session);
-
     CommEndpoint _serverEndpoint;
-    CommEndpoint _operatorConsoleEndpoint;
-    CommEndpoint _scenarioSimulatorEndpoint;
-
-    
     std::unique_ptr<TcpServer> _server;
-
-    // Guards replacing the session pointers against send() copying them.
-    mutable std::mutex _sessionMutex;
-    std::shared_ptr<Session> _operatorConsoleSession;
-    std::shared_ptr<Session> _scenarioSimulatorSession;
-
-    NetworkPeer _nextPeer = NetworkPeer::OPERATOR_CONSOLE;
+    std::vector<std::reference_wrapper<PeerConnection>> _connections;
+    std::size_t _nextConnection = 0;
 };
 
 } // namespace comm

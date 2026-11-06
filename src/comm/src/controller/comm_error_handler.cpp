@@ -18,14 +18,14 @@ const char* encodingErrorName(EncodingError error);
 std::string makeProtocolFailureMessage(
     const char* message,
     const char* stage,
-    NetworkPeer peer,
+    std::string_view peerName,
     const char* error
 );
 
 } // namespace
 
 void throwDecodingFailure(
-    NetworkPeer peer,
+    std::string_view peerName,
     DecodingError error
 )
 {
@@ -33,12 +33,12 @@ void throwDecodingFailure(
         makeProtocolFailureMessage(
             "Communication data could not be received",
             "decoding",
-            peer,
+            peerName,
             decodingErrorName(error)));
 }
 
 void throwEncodingFailure(
-    NetworkPeer peer,
+    std::string_view peerName,
     EncodingError error
 )
 {
@@ -46,7 +46,7 @@ void throwEncodingFailure(
         makeProtocolFailureMessage(
             "Communication data could not be sent",
             "encoding",
-            peer,
+            peerName,
             encodingErrorName(error)));
 }
 
@@ -99,7 +99,7 @@ const char* encodingErrorName(EncodingError error)
 std::string makeProtocolFailureMessage(
     const char* message,
     const char* stage,
-    NetworkPeer peer,
+    std::string_view peerName,
     const char* error
 )
 {
@@ -109,7 +109,7 @@ std::string makeProtocolFailureMessage(
         << ": stage="
         << stage
         << ", peer="
-        << peerName(peer)
+        << peerName
         << ", error="
         << error;
     return stream.str();

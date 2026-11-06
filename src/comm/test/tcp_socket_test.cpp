@@ -1,5 +1,7 @@
 #include <comm/config/comm_endpoint.hpp>
 #include <comm/error/comm_error.hpp>
+#include <network/network_manager/network_manager.hpp>
+#include <network/peer_connection/peer_connection.hpp>
 #include <network/session/session.hpp>
 #include <network/socket_selector/socket_selector.hpp>
 #include <network/tcp_socket/tcp_socket.hpp>
@@ -315,6 +317,108 @@ private:
 };
 #endif
 
+TEST(NetworkManagerTest, RoutesRegisteredConnectionsByObjectNotDiagnosticName)
+{
+    comm::TcpSocket apiLifetime;
+    NativePeer firstClient;
+    NativePeer secondClient;
+    ASSERT_EQ(firstClient.bind(), 0);
+    ASSERT_EQ(secondClient.bind(), 0);
+    comm::PeerConnection first(
+        "same-name", comm::CommEndpoint("127.0.0.1", firstClient.localPort()));
+    comm::PeerConnection second(
+        "same-name", comm::CommEndpoint("127.0.0.1", secondClient.localPort()));
+    const uint16_t port = availablePort();
+    comm::NetworkManager manager(
+        comm::CommEndpoint("127.0.0.1", port), {first, second});
+    manager.start();
+
+    ASSERT_EQ(firstClient.connect(port), 0);
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+    ASSERT_TRUE(first.getSession());
+    EXPECT_FALSE(second.getSession());
+    ASSERT_EQ(secondClient.connect(port), 0);
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+    ASSERT_TRUE(second.getSession());
+
+    first.send({0x31}, SOCKET_WAIT_TIMEOUT);
+    second.send({0x42}, SOCKET_WAIT_TIMEOUT);
+    uint8_t received = 0;
+    ASSERT_EQ(firstClient.waitReadable(), 1);
+    ASSERT_EQ(firstClient.receiveByte(received), 1);
+    EXPECT_EQ(received, 0x31);
+    ASSERT_EQ(secondClient.waitReadable(), 1);
+    ASSERT_EQ(secondClient.receiveByte(received), 1);
+    EXPECT_EQ(received, 0x42);
+
+    firstClient.close();
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+    EXPECT_FALSE(first.getSession());
+    EXPECT_TRUE(second.getSession());
+}
+
+TEST(PeerConnectionTest, DisconnectedSendPreservesValidationAndNoOpBehavior)
+{
+    comm::PeerConnection connection("test-peer", comm::CommEndpoint("127.0.0.1", 4100));
+    EXPECT_NO_THROW(connection.send({0x01}));
+    EXPECT_THROW(connection.send({}), std::invalid_argument);
+    EXPECT_THROW(connection.send({0x01}, std::chrono::milliseconds{-1}), std::invalid_argument);
+}
+
+TEST(PeerConnectionTest, MatchesBothAddressAndPort)
+{
+    comm::PeerConnection connection(
+        "operator-console",
+        comm::CommEndpoint("127.0.0.1", 4100));
+
+    EXPECT_EQ(connection.getName(), "operator-console");
+    EXPECT_FALSE(connection.getSession());
+    EXPECT_TRUE(connection.matches(comm::CommEndpoint("127.0.0.1", 4100)));
+    EXPECT_FALSE(connection.matches(comm::CommEndpoint("127.0.0.2", 4100)));
+    EXPECT_FALSE(connection.matches(comm::CommEndpoint("127.0.0.1", 4101)));
+}
+
+TEST(PeerConnectionTest, ReconnectionKeepsSnapshotAliveAndIgnoresStaleDetach)
+{
+    comm::TcpSocket apiLifetime;
+    NativePeer firstClient;
+    NativePeer secondClient;
+    comm::PeerConnection connection(
+        "operator-console",
+        comm::CommEndpoint("127.0.0.1", 4100));
+
+    connection.attach(connectPeer(firstClient));
+    auto previous = connection.getSession();
+    ASSERT_TRUE(previous);
+    const std::weak_ptr<comm::Session> previousLifetime = previous;
+
+    connection.attach(connectPeer(secondClient));
+    const auto current = connection.getSession();
+    ASSERT_TRUE(current);
+    ASSERT_NE(previous, current);
+    connection.detachIfCurrent(previous);
+    EXPECT_EQ(connection.getSession(), current);
+
+    // A sender holding the old session can finish after reconnection.
+    previous->send({0x5D}, SOCKET_WAIT_TIMEOUT);
+    uint8_t received = 0;
+    ASSERT_EQ(firstClient.waitReadable(), 1);
+    ASSERT_EQ(firstClient.receiveByte(received), 1);
+    EXPECT_EQ(received, 0x5D);
+    previous.reset();
+    EXPECT_TRUE(previousLifetime.expired());
+    ASSERT_EQ(firstClient.waitReadable(), 1);
+    EXPECT_EQ(firstClient.receiveByte(received), 0);
+
+    current->send({0x6E}, SOCKET_WAIT_TIMEOUT);
+    ASSERT_EQ(secondClient.waitReadable(), 1);
+    ASSERT_EQ(secondClient.receiveByte(received), 1);
+    EXPECT_EQ(received, 0x6E);
+    connection.detachIfCurrent(current);
+    EXPECT_FALSE(connection.getSession());
+    EXPECT_NO_THROW(connection.detachIfCurrent(current));
+}
+
 TEST(TcpSocketTest, ConstructorCreatesSocketWithoutExplicitApiStartup)
 {
     comm::TcpSocket socket;
@@ -510,7 +614,7 @@ TEST(TcpSocketTest, LoopbackConnectionSupportsReadinessAndBidirectionalIo)
     ASSERT_NO_THROW(accepted->waitWritable(SOCKET_WAIT_TIMEOUT));
     EXPECT_NO_THROW(accepted->waitWritable(std::chrono::microseconds{0}));
     const uint8_t response = 0x7B;
-    const auto sentResult = accepted->sendBytes(&response, 1);
+    const auto sentResult = accepted->sendBytes({response});
     ASSERT_TRUE(sentResult.has_value());
     EXPECT_EQ(*sentResult, 1U);
     ASSERT_EQ(client.waitReadable(), 1);
@@ -539,7 +643,7 @@ TEST(TcpSocketTest, ServerAcceptTransfersOwnershipToSession)
     {
         std::optional<comm::TcpSocket> accepted = server->accept();
         ASSERT_TRUE(accepted.has_value());
-        comm::Session session(std::move(*accepted), comm::NetworkPeer::OPERATOR_CONSOLE);
+        comm::Session session(std::move(*accepted), "operator-console");
         accepted->close();
 
         EXPECT_EQ(session.getSocket().getRemoteEndpoint().getPort(), client.localPort());
@@ -591,7 +695,7 @@ TEST(TcpSocketTest, SessionRemainsUsableAfterServerIsDestroyed)
         ASSERT_EQ(comm::SocketSelector({&server->getSocket()}).waitReadable(SOCKET_WAIT_TIMEOUT, ready), comm::SocketWaitStatus::READY);
         std::optional<comm::TcpSocket> accepted = server->accept();
         ASSERT_TRUE(accepted.has_value());
-        session.emplace(std::move(*accepted), comm::NetworkPeer::OPERATOR_CONSOLE);
+        session.emplace(std::move(*accepted), "operator-console");
     }
 
     EXPECT_EQ(session->getSocket().getRemoteEndpoint().getPort(), client->localPort());
@@ -643,11 +747,11 @@ TEST(TcpSocketTest, ReceiveLimitLeavesRemainingBytesForNextCall)
 TEST(TcpSocketTest, BufferAndTimeoutContractsAreExplicit)
 {
     comm::TcpSocket socket;
-    const auto empty = socket.sendBytes(nullptr, 0);
+    const auto empty = socket.sendBytes({});
     ASSERT_TRUE(empty.has_value());
     EXPECT_EQ(*empty, 0U);
 
-    EXPECT_THROW(socket.sendBytes(nullptr, 1), std::invalid_argument);
+    EXPECT_THROW(socket.sendBytes({}, 1), std::out_of_range);
     EXPECT_THROW(socket.receiveBytes(0), std::invalid_argument);
     EXPECT_THROW(socket.waitWritable(std::chrono::microseconds{-1}), std::invalid_argument);
     std::vector<const comm::TcpSocket*> ready;
@@ -666,7 +770,7 @@ TEST(TcpSocketTest, UnexpectedIoFailureCarriesNativeErrorInException)
     const uint8_t byte = 0x42;
     try
     {
-        socket.sendBytes(&byte, 1);
+        socket.sendBytes({byte});
         FAIL() << "An unconnected send must fail";
     }
     catch (const std::system_error& error)
@@ -690,7 +794,7 @@ TEST(TcpSocketTest, BackpressureProducesPartialTransferAndWouldBlock)
     bool blocked = false;
     for (int attempt = 0; attempt < 32; ++attempt)
     {
-        const auto result = socket.sendBytes(payload.data(), payload.size());
+        const auto result = socket.sendBytes(payload);
         if (!result)
         {
             blocked = true;
@@ -725,7 +829,7 @@ TEST(TcpSocketTest, SessionReceiveStaysOpenUntilPeerCloses)
     comm::TcpSocket socket;
     NativePeer client;
     socket = connectPeer(client);
-    comm::Session session(std::move(socket), comm::NetworkPeer::OPERATOR_CONSOLE);
+    comm::Session session(std::move(socket), "operator-console");
 
     EXPECT_TRUE(session.receive().empty());
     EXPECT_TRUE(session.isOpen());
@@ -741,7 +845,7 @@ TEST(TcpSocketTest, SessionSendCompletesEntireStream)
     comm::TcpSocket socket;
     NativePeer client;
     socket = connectPeer(client);
-    comm::Session session(std::move(socket), comm::NetworkPeer::OPERATOR_CONSOLE);
+    comm::Session session(std::move(socket), "operator-console");
     const std::vector<uint8_t> payload(4 * 1024 * 1024, 0x4D);
     std::vector<uint8_t> received(payload.size());
     std::size_t receivedSize = 0;
@@ -776,7 +880,7 @@ TEST(TcpSocketTest, SessionSendTimeoutReportsPartialProgress)
     NativePeer client;
     ASSERT_EQ(client.setReceiveBufferSize(4096), 0);
     socket = connectPeer(client);
-    comm::Session session(std::move(socket), comm::NetworkPeer::OPERATOR_CONSOLE);
+    comm::Session session(std::move(socket), "operator-console");
     const std::vector<uint8_t> payload(32 * 1024 * 1024, 0x5A);
     constexpr std::chrono::milliseconds TIMEOUT{40};
 
@@ -822,7 +926,7 @@ TEST(TcpSocketTest, InterruptedWriteWaitUsesOriginalDeadline)
     bool blocked = false;
     for (int attempt = 0; attempt < 32; ++attempt)
     {
-        if (!socket.sendBytes(payload.data(), payload.size()))
+        if (!socket.sendBytes(payload))
         {
             blocked = true;
             break;
@@ -867,7 +971,7 @@ TEST(TcpSocketTest, InterruptedSessionReceiveKeepsConnectionOpen)
     comm::TcpSocket socket;
     NativePeer client;
     socket = connectPeer(client, false);
-    comm::Session session(std::move(socket), comm::NetworkPeer::OPERATOR_CONSOLE);
+    comm::Session session(std::move(socket), "operator-console");
     const SignalInterruptor signals;
     EXPECT_TRUE(session.receive().empty());
     EXPECT_TRUE(session.isOpen());
@@ -879,7 +983,7 @@ TEST(TcpSocketTest, InterruptedSessionSendUsesOriginalDeadline)
     NativePeer client;
     ASSERT_EQ(client.setReceiveBufferSize(4096), 0);
     socket = connectPeer(client);
-    comm::Session session(std::move(socket), comm::NetworkPeer::OPERATOR_CONSOLE);
+    comm::Session session(std::move(socket), "operator-console");
     const std::vector<uint8_t> payload(32 * 1024 * 1024, 0x5A);
     constexpr std::chrono::milliseconds TIMEOUT{40};
     const SignalInterruptor signals;

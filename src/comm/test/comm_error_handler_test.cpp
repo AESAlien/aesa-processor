@@ -56,7 +56,7 @@ TEST(CommErrorHandlerTest, IncludesDecodingFailureDetailsInExceptionMessage)
         []()
         {
             comm::controller_error::throwDecodingFailure(
-                comm::NetworkPeer::SCENARIO_SIMULATOR,
+                "scenario-simulator",
                 comm::DecodingError::UNSUPPORTED_VERSION);
         });
 
@@ -72,7 +72,7 @@ TEST(CommErrorHandlerTest, IncludesEncodingFailureDetailsInExceptionMessage)
         []()
         {
             comm::controller_error::throwEncodingFailure(
-                comm::NetworkPeer::SCENARIO_SIMULATOR,
+                "scenario-simulator",
                 comm::EncodingError::TYPE_CONVERSION_ERROR);
         });
 

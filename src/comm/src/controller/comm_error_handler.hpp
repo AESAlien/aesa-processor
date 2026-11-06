@@ -2,7 +2,7 @@
 
 #include <network/message_decoder/message_decoder.hpp>
 #include <network/message_encoder/message_encoder.hpp>
-#include <network/network_manager/network_types.hpp>
+#include <string_view>
 
 namespace comm
 {
@@ -10,12 +10,12 @@ namespace controller_error
 {
 
 [[noreturn]] void throwDecodingFailure(
-    NetworkPeer peer,
+    std::string_view peerName,
     DecodingError error
 );
 
 [[noreturn]] void throwEncodingFailure(
-    NetworkPeer peer,
+    std::string_view peerName,
     EncodingError error
 );
 
