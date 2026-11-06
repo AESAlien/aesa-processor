@@ -1,14 +1,10 @@
 #pragma once
 
 #include <exception>
-#include <string_view>
 #include <utility>
 
 namespace app
 {
-
-const char* workerModule(
-    std::string_view worker) noexcept;
 
 void reportWorkerError(
     const char* worker,

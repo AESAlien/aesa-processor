@@ -7,41 +7,17 @@
 namespace app
 {
 
-// Select logger
-// reason : comm 3 workers.
-const char* workerModule(
-    std::string_view worker) noexcept
-{
-    if (worker.find("Beam") == 0)
-    {
-        return "beam";
-    }
-
-    if (worker.find("Target") == 0)
-    {
-        return "target";
-    }
-
-    if (worker.find("Comm") == 0)
-    {
-        return "comm";
-    }
-
-    return "app";
-}
-
 void reportWorkerError(
     const char* worker,
     const char* message) noexcept
 {
     try
     {
-        if (auto logger = spdlog::get(workerModule(worker)))
+        // main에서 등록한 워커 이름으로 직접 조회한다.
+        if (auto logger = spdlog::get(worker))
         {
-            logger->error(
-                "[worker={}] {}",
-                worker,
-                message);
+            // 출력 패턴의 %n에 워커 이름이 포함된다.
+            logger->error("{}", message);
 
             return;
         }
