@@ -154,6 +154,10 @@ void runWorker(
 
 int main()
 {
+    std::cout
+    << "[LOG FILE] logs/radar.log\n"
+    << "[ERROR LOG FILE] logs/error.log\n";
+    
     // 공용 로그 자원을 관리하는 객체는 main에서 하나만 생성한다.
     logging::LogManager logs;
 
