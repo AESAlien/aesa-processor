@@ -34,7 +34,8 @@ std::shared_ptr<Session> SessionListener::accept()
     {
         throw ConnectionError(
             std::string("Communication connection could not be established: ") +
-            error.what() + ", systemError=" + std::to_string(error.code().value()));
+            error.what() + ", systemError=" + std::to_string(error.code().value())
+        );
     }
 }
 
@@ -83,7 +84,8 @@ std::shared_ptr<Session> SessionListener::poll(std::chrono::milliseconds timeout
     {
         throw ReceiveError(
             std::string("Communication data could not be received: operation=wait-readable, systemError=") +
-            std::to_string(error.code().value()));
+            std::to_string(error.code().value())
+        );
     }
 
     const std::size_t startIndex = _nextReadyIndex % watchedSockets.size();

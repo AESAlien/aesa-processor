@@ -64,7 +64,8 @@ float convertFloat(double value)
         value > MAXIMUM_FLOAT)
     {
         throw std::out_of_range(
-            "Value cannot be represented as protocol float");
+            "Value cannot be represented as protocol float"
+        );
     }
 
     return static_cast<float>(value);
@@ -80,7 +81,8 @@ uint32_t convertTimestamp(
             std::numeric_limits<uint32_t>::max())
     {
         throw std::out_of_range(
-            "Timestamp cannot be represented as protocol uint32");
+            "Timestamp cannot be represented as protocol uint32"
+        );
     }
 
     return static_cast<uint32_t>(count);
@@ -130,7 +132,8 @@ std::vector<uint8_t> toBytes(const Message& message)
 {
     static_assert(
         std::is_trivially_copyable<Message>::value,
-        "Protocol messages must be trivially copyable");
+        "Protocol messages must be trivially copyable"
+    );
 
     std::vector<uint8_t> bytes(sizeof(message));
     std::memcpy(bytes.data(), &message, sizeof(message));
@@ -148,8 +151,9 @@ EncodeResult encodeBeamCommand(
 
         protocol::ST_BeamTxMsg message{};
         message.msgHeader = makeHeader(
-            protocol::MessageId::BeamTransmit,
-            sizeof(message));
+            protocol::MessageId::BEAM_TRANSMIT,
+            sizeof(message)
+        );
         message.beam_cmd = encodedBeam;
 
         return encoded(toBytes(message));
@@ -185,8 +189,9 @@ EncodeResult encodeTrackEvents(
     const std::size_t blockSize =
         TRACK_DATA_OFFSET + encodedTracks.size() * sizeof(protocol::ST_Trk);
     const protocol::ST_MsgHeader header = makeHeader(
-        protocol::MessageId::TrackInformation,
-        blockSize);
+        protocol::MessageId::TRACK_INFORMATION,
+        blockSize
+    );
 
     protocol::ST_TrkHeader trackHeader{};
     trackHeader.number = static_cast<uint16_t>(encodedTracks.size());
@@ -200,7 +205,8 @@ EncodeResult encodeTrackEvents(
     std::memcpy(
         bytes.data() + offset,
         &trackHeader,
-        sizeof(trackHeader));
+        sizeof(trackHeader)
+    );
     offset += sizeof(trackHeader);
 
     if (!encodedTracks.empty())
@@ -208,7 +214,8 @@ EncodeResult encodeTrackEvents(
         std::memcpy(
             bytes.data() + offset,
             encodedTracks.data(),
-            encodedTracks.size() * sizeof(protocol::ST_Trk));
+            encodedTracks.size() * sizeof(protocol::ST_Trk)
+        );
     }
 
     return encoded(std::move(bytes));

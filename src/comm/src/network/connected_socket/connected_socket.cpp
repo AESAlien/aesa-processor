@@ -7,7 +7,6 @@
 #include <limits>
 #include <stdexcept>
 #include <system_error>
-#include <utility>
 
 namespace comm
 {
@@ -18,15 +17,18 @@ int transferSize(std::size_t size) noexcept
 {
     return static_cast<int>(std::min(
         size,
-        static_cast<std::size_t>(std::numeric_limits<int>::max())));
+        static_cast<std::size_t>(std::numeric_limits<int>::max())
+    ));
 }
 
 } // namespace
 
-ConnectedSocket::ConnectedSocket(SocketResource socket)
-    : Socket(std::move(socket))
+ConnectedSocket::ConnectedSocket(SocketHandle handle, uint32_t remoteAddress, uint16_t remotePort)
+  : Socket(handle),
+    _remoteAddress(remoteAddress),
+    _remotePort(remotePort)
 {
-    if (native_socket::setNonBlocking(_socket._handle) < 0)
+    if (native_socket::setNonBlocking(_handle) < 0)
     {
         const SocketError error = SocketError::captureLast();
         throw std::system_error(error.code(), "operation=set-non-blocking");
@@ -35,24 +37,14 @@ ConnectedSocket::ConnectedSocket(SocketResource socket)
 
 CommEndpoint ConnectedSocket::getRemoteEndpoint() const
 {
-    uint32_t address = 0;
-    uint16_t port = 0;
-    const int result = native_socket::remoteEndpoint(_socket._handle, address, port);
-
-    if (result < 0)
-    {
-        const SocketError error = SocketError::captureLast();
-        throw std::system_error(error.code(), "operation=get-remote-endpoint");
-    }
-
-    const auto formattedAddress = native_socket::formatIpv4(address);
+    const auto formattedAddress = native_socket::formatIpv4(_remoteAddress);
 
     if (!formattedAddress)
     {
         const SocketError error = SocketError::captureLast();
         throw std::system_error(error.code(), "operation=format-address");
     }
-    return CommEndpoint(*formattedAddress, port);
+    return CommEndpoint(*formattedAddress, _remotePort);
 }
 
 void ConnectedSocket::waitWritable(std::chrono::microseconds timeout) const
@@ -100,7 +92,7 @@ std::optional<std::size_t> ConnectedSocket::sendBytes(
     }
     const int nativeSize = transferSize(data.size() - offset);
     const uint8_t* pendingData = data.data() + offset;
-    const int result = native_socket::sendBytes(_socket._handle, pendingData, nativeSize);
+    const int result = native_socket::sendBytes(_handle, pendingData, nativeSize);
     if (result < 0)
     {
         const SocketError error = SocketError::captureLast();
@@ -121,7 +113,7 @@ std::optional<std::vector<uint8_t>> ConnectedSocket::receiveBytes(std::size_t ma
     }
     const int nativeSize = transferSize(maximumBytes);
     std::vector<uint8_t> buffer(static_cast<std::size_t>(nativeSize));
-    const int result = native_socket::receiveBytes(_socket._handle, buffer.data(), nativeSize);
+    const int result = native_socket::receiveBytes(_handle, buffer.data(), nativeSize);
     if (result < 0)
     {
         const SocketError error = SocketError::captureLast();
@@ -137,13 +129,7 @@ std::optional<std::vector<uint8_t>> ConnectedSocket::receiveBytes(std::size_t ma
 
 void ConnectedSocket::shutdown()
 {
-    const int result = native_socket::shutdownSocket(_socket._handle);
-
-    if (result < 0)
-    {
-        const SocketError error = SocketError::captureLast();
-        throw std::system_error(error.code(), "operation=shutdown");
-    }
+    native_socket::shutdownSocket(_handle);
 }
 
 } // namespace comm

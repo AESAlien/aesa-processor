@@ -23,7 +23,7 @@ class CommController::Impl
 {
 public:
     explicit Impl(CommConfig configuration)
-        : _networkManager(std::move(configuration))
+      : _networkManager(std::move(configuration))
     {
     }
 
@@ -83,7 +83,8 @@ private:
             {
                 controller_error::throwDecodingFailure(
                     received.peerName,
-                    decodeResult.error);
+                    decodeResult.error
+                );
             }
 
             _pendingMessages.push_back(std::move(*decodeResult.message));
@@ -96,7 +97,7 @@ private:
 };
 
 CommController::CommController(CommConfig configuration)
-    : _impl(std::make_unique<Impl>(std::move(configuration)))
+  : _impl(std::make_unique<Impl>(std::move(configuration)))
 {
 }
 

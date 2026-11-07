@@ -8,10 +8,11 @@ namespace comm
 CommConfig::CommConfig(
     CommEndpoint server,
     CommEndpoint operatorConsole,
-    CommEndpoint scenarioSimulator)
-    : _server(std::move(server)),
-      _operatorConsole(std::move(operatorConsole)),
-      _scenarioSimulator(std::move(scenarioSimulator))
+    CommEndpoint scenarioSimulator
+)
+  : _server(std::move(server)),
+    _operatorConsole(std::move(operatorConsole)),
+    _scenarioSimulator(std::move(scenarioSimulator))
 {
     validate();
 }
@@ -36,7 +37,8 @@ void CommConfig::validate() const
     if (_operatorConsole == _scenarioSimulator)
     {
         throw std::invalid_argument(
-            "Communication peer endpoints must be distinct");
+            "Communication peer endpoints must be distinct"
+        );
     }
 }
 

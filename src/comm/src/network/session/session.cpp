@@ -20,8 +20,8 @@ constexpr char RECEIVE_FAILURE[] = "Communication data could not be received";
 } // namespace
 
 Session::Session(ConnectedSocket socket)
-    : _remoteEndpoint(socket.getRemoteEndpoint()),
-      _socket(std::move(socket))
+  : _remoteEndpoint(socket.getRemoteEndpoint()),
+    _socket(std::move(socket))
 {
 }
 
@@ -59,7 +59,8 @@ std::vector<MessageFrame> Session::receive()
         throw ReceiveError(
             std::string(RECEIVE_FAILURE) +
             ": remote=" + remoteDescription() +
-            ", operation=receive, systemError=" + std::to_string(error.code().value()));
+            ", operation=receive, systemError=" + std::to_string(error.code().value())
+        );
     }
 
     if (!received)
@@ -82,7 +83,8 @@ std::vector<MessageFrame> Session::receive()
         throw ReceiveError(
             std::string(RECEIVE_FAILURE) +
             ": stage=framing, remote=" + remoteDescription() +
-            ", error=" + error.what());
+            ", error=" + error.what()
+        );
     }
 }
 
@@ -174,7 +176,8 @@ void Session::failSend(
         ", status=" + status +
         ", operation=" + operation +
         ", systemError=" + std::to_string(errorCode) +
-        ", bytesSent=" + std::to_string(bytesSent));
+        ", bytesSent=" + std::to_string(bytesSent)
+    );
 }
 
 } // namespace comm

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <network/socket_resource/socket_resource.hpp>
-
-#include <vector>
+#include <network/native_socket/native_socket.hpp>
 
 namespace comm
 {
@@ -16,18 +14,25 @@ public:
     Socket(const Socket&) = delete;
     Socket& operator=(const Socket&) = delete;
 
+    // Borrows the handle; ownership remains with this socket.
+    SocketHandle getHandle() const noexcept;
     void close() noexcept;
-
-    // Returns native handles for the supplied sockets.
-    static std::vector<SocketHandle> getHandles(const std::vector<const Socket*>& sockets);
 
 protected:
     Socket();
-    explicit Socket(SocketResource socket);
-    Socket(Socket&&) noexcept = default;
-    Socket& operator=(Socket&&) noexcept = default;
+    // Takes ownership immediately, including on initialization failure.
+    explicit Socket(SocketHandle handle);
+    Socket(Socket&& other) noexcept;
+    Socket& operator=(Socket&& other) noexcept;
 
-    SocketResource _socket;
+    SocketHandle _handle = INVALID_SOCKET_HANDLE;
+
+private:
+    void initializeApi();
+    void cleanupApi() noexcept;
+    void validate() const;
+
+    bool _apiInitialized = false;
 };
 
 } // namespace comm

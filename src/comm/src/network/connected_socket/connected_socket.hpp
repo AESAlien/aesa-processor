@@ -22,7 +22,8 @@ public:
     ConnectedSocket(ConnectedSocket&&) noexcept = default;
     ConnectedSocket& operator=(ConnectedSocket&&) noexcept = default;
 
-    // Queries the connected peer. Native failures throw std::system_error.
+    // Returns the peer endpoint captured when the connection was accepted.
+    // Address formatting failures throw std::system_error.
     CommEndpoint getRemoteEndpoint() const;
 
     // Returns when writing is ready. Throws std::system_error with
@@ -59,7 +60,10 @@ public:
 
 private:
     friend class ListenSocket;
-    explicit ConnectedSocket(SocketResource socket);
+    ConnectedSocket(SocketHandle handle, uint32_t remoteAddress, uint16_t remotePort);
+
+    uint32_t _remoteAddress;
+    uint16_t _remotePort;
 };
 
 } // namespace comm

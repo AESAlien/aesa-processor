@@ -15,10 +15,8 @@ class ListenSocket : public Socket
 {
 public:
     // Throws ServerOpenError. Construction completes all listener setup.
-    explicit ListenSocket(
-        const CommEndpoint& endpoint,
-        int backlog = native_socket::defaultBacklog()
-    );
+    explicit ListenSocket(const CommEndpoint& endpoint);
+    ListenSocket(const CommEndpoint& endpoint, int backlog);
     ListenSocket(const ListenSocket&) = delete;
     ListenSocket& operator=(const ListenSocket&) = delete;
     ListenSocket(ListenSocket&&) noexcept = default;

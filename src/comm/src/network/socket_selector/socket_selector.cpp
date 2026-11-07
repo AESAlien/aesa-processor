@@ -1,6 +1,7 @@
 #include <network/socket_selector/socket_selector.hpp>
 
 #include <network/socket_error/socket_error.hpp>
+
 #include <algorithm>
 #include <stdexcept>
 #include <system_error>
@@ -38,13 +39,27 @@ std::vector<const Socket*> SocketSelector::wait(
     WaitMode mode,
     std::chrono::microseconds timeout
 ) const {
-    const std::vector<SocketHandle> handles = Socket::getHandles(_sockets);
+    if (timeout.count() < 0)
+    {
+        throw std::invalid_argument("Socket wait requires a non-negative timeout");
+    }
+    if (_sockets.empty())
+    {
+        return {};
+    }
+
+    std::vector<SocketHandle> handles;
+    handles.reserve(_sockets.size());
+    for (const Socket* socket : _sockets)
+    {
+        const SocketHandle handle = socket->getHandle();
+        handles.push_back(handle);
+    }
     std::vector<SocketHandle> readyHandles;
-    const auto nativeMode = mode == WaitMode::READABLE
-        ? native_socket::WaitMode::READABLE
-        : native_socket::WaitMode::WRITABLE;
     const char* operation = mode == WaitMode::READABLE ? "wait-readable" : "wait-writable";
-    const int result = native_socket::wait(handles, nativeMode, timeout, readyHandles);
+    const int result = mode == WaitMode::READABLE
+        ? native_socket::waitReadable(handles, timeout, readyHandles)
+        : native_socket::waitWritable(handles, timeout, readyHandles);
     if (result < 0)
     {
         const SocketError error = SocketError::captureLast();

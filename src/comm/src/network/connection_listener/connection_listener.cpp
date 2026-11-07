@@ -12,7 +12,8 @@ namespace comm
 ConnectionListener::ConnectionListener(
     CommEndpoint endpoint,
     std::vector<std::reference_wrapper<PeerConnection>> connections
-) : _endpoint(std::move(endpoint)),
+)
+  : _endpoint(std::move(endpoint)),
     _connections(std::move(connections))
 {
 }

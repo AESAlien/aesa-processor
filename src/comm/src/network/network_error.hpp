@@ -16,7 +16,8 @@ template <typename Error>
     throw Error(
         message +
         ": operation=" + operation +
-        ", systemError=" + std::to_string(errorCode));
+        ", systemError=" + std::to_string(errorCode)
+    );
 }
 
 } // namespace comm

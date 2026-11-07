@@ -11,7 +11,8 @@ public:
     CommConfig(
         CommEndpoint server,
         CommEndpoint operatorConsole,
-        CommEndpoint scenarioSimulator);
+        CommEndpoint scenarioSimulator
+    );
 
     const CommEndpoint& server() const noexcept;
     const CommEndpoint& operatorConsole() const noexcept;

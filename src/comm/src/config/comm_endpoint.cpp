@@ -17,7 +17,8 @@ constexpr std::size_t OCTET_COUNT = 4;
 std::uint32_t parseIpv4Address(const std::string& address)
 {
     const std::invalid_argument invalidAddress(
-        "Comm endpoint requires a valid IPv4 address");
+        "Comm endpoint requires a valid IPv4 address"
+    );
 
     std::array<std::uint8_t, OCTET_COUNT> octets{};
     std::size_t partCount = 0;
@@ -73,9 +74,9 @@ std::uint32_t parseIpv4Address(const std::string& address)
 } // namespace
 
 CommEndpoint::CommEndpoint(std::string address, std::uint16_t port)
-    : _address(std::move(address)),
-      _intAddress(parseIpv4Address(_address)),
-      _port(port)
+  : _address(std::move(address)),
+    _intAddress(parseIpv4Address(_address)),
+    _port(port)
 {
     if (_port == 0)
     {

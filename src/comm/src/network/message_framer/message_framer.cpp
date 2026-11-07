@@ -7,8 +7,8 @@
 namespace comm
 {
 
-MessageFramer::MessageFramer(std::size_t maximumFrameSize) :
-    _maximumFrameSize(maximumFrameSize)
+MessageFramer::MessageFramer(std::size_t maximumFrameSize)
+  : _maximumFrameSize(maximumFrameSize)
 {
     validate();
     _buffer.reserve(_maximumFrameSize);
@@ -19,7 +19,8 @@ void MessageFramer::validate() const
     if (_maximumFrameSize < sizeof(protocol::ST_MsgHeader))
     {
         throw std::invalid_argument(
-            "Maximum frame size must be at least the header size");
+            "Maximum frame size must be at least the header size"
+        );
     }
 }
 
@@ -50,7 +51,9 @@ std::vector<MessageFrame> MessageFramer::append(
         frames.push_back(
             extractFrame(
                 header,
-                frameSize));
+                frameSize
+            )
+        );
     }
 
     compactBuffer();
@@ -70,7 +73,8 @@ protocol::ST_MsgHeader MessageFramer::peekHeader() const
     std::memcpy(
         &header,
         _buffer.data() + _readOffset,
-        sizeof(header));
+        sizeof(header)
+    );
 
     return header;
 }
@@ -97,13 +101,13 @@ bool MessageFramer::isKnownMessageId(
 ) const {
     switch (static_cast<protocol::MessageId>(messageId))
     {
-    case protocol::MessageId::OperatorControl:
-    case protocol::MessageId::TrackInformation:
-    case protocol::MessageId::RadarAttitudeToConsole:
-    case protocol::MessageId::TrackDeletion:
-    case protocol::MessageId::BeamTransmit:
-    case protocol::MessageId::PlotInformation:
-    case protocol::MessageId::RadarAttitudeFromSimulator:
+    case protocol::MessageId::OPERATOR_CONTROL:
+    case protocol::MessageId::TRACK_INFORMATION:
+    case protocol::MessageId::RADAR_ATTITUDE_TO_CONSOLE:
+    case protocol::MessageId::TRACK_DELETION:
+    case protocol::MessageId::BEAM_TRANSMIT:
+    case protocol::MessageId::PLOT_INFORMATION:
+    case protocol::MessageId::RADAR_ATTITUDE_FROM_SIMULATOR:
         return true;
     }
 
@@ -161,7 +165,8 @@ void MessageFramer::compactBuffer()
         _buffer.erase(
             _buffer.begin(),
             _buffer.begin() +
-                static_cast<std::ptrdiff_t>(_readOffset));
+                static_cast<std::ptrdiff_t>(_readOffset)
+        );
 
         _readOffset = 0;
     }

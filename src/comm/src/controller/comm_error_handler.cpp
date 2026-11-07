@@ -33,7 +33,9 @@ void throwDecodingFailure(
             "Communication data could not be received",
             "decoding",
             peerName,
-            decodingErrorName(error)));
+            decodingErrorName(error)
+        )
+    );
 }
 
 void throwEncodingFailure(
@@ -45,7 +47,9 @@ void throwEncodingFailure(
             "Communication data could not be sent",
             "encoding",
             peerName,
-            encodingErrorName(error)));
+            encodingErrorName(error)
+        )
+    );
 }
 
 namespace

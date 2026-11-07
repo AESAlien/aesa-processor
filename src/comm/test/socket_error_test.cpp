@@ -1,44 +1,23 @@
 #include <network/socket_error/socket_error.hpp>
 
-#ifdef _WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-
-#include <winsock2.h>
-#else
-#include <cerrno>
-#endif
+#include <native_socket/native_socket_test_support.hpp>
 
 #include <gtest/gtest.h>
 
 namespace
 {
 
-#ifdef _WIN32
-constexpr int INTERRUPTED_ERROR = WSAEINTR;
-constexpr int WOULD_BLOCK_ERROR = WSAEWOULDBLOCK;
-constexpr int CONNECTION_RESET_ERROR = WSAECONNRESET;
-#else
-constexpr int INTERRUPTED_ERROR = EINTR;
-constexpr int WOULD_BLOCK_ERROR = EWOULDBLOCK;
-constexpr int CONNECTION_RESET_ERROR = ECONNRESET;
-#endif
+const auto ERROR_CODES = comm::native_socket::test::errorCodes();
+const int INTERRUPTED_ERROR = ERROR_CODES.interrupted;
+const int WOULD_BLOCK_ERROR = ERROR_CODES.wouldBlock;
+const int CONNECTION_RESET_ERROR = ERROR_CODES.connectionReset;
 
 class SocketErrorTest : public testing::Test
 {
 protected:
     void SetUp() override
     {
-#ifdef _WIN32
-        _previousError = WSAGetLastError();
-#else
-        _previousError = errno;
-#endif
+        _previousError = comm::native_socket::lastError();
     }
 
     void TearDown() override
@@ -48,11 +27,7 @@ protected:
 
     static void setNativeError(int errorCode) noexcept
     {
-#ifdef _WIN32
-        WSASetLastError(errorCode);
-#else
-        errno = errorCode;
-#endif
+        comm::native_socket::test::setLastError(errorCode);
     }
 
 private:
@@ -83,10 +58,8 @@ TEST_F(SocketErrorTest, ExplicitCodeIsIndependentOfNativeErrorState)
     EXPECT_EQ(error.code().value(), INTERRUPTED_ERROR);
     EXPECT_TRUE(error.isInterrupted());
     EXPECT_FALSE(error.isWouldBlock());
-#ifndef _WIN32
-    EXPECT_TRUE(comm::SocketError(EAGAIN).isWouldBlock());
-    EXPECT_TRUE(comm::SocketError(EWOULDBLOCK).isWouldBlock());
-#endif
+    EXPECT_TRUE(comm::SocketError(ERROR_CODES.tryAgain).isWouldBlock());
+    EXPECT_TRUE(comm::SocketError(ERROR_CODES.wouldBlock).isWouldBlock());
 }
 
 TEST_F(SocketErrorTest, PreservesStandardCodeForUnclassifiedErrors)

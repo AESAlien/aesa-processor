@@ -34,6 +34,22 @@ using SocketLength = int;
 using SocketLength = socklen_t;
 #endif
 
+timeval makeTimeval(std::chrono::microseconds timeout);
+
+int selectSockets(
+    SocketHandle maximumSocket,
+    fd_set* readSockets,
+    fd_set* writeSockets,
+    std::chrono::microseconds timeout
+);
+
+int waitSockets(
+    const std::vector<SocketHandle>& sockets,
+    bool writable,
+    std::chrono::microseconds timeout,
+    std::vector<SocketHandle>& readySockets
+);
+
 } // namespace
 
 int startup()
@@ -46,20 +62,59 @@ int startup()
 #endif
 }
 
-int cleanup() noexcept
+int cleanup()
 {
 #ifdef _WIN32
     if (WSACleanup() == SOCKET_ERROR)
     {
-        return WSAGetLastError();
+        return lastError();
     }
 #endif
     return 0;
 }
 
+int lastError()
+{
+#ifdef _WIN32
+    return WSAGetLastError();
+#else
+    return errno;
+#endif
+}
+
+bool isInterrupted(int errorCode)
+{
+#ifdef _WIN32
+    return errorCode == WSAEINTR;
+#else
+    return errorCode == EINTR;
+#endif
+}
+
+bool isWouldBlock(int errorCode)
+{
+#ifdef _WIN32
+    return errorCode == WSAEWOULDBLOCK;
+#else
+    return errorCode == EAGAIN || errorCode == EWOULDBLOCK;
+#endif
+}
+
 int defaultBacklog() noexcept
 {
     return SOMAXCONN;
+}
+
+void validateRegistrationCount(std::size_t count)
+{
+#ifdef _WIN32
+    if (count > FD_SETSIZE)
+    {
+        throw std::invalid_argument("Socket count exceeds the select limit");
+    }
+#else
+    static_cast<void>(count);
+#endif
 }
 
 std::optional<std::string> formatIpv4(uint32_t address)
@@ -72,7 +127,8 @@ std::optional<std::string> formatIpv4(uint32_t address)
             AF_INET,
             &nativeAddress,
             addressBuffer,
-            sizeof(addressBuffer)) == nullptr)
+            sizeof(addressBuffer)
+        ) == nullptr)
     {
         return std::nullopt;
     }
@@ -97,7 +153,8 @@ int setReuseAddress(SocketHandle socket)
 #else
         &reuseAddress,
 #endif
-        sizeof(reuseAddress));
+        sizeof(reuseAddress)
+    );
 }
 
 int setNonBlocking(SocketHandle socket)
@@ -115,6 +172,24 @@ int setNonBlocking(SocketHandle socket)
 #endif
 }
 
+int setAbortiveClose(SocketHandle socket)
+{
+    linger closeBehavior{};
+    closeBehavior.l_onoff = 1;
+    closeBehavior.l_linger = 0;
+    return setsockopt(
+        socket,
+        SOL_SOCKET,
+        SO_LINGER,
+#ifdef _WIN32
+        reinterpret_cast<const char*>(&closeBehavior),
+#else
+        &closeBehavior,
+#endif
+        sizeof(closeBehavior)
+    );
+}
+
 int bindSocket(SocketHandle socket, uint32_t address, uint16_t port)
 {
     sockaddr_in socketAddress{};
@@ -125,7 +200,22 @@ int bindSocket(SocketHandle socket, uint32_t address, uint16_t port)
     return bind(
         socket,
         reinterpret_cast<sockaddr*>(&socketAddress),
-        sizeof(socketAddress));
+        sizeof(socketAddress)
+    );
+}
+
+int connectSocket(SocketHandle socket, uint32_t address, uint16_t port)
+{
+    sockaddr_in socketAddress{};
+    socketAddress.sin_family = AF_INET;
+    socketAddress.sin_addr.s_addr = address;
+    socketAddress.sin_port = htons(port);
+
+    return connect(
+        socket,
+        reinterpret_cast<sockaddr*>(&socketAddress),
+        sizeof(socketAddress)
+    );
 }
 
 int listenSocket(SocketHandle socket, int backlog)
@@ -133,89 +223,47 @@ int listenSocket(SocketHandle socket, int backlog)
     return listen(socket, backlog);
 }
 
-SocketHandle acceptSocket(SocketHandle socket)
-{
-    return static_cast<SocketHandle>(::accept(socket, nullptr, nullptr));
+SocketHandle acceptSocket(
+    SocketHandle listenSocket,
+    uint32_t& remoteAddress,
+    uint16_t& remotePort
+) {
+    sockaddr_in clientAddress{};
+    SocketLength clientAddressSize = sizeof(clientAddress);
+
+    const SocketHandle clientSocket = static_cast<SocketHandle>(accept(
+        listenSocket,
+        reinterpret_cast<sockaddr*>(&clientAddress),
+        &clientAddressSize
+    ));
+
+    remoteAddress = clientAddress.sin_addr.s_addr;
+    remotePort = ntohs(clientAddress.sin_port);
+    return clientSocket;
 }
 
-int remoteEndpoint(SocketHandle socket, uint32_t& address, uint16_t& port)
-{
-    sockaddr_in remote{};
-    SocketLength length = sizeof(remote);
-    const int result = getpeername(socket, reinterpret_cast<sockaddr*>(&remote), &length);
-    if (result == 0)
-    {
-        address = remote.sin_addr.s_addr;
-        port = ntohs(remote.sin_port);
-    }
-    return result;
-}
-
-void validateRegistrationCount(std::size_t count)
-{
-#ifdef _WIN32
-    if (count > FD_SETSIZE)
-    {
-        throw std::invalid_argument("SocketResource count exceeds the select limit");
-    }
-#else
-    static_cast<void>(count);
-#endif
-}
-
-int wait(
+int waitReadable(
     const std::vector<SocketHandle>& sockets,
-    WaitMode mode,
     std::chrono::microseconds timeout,
     std::vector<SocketHandle>& readySockets
 ) {
-    readySockets.clear();
-    if (timeout.count() < 0)
-    {
-        throw std::invalid_argument("SocketResource wait requires a non-negative timeout");
-    }
-    validateRegistrationCount(sockets.size());
-    if (sockets.empty())
-    {
-        return 0;
-    }
-    fd_set watched;
-    FD_ZERO(&watched);
-    int descriptorLimit = 0;
-    for (SocketHandle socket : sockets)
-    {
-#ifdef _WIN32
-        if (socket == INVALID_SOCKET_HANDLE)
-#else
-        if (socket < 0 || socket >= FD_SETSIZE)
-#endif
-        {
-            throw std::invalid_argument("SocketResource descriptor exceeds the select limit");
-        }
-#ifndef _WIN32
-        descriptorLimit = std::max(descriptorLimit, socket + 1);
-#endif
-        FD_SET(socket, &watched);
-    }
-    const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(timeout);
-    const auto microseconds = timeout - seconds;
-    timeval selectTimeout{};
-    selectTimeout.tv_sec = static_cast<decltype(selectTimeout.tv_sec)>(seconds.count());
-    selectTimeout.tv_usec = static_cast<decltype(selectTimeout.tv_usec)>(microseconds.count());
-    fd_set* readSockets = mode == WaitMode::READABLE ? &watched : nullptr;
-    fd_set* writeSockets = mode == WaitMode::WRITABLE ? &watched : nullptr;
-    const int result = select(descriptorLimit, readSockets, writeSockets, nullptr, &selectTimeout);
-    if (result > 0)
-    {
-        for (SocketHandle socket : sockets)
-        {
-            if (FD_ISSET(socket, &watched))
-            {
-                readySockets.push_back(socket);
-            }
-        }
-    }
-    return result;
+    return waitSockets(sockets, false, timeout, readySockets);
+}
+
+int waitWritable(
+    const std::vector<SocketHandle>& sockets,
+    std::chrono::microseconds timeout,
+    std::vector<SocketHandle>& readySockets
+) {
+    return waitSockets(sockets, true, timeout, readySockets);
+}
+
+int waitWritable(
+    SocketHandle socket,
+    std::chrono::microseconds timeout
+) {
+    std::vector<SocketHandle> readySockets;
+    return waitWritable({socket}, timeout, readySockets);
 }
 
 int sendBytes(SocketHandle socket, const uint8_t* data, int size)
@@ -225,7 +273,8 @@ int sendBytes(SocketHandle socket, const uint8_t* data, int size)
         socket,
         reinterpret_cast<const char*>(data),
         size,
-        0);
+        0
+    );
 #else
     return static_cast<int>(::send(socket, data, size, MSG_NOSIGNAL));
 #endif
@@ -240,16 +289,16 @@ int receiveBytes(SocketHandle socket, uint8_t* buffer, int size)
 #endif
 }
 
-int shutdownSocket(SocketHandle socket)
+void shutdownSocket(SocketHandle socket)
 {
 #ifdef _WIN32
-    return shutdown(socket, SD_BOTH);
+    shutdown(socket, SD_BOTH);
 #else
-    return shutdown(socket, SHUT_RDWR);
+    shutdown(socket, SHUT_RDWR);
 #endif
 }
 
-int closeSocket(SocketHandle socket) noexcept
+int closeSocket(SocketHandle socket)
 {
     shutdownSocket(socket);
 #ifdef _WIN32
@@ -259,4 +308,95 @@ int closeSocket(SocketHandle socket) noexcept
 #endif
 }
 
+namespace
+{
+
+int waitSockets(
+    const std::vector<SocketHandle>& sockets,
+    bool writable,
+    std::chrono::microseconds timeout,
+    std::vector<SocketHandle>& readySockets
+) {
+    readySockets.clear();
+    if (timeout.count() < 0)
+    {
+        throw std::invalid_argument("Socket wait requires a non-negative timeout");
+    }
+    validateRegistrationCount(sockets.size());
+    if (sockets.empty())
+    {
+        return 0;
+    }
+
+    fd_set watched;
+    FD_ZERO(&watched);
+    for (SocketHandle socket : sockets)
+    {
+#ifdef _WIN32
+        if (socket == INVALID_SOCKET_HANDLE)
+#else
+        if (socket < 0 || socket >= FD_SETSIZE)
+#endif
+        {
+            throw std::invalid_argument("Socket descriptor exceeds the select limit");
+        }
+        FD_SET(socket, &watched);
+    }
+
+    const SocketHandle maximumSocket = *std::max_element(sockets.begin(), sockets.end());
+    const int result = selectSockets(
+        maximumSocket,
+        writable ? nullptr : &watched,
+        writable ? &watched : nullptr,
+        timeout
+    );
+    if (result > 0)
+    {
+        for (SocketHandle socket : sockets)
+        {
+            if (FD_ISSET(socket, &watched))
+            {
+                readySockets.push_back(socket);
+            }
+        }
+    }
+    return result;
+}
+
+timeval makeTimeval(std::chrono::microseconds timeout)
+{
+    using Seconds = std::chrono::seconds;
+
+    const auto seconds = std::chrono::duration_cast<Seconds>(timeout);
+    const auto microseconds = timeout - seconds;
+
+    timeval value{};
+    value.tv_sec = static_cast<decltype(value.tv_sec)>(seconds.count());
+    value.tv_usec = static_cast<decltype(value.tv_usec)>(microseconds.count());
+    return value;
+}
+
+int selectSockets(
+    SocketHandle maximumSocket,
+    fd_set* readSockets,
+    fd_set* writeSockets,
+    std::chrono::microseconds timeout
+) {
+    timeval selectTimeout = makeTimeval(timeout);
+
+#ifdef _WIN32
+    static_cast<void>(maximumSocket);
+    return select(0, readSockets, writeSockets, nullptr, &selectTimeout);
+#else
+    return select(
+        maximumSocket + 1,
+        readSockets,
+        writeSockets,
+        nullptr,
+        &selectTimeout
+    );
+#endif
+}
+
+} // namespace
 } // namespace comm::native_socket

@@ -31,7 +31,8 @@ Value readValue(
     std::memcpy(
         &value,
         bytes.data() + offset,
-        sizeof(value));
+        sizeof(value)
+    );
     return value;
 }
 
@@ -90,7 +91,8 @@ target::DetectionEvent::Plot decodePlot(
         .azimuth(math::Angle::fromDegrees(plot.azi_deg))
         .elevation(math::Angle::fromDegrees(plot.elv_deg))
         .dopplerVelocity(
-            math::LinearVelocity::fromMetersPerSecond(plot.doppler_mps))
+            math::LinearVelocity::fromMetersPerSecond(plot.doppler_mps)
+        )
         .power_db(plot.pwr_DB)
         .build();
 }
@@ -114,19 +116,19 @@ DecodeResult MessageDecoder::decode(
 
     switch (static_cast<protocol::MessageId>(frame.header.message_Id))
     {
-    case protocol::MessageId::OperatorControl:
+    case protocol::MessageId::OPERATOR_CONTROL:
         return decodeOperatorControl(frame);
 
-    case protocol::MessageId::RadarAttitudeFromSimulator:
+    case protocol::MessageId::RADAR_ATTITUDE_FROM_SIMULATOR:
         return decodeRadarAttitude(frame);
 
-    case protocol::MessageId::PlotInformation:
+    case protocol::MessageId::PLOT_INFORMATION:
         return decodePlotInformation(frame);
 
-    case protocol::MessageId::TrackInformation:
-    case protocol::MessageId::RadarAttitudeToConsole:
-    case protocol::MessageId::TrackDeletion:
-    case protocol::MessageId::BeamTransmit:
+    case protocol::MessageId::TRACK_INFORMATION:
+    case protocol::MessageId::RADAR_ATTITUDE_TO_CONSOLE:
+    case protocol::MessageId::TRACK_DELETION:
+    case protocol::MessageId::BEAM_TRANSMIT:
         return failed(DecodingError::UNSUPPORTED_MESSAGE_ID);
     }
 
@@ -186,7 +188,8 @@ DecodeResult MessageDecoder::decodeRadarAttitude(
             .roll(math::Angle::fromDegrees(message.roll_deg))
             .pitch(math::TiltAngle::fromDegrees(message.pitch_deg))
             .yaw(math::Angle::fromDegrees(message.yaw_deg))
-            .build());
+            .build()
+    );
 }
 
 DecodeResult MessageDecoder::decodePlotInformation(
@@ -200,12 +203,14 @@ DecodeResult MessageDecoder::decodePlotInformation(
     const protocol::ST_BeamTx beamCommand =
         readValue<protocol::ST_BeamTx>(
             frame.bytes,
-            offsetof(protocol::ST_PlotMsg, beam_cmd));
+            offsetof(protocol::ST_PlotMsg, beam_cmd)
+        );
 
     const protocol::ST_PlotHeader plotHeader =
         readValue<protocol::ST_PlotHeader>(
             frame.bytes,
-            offsetof(protocol::ST_PlotMsg, plotHd));
+            offsetof(protocol::ST_PlotMsg, plotHd)
+        );
 
     const std::size_t plotCount = plotHeader.number;
     if (plotCount > MAXIMUM_PLOT_COUNT)
@@ -235,7 +240,8 @@ DecodeResult MessageDecoder::decodePlotInformation(
         const protocol::ST_Plot plot =
             readValue<protocol::ST_Plot>(
                 frame.bytes,
-                PLOT_DATA_OFFSET + index * sizeof(protocol::ST_Plot));
+                PLOT_DATA_OFFSET + index * sizeof(protocol::ST_Plot)
+            );
 
         if (!isFinite(plot) || plot.slantR_km < 0.0)
         {
@@ -250,9 +256,11 @@ DecodeResult MessageDecoder::decodePlotInformation(
             .beamType(*beamType)
             .requestId(beamCommand.beamID)
             .transmitTime(
-                std::chrono::milliseconds(beamCommand.timestamp))
+                std::chrono::milliseconds(beamCommand.timestamp)
+            )
             .plots(std::move(plots))
-            .build());
+            .build()
+    );
 }
 
 } // namespace comm

@@ -4,9 +4,9 @@ namespace comm
 {
 
 NetworkManager::NetworkManager(CommConfig configuration)
-    : _operatorConsole("operator-console", configuration.operatorConsole()),
-      _scenarioSimulator("scenario-simulator", configuration.scenarioSimulator()),
-      _listener(configuration.server(), {_operatorConsole, _scenarioSimulator})
+  : _operatorConsole("operator-console", configuration.operatorConsole()),
+    _scenarioSimulator("scenario-simulator", configuration.scenarioSimulator()),
+    _listener(configuration.server(), {_operatorConsole, _scenarioSimulator})
 {
 }
 

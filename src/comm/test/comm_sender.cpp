@@ -1,3 +1,5 @@
+#include <comm/config/comm_endpoint.hpp>
+#include <network/native_socket/native_socket.hpp>
 #include <protocol/ST_MsgHeader.hpp>
 
 #include <chrono>
@@ -7,23 +9,6 @@
 #include <limits>
 #include <string_view>
 #include <vector>
-
-#ifdef _WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <arpa/inet.h>
-#include <cerrno>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#endif
 
 namespace
 {
@@ -38,72 +23,13 @@ constexpr uint8_t DESTINATION_ID = 20;
 constexpr std::chrono::seconds RECEIVE_TIMEOUT{3};
 constexpr std::string_view PAYLOAD = "Hello World";
 
-#ifdef _WIN32
-using SocketHandle = SOCKET;
-constexpr SocketHandle INVALID_SOCKET_HANDLE = INVALID_SOCKET;
-#else
-using SocketHandle = int;
-constexpr SocketHandle INVALID_SOCKET_HANDLE = -1;
-#endif
-
-int getLastSocketError()
-{
-#ifdef _WIN32
-    return WSAGetLastError();
-#else
-    return errno;
-#endif
-}
-
-void closeSocket(SocketHandle socket)
-{
-    if (socket == INVALID_SOCKET_HANDLE)
-    {
-        return;
-    }
-
-#ifdef _WIN32
-    closesocket(socket);
-#else
-    close(socket);
-#endif
-}
-
-bool initializeSocketApi()
-{
-#ifdef _WIN32
-    WSADATA socketApiData{};
-    return WSAStartup(MAKEWORD(2, 2), &socketApiData) == 0;
-#else
-    return true;
-#endif
-}
-
-void cleanupSocketApi()
-{
-#ifdef _WIN32
-    WSACleanup();
-#endif
-}
+using comm::SocketHandle;
+using comm::INVALID_SOCKET_HANDLE;
 
 void waitForExit()
 {
     std::cout << "Press Enter to exit..." << std::flush;
     std::cin.get();
-}
-
-bool setAddress(
-    sockaddr_in& socketAddress,
-    const char* ipAddress,
-    uint16_t port
-) {
-    socketAddress = {};
-    socketAddress.sin_family = AF_INET;
-    socketAddress.sin_port = htons(port);
-    return inet_pton(
-        AF_INET,
-        ipAddress,
-        &socketAddress.sin_addr) == 1;
 }
 
 std::vector<uint8_t> makeMessage()
@@ -115,17 +41,21 @@ std::vector<uint8_t> makeMessage()
         std::chrono::duration_cast<std::chrono::seconds>(elapsed);
     const auto elapsedNanoseconds =
         std::chrono::duration_cast<std::chrono::nanoseconds>(
-            elapsed - elapsedSeconds);
+            elapsed - elapsedSeconds
+        );
 
     comm::protocol::ST_MsgHeader header{};
     header.message_Id = static_cast<uint16_t>(
-        comm::protocol::MessageId::RadarAttitudeFromSimulator);
+        comm::protocol::MessageId::RADAR_ATTITUDE_FROM_SIMULATOR
+    );
     header.version = MESSAGE_VERSION;
     header.block_size = static_cast<uint32_t>(
-        sizeof(header) + PAYLOAD.size());
+        sizeof(header) + PAYLOAD.size()
+    );
     header.timeSec = static_cast<uint32_t>(elapsedSeconds.count());
     header.timeNsec = static_cast<uint32_t>(
-        elapsedNanoseconds.count());
+        elapsedNanoseconds.count()
+    );
     header.source_id = SOURCE_ID;
     header.dest_id = DESTINATION_ID;
 
@@ -134,7 +64,8 @@ std::vector<uint8_t> makeMessage()
     std::memcpy(
         message.data() + sizeof(header),
         PAYLOAD.data(),
-        PAYLOAD.size());
+        PAYLOAD.size()
+    );
     return message;
 }
 
@@ -147,23 +78,12 @@ bool sendAll(
     {
         const std::size_t remainingSize = message.size() - bytesSent;
         const int sendSize = remainingSize > static_cast<std::size_t>(
-            std::numeric_limits<int>::max())
+            std::numeric_limits<int>::max()
+        )
             ? std::numeric_limits<int>::max()
             : static_cast<int>(remainingSize);
 
-#ifdef _WIN32
-        const int result = send(
-            socket,
-            reinterpret_cast<const char*>(message.data() + bytesSent),
-            sendSize,
-            0);
-#else
-        const int result = static_cast<int>(send(
-            socket,
-            message.data() + bytesSent,
-            sendSize,
-            0));
-#endif
+        const int result = comm::native_socket::sendBytes(socket, message.data() + bytesSent, sendSize);
 
         if (result <= 0)
         {
@@ -177,18 +97,8 @@ bool sendAll(
 
 bool waitForReadable(SocketHandle socket)
 {
-    fd_set readSockets;
-    FD_ZERO(&readSockets);
-    FD_SET(socket, &readSockets);
-
-    timeval timeout{};
-    timeout.tv_sec = static_cast<long>(RECEIVE_TIMEOUT.count());
-
-#ifdef _WIN32
-    return select(0, &readSockets, nullptr, nullptr, &timeout) > 0;
-#else
-    return select(socket + 1, &readSockets, nullptr, nullptr, &timeout) > 0;
-#endif
+    std::vector<SocketHandle> readySockets;
+    return comm::native_socket::waitReadable({socket}, RECEIVE_TIMEOUT, readySockets) > 0;
 }
 
 bool receiveAll(
@@ -206,24 +116,12 @@ bool receiveAll(
         const std::size_t remainingSize =
             receivedMessage.size() - bytesReceived;
         const int receiveSize = remainingSize > static_cast<std::size_t>(
-            std::numeric_limits<int>::max())
+            std::numeric_limits<int>::max()
+        )
             ? std::numeric_limits<int>::max()
             : static_cast<int>(remainingSize);
 
-#ifdef _WIN32
-        const int result = recv(
-            socket,
-            reinterpret_cast<char*>(
-                receivedMessage.data() + bytesReceived),
-            receiveSize,
-            0);
-#else
-        const int result = static_cast<int>(recv(
-            socket,
-            receivedMessage.data() + bytesReceived,
-            receiveSize,
-            0));
-#endif
+        const int result = comm::native_socket::receiveBytes(socket, receivedMessage.data() + bytesReceived, receiveSize);
 
         if (result <= 0)
         {
@@ -237,91 +135,54 @@ bool receiveAll(
 
 int runSender()
 {
-    const SocketHandle socketHandle = static_cast<SocketHandle>(socket(
-        AF_INET,
-        SOCK_STREAM,
-        IPPROTO_TCP));
+    const comm::CommEndpoint clientAddress(CLIENT_IP, CLIENT_PORT);
+    const comm::CommEndpoint serverAddress(SERVER_IP, SERVER_PORT);
+    const SocketHandle socketHandle = comm::native_socket::createTcpSocket();
     if (socketHandle == INVALID_SOCKET_HANDLE)
     {
         std::cerr << "Failed to create socket: error="
-                  << getLastSocketError() << '\n';
+                  << comm::native_socket::lastError() << '\n';
         return 1;
     }
 
-    int reuseAddress = 1;
-    if (setsockopt(
-            socketHandle,
-            SOL_SOCKET,
-            SO_REUSEADDR,
-#ifdef _WIN32
-            reinterpret_cast<const char*>(&reuseAddress),
-#else
-            &reuseAddress,
-#endif
-            sizeof(reuseAddress)) < 0)
+    if (comm::native_socket::setReuseAddress(socketHandle) < 0)
     {
         std::cerr << "Failed to configure client socket: error="
-                  << getLastSocketError() << '\n';
-        closeSocket(socketHandle);
+                  << comm::native_socket::lastError() << '\n';
+        comm::native_socket::closeSocket(socketHandle);
         return 1;
     }
 
-    linger closeBehavior{};
-    closeBehavior.l_onoff = 1;
-    closeBehavior.l_linger = 0;
-    if (setsockopt(
-            socketHandle,
-            SOL_SOCKET,
-            SO_LINGER,
-#ifdef _WIN32
-            reinterpret_cast<const char*>(&closeBehavior),
-#else
-            &closeBehavior,
-#endif
-            sizeof(closeBehavior)) < 0)
+    if (comm::native_socket::setAbortiveClose(socketHandle) < 0)
     {
         std::cerr << "Failed to configure socket close behavior: error="
-                  << getLastSocketError() << '\n';
-        closeSocket(socketHandle);
+                  << comm::native_socket::lastError() << '\n';
+        comm::native_socket::closeSocket(socketHandle);
         return 1;
     }
 
-    sockaddr_in clientAddress{};
-    if (!setAddress(clientAddress, CLIENT_IP, CLIENT_PORT))
-    {
-        std::cerr << "Invalid client IP address: " << CLIENT_IP << '\n';
-        closeSocket(socketHandle);
-        return 1;
-    }
-
-    if (bind(
+    if (comm::native_socket::bindSocket(
             socketHandle,
-            reinterpret_cast<sockaddr*>(&clientAddress),
-            sizeof(clientAddress)) < 0)
+            clientAddress.getIntAddress(),
+            clientAddress.getPort()
+        ) < 0)
     {
         std::cerr << "Failed to bind " << CLIENT_IP << ':' << CLIENT_PORT
-                  << ": error=" << getLastSocketError() << '\n';
-        closeSocket(socketHandle);
+                  << ": error=" << comm::native_socket::lastError() << '\n';
+        comm::native_socket::closeSocket(socketHandle);
         return 1;
     }
 
-    sockaddr_in serverAddress{};
-    if (!setAddress(serverAddress, SERVER_IP, SERVER_PORT))
-    {
-        std::cerr << "Invalid server IP address: " << SERVER_IP << '\n';
-        closeSocket(socketHandle);
-        return 1;
-    }
-
-    if (connect(
+    if (comm::native_socket::connectSocket(
             socketHandle,
-            reinterpret_cast<sockaddr*>(&serverAddress),
-            sizeof(serverAddress)) < 0)
+            serverAddress.getIntAddress(),
+            serverAddress.getPort()
+        ) < 0)
     {
         std::cerr << "Failed to connect to " << SERVER_IP << ':'
                   << SERVER_PORT << ": error="
-                  << getLastSocketError() << '\n';
-        closeSocket(socketHandle);
+                  << comm::native_socket::lastError() << '\n';
+        comm::native_socket::closeSocket(socketHandle);
         return 1;
     }
 
@@ -329,8 +190,8 @@ int runSender()
     if (!sendAll(socketHandle, message))
     {
         std::cerr << "Failed to send message: error="
-                  << getLastSocketError() << '\n';
-        closeSocket(socketHandle);
+                  << comm::native_socket::lastError() << '\n';
+        comm::native_socket::closeSocket(socketHandle);
         return 1;
     }
 
@@ -344,21 +205,21 @@ int runSender()
     {
         std::cerr << "Failed to receive the echo within "
                   << RECEIVE_TIMEOUT.count() << " seconds: error="
-                  << getLastSocketError() << '\n';
-        closeSocket(socketHandle);
+                  << comm::native_socket::lastError() << '\n';
+        comm::native_socket::closeSocket(socketHandle);
         return 1;
     }
 
     if (echoedMessage != message)
     {
         std::cerr << "The echoed message does not match the sent message.\n";
-        closeSocket(socketHandle);
+        comm::native_socket::closeSocket(socketHandle);
         return 1;
     }
 
     std::cout << "Echo verified successfully.\n";
     waitForExit();
-    closeSocket(socketHandle);
+    comm::native_socket::closeSocket(socketHandle);
     return 0;
 }
 
@@ -366,10 +227,11 @@ int runSender()
 
 int main()
 {
-    if (!initializeSocketApi())
+    const int startupError = comm::native_socket::startup();
+    if (startupError != 0)
     {
         std::cerr << "Failed to initialize the socket API: error="
-                  << getLastSocketError() << '\n';
+                  << startupError << '\n';
         return 1;
     }
 
@@ -378,6 +240,6 @@ int main()
     {
         waitForExit();
     }
-    cleanupSocketApi();
+    comm::native_socket::cleanup();
     return result;
 }
