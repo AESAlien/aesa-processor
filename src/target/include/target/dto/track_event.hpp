@@ -191,10 +191,21 @@ struct TrackEvent
         TrackEvent build() const
         {
             return TrackEvent(
-                _id.value(), _state.value(), _slantRange.value(), _groundRange.value(),
-                _azimuth.value(), _elevation.value(), _dopplerVelocity.value(),
-                _latitude.value(), _longitude.value(), _altitude.value(), _velocity.value(),
-                _heading.value(), _flightPathAngle.value(), _timestamp.value());
+                _id.value(),
+                _state.value(),
+                _slantRange.value(),
+                _groundRange.value(),
+                _azimuth.value(),
+                _elevation.value(),
+                _dopplerVelocity.value(),
+                _latitude.value(),
+                _longitude.value(),
+                _altitude.value(),
+                _velocity.value(),
+                _heading.value(),
+                _flightPathAngle.value(),
+                _timestamp.value()
+            );
         }
 
     private:

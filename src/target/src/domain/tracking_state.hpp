@@ -56,7 +56,8 @@ public:
         math::CartesianAcceleration acceleration = math::CartesianAcceleration(
             0_mps2,
             0_mps2,
-            0_mps2),
+            0_mps2
+        ),
         std::optional<math::SquareMatrix> errorCovariance = std::nullopt
     );
 

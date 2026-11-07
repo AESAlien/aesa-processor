@@ -14,16 +14,34 @@ namespace target
 
 TargetController::TargetController(const TargetConfig& config)
   : _config(std::make_shared<const TrackManagementConfig>(config.trackManagement)),
-    _trackFactory(std::make_shared<TrackFactory>(
-        std::make_shared<ConstantAccelerationAlgorithm>(config.tracking, config.measurement))),
+    _trackFactory(
+        std::make_shared<TrackFactory>(
+            std::make_shared<ConstantAccelerationAlgorithm>(config.tracking, config.measurement)
+        )
+    ),
     _trackRepository(std::make_shared<TrackRepository>()),
     _matcher(std::make_shared<DetectionMatcher>(config.association, config.measurement)),
-    _tentativeSelector(std::make_shared<TentativeSelector>(
-          *_trackRepository, *_matcher)),
-    _trackSelector(std::make_shared<TrackSelector>(
-          *_trackRepository, *_matcher)),
-    _detectionHandler(std::make_shared<DetectionHandler>(
-        *_config, *_trackRepository, *_trackFactory, *_tentativeSelector, *_trackSelector))
+    _tentativeSelector(
+        std::make_shared<TentativeSelector>(
+            *_trackRepository,
+            *_matcher
+        )
+    ),
+    _trackSelector(
+        std::make_shared<TrackSelector>(
+            *_trackRepository,
+            *_matcher
+        )
+    ),
+    _detectionHandler(
+        std::make_shared<DetectionHandler>(
+            *_config,
+            *_trackRepository,
+            *_trackFactory,
+            *_tentativeSelector,
+            *_trackSelector
+        )
+    )
 {
 }
 

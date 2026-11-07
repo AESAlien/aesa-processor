@@ -28,10 +28,12 @@ using Time = std::chrono::milliseconds;
 using BeamType = beam::BeamType;
 
 static_assert(std::is_copy_assignable_v<TargetConfig>);
-static_assert(std::is_same_v<decltype(std::declval<const TargetConfig&>().tracking.initialAccelerationStandardDeviation()),
-    const math::LinearAcceleration&>);
-static_assert(std::is_same_v<decltype(std::declval<const TargetConfig&>().tracking.processAccelerationStandardDeviation()),
-    const math::LinearAcceleration&>);
+static_assert(
+    std::is_same_v<decltype(std::declval<const TargetConfig&>().tracking.initialAccelerationStandardDeviation()), const math::LinearAcceleration&>
+);
+static_assert(
+    std::is_same_v<decltype(std::declval<const TargetConfig&>().tracking.processAccelerationStandardDeviation()), const math::LinearAcceleration&>
+);
 static_assert(!std::is_default_constructible_v<TargetController>);
 static_assert(!std::is_convertible_v<TargetConfig, TargetController>);
 static_assert(!std::is_abstract_v<TargetController>);
@@ -41,14 +43,16 @@ static_assert(std::is_copy_constructible_v<TargetController>);
 static_assert(std::is_copy_assignable_v<TargetController>);
 static_assert(std::is_copy_assignable_v<TargetPrediction>);
 static_assert(std::is_copy_assignable_v<TargetTrackingState>);
-static_assert(std::is_same_v<decltype(std::declval<const Track&>().sphericalPosition()),
-    const math::SphericalPosition&>);
-static_assert(std::is_same_v<decltype(std::declval<const Track&>().trackingState()),
-    const std::shared_ptr<const TargetTrackingState>&>);
+static_assert(
+    std::is_same_v<decltype(std::declval<const Track&>().sphericalPosition()), const math::SphericalPosition&>
+);
+static_assert(
+    std::is_same_v<decltype(std::declval<const Track&>().trackingState()), const std::shared_ptr<const TargetTrackingState>&>
+);
 
 math::SphericalPosition position(math::Length range = 1000_m)
 {
-    return math::SphericalPosition{range, 0_deg, 0_deg};
+    return math::SphericalPosition(range, 0_deg, 0_deg);
 }
 
 Observation observation(
@@ -61,9 +65,14 @@ Observation observation(
 
 TargetTrackingState state(Time time = 100ms, float power = -10.0f)
 {
-    return TargetTrackingState(position(), 0_mps, power, time,
+    return TargetTrackingState(
+        position(),
+        0_mps,
+        power,
+        time,
         math::CartesianPosition(0_m, 1000_m, 0_m),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps));
+        math::CartesianVelocity(0_mps, 0_mps, 0_mps)
+    );
 }
 
 DetectionEvent result(BeamType type, std::uint32_t id, Time time, bool detected = true)
@@ -136,9 +145,14 @@ private:
         if (fault == Fault::WRONG_TIME && calculated)
         {
             const auto previous = *calculated;
-            calculated.emplace(previous.sphericalPosition(), previous.dopplerVelocity(),
-                previous.power_db(), previous.timestamp() + 1ms,
-                previous.position(), previous.velocity());
+            calculated.emplace(
+                previous.sphericalPosition(),
+                previous.dopplerVelocity(),
+                previous.power_db(),
+                previous.timestamp() + 1ms,
+                previous.position(),
+                previous.velocity()
+            );
         }
         return calculated;
     }
@@ -153,15 +167,18 @@ TEST(DomainValidationTest, MathOriginIsAllowedButObservationOriginIsRejectedAtCr
     EXPECT_THROW(observation(0ms, 0_m), std::invalid_argument);
     EXPECT_THROW(observation(-1ms), std::invalid_argument);
     EXPECT_THROW(TentativeTrack(1, observation(), nullptr), std::invalid_argument);
-    EXPECT_THROW(TentativeTrack(0, observation(), std::make_shared<ConstantVelocityAlgorithm>()),
-        std::invalid_argument);
+    EXPECT_THROW(
+        TentativeTrack(0, observation(), std::make_shared<ConstantVelocityAlgorithm>()),
+        std::invalid_argument
+    );
     EXPECT_NO_THROW(observation());
 }
 
 TEST(DomainValidationTest, ObservationRejectsNonfinitePowerButAcceptsNegativeDecibels)
 {
     for (float invalid : {std::numeric_limits<float>::quiet_NaN(),
-             std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()})
+             std::numeric_limits<float>::infinity(),
+             -std::numeric_limits<float>::infinity()})
     {
         EXPECT_THROW(Observation(position(), 0_mps, invalid, 0ms), std::invalid_argument);
     }
@@ -174,13 +191,29 @@ TEST(DomainValidationTest, PredictionAndTrackingStateValidateTheirOwnConstructio
     EXPECT_THROW(TargetPrediction(0ms, position(0_m)), std::invalid_argument);
     EXPECT_THROW(state(-1ms), std::invalid_argument);
     EXPECT_THROW(state(100ms, std::numeric_limits<float>::quiet_NaN()), std::invalid_argument);
-    EXPECT_THROW((TargetTrackingState(position(0_m), 0_mps, 0.0f, 0ms,
-        math::CartesianPosition(0_m, 0_m, 0_m),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps))), std::invalid_argument);
+    EXPECT_THROW(
+        (TargetTrackingState(
+            position(0_m),
+            0_mps,
+            0.0f,
+            0ms,
+            math::CartesianPosition(0_m, 0_m, 0_m),
+            math::CartesianVelocity(0_mps, 0_mps, 0_mps)
+        )),
+        std::invalid_argument
+    );
     const auto maximum = math::LinearVelocity::fromMetersPerSecond(std::numeric_limits<double>::max());
-    EXPECT_THROW((TargetTrackingState(position(), 0_mps, 0.0f, 0ms,
-        math::CartesianPosition(0_m, 1000_m, 0_m),
-        math::CartesianVelocity(maximum, maximum, 0_mps))), std::invalid_argument);
+    EXPECT_THROW(
+        (TargetTrackingState(
+            position(),
+            0_mps,
+            0.0f,
+            0ms,
+            math::CartesianPosition(0_m, 1000_m, 0_m),
+            math::CartesianVelocity(maximum, maximum, 0_mps)
+        )),
+        std::invalid_argument
+    );
     EXPECT_NO_THROW(state());
     EXPECT_NO_THROW(TargetPrediction(0ms, position()));
 }
@@ -247,7 +280,10 @@ TEST(DomainValidationTest, RejectedInitializationPreservesTentativeAndCanBeRetri
     TrackRepository repository;
     const auto id = repository.add(
         TrackFactory(algorithm).from(
-            1, observation(0ms, 1000_m, 0_mps)));
+            1,
+            observation(0ms, 1000_m, 0_mps)
+        )
+    );
     const auto& target = *repository.findTentative(id);
     for (auto fault : {FaultAlgorithm::Fault::INVALID_STATE, FaultAlgorithm::Fault::WRONG_TIME})
     {
@@ -297,7 +333,10 @@ TEST(DomainValidationTest, RejectedUpdatePreservesStateAndMissHistory)
     TrackRepository repository;
     const auto id = repository.add(
         TrackFactory(algorithm).from(
-            1, observation(0ms, 1000_m, 0_mps)));
+            1,
+            observation(0ms, 1000_m, 0_mps)
+        )
+    );
     auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
@@ -326,7 +365,10 @@ TEST(DomainValidationTest, PredictionContractErrorsThrowAndComputationFailuresRe
     TrackRepository repository;
     const auto id = repository.add(
         TrackFactory(algorithm).from(
-            1, observation(0ms, 1000_m, 0_mps)));
+            1,
+            observation(0ms, 1000_m, 0_mps)
+        )
+    );
     auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
@@ -352,7 +394,8 @@ TEST(TargetConfigTest, RejectsInvalidSettingsDuringConstruction)
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100));
+            TrackManagementConfig(100ms, 1000ms, 3, 100)
+        );
         auto maxAssociationSpeed = defaults.association.maxAssociationSpeed();
         auto maxInitialDopplerDifference = defaults.association.maxInitialDopplerDifference();
         auto measurementStandardDeviation = defaults.measurement.standardDeviation();
@@ -362,24 +405,47 @@ TEST(TargetConfigTest, RejectsInvalidSettingsDuringConstruction)
         auto maxConsecutiveTrackingMisses = defaults.trackManagement.maxConsecutiveTrackingMisses();
         switch (option)
         {
-        case 0: maxAssociationSpeed = -1_mps; break;
-        case 1: maxInitialDopplerDifference = -1_mps; break;
-        case 2: measurementStandardDeviation = 0_m; break;
-        case 3: positionNdsThreshold = -1.0; break;
-        case 4: positionNdsThreshold = std::numeric_limits<double>::quiet_NaN(); break;
-        case 5: confirmationDelay = 0ms; break;
-        case 6: trackingInterval = -1ms; break;
-        case 7: maxConsecutiveTrackingMisses = 0; break;
-        case 8: measurementStandardDeviation = 1e308_m; break;
-        case 9: measurementStandardDeviation = 1e-300_m; break;
+        case 0:
+            maxAssociationSpeed = -1_mps;
+            break;
+        case 1:
+            maxInitialDopplerDifference = -1_mps;
+            break;
+        case 2:
+            measurementStandardDeviation = 0_m;
+            break;
+        case 3:
+            positionNdsThreshold = -1.0;
+            break;
+        case 4:
+            positionNdsThreshold = std::numeric_limits<double>::quiet_NaN();
+            break;
+        case 5:
+            confirmationDelay = 0ms;
+            break;
+        case 6:
+            trackingInterval = -1ms;
+            break;
+        case 7:
+            maxConsecutiveTrackingMisses = 0;
+            break;
+        case 8:
+            measurementStandardDeviation = 1e308_m;
+            break;
+        case 9:
+            measurementStandardDeviation = 1e-300_m;
+            break;
         }
         SCOPED_TRACE(option);
-        EXPECT_THROW((TargetConfig(
-            AssociationConfig(maxAssociationSpeed, maxInitialDopplerDifference, positionNdsThreshold),
-            MeasurementConfig(measurementStandardDeviation),
-            TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(confirmationDelay, trackingInterval, maxConsecutiveTrackingMisses, 100))),
-            std::invalid_argument);
+        EXPECT_THROW(
+            (TargetConfig(
+                AssociationConfig(maxAssociationSpeed, maxInitialDopplerDifference, positionNdsThreshold),
+                MeasurementConfig(measurementStandardDeviation),
+                TrackingConfig(10_mps2, 0_mps2),
+                TrackManagementConfig(confirmationDelay, trackingInterval, maxConsecutiveTrackingMisses, 100)
+            )),
+            std::invalid_argument
+        );
     }
 }
 
@@ -387,8 +453,8 @@ TEST(TargetConfigTest, MatcherUsesInjectedSpeedDopplerNoiseAndGate)
 {
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).from(
-            1, observation()));
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).from(1, observation())
+    );
     const auto& tentative = *repository.findTentative(id);
     const AssociationConfig association(1000_mps, 30_mps, 11.345);
     const MeasurementConfig measurement(7_m);
@@ -414,24 +480,38 @@ TEST(TargetConfigTest, MatcherUsesInjectedSpeedDopplerNoiseAndGate)
 
 TEST(TargetConfigTest, ControllerOwnsTemporaryConfigAndUsesInjectedIntervalsAndMissLimit)
 {
-    TargetController controller{TargetConfig(
-        AssociationConfig(1000_mps, 30_mps, 11.345),
-        MeasurementConfig(7_m),
-        TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(250ms, 400ms, 2, 100))};
+    TargetController controller(
+        TargetConfig(
+            AssociationConfig(1000_mps, 30_mps, 11.345),
+            MeasurementConfig(7_m),
+            TrackingConfig(10_mps2, 0_mps2),
+            TrackManagementConfig(250ms, 400ms, 2, 100)
+        )
+    );
 
     const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 1000ms));
     ASSERT_TRUE(confirmation);
     EXPECT_EQ(confirmation->transmitTime, 1250ms);
-    const auto tracking = controller.handleDetection(result(BeamType::CONFIRMATION,
-        confirmation->requestId, confirmation->transmitTime));
+    const auto tracking = controller.handleDetection(
+        result(
+            BeamType::CONFIRMATION,
+            confirmation->requestId,
+            confirmation->transmitTime
+        )
+    );
     ASSERT_TRUE(tracking);
     EXPECT_EQ(tracking->transmitTime, 1650ms);
     auto resultTime = tracking->transmitTime;
     for (std::uint32_t miss = 1; miss <= 2; ++miss)
     {
-        const auto retry = controller.handleDetection(result(BeamType::TRACKING,
-            confirmation->requestId, resultTime, false));
+        const auto retry = controller.handleDetection(
+            result(
+                BeamType::TRACKING,
+                confirmation->requestId,
+                resultTime,
+                false
+            )
+        );
         if (miss < 2)
         {
             ASSERT_TRUE(retry);
@@ -456,14 +536,21 @@ TEST(TargetConfigTest, ControllerPassesInjectedSpeedLimitToConfirmationMatcher)
             AssociationConfig(restricted ? 100_mps : 1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100));
+            TrackManagementConfig(100ms, 1000ms, 3, 100)
+        );
         TargetController controller(config);
         const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 1000ms));
         ASSERT_TRUE(confirmation);
 
         // A 100 m displacement in 100 ms passes only the default 1000 m/s limit.
-        const auto tracking = controller.handleDetection(DetectionEvent(BeamType::CONFIRMATION,
-            confirmation->requestId, 1100ms, {{math::Distance(1100_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f}}));
+        const auto tracking = controller.handleDetection(
+            DetectionEvent(
+                BeamType::CONFIRMATION,
+                confirmation->requestId,
+                1100ms,
+                {DetectionEvent::Plot(math::Distance(1100_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f)}
+            )
+        );
         EXPECT_EQ(tracking.has_value(), !restricted);
         EXPECT_EQ(controller.nextTrackEvents().size(), restricted ? 0u : 1u);
     }
@@ -471,14 +558,26 @@ TEST(TargetConfigTest, ControllerPassesInjectedSpeedLimitToConfirmationMatcher)
 
 TEST(DomainValidationTest, InvalidPlotBatchDoesNotPartiallyRegisterCandidates)
 {
-    TargetController controller(TargetConfig(
-        AssociationConfig(1000_mps, 30_mps, 11.345),
-        MeasurementConfig(7_m),
-        TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)));
-    EXPECT_THROW(controller.handleDetection(DetectionEvent(BeamType::SEARCH, 1, 0ms,
-        {{math::Distance(1000_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f},
-            {math::Distance(0_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f}})), std::invalid_argument);
+    TargetController controller(
+        TargetConfig(
+            AssociationConfig(1000_mps, 30_mps, 11.345),
+            MeasurementConfig(7_m),
+            TrackingConfig(10_mps2, 0_mps2),
+            TrackManagementConfig(100ms, 1000ms, 3, 100)
+        )
+    );
+    EXPECT_THROW(
+        controller.handleDetection(
+            DetectionEvent(
+                BeamType::SEARCH,
+                1,
+                0ms,
+                {DetectionEvent::Plot(math::Distance(1000_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f),
+                    DetectionEvent::Plot(math::Distance(0_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f)}
+            )
+        ),
+        std::invalid_argument
+    );
     const auto request = controller.handleDetection(result(BeamType::SEARCH, 1, 0ms));
     ASSERT_TRUE(request);
     EXPECT_EQ(request->requestId, 1u);

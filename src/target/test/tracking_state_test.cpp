@@ -27,17 +27,23 @@ static_assert(std::is_nothrow_move_constructible_v<Track>);
 
 math::SphericalPosition position(math::Length range = 1000_m)
 {
-    return math::SphericalPosition{range, 0_deg, 0_deg};
+    return math::SphericalPosition(range, 0_deg, 0_deg);
 }
 
 TargetTrackingState state(
     math::CartesianAcceleration acceleration = math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
     std::optional<math::SquareMatrix> covariance = std::nullopt
 ) {
-    return TargetTrackingState(position(), 0_mps, -10.0f, 100ms,
+    return TargetTrackingState(
+        position(),
+        0_mps,
+        -10.0f,
+        100ms,
         math::CartesianPosition(0_m, 1000_m, 0_m),
         math::CartesianVelocity(0_mps, 0_mps, 0_mps),
-        std::move(acceleration), std::move(covariance));
+        std::move(acceleration),
+        std::move(covariance)
+    );
 }
 
 Observation observation(math::Length range, Time time)
@@ -91,9 +97,16 @@ private:
             covariance(0, 0) = -1.0;
         }
         const auto timestamp = calculated->timestamp() + (fault == Fault::WRONG_TIME ? 1ms : 0ms);
-        return TargetTrackingState(calculated->sphericalPosition(), calculated->dopplerVelocity(),
-            calculated->power_db(), timestamp, calculated->position(), calculated->velocity(),
-            acceleration, std::move(covariance));
+        return TargetTrackingState(
+            calculated->sphericalPosition(),
+            calculated->dopplerVelocity(),
+            calculated->power_db(),
+            timestamp,
+            calculated->position(),
+            calculated->velocity(),
+            acceleration,
+            std::move(covariance)
+        );
     }
 
     ConstantVelocityAlgorithm _algorithm;
@@ -101,16 +114,21 @@ private:
 
 TEST(TrackingStateTest, ExistingConstructorAndConstantVelocityLeaveCovarianceUnavailable)
 {
-    const TargetTrackingState legacy(position(), 0_mps, -10.0f, 100ms,
+    const TargetTrackingState legacy(
+        position(),
+        0_mps,
+        -10.0f,
+        100ms,
         math::CartesianPosition(0_m, 1000_m, 0_m),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps));
+        math::CartesianVelocity(0_mps, 0_mps, 0_mps)
+    );
     EXPECT_EQ(legacy.acceleration().acceleration(), 0_mps2);
     EXPECT_FALSE(legacy.errorCovariance());
 
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).from(
-            1, observation(1000_m, 0ms)));
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).from(1, observation(1000_m, 0ms))
+    );
     auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
@@ -148,12 +166,17 @@ TEST(TrackingStateTest, CopiesAccelerationAndCovarianceIndependentlyOfCallerLife
 TEST(TrackingStateTest, RejectsNonfiniteAccelerationComponents)
 {
     for (double invalid : {std::numeric_limits<double>::quiet_NaN(),
-             std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()})
+             std::numeric_limits<double>::infinity(),
+             -std::numeric_limits<double>::infinity()})
     {
-        EXPECT_THROW(math::CartesianAcceleration(
-            0_mps2,
-            math::LinearAcceleration::fromMetersPerSecondSquared(invalid),
-            0_mps2), std::invalid_argument);
+        EXPECT_THROW(
+            math::CartesianAcceleration(
+                0_mps2,
+                math::LinearAcceleration::fromMetersPerSecondSquared(invalid),
+                0_mps2
+            ),
+            std::invalid_argument
+        );
     }
 }
 
@@ -162,36 +185,50 @@ TEST(TrackingStateTest, RejectsCovarianceWithWrongDimension)
     for (std::size_t size : {0u, 3u, 8u, 10u})
     {
         SCOPED_TRACE(size);
-        EXPECT_THROW(state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
-            math::SquareMatrix(size)), std::invalid_argument);
+        EXPECT_THROW(
+            state(
+                math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
+                math::SquareMatrix(size)
+            ),
+            std::invalid_argument
+        );
     }
 }
 
 TEST(TrackingStateTest, RejectsNonfiniteOrAsymmetricCovariance)
 {
     for (double invalid : {std::numeric_limits<double>::quiet_NaN(),
-             std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()})
+             std::numeric_limits<double>::infinity(),
+             -std::numeric_limits<double>::infinity()})
     {
         auto covariance = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION);
         covariance(0, 0) = invalid;
-        EXPECT_THROW(state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance),
-            std::invalid_argument);
+        EXPECT_THROW(
+            state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), covariance),
+            std::invalid_argument
+        );
     }
     auto asymmetric = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION);
     asymmetric(0, 1) = std::numeric_limits<double>::epsilon();
-    EXPECT_THROW(state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), asymmetric),
-        std::invalid_argument);
+    EXPECT_THROW(
+        state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), asymmetric),
+        std::invalid_argument
+    );
 }
 
 TEST(TrackingStateTest, RejectsNegativeDiagonalButAllowsExplicitSingularZeroCovariance)
 {
     auto negative = math::SquareMatrix::identity(TargetTrackingState::STATE_DIMENSION);
     negative(0, 0) = -1.0;
-    EXPECT_THROW(state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), negative),
-        std::invalid_argument);
+    EXPECT_THROW(
+        state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), negative),
+        std::invalid_argument
+    );
 
-    const auto explicitZero = state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
-        math::SquareMatrix(TargetTrackingState::STATE_DIMENSION));
+    const auto explicitZero = state(
+        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
+        math::SquareMatrix(TargetTrackingState::STATE_DIMENSION)
+    );
     ASSERT_TRUE(explicitZero.errorCovariance());
     EXPECT_EQ(*explicitZero.errorCovariance(), math::SquareMatrix(9));
     // These are structural checks; they do not establish positive semidefiniteness for arbitrary matrices.
@@ -273,13 +310,22 @@ TEST(TrackingStateTest, RemovingTargetsPreservesRemainingAccelerationAndCovarian
     TrackRepository repository;
     const auto firstId = repository.add(
         TrackFactory(algorithm).from(
-            1, observation(1000_m, 0ms)));
+            1,
+            observation(1000_m, 0ms)
+        )
+    );
     const auto middleId = repository.add(
         TrackFactory(algorithm).from(
-            2, observation(2000_m, 0ms)));
+            2,
+            observation(2000_m, 0ms)
+        )
+    );
     const auto lastId = repository.add(
         TrackFactory(algorithm).from(
-            3, observation(3000_m, 0ms)));
+            3,
+            observation(3000_m, 0ms)
+        )
+    );
     auto confirmedFirstTrack = TrackFactory::from(*repository.findTentative(firstId), observation(1001_m, 100ms));
     ASSERT_TRUE(confirmedFirstTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedFirstTrack).value()));

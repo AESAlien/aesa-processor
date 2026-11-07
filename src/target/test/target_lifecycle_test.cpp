@@ -41,7 +41,8 @@ TargetConfig config()
         AssociationConfig(1000_mps, 30_mps, 11.345),
         MeasurementConfig(7_m),
         TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100));
+        TrackManagementConfig(100ms, 1000ms, 3, 100)
+    );
 }
 
 Observation observation(Time time, math::Length range = 1000_m)
@@ -55,13 +56,17 @@ DetectionEvent event(
     Time time,
     bool detected = true,
     math::Length range = 1000_m
-)
-{
+) {
     std::vector<DetectionEvent::Plot> plots;
     if (detected)
     {
-        plots.emplace_back(math::Distance(range), math::CircularAngle(0_deg),
-            math::TiltAngle(0_deg), 0_mps, -10.0f);
+        plots.emplace_back(
+            math::Distance(range),
+            math::CircularAngle(0_deg),
+            math::TiltAngle(0_deg),
+            0_mps,
+            -10.0f
+        );
     }
     return DetectionEvent(type, id, time, std::move(plots));
 }
@@ -90,8 +95,10 @@ TEST(DetectionResultTest, FactoryChoosesSubtypeAndPreservesEmptyResults)
 
 TEST(DetectionResultTest, RejectsInvalidMetadataEvenWithoutPlots)
 {
-    EXPECT_THROW(DetectionResultFactory::from(event(static_cast<BeamType>(-1), 1, 0ms, false)),
-        std::invalid_argument);
+    EXPECT_THROW(
+        DetectionResultFactory::from(event(static_cast<BeamType>(-1), 1, 0ms, false)),
+        std::invalid_argument
+    );
     for (auto type : {BeamType::SEARCH, BeamType::CONFIRMATION, BeamType::TRACKING})
     {
         EXPECT_THROW(DetectionResultFactory::from(event(type, 1, -1ms, false)), std::invalid_argument);
@@ -108,8 +115,13 @@ TEST(DetectionResultTest, OwnsValidatedSnapshotIndependentOfMutableEvent)
     {
         SCOPED_TRACE(static_cast<int>(type));
         auto incoming = event(type, 3, 10ms);
-        incoming.plots.emplace_back(math::Distance(2000_m), math::CircularAngle(90_deg),
-            math::TiltAngle(10_deg), 12_mps, -20.0f);
+        incoming.plots.emplace_back(
+            math::Distance(2000_m),
+            math::CircularAngle(90_deg),
+            math::TiltAngle(10_deg),
+            12_mps,
+            -20.0f
+        );
         const auto result = DetectionResultFactory::from(incoming);
         incoming.beamType = static_cast<BeamType>(-1);
         incoming.requestId = 99;
@@ -117,7 +129,8 @@ TEST(DetectionResultTest, OwnsValidatedSnapshotIndependentOfMutableEvent)
         incoming.plots.front().power_db = std::numeric_limits<float>::quiet_NaN();
         incoming.plots.clear();
 
-        std::visit([](const auto& value)
+        std::visit(
+            [](const auto& value)
             {
                 EXPECT_EQ(value.requestId, 3u);
                 EXPECT_EQ(value.transmitTime, 10ms);
@@ -133,7 +146,9 @@ TEST(DetectionResultTest, OwnsValidatedSnapshotIndependentOfMutableEvent)
                 EXPECT_EQ(second.elevation(), math::TiltAngle(10_deg));
                 EXPECT_EQ(second.dopplerVelocity(), 12_mps);
                 EXPECT_EQ(second.power_db(), -20.0f);
-            }, result);
+            },
+            result
+        );
     }
 }
 
@@ -142,8 +157,13 @@ TEST(DetectionResultTest, RejectsInvalidPlotInEveryResultType)
     for (auto type : {BeamType::SEARCH, BeamType::CONFIRMATION, BeamType::TRACKING})
     {
         auto incoming = event(type, 1, 100ms);
-        incoming.plots.emplace_back(math::Distance(0_m), math::CircularAngle(0_deg),
-            math::TiltAngle(0_deg), 0_mps, -10.0f);
+        incoming.plots.emplace_back(
+            math::Distance(0_m),
+            math::CircularAngle(0_deg),
+            math::TiltAngle(0_deg),
+            0_mps,
+            -10.0f
+        );
         EXPECT_THROW(DetectionResultFactory::from(incoming), std::invalid_argument);
         incoming.plots.pop_back();
         incoming.plots.front().power_db = std::numeric_limits<float>::infinity();
@@ -327,8 +347,8 @@ TEST(TargetLifecycleTest, StaleAndFailedInitializationPreserveTentative)
 
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(std::make_shared<NoInitializationAlgorithm>()).from(
-            1, observation(100ms)));
+        TrackFactory(std::make_shared<NoInitializationAlgorithm>()).from(1, observation(100ms))
+    );
     const auto* tentative = repository.findTentative(id);
     for (auto time : {0ms, 100ms, 200ms})
     {
@@ -347,10 +367,13 @@ TEST(TargetLifecycleTest, ConfirmationSelectorRanksPlotsAndRejectsWrongPhase)
     DetectionMatcher matcher(targetConfig.association, targetConfig.measurement);
     TrackSelector selector(repository, matcher);
     const auto id = repository.add(
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).from(
-            1, observation(0ms)));
-    const std::vector<Observation> observations{
-        observation(100ms, 1030_m), observation(100ms, 1005_m), observation(100ms, 1005_m)};
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).from(1, observation(0ms))
+    );
+    const std::vector<Observation> observations({
+        observation(100ms, 1030_m),
+        observation(100ms, 1005_m),
+        observation(100ms, 1005_m)
+    });
     const auto selected = selector.selectConfirmation(id, 100ms, observations);
     ASSERT_TRUE(selected);
     EXPECT_EQ(*selected, 1u);
@@ -378,8 +401,13 @@ TEST(TargetLifecycleControllerTest, CopiedControllersKeepTheHandlerAndRepository
         id = confirmation->requestId;
         EXPECT_TRUE(copy.nextTrackEvents().empty());
 
-        const auto tracking = copy.handleDetection(event(
-            BeamType::CONFIRMATION, id, confirmation->transmitTime));
+        const auto tracking = copy.handleDetection(
+            event(
+                BeamType::CONFIRMATION,
+                id,
+                confirmation->transmitTime
+            )
+        );
         ASSERT_TRUE(tracking);
         EXPECT_EQ(tracking->requestId, id);
         EXPECT_EQ(tracking->transmitTime, 1100ms);
@@ -441,8 +469,10 @@ TEST(TargetLifecycleControllerTest, ConfirmationOverflowPreservesTentativeForEar
     const auto confirmation = controller.handleDetection(event(BeamType::SEARCH, 1, 0ms));
     ASSERT_TRUE(confirmation);
     const Time maximum(std::numeric_limits<Time::rep>::max());
-    EXPECT_THROW(controller.handleDetection(event(BeamType::CONFIRMATION, confirmation->requestId, maximum)),
-        std::overflow_error);
+    EXPECT_THROW(
+        controller.handleDetection(event(BeamType::CONFIRMATION, confirmation->requestId, maximum)),
+        std::overflow_error
+    );
     EXPECT_TRUE(controller.nextTrackEvents().empty());
     EXPECT_TRUE(controller.handleDetection(event(BeamType::CONFIRMATION, confirmation->requestId, 100ms)));
 }

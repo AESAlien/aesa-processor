@@ -32,11 +32,16 @@ std::optional<TargetTrackingState> estimateTrackingState(
 ) {
     const auto time = observation.lastObservationTime();
     const auto position = observation.sphericalPosition().toCartesian();
-    const auto velocity = (position - previousPosition).toVelocity(
-        std::chrono::duration<double>{elapsedSeconds(previousTime, time)});
+    const auto velocity = (position - previousPosition).toVelocity(std::chrono::duration<double>(elapsedSeconds(previousTime, time)));
     // The temporary CV strategy leaves acceleration zero and covariance unestimated.
-    return TargetTrackingState{observation.sphericalPosition(),
-        observation.dopplerVelocity(), observation.power_db(), time, position, velocity};
+    return TargetTrackingState(
+        observation.sphericalPosition(),
+        observation.dopplerVelocity(),
+        observation.power_db(),
+        time,
+        position,
+        velocity
+    );
 }
 
 } // namespace
@@ -86,14 +91,14 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
         velocity.y.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE) &&
         velocity.z.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE))
     {
-        return TargetPrediction{time, state.sphericalPosition()};
+        return TargetPrediction(time, state.sphericalPosition());
     }
 
     try
     {
         const auto displacement = velocity * (time - state.timestamp());
         const auto predictedPosition = state.position() + displacement;
-        return TargetPrediction{time, predictedPosition.toSpherical()};
+        return TargetPrediction(time, predictedPosition.toSpherical());
     }
     catch (const std::invalid_argument&)
     {

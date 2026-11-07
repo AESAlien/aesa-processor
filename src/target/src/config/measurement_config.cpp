@@ -38,7 +38,8 @@ MeasurementConfig MeasurementConfig::Builder::build() const
     }
 
     return MeasurementConfig(
-        *_standardDeviation);
+        *_standardDeviation
+    );
 }
 
 } // namespace target

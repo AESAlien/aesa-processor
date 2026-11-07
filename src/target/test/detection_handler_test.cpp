@@ -32,8 +32,13 @@ DetectionResult result(BeamType type, std::uint32_t id, Time time, math::Length 
     std::vector<DetectionEvent::Plot> plots;
     if (detected)
     {
-        plots.emplace_back(math::Distance(range), math::CircularAngle(0_deg),
-            math::TiltAngle(0_deg), 0_mps, -10.0f);
+        plots.emplace_back(
+            math::Distance(range),
+            math::CircularAngle(0_deg),
+            math::TiltAngle(0_deg),
+            0_mps,
+            -10.0f
+        );
     }
     return DetectionResultFactory::from(DetectionEvent(type, id, time, std::move(plots)));
 }
@@ -42,12 +47,17 @@ class DetectionHandlerTest : public ::testing::Test
 {
 protected:
     TrackRepository _repository;
-    TrackFactory _factory{std::make_shared<ConstantVelocityAlgorithm>()};
-    DetectionMatcher _matcher{AssociationConfig(1000_mps, 30_mps, 11.345), MeasurementConfig(7_m)};
-    TentativeSelector _tentativeSelector{_repository, _matcher};
-    TrackSelector _trackSelector{_repository, _matcher};
-    DetectionHandler _handler{TrackManagementConfig(100ms, 1000ms, 3, 100),
-        _repository, _factory, _tentativeSelector, _trackSelector};
+    TrackFactory _factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
+    DetectionMatcher _matcher = DetectionMatcher(AssociationConfig(1000_mps, 30_mps, 11.345), MeasurementConfig(7_m));
+    TentativeSelector _tentativeSelector = TentativeSelector(_repository, _matcher);
+    TrackSelector _trackSelector = TrackSelector(_repository, _matcher);
+    DetectionHandler _handler = DetectionHandler(
+        TrackManagementConfig(100ms, 1000ms, 3, 100),
+        _repository,
+        _factory,
+        _tentativeSelector,
+        _trackSelector
+    );
 };
 
 TEST_F(DetectionHandlerTest, ProcessesLifecycleAndExpiresOnlyTheRequestedTrack)
@@ -72,8 +82,15 @@ TEST_F(DetectionHandlerTest, ProcessesLifecycleAndExpiresOnlyTheRequestedTrack)
 
     for (int miss = 0; miss < 3; ++miss)
     {
-        const auto retry = _handler.handle(result(
-            BeamType::TRACKING, first->requestId, 2100ms + Time(1000 * miss), 1000_m, false));
+        const auto retry = _handler.handle(
+            result(
+                BeamType::TRACKING,
+                first->requestId,
+                2100ms + Time(1000 * miss),
+                1000_m,
+                false
+            )
+        );
         if (miss < 2)
         {
             ASSERT_TRUE(retry);
@@ -134,8 +151,10 @@ TEST_F(DetectionHandlerTest, TimeOverflowPreservesStateUntilTheTerminalMiss)
     ASSERT_TRUE(_handler.handle(result(BeamType::CONFIRMATION, id, 100ms)));
     auto* track = _repository.findTrack(id);
     const auto state = track->trackingState();
-    EXPECT_THROW(_handler.handle(result(BeamType::TRACKING, id, maximum, 1000_m, false)),
-        std::overflow_error);
+    EXPECT_THROW(
+        _handler.handle(result(BeamType::TRACKING, id, maximum, 1000_m, false)),
+        std::overflow_error
+    );
     EXPECT_EQ(track->trackingState(), state);
     EXPECT_EQ(track->lastResultTime(), 100ms);
     EXPECT_EQ(track->consecutiveMissCount(), 0u);

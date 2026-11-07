@@ -64,16 +64,20 @@ void TargetPrediction::validate() const
     if (_timestamp.count() < 0 ||
         !_sphericalPosition.radius.greaterThan(
             0.0_m,
-            math::Length::NONE_TOLERANCE))
+            math::Length::NONE_TOLERANCE
+        ))
     {
         throw std::invalid_argument("Prediction requires a positive range and nonnegative time");
     }
 
     if (_positionCovariance)
     {
-        validateCovariance(*_positionCovariance, POSITION_DIMENSION,
+        validateCovariance(
+            *_positionCovariance,
+            POSITION_DIMENSION,
             "Prediction covariance requires a finite symmetric 3x3 matrix",
-            "Prediction covariance variances must be nonnegative");
+            "Prediction covariance variances must be nonnegative"
+        );
     }
 }
 
@@ -143,7 +147,8 @@ void TargetTrackingState::validate() const
     if (_timestamp.count() < 0 ||
         !_sphericalPosition.radius.greaterThan(
             0.0_m,
-            math::Length::NONE_TOLERANCE) ||
+            math::Length::NONE_TOLERANCE
+        ) ||
         !std::isfinite(_power_db))
     {
         throw std::invalid_argument("Tracking state requires valid observation values and time");
@@ -154,9 +159,12 @@ void TargetTrackingState::validate() const
 
     if (_errorCovariance)
     {
-        validateCovariance(*_errorCovariance, STATE_DIMENSION,
+        validateCovariance(
+            *_errorCovariance,
+            STATE_DIMENSION,
             "Tracking covariance requires a finite symmetric 9x9 matrix",
-            "Tracking covariance variances must be nonnegative");
+            "Tracking covariance variances must be nonnegative"
+        );
     }
 }
 

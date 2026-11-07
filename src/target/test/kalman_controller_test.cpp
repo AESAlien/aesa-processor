@@ -40,8 +40,13 @@ DetectionEvent result(
     for (const auto& position : positions)
     {
         const auto spherical = position.toSpherical();
-        plots.emplace_back(spherical.radius, spherical.direction.azimuth,
-            spherical.direction.elevation, 0_mps, -10.0f);
+        plots.emplace_back(
+            spherical.radius,
+            spherical.direction.azimuth,
+            spherical.direction.elevation,
+            0_mps,
+            -10.0f
+        );
     }
     return DetectionEvent(type, id, time, std::move(plots));
 }
@@ -60,14 +65,23 @@ std::optional<beam::RequestBeamCommand> beginTracking(
     EXPECT_EQ(confirmation->beamType, beam::RequestBeamType::CONFIRMATION);
     EXPECT_EQ(confirmation->requestId, 1u);
     EXPECT_EQ(confirmation->transmitTime, 100ms);
-    return controller.handleDetection(result(BeamType::CONFIRMATION,
-        confirmation->requestId, confirmation->transmitTime, {second}));
+    return controller.handleDetection(
+        result(
+            BeamType::CONFIRMATION,
+            confirmation->requestId,
+            confirmation->transmitTime,
+            {second}
+        )
+    );
 }
 
 math::CartesianPosition consolePosition(const TrackEvent& event)
 {
-    return math::SphericalPosition{event.slantRange,
-        math::SphericalDirection(event.azimuth, event.elevation)}.toCartesian();
+    return math::SphericalPosition(
+        event.slantRange,
+        math::SphericalDirection(event.azimuth, event.elevation)
+    )
+        .toCartesian();
 }
 
 math::CartesianPosition trajectory(double seconds)
@@ -76,16 +90,20 @@ math::CartesianPosition trajectory(double seconds)
     return math::CartesianPosition(
         3000_m + 80_m * seconds + 3_m * seconds * seconds,
         10000_m - 40_m * seconds + 1.5_m * seconds * seconds,
-        1000_m + 10_m * seconds - 1_m * seconds * seconds);
+        1000_m + 10_m * seconds - 1_m * seconds * seconds
+    );
 }
 
 TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInsteadOfTheRawPlot)
 {
-    TargetController controller(TargetConfig(
-        AssociationConfig(1000_mps, 30_mps, 11.345),
-        MeasurementConfig(7_m),
-        TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)));
+    TargetController controller(
+        TargetConfig(
+            AssociationConfig(1000_mps, 30_mps, 11.345),
+            MeasurementConfig(7_m),
+            TrackingConfig(10_mps2, 0_mps2),
+            TrackManagementConfig(100ms, 1000ms, 3, 100)
+        )
+    );
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
     EXPECT_EQ(tracking->beamType, beam::RequestBeamType::TRACKING);
@@ -94,8 +112,14 @@ TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInst
     EXPECT_NEAR(tracking->direction_ant.azimuth.deg(), 0.0, 1e-12);
     EXPECT_NEAR(tracking->direction_ant.elevation.deg(), 0.0, 1e-12);
 
-    const auto next = controller.handleDetection(result(BeamType::TRACKING,
-        tracking->requestId, tracking->transmitTime, {radial(1100_m)}));
+    const auto next = controller.handleDetection(
+        result(
+            BeamType::TRACKING,
+            tracking->requestId,
+            tracking->transmitTime,
+            {radial(1100_m)}
+        )
+    );
     ASSERT_TRUE(next);
     EXPECT_EQ(next->requestId, tracking->requestId);
     EXPECT_EQ(next->transmitTime, 2100ms);
@@ -112,17 +136,26 @@ TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInst
 
 TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAndIgnoresExtraPlots)
 {
-    TargetController controller(TargetConfig(
-        AssociationConfig(1000_mps, 30_mps, 11.345),
-        MeasurementConfig(7_m),
-        TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)));
+    TargetController controller(
+        TargetConfig(
+            AssociationConfig(1000_mps, 30_mps, 11.345),
+            MeasurementConfig(7_m),
+            TrackingConfig(10_mps2, 0_mps2),
+            TrackManagementConfig(100ms, 1000ms, 3, 100)
+        )
+    );
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
     // Both 50 m and 200 m residuals fit the uncertain two-point forecast.
     // A fixed 98 I covariance would reject both, so this also checks propagation into association.
-    const auto next = controller.handleDetection(result(BeamType::TRACKING,
-        tracking->requestId, 1100ms, {radial(1200_m), radial(1050_m), radial(5000_m)}));
+    const auto next = controller.handleDetection(
+        result(
+            BeamType::TRACKING,
+            tracking->requestId,
+            1100ms,
+            {radial(1200_m), radial(1050_m), radial(5000_m)}
+        )
+    );
     ASSERT_TRUE(next);
     EXPECT_EQ(next->requestId, tracking->requestId);
     const auto events = controller.nextTrackEvents();
@@ -131,8 +164,14 @@ TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAnd
     EXPECT_LT(events[0].slantRange.m(), 1050.0);
     EXPECT_EQ(events[0].timestamp, 1100ms);
 
-    const auto newCandidate = controller.handleDetection(result(BeamType::SEARCH,
-        38, 1200ms, {radial(5000_m)}));
+    const auto newCandidate = controller.handleDetection(
+        result(
+            BeamType::SEARCH,
+            38,
+            1200ms,
+            {radial(5000_m)}
+        )
+    );
     ASSERT_TRUE(newCandidate);
     EXPECT_EQ(newCandidate->requestId, 2u);
     EXPECT_EQ(controller.nextTrackEvents().size(), 1u);
@@ -140,19 +179,19 @@ TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAnd
 
 TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsForecastingDuringMisses)
 {
-    TargetController controller(TargetConfig(
-        AssociationConfig(1000_mps, 30_mps, 11.345),
-        MeasurementConfig(7_m),
-        TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)));
+    TargetController controller(
+        TargetConfig(
+            AssociationConfig(1000_mps, 30_mps, 11.345),
+            MeasurementConfig(7_m),
+            TrackingConfig(10_mps2, 0_mps2),
+            TrackManagementConfig(100ms, 1000ms, 3, 100)
+        )
+    );
     const auto tracking = beginTracking(controller, trajectory(0.0), trajectory(0.1));
     ASSERT_TRUE(tracking);
-    const std::array<std::array<double, 3>, 12> noiseMultipliers{{
-        {{1.0, -0.5, 0.7}}, {{-0.8, 0.9, -1.0}}, {{0.5, -1.0, 0.4}},
-        {{-1.0, 0.3, -0.6}}, {{0.7, 0.6, 1.0}}, {{-0.4, -0.8, -0.3}},
-        {{0.9, 0.2, -0.9}}, {{-0.6, 0.8, 0.5}}, {{0.2, -0.7, -0.4}},
-        {{-0.7, 0.4, 0.8}}, {{0.4, -0.2, -0.7}}, {{-0.3, 0.7, 0.2}}
-    }};
+    const std::array<std::array<double, 3>, 12> noiseMultipliers{
+        {{{1.0, -0.5, 0.7}}, {{-0.8, 0.9, -1.0}}, {{0.5, -1.0, 0.4}}, {{-1.0, 0.3, -0.6}}, {{0.7, 0.6, 1.0}}, {{-0.4, -0.8, -0.3}}, {{0.9, 0.2, -0.9}}, {{-0.6, 0.8, 0.5}}, {{0.2, -0.7, -0.4}}, {{-0.7, 0.4, 0.8}}, {{0.4, -0.2, -0.7}}, {{-0.3, 0.7, 0.2}}}
+    };
     double measuredSquaredError = 0.0;
     double filteredSquaredError = 0.0;
     Time observationTime = 100ms;
@@ -165,10 +204,17 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
         const math::CartesianDisplacement measurementError(
             7_m * noise[0],
             7_m * noise[1],
-            7_m * noise[2]);
+            7_m * noise[2]
+        );
         const auto measured = truth + measurementError;
-        const auto next = controller.handleDetection(result(BeamType::TRACKING,
-            tracking->requestId, observationTime, {measured}));
+        const auto next = controller.handleDetection(
+            result(
+                BeamType::TRACKING,
+                tracking->requestId,
+                observationTime,
+                {measured}
+            )
+        );
         ASSERT_TRUE(next) << "Update at " << observationTime.count() << " ms";
         EXPECT_EQ(next->requestId, tracking->requestId);
         EXPECT_EQ(next->transmitTime, observationTime + 1000ms);
@@ -184,15 +230,24 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
     const auto finalEvents = controller.nextTrackEvents();
     ASSERT_EQ(finalEvents.size(), 1u);
     EXPECT_LT((consolePosition(finalEvents[0]) - trajectory(12.1)).distance().m(), 7.0);
-    const double trueSpeed = std::hypot(80.0 + 6.0 * 12.1, -40.0 + 3.0 * 12.1,
-        10.0 - 2.0 * 12.1);
+    const double trueSpeed = std::hypot(
+        80.0 + 6.0 * 12.1,
+        -40.0 + 3.0 * 12.1,
+        10.0 - 2.0 * 12.1
+    );
     EXPECT_NEAR(finalEvents[0].velocity.mps(), trueSpeed, 3.0);
 
     for (int miss = 1; miss <= 3; ++miss)
     {
         const auto resultTime = observationTime + std::chrono::milliseconds(1000 * miss);
-        const auto retry = controller.handleDetection(result(BeamType::TRACKING,
-            tracking->requestId, resultTime, {}));
+        const auto retry = controller.handleDetection(
+            result(
+                BeamType::TRACKING,
+                tracking->requestId,
+                resultTime,
+                {}
+            )
+        );
         if (miss < 3)
         {
             ASSERT_TRUE(retry);
@@ -223,18 +278,41 @@ TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAn
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(math::LinearAcceleration::fromMetersPerSecondSquared(accelerationSigma), 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100));
+            TrackManagementConfig(100ms, 1000ms, 3, 100)
+        );
         TargetController controller(config);
         const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
         ASSERT_TRUE(tracking);
-        ASSERT_TRUE(controller.handleDetection(result(BeamType::TRACKING,
-            tracking->requestId, 1100ms, {})));
-        ASSERT_TRUE(controller.handleDetection(result(BeamType::TRACKING,
-            tracking->requestId, 2100ms, {})));
+        ASSERT_TRUE(
+            controller.handleDetection(
+                result(
+                    BeamType::TRACKING,
+                    tracking->requestId,
+                    1100ms,
+                    {}
+                )
+            )
+        );
+        ASSERT_TRUE(
+            controller.handleDetection(
+                result(
+                    BeamType::TRACKING,
+                    tracking->requestId,
+                    2100ms,
+                    {}
+                )
+            )
+        );
         // After 3 s, a 1400 m residual has NDS about 21.5 for sigma_a=1,
         // but 6.4 for sigma_a=100; only the latter passes the shared 99% gate.
-        const auto recovered = controller.handleDetection(result(BeamType::TRACKING,
-            tracking->requestId, 3100ms, {radial(2400_m)}));
+        const auto recovered = controller.handleDetection(
+            result(
+                BeamType::TRACKING,
+                tracking->requestId,
+                3100ms,
+                {radial(2400_m)}
+            )
+        );
         const bool broadPrior = accelerationSigma > 1.0;
         EXPECT_EQ(recovered.has_value(), broadPrior);
         if (!broadPrior)
@@ -246,12 +324,36 @@ TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAn
         const auto events = controller.nextTrackEvents();
         ASSERT_EQ(events.size(), 1u);
         EXPECT_EQ(events[0].timestamp, 3100ms);
-        ASSERT_TRUE(controller.handleDetection(result(BeamType::TRACKING,
-            tracking->requestId, 4100ms, {})));
-        ASSERT_TRUE(controller.handleDetection(result(BeamType::TRACKING,
-            tracking->requestId, 5100ms, {})));
-        EXPECT_FALSE(controller.handleDetection(result(BeamType::TRACKING,
-            tracking->requestId, 6100ms, {})));
+        ASSERT_TRUE(
+            controller.handleDetection(
+                result(
+                    BeamType::TRACKING,
+                    tracking->requestId,
+                    4100ms,
+                    {}
+                )
+            )
+        );
+        ASSERT_TRUE(
+            controller.handleDetection(
+                result(
+                    BeamType::TRACKING,
+                    tracking->requestId,
+                    5100ms,
+                    {}
+                )
+            )
+        );
+        EXPECT_FALSE(
+            controller.handleDetection(
+                result(
+                    BeamType::TRACKING,
+                    tracking->requestId,
+                    6100ms,
+                    {}
+                )
+            )
+        );
         EXPECT_TRUE(controller.nextTrackEvents().empty());
     }
 }

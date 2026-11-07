@@ -106,7 +106,8 @@ std::optional<double> DetectionMatcher::positionScore(
             const auto distance = displacement.distance();
             const auto maximumTravel = _config.maxAssociationSpeed() * elapsed;
             residual = distance <= maximumTravel
-                ? math::Vector(POSITION_DIMENSION) : residual * ((distance - maximumTravel) / distance);
+                ? math::Vector(POSITION_DIMENSION)
+                : residual * ((distance - maximumTravel) / distance);
         }
         const auto score = NdsAlgorithm::calculate(residual, covariance);
         return score && *score <= _config.positionNdsThreshold() ? score : std::nullopt;
@@ -122,8 +123,13 @@ std::optional<double> DetectionMatcher::matchesPosition(
     const TentativeTrack& other
 ) const {
     const auto& first = other.observation();
-    return positionScore(observation, first.sphericalPosition(), first.lastObservationTime(),
-        _measurementDifferenceCovariance, true);
+    return positionScore(
+        observation,
+        first.sphericalPosition(),
+        first.lastObservationTime(),
+        _measurementDifferenceCovariance,
+        true
+    );
 }
 
 std::optional<double> DetectionMatcher::matchesPosition(
@@ -139,10 +145,18 @@ std::optional<double> DetectionMatcher::matchesPosition(
         {
             return std::nullopt;
         }
-        const auto covariance = innovationCovariance(prediction->positionCovariance(),
-            _measurementCovariance, _measurementDifferenceCovariance);
-        return positionScore(observation, prediction->sphericalPosition(), referenceTime,
-            covariance, false);
+        const auto covariance = innovationCovariance(
+            prediction->positionCovariance(),
+            _measurementCovariance,
+            _measurementDifferenceCovariance
+        );
+        return positionScore(
+            observation,
+            prediction->sphericalPosition(),
+            referenceTime,
+            covariance,
+            false
+        );
     }
 
     auto covariance = _measurementDifferenceCovariance;
@@ -183,7 +197,8 @@ std::optional<double> DetectionMatcher::matchesConfirmation(
         if (speed.greaterThan(_config.maxAssociationSpeed(), math::LinearVelocity::NONE_TOLERANCE) ||
             !observation.dopplerVelocity().equals(
                 tentative.observation().dopplerVelocity(),
-                math::QuantityTolerance<math::LinearVelocity>{_config.maxInitialDopplerDifference(), 0.0}))
+                math::QuantityTolerance<math::LinearVelocity>(_config.maxInitialDopplerDifference(), 0.0)
+            ))
         {
             return std::nullopt;
         }
@@ -222,15 +237,22 @@ std::optional<TrackingAssociation> DetectionMatcher::prepareTracking(
     const auto predictedPosition = prediction->sphericalPosition().toCartesian();
     try
     {
-        const auto covariance = innovationCovariance(prediction->positionCovariance(),
-            _measurementCovariance, _measurementDifferenceCovariance);
+        const auto covariance = innovationCovariance(
+            prediction->positionCovariance(),
+            _measurementCovariance,
+            _measurementDifferenceCovariance
+        );
         auto ndsAlgorithm = NdsAlgorithm::from(covariance);
         if (!ndsAlgorithm)
         {
             return std::nullopt;
         }
-        return TrackingAssociation(time, predictedPosition, std::move(*ndsAlgorithm),
-            _config.positionNdsThreshold());
+        return TrackingAssociation(
+            time,
+            predictedPosition,
+            std::move(*ndsAlgorithm),
+            _config.positionNdsThreshold()
+        );
     }
     catch (const std::invalid_argument&)
     {

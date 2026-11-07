@@ -62,6 +62,8 @@ private:
 };
 
 using DetectionResult = std::variant<
-    SearchDetectionResult, ConfirmationDetectionResult, TrackingDetectionResult>;
+    SearchDetectionResult,
+    ConfirmationDetectionResult,
+    TrackingDetectionResult>;
 
 } // namespace target

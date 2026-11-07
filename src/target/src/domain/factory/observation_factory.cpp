@@ -10,9 +10,14 @@ std::vector<Observation> ObservationFactory::from(const DetectionEvent& detectio
     for (const auto& plot : detection.plots)
     {
         observations.emplace_back(
-            math::SphericalPosition(plot.slantRange,
-                math::SphericalDirection(plot.azimuth, plot.elevation)),
-            plot.dopplerVelocity, plot.power_db, detection.transmitTime);
+            math::SphericalPosition(
+                plot.slantRange,
+                math::SphericalDirection(plot.azimuth, plot.elevation)
+            ),
+            plot.dopplerVelocity,
+            plot.power_db,
+            detection.transmitTime
+        );
     }
     return observations;
 }

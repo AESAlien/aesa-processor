@@ -59,7 +59,8 @@ TrackManagementConfig TrackManagementConfig::Builder::build() const
         *_confirmationDelay,
         *_trackingInterval,
         *_maxConsecutiveTrackingMisses,
-        *_maxReportedTrackCount);
+        *_maxReportedTrackCount
+    );
 }
 
 } // namespace target

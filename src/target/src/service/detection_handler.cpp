@@ -64,7 +64,13 @@ DetectionHandler::DetectionHandler(
 
 std::optional<beam::RequestBeamCommand> DetectionHandler::handle(const DetectionResult& result)
 {
-    return std::visit([this](const auto& value) { return handle(value); }, result);
+    return std::visit(
+        [this](const auto& value)
+        {
+            return handle(value);
+        },
+        result
+    );
 }
 
 std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
@@ -106,7 +112,9 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     }
 
     const auto selected = _trackSelector.selectConfirmation(
-        *tentative, result.transmitTime, result.observations
+        *tentative,
+        result.transmitTime,
+        result.observations
     );
     if (!selected)
     {
@@ -126,7 +134,10 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
         return std::nullopt;
     }
     return trackingRequestOrRemove(
-        _trackRepository, *_trackRepository.findTrack(result.requestId), transmitTime);
+        _trackRepository,
+        *_trackRepository.findTrack(result.requestId),
+        transmitTime
+    );
 }
 
 std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
@@ -139,7 +150,10 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     }
 
     const auto selected = _trackSelector.selectObservation(
-        *track, result.transmitTime, result.observations);
+        *track,
+        result.transmitTime,
+        result.observations
+    );
     if (!selected &&
         track->consecutiveMissCount() >= _config.maxConsecutiveTrackingMisses() - 1)
     {

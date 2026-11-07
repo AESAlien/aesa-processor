@@ -35,9 +35,17 @@ double elapsedSeconds(
 
 math::Vector stateVector(const TargetTrackingState& state)
 {
-    return math::Vector{state.position().x.m(), state.position().y.m(), state.position().z.m(),
-        state.velocity().x.mps(), state.velocity().y.mps(), state.velocity().z.mps(),
-        state.acceleration().x.mps2(), state.acceleration().y.mps2(), state.acceleration().z.mps2()};
+    return math::Vector({
+        state.position().x.m(),
+        state.position().y.m(),
+        state.position().z.m(),
+        state.velocity().x.mps(),
+        state.velocity().y.mps(),
+        state.velocity().z.mps(),
+        state.acceleration().x.mps2(),
+        state.acceleration().y.mps2(),
+        state.acceleration().z.mps2()
+    });
 }
 
 math::Matrix measurementMatrix()
@@ -133,8 +141,10 @@ math::SquareMatrix processNoiseCovariance(
     const double sigma = standardDeviation.mps2();
     const auto disturbanceCovariance = math::SquareMatrix::identity(POSITION_DIMENSION)
         * (sigma * sigma);
-    return math::SquareMatrix(disturbanceMapping * disturbanceCovariance.asMatrix()
-        * math::transpose(disturbanceMapping));
+    return math::SquareMatrix(
+        disturbanceMapping * disturbanceCovariance.asMatrix()
+            * math::transpose(disturbanceMapping)
+    );
 }
 
 std::optional<PredictedState> predictState(
@@ -163,7 +173,8 @@ std::optional<PredictedState> predictState(
     auto values = transition * stateVector(state);
     auto covariance = symmetricCovariance(
         transition * *state.errorCovariance() * math::transpose(transition)
-        + processNoiseCovariance(seconds, processAccelerationStandardDeviation));
+        + processNoiseCovariance(seconds, processAccelerationStandardDeviation)
+    );
     if (!values.isFinite() || !covariance)
     {
         return std::nullopt;
@@ -178,7 +189,8 @@ std::optional<math::CartesianPosition> calculatedPosition(const math::Vector& va
         const math::CartesianPosition position(
             math::Length::fromMeters(values[0]),
             math::Length::fromMeters(values[1]),
-            math::Length::fromMeters(values[2]));
+            math::Length::fromMeters(values[2])
+        );
         if (position.distance().equals(0_m, math::Length::NONE_TOLERANCE))
         {
             return std::nullopt;
@@ -198,7 +210,8 @@ std::optional<math::CartesianVelocity> calculatedVelocity(const math::Vector& va
         const math::CartesianVelocity velocity(
             math::LinearVelocity::fromMetersPerSecond(values[3]),
             math::LinearVelocity::fromMetersPerSecond(values[4]),
-            math::LinearVelocity::fromMetersPerSecond(values[5]));
+            math::LinearVelocity::fromMetersPerSecond(values[5])
+        );
         static_cast<void>(velocity.speed());
         return velocity;
     }
@@ -261,9 +274,16 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::initialize(
     {
         return std::nullopt;
     }
-    return TargetTrackingState(position.toSpherical(), second.dopplerVelocity(),
-        second.power_db(), secondTime, position, *velocity,
-        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), std::move(initialCovariance));
+    return TargetTrackingState(
+        position.toSpherical(),
+        second.dopplerVelocity(),
+        second.power_db(),
+        secondTime,
+        position,
+        *velocity,
+        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
+        std::move(initialCovariance)
+    );
 }
 
 std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
@@ -283,14 +303,18 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
     }
 
     const auto observationPosition = observation.sphericalPosition().toCartesian();
-    const math::Vector measurement{observationPosition.x.m(),
-        observationPosition.y.m(), observationPosition.z.m()};
+    const math::Vector measurement({
+        observationPosition.x.m(),
+        observationPosition.y.m(),
+        observationPosition.z.m()
+    });
     const auto measurementMapping = measurementMatrix();
     const double sigma = _measurementConfig.standardDeviation().m();
     const auto measurementNoise = math::SquareMatrix::identity(POSITION_DIMENSION) * (sigma * sigma);
     const auto crossCovariance = predicted->covariance.asMatrix() * math::transpose(measurementMapping);
     auto innovationCovariance = symmetricCovariance(
-        positionCovariance(predicted->covariance) + measurementNoise);
+        positionCovariance(predicted->covariance) + measurementNoise
+    );
     if (!innovationCovariance)
     {
         return std::nullopt;
@@ -303,8 +327,11 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
     math::Matrix gain(STATE_DIMENSION, POSITION_DIMENSION);
     for (std::size_t row = 0; row < STATE_DIMENSION; ++row)
     {
-        const math::Vector rightHandSide{crossCovariance(row, 0),
-            crossCovariance(row, 1), crossCovariance(row, 2)};
+        const math::Vector rightHandSide({
+            crossCovariance(row, 0),
+            crossCovariance(row, 1),
+            crossCovariance(row, 2)
+        });
         const auto solved = upper.solveUpperTriangular(lower.solveLowerTriangular(rightHandSide));
         for (std::size_t column = 0; column < POSITION_DIMENSION; ++column)
         {
@@ -316,9 +343,12 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
     // Joseph form retains the two PSD contributions despite rounding in K.
     const auto remaining = math::SquareMatrix::identity(STATE_DIMENSION).asMatrix()
         - gain * measurementMapping;
-    auto covariance = symmetricCovariance(math::SquareMatrix(
-        remaining * predicted->covariance.asMatrix() * math::transpose(remaining)
-        + gain * measurementNoise.asMatrix() * math::transpose(gain)));
+    auto covariance = symmetricCovariance(
+        math::SquareMatrix(
+            remaining * predicted->covariance.asMatrix() * math::transpose(remaining)
+            + gain * measurementNoise.asMatrix() * math::transpose(gain)
+        )
+    );
     if (!values.isFinite() || !covariance)
     {
         return std::nullopt;
@@ -329,13 +359,20 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
     {
         return std::nullopt;
     }
-    return TargetTrackingState(position->toSpherical(), observation.dopplerVelocity(),
-        observation.power_db(), time, *position, *velocity,
+    return TargetTrackingState(
+        position->toSpherical(),
+        observation.dopplerVelocity(),
+        observation.power_db(),
+        time,
+        *position,
+        *velocity,
         math::CartesianAcceleration(
             math::LinearAcceleration::fromMetersPerSecondSquared(values[6]),
             math::LinearAcceleration::fromMetersPerSecondSquared(values[7]),
-            math::LinearAcceleration::fromMetersPerSecondSquared(values[8])),
-        std::move(*covariance));
+            math::LinearAcceleration::fromMetersPerSecondSquared(values[8])
+        ),
+        std::move(*covariance)
+    );
 }
 
 std::optional<TargetPrediction> ConstantAccelerationAlgorithm::predict(

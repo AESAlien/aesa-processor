@@ -68,7 +68,10 @@ std::optional<std::size_t> TrackSelector::selectObservation(
     bool prepared = false;
     std::optional<TrackingAssociation> association;
     // Empty batches and observations at other times must not trigger prediction.
-    return selectBestObservation(&track, resultTime, observations,
+    return selectBestObservation(
+        &track,
+        resultTime,
+        observations,
         [&](const Observation& observation, const Track& current)
         {
             if (!prepared)
@@ -77,7 +80,8 @@ std::optional<std::size_t> TrackSelector::selectObservation(
                 prepared = true;
             }
             return association ? association->matches(observation) : std::nullopt;
-        });
+        }
+    );
 }
 
 std::optional<std::size_t> TrackSelector::selectConfirmation(
@@ -94,11 +98,15 @@ std::optional<std::size_t> TrackSelector::selectConfirmation(
     std::chrono::milliseconds resultTime,
     const std::vector<Observation>& observations
 ) const {
-    return selectBestObservation(&tentative, resultTime, observations,
+    return selectBestObservation(
+        &tentative,
+        resultTime,
+        observations,
         [this](const Observation& observation, const TentativeTrack& current)
         {
             return _matcher.matchesConfirmation(observation, current);
-        });
+        }
+    );
 }
 
 } // namespace target

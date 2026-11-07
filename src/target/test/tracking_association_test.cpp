@@ -30,13 +30,15 @@ using namespace std::chrono_literals;
 using Time = std::chrono::milliseconds;
 using BeamType = beam::BeamType;
 
-static_assert(std::is_same_v<
-    decltype(std::declval<const Track&>().slantRange()),
-    math::Distance>);
+static_assert(
+    std::is_same_v<
+        decltype(std::declval<const Track&>().slantRange()),
+        math::Distance>
+);
 
 math::SphericalPosition position(math::Length range)
 {
-    return math::SphericalPosition{range, 0_deg, 0_deg};
+    return math::SphericalPosition(range, 0_deg, 0_deg);
 }
 
 DetectionEvent result(
@@ -101,8 +103,11 @@ public:
             return std::nullopt;
         }
         const double seconds = std::chrono::duration<double>(time - current.lastObservationTime()).count();
-        return TargetPrediction(time, prediction->sphericalPosition(),
-            _positionCovariance * (1.0 + _growthPerSecond * seconds));
+        return TargetPrediction(
+            time,
+            prediction->sphericalPosition(),
+            _positionCovariance * (1.0 + _growthPerSecond * seconds)
+        );
     }
 
 private:
@@ -121,9 +126,16 @@ private:
                 covariance(row, column) = _positionCovariance(row, column);
             }
         }
-        return TargetTrackingState(state->sphericalPosition(), state->dopplerVelocity(),
-            state->power_db(), state->timestamp(), state->position(), state->velocity(),
-            state->acceleration(), std::move(covariance));
+        return TargetTrackingState(
+            state->sphericalPosition(),
+            state->dopplerVelocity(),
+            state->power_db(),
+            state->timestamp(),
+            state->position(),
+            state->velocity(),
+            state->acceleration(),
+            std::move(covariance)
+        );
     }
 
     const math::SquareMatrix _positionCovariance;
@@ -187,8 +199,8 @@ protected:
             algorithm = _algorithm;
         }
         const auto id = _repository.add(
-            TrackFactory(std::move(algorithm)).from(
-                _trackIdGenerator.nextId(), Observation(position(firstRange), 0_mps, -10.0f, 0ms)));
+            TrackFactory(std::move(algorithm)).from(_trackIdGenerator.nextId(), Observation(position(firstRange), 0_mps, -10.0f, 0ms))
+        );
         _trackIdGenerator.commit();
         auto confirmedTrack = TrackFactory::from(*_repository.findTentative(id), observation(secondRange, 100ms));
         EXPECT_TRUE(confirmedTrack);
@@ -199,9 +211,11 @@ protected:
     const std::shared_ptr<const ITrackingAlgorithm> _algorithm = std::make_shared<ConstantVelocityAlgorithm>();
     TrackRepository _repository;
     TrackIdGenerator _trackIdGenerator;
-    DetectionMatcher _matcher{
-        AssociationConfig(1000_mps, 30_mps, 11.345), MeasurementConfig(7_m)};
-    TrackSelector _selector{_repository, _matcher};
+    DetectionMatcher _matcher = DetectionMatcher(
+        AssociationConfig(1000_mps, 30_mps, 11.345),
+        MeasurementConfig(7_m)
+    );
+    TrackSelector _selector = TrackSelector(_repository, _matcher);
 };
 
 TEST_F(TrackingAssociationTest, ReturnsSquaredCartesianDistanceScore)
@@ -219,12 +233,26 @@ TEST_F(TrackingAssociationTest, EqualSlantRangesStillUseAzimuthAndElevationDispl
     for (bool elevationOnly : {false, true})
     {
         SCOPED_TRACE(elevationOnly);
-        const Observation near(math::SphericalPosition{1000_m,
-                    elevationOnly ? 0_deg : 1_deg,
-                    elevationOnly ? 1_deg : 0_deg}, 0_mps, -10.0f, 1100ms);
-        const Observation far(math::SphericalPosition{1000_m,
-                    elevationOnly ? 0_deg : 3_deg,
-                    elevationOnly ? 3_deg : 0_deg}, 0_mps, -10.0f, 1100ms);
+        const Observation near(
+            math::SphericalPosition(
+                1000_m,
+                elevationOnly ? 0_deg : 1_deg,
+                elevationOnly ? 1_deg : 0_deg
+            ),
+            0_mps,
+            -10.0f,
+            1100ms
+        );
+        const Observation far(
+            math::SphericalPosition(
+                1000_m,
+                elevationOnly ? 0_deg : 3_deg,
+                elevationOnly ? 3_deg : 0_deg
+            ),
+            0_mps,
+            -10.0f,
+            1100ms
+        );
         // At 1000 m, one degree gives about 17.45 m displacement; three give 52.35 m.
         EXPECT_TRUE(_matcher.matchesTracking(near, tracking));
         EXPECT_FALSE(_matcher.matchesTracking(far, tracking));
@@ -283,7 +311,8 @@ TEST_F(TrackingAssociationTest, UsesInjectedMeasurementNoiseForScoreAndGate)
 TEST_F(TrackingAssociationTest, UsesPredictedAnisotropicCovariancePlusOneMeasurementNoise)
 {
     const auto algorithm = std::make_shared<CovarianceAlgorithm>(
-        math::SquareMatrix{{151.0, 0.0, 0.0}, {0.0, 351.0, 0.0}, {0.0, 0.0, 751.0}});
+        math::SquareMatrix({{151.0, 0.0, 0.0}, {0.0, 351.0, 0.0}, {0.0, 0.0, 751.0}})
+    );
     const auto id = addTracking(1000_m, 1000_m, algorithm);
     const auto& tracking = *_repository.findTrack(id);
     const Observation incoming(math::CartesianPosition(10_m, 1020_m, 30_m).toSpherical(), 0_mps, -10.0f, 1100ms);
@@ -299,7 +328,8 @@ TEST_F(TrackingAssociationTest, UsesPredictedAnisotropicCovariancePlusOneMeasure
 TEST_F(TrackingAssociationTest, RetainsPredictedCrossAxisCorrelations)
 {
     const auto algorithm = std::make_shared<CovarianceAlgorithm>(
-        math::SquareMatrix{{51.0, 50.0, 0.0}, {50.0, 151.0, 0.0}, {0.0, 0.0, 251.0}});
+        math::SquareMatrix({{51.0, 50.0, 0.0}, {50.0, 151.0, 0.0}, {0.0, 0.0, 251.0}})
+    );
     const auto id = addTracking(1000_m, 1000_m, algorithm);
     const auto& tracking = *_repository.findTrack(id);
     const Observation incoming(math::CartesianPosition(10_m, 1010_m, 0_m).toSpherical(), 0_mps, -10.0f, 1100ms);
@@ -312,7 +342,9 @@ TEST_F(TrackingAssociationTest, RetainsPredictedCrossAxisCorrelations)
 TEST_F(TrackingAssociationTest, PredictionUncertaintyChangesTheGateAtTheRequestedTime)
 {
     const auto algorithm = std::make_shared<CovarianceAlgorithm>(
-        math::SquareMatrix::identity(3), 100.0);
+        math::SquareMatrix::identity(3),
+        100.0
+    );
     const auto id = addTracking(1000_m, 1000_m, algorithm);
     const auto& tracking = *_repository.findTrack(id);
     EXPECT_FALSE(_matcher.matchesTracking(observation(1050_m, 1100ms), tracking));
@@ -326,7 +358,8 @@ TEST_F(TrackingAssociationTest, PredictionUncertaintyChangesTheGateAtTheRequeste
 TEST_F(TrackingAssociationTest, PastSearchUsesStoredPositionCovarianceAndMotionAllowance)
 {
     const auto algorithm = std::make_shared<CovarianceAlgorithm>(
-        math::SquareMatrix{{51.0, 0.0, 0.0}, {0.0, 351.0, 0.0}, {0.0, 0.0, 51.0}});
+        math::SquareMatrix({{51.0, 0.0, 0.0}, {0.0, 351.0, 0.0}, {0.0, 0.0, 51.0}})
+    );
     const auto id = addTracking(1000_m, 1000_m, algorithm);
     const auto& tracking = *_repository.findTrack(id);
     // 50 ms allows 50 m motion, leaving a 20 m residual along y.
@@ -342,8 +375,14 @@ TEST(TrackingPredictionCovarianceTest, ValidatesCovarianceOnlyAtConstruction)
     EXPECT_NO_THROW(TargetPrediction(0ms, position(1000_m), math::SquareMatrix(3)));
     for (std::size_t dimension : {2u, 4u, 9u})
     {
-        EXPECT_THROW(TargetPrediction(0ms, position(1000_m),
-            math::SquareMatrix::identity(dimension)), std::invalid_argument);
+        EXPECT_THROW(
+            TargetPrediction(
+                0ms,
+                position(1000_m),
+                math::SquareMatrix::identity(dimension)
+            ),
+            std::invalid_argument
+        );
     }
     auto covariance = math::SquareMatrix::identity(3);
     covariance(0, 1) = 0.5;
@@ -363,8 +402,8 @@ TEST(TrackingPredictionCovarianceTest, ValidatesCovarianceOnlyAtConstruction)
 TEST_F(TrackingAssociationTest, RejectsTentativeIdsAndStaleOrDuplicateResults)
 {
     const auto tentativeId = _repository.add(
-        TrackFactory(_algorithm).from(
-            _trackIdGenerator.nextId(), observation(1000_m, 0ms)));
+        TrackFactory(_algorithm).from(_trackIdGenerator.nextId(), observation(1000_m, 0ms))
+    );
     _trackIdGenerator.commit();
     EXPECT_EQ(_repository.findTrack(tentativeId), nullptr);
     EXPECT_FALSE(_selector.selectObservation(tentativeId, 1100ms, {observation(1000_m, 1100ms)}));
@@ -392,16 +431,25 @@ TEST_F(TrackingAssociationTest, ReturnsNoMatchWhenPredictionIsUnavailable)
 TEST_F(TrackingAssociationTest, SelectsMinimumScoreIncludingZeroAndKeepsFirstTie)
 {
     const auto id = addTracking();
-    const auto nearest = _selector.selectObservation(id, 1100ms,
-        {observation(1020_m, 1100ms), observation(1005_m, 1100ms), observation(1010_m, 1100ms)});
+    const auto nearest = _selector.selectObservation(
+        id,
+        1100ms,
+        {observation(1020_m, 1100ms), observation(1005_m, 1100ms), observation(1010_m, 1100ms)}
+    );
     ASSERT_TRUE(nearest);
     EXPECT_EQ(*nearest, 1u);
-    const auto exact = _selector.selectObservation(id, 1100ms,
-        {observation(1010_m, 1100ms), observation(1000_m, 1100ms), observation(1000_m, 1100ms)});
+    const auto exact = _selector.selectObservation(
+        id,
+        1100ms,
+        {observation(1010_m, 1100ms), observation(1000_m, 1100ms), observation(1000_m, 1100ms)}
+    );
     ASSERT_TRUE(exact);
     EXPECT_EQ(*exact, 1u);
-    const auto tied = _selector.selectObservation(id, 1100ms,
-        {observation(1010_m, 1100ms), observation(990_m, 1100ms)});
+    const auto tied = _selector.selectObservation(
+        id,
+        1100ms,
+        {observation(1010_m, 1100ms), observation(990_m, 1100ms)}
+    );
     ASSERT_TRUE(tied);
     EXPECT_EQ(*tied, 0u);
     EXPECT_EQ(_repository.findTrack(id)->lastObservationTime(), 100ms);
@@ -411,7 +459,7 @@ TEST_F(TrackingAssociationTest, ComparesOnlyTheRequestedIdAndMatchingResultTime)
 {
     const auto firstId = addTracking();
     const auto secondId = addTracking(2000_m, 2000_m);
-    const std::vector<Observation> observations{observation(2000_m, 1100ms), observation(1005_m, 1100ms)};
+    const std::vector<Observation> observations({observation(2000_m, 1100ms), observation(1005_m, 1100ms)});
     const auto first = _selector.selectObservation(firstId, 1100ms, observations);
     const auto second = _selector.selectObservation(secondId, 1100ms, observations);
     ASSERT_TRUE(first);
@@ -430,9 +478,11 @@ TEST_F(TrackingAssociationTest, ReusesOnePredictionPerBatchAndRefreshesAfterAnUp
     auto& track = *_repository.findTrack(id);
     const auto previousState = track.trackingState();
 
-    const auto selected = _selector.selectObservation(track, 1100ms,
-        {observation(1000_m, 1200ms), observation(1020_m, 1100ms),
-            observation(1005_m, 1100ms), observation(995_m, 1100ms)});
+    const auto selected = _selector.selectObservation(
+        track,
+        1100ms,
+        {observation(1000_m, 1200ms), observation(1020_m, 1100ms), observation(1005_m, 1100ms), observation(995_m, 1100ms)}
+    );
     ASSERT_TRUE(selected);
     EXPECT_EQ(*selected, 2u);
     EXPECT_EQ(algorithm->predictionCount(), 1u);
@@ -440,8 +490,11 @@ TEST_F(TrackingAssociationTest, ReusesOnePredictionPerBatchAndRefreshesAfterAnUp
     EXPECT_EQ(track.lastResultTime(), 100ms);
 
     ASSERT_TRUE(track.update(observation(1010_m, 1100ms)));
-    const auto next = _selector.selectObservation(id, 2100ms,
-        {observation(1000_m, 2100ms), observation(1020_m, 2100ms)});
+    const auto next = _selector.selectObservation(
+        id,
+        2100ms,
+        {observation(1000_m, 2100ms), observation(1020_m, 2100ms)}
+    );
     ASSERT_TRUE(next);
     EXPECT_EQ(*next, 1u);
     EXPECT_EQ(algorithm->predictionCount(), 2u);
@@ -455,8 +508,13 @@ TEST_F(TrackingAssociationTest, SkipsPredictionWithoutEligibleObservations)
     const auto& track = *_repository.findTrack(id);
 
     EXPECT_FALSE(_selector.selectObservation(track, 1100ms, {}));
-    EXPECT_FALSE(_selector.selectObservation(track, 1100ms,
-        {observation(1000_m, 1000ms), observation(1000_m, 1200ms)}));
+    EXPECT_FALSE(
+        _selector.selectObservation(
+            track,
+            1100ms,
+            {observation(1000_m, 1000ms), observation(1000_m, 1200ms)}
+        )
+    );
     EXPECT_FALSE(_selector.selectObservation(track, 100ms, {observation(1000_m, 100ms)}));
     EXPECT_FALSE(_selector.selectObservation(999, 1100ms, {observation(1000_m, 1100ms)}));
     EXPECT_EQ(algorithm->predictionCount(), 0u);
@@ -468,8 +526,11 @@ TEST_F(TrackingAssociationTest, DoesNotRetryFailedPredictionUntilTheNextBatch)
     const auto id = addTracking(1000_m, 1000_m, algorithm);
     const auto& track = *_repository.findTrack(id);
     const auto previousState = track.trackingState();
-    const std::vector<Observation> observations{
-        observation(1000_m, 1100ms), observation(1001_m, 1100ms), observation(1002_m, 1100ms)};
+    const std::vector<Observation> observations({
+        observation(1000_m, 1100ms),
+        observation(1001_m, 1100ms),
+        observation(1002_m, 1100ms)
+    });
 
     EXPECT_FALSE(_selector.selectObservation(track, 1100ms, observations));
     EXPECT_EQ(algorithm->predictionCount(), 1u);
@@ -483,13 +544,19 @@ TEST_F(TrackingAssociationTest, DoesNotRetryFailedPredictionUntilTheNextBatch)
 TEST_F(TrackingAssociationTest, RejectsNonPositiveDefiniteInnovationWithoutChangingTheTrack)
 {
     const auto algorithm = std::make_shared<CovarianceAlgorithm>(
-        math::SquareMatrix{{1.0, 100.0, 0.0}, {100.0, 1.0, 0.0}, {0.0, 0.0, 1.0}});
+        math::SquareMatrix({{1.0, 100.0, 0.0}, {100.0, 1.0, 0.0}, {0.0, 0.0, 1.0}})
+    );
     const auto id = addTracking(1000_m, 1000_m, algorithm);
     const auto& track = *_repository.findTrack(id);
     const auto previousState = track.trackingState();
 
-    EXPECT_FALSE(_selector.selectObservation(track, 1100ms,
-        {observation(1000_m, 1100ms), observation(1001_m, 1100ms)}));
+    EXPECT_FALSE(
+        _selector.selectObservation(
+            track,
+            1100ms,
+            {observation(1000_m, 1100ms), observation(1001_m, 1100ms)}
+        )
+    );
     EXPECT_EQ(track.trackingState(), previousState);
     EXPECT_EQ(track.lastResultTime(), 100ms);
     EXPECT_EQ(track.consecutiveMissCount(), 0u);
@@ -497,22 +564,37 @@ TEST_F(TrackingAssociationTest, RejectsNonPositiveDefiniteInnovationWithoutChang
 
 TEST(TrackingAssociationControllerTest, OutOfGatePlotsKeepRetryingUntilThreeMissesDeleteTheTarget)
 {
-    TargetController controller(TargetConfig(
-        AssociationConfig(1000_mps, 30_mps, 11.345),
-        MeasurementConfig(7_m),
-        TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)));
+    TargetController controller(
+        TargetConfig(
+            AssociationConfig(1000_mps, 30_mps, 11.345),
+            MeasurementConfig(7_m),
+            TrackingConfig(10_mps2, 0_mps2),
+            TrackManagementConfig(100ms, 1000ms, 3, 100)
+        )
+    );
     const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 0ms, {1000_m}));
     ASSERT_TRUE(confirmation);
-    const auto tracking = controller.handleDetection(result(BeamType::CONFIRMATION,
-        confirmation->requestId, 100ms, {1000_m}));
+    const auto tracking = controller.handleDetection(
+        result(
+            BeamType::CONFIRMATION,
+            confirmation->requestId,
+            100ms,
+            {1000_m}
+        )
+    );
     ASSERT_TRUE(tracking);
 
     for (std::uint32_t miss = 1; miss <= 3; ++miss)
     {
         const auto time = 100ms + std::chrono::milliseconds(1000 * miss);
-        const auto retry = controller.handleDetection(result(BeamType::TRACKING,
-            confirmation->requestId, time, {5000_m}));
+        const auto retry = controller.handleDetection(
+            result(
+                BeamType::TRACKING,
+                confirmation->requestId,
+                time,
+                {5000_m}
+            )
+        );
         if (miss < 3)
         {
             ASSERT_TRUE(retry);
@@ -535,24 +617,57 @@ TEST(TrackingAssociationControllerTest, OutOfGatePlotsKeepRetryingUntilThreeMiss
 
 TEST(TrackingAssociationControllerTest, NearestSuccessResetsMissesAndPreservesOtherIdsWithoutRegisteringExtraPlots)
 {
-    TargetController controller(TargetConfig(
-        AssociationConfig(1000_mps, 30_mps, 11.345),
-        MeasurementConfig(7_m),
-        TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)));
+    TargetController controller(
+        TargetConfig(
+            AssociationConfig(1000_mps, 30_mps, 11.345),
+            MeasurementConfig(7_m),
+            TrackingConfig(10_mps2, 0_mps2),
+            TrackManagementConfig(100ms, 1000ms, 3, 100)
+        )
+    );
     const auto firstConfirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 0ms, {1000_m}));
     ASSERT_TRUE(firstConfirmation);
-    ASSERT_TRUE(controller.handleDetection(result(BeamType::CONFIRMATION,
-        firstConfirmation->requestId, 100ms, {1000_m})));
+    ASSERT_TRUE(
+        controller.handleDetection(
+            result(
+                BeamType::CONFIRMATION,
+                firstConfirmation->requestId,
+                100ms,
+                {1000_m}
+            )
+        )
+    );
     const auto secondConfirmation = controller.handleDetection(result(BeamType::SEARCH, 2, 200ms, {2000_m}));
     ASSERT_TRUE(secondConfirmation);
-    ASSERT_TRUE(controller.handleDetection(result(BeamType::CONFIRMATION,
-        secondConfirmation->requestId, 300ms, {2000_m})));
+    ASSERT_TRUE(
+        controller.handleDetection(
+            result(
+                BeamType::CONFIRMATION,
+                secondConfirmation->requestId,
+                300ms,
+                {2000_m}
+            )
+        )
+    );
 
-    ASSERT_TRUE(controller.handleDetection(result(BeamType::TRACKING,
-        firstConfirmation->requestId, 1100ms, {5000_m})));
-    const auto recovered = controller.handleDetection(result(BeamType::TRACKING,
-        firstConfirmation->requestId, 2100ms, {1010_m, 1000_m, 2000_m, 3000_m}));
+    ASSERT_TRUE(
+        controller.handleDetection(
+            result(
+                BeamType::TRACKING,
+                firstConfirmation->requestId,
+                1100ms,
+                {5000_m}
+            )
+        )
+    );
+    const auto recovered = controller.handleDetection(
+        result(
+            BeamType::TRACKING,
+            firstConfirmation->requestId,
+            2100ms,
+            {1010_m, 1000_m, 2000_m, 3000_m}
+        )
+    );
     ASSERT_TRUE(recovered);
     EXPECT_EQ(recovered->requestId, firstConfirmation->requestId);
     const auto events = controller.nextTrackEvents();
@@ -564,12 +679,36 @@ TEST(TrackingAssociationControllerTest, NearestSuccessResetsMissesAndPreservesOt
     EXPECT_EQ(events[1].slantRange, 2000_m);
     EXPECT_EQ(events[1].timestamp, 300ms);
 
-    ASSERT_TRUE(controller.handleDetection(result(BeamType::TRACKING,
-        firstConfirmation->requestId, 3100ms, {})));
-    ASSERT_TRUE(controller.handleDetection(result(BeamType::TRACKING,
-        firstConfirmation->requestId, 4100ms, {})));
-    EXPECT_FALSE(controller.handleDetection(result(BeamType::TRACKING,
-        firstConfirmation->requestId, 5100ms, {})));
+    ASSERT_TRUE(
+        controller.handleDetection(
+            result(
+                BeamType::TRACKING,
+                firstConfirmation->requestId,
+                3100ms,
+                {}
+            )
+        )
+    );
+    ASSERT_TRUE(
+        controller.handleDetection(
+            result(
+                BeamType::TRACKING,
+                firstConfirmation->requestId,
+                4100ms,
+                {}
+            )
+        )
+    );
+    EXPECT_FALSE(
+        controller.handleDetection(
+            result(
+                BeamType::TRACKING,
+                firstConfirmation->requestId,
+                5100ms,
+                {}
+            )
+        )
+    );
     const auto remaining = controller.nextTrackEvents();
     ASSERT_EQ(remaining.size(), 1u);
     EXPECT_EQ(remaining[0].id, secondConfirmation->requestId);

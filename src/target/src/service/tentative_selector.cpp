@@ -23,10 +23,13 @@ std::optional<std::size_t> TentativeSelector::selectNewCandidate(
         bool associated = false;
         for (const auto& target : _trackRepository.targets())
         {
-            const auto score = std::visit([&](const auto& registeredTarget)
+            const auto score = std::visit(
+                [&](const auto& registeredTarget)
                 {
                     return _matcher.matchesPosition(observation, registeredTarget);
-                }, target);
+                },
+                target
+            );
             if (score)
             {
                 associated = true;

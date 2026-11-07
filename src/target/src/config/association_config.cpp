@@ -54,7 +54,8 @@ AssociationConfig AssociationConfig::Builder::build() const
     return AssociationConfig(
         *_maxAssociationSpeed,
         *_maxInitialDopplerDifference,
-        *_positionNdsThreshold);
+        *_positionNdsThreshold
+    );
 }
 
 } // namespace target

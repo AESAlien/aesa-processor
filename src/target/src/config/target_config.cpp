@@ -30,7 +30,8 @@ TargetConfig TargetConfig::Builder::build() const
         *_association,
         *_measurement,
         *_tracking,
-        *_trackManagement);
+        *_trackManagement
+    );
 }
 
 } // namespace target

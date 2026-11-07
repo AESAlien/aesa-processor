@@ -12,17 +12,26 @@ namespace
 
 std::uint32_t targetId(const RegisteredTarget& target)
 {
-    return std::visit([](const auto& value) { return value.id(); }, target);
+    return std::visit(
+        [](const auto& value)
+        {
+            return value.id();
+        },
+        target
+    );
 }
 
 template <typename Targets>
 auto findTarget(Targets& targets, std::uint32_t id)
 {
-    return std::find_if(targets.begin(), targets.end(),
+    return std::find_if(
+        targets.begin(),
+        targets.end(),
         [id](const RegisteredTarget& target)
         {
             return targetId(target) == id;
-        });
+        }
+    );
 }
 
 } // namespace

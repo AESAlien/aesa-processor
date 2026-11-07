@@ -93,8 +93,12 @@ struct DetectionEvent
             Plot build() const
             {
                 return Plot(
-                    _slantRange.value(), _azimuth.value(), _elevation.value(),
-                    _dopplerVelocity.value(), _power_db.value());
+                    _slantRange.value(),
+                    _azimuth.value(),
+                    _elevation.value(),
+                    _dopplerVelocity.value(),
+                    _power_db.value()
+                );
             }
 
         private:
@@ -148,7 +152,11 @@ struct DetectionEvent
         DetectionEvent build() const
         {
             return DetectionEvent(
-                _beamType.value(), _requestId.value(), _transmitTime.value(), _plots.value());
+                _beamType.value(),
+                _requestId.value(),
+                _transmitTime.value(),
+                _plots.value()
+            );
         }
 
     private:

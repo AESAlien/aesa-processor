@@ -12,9 +12,12 @@ namespace
 
 TEST(NdsAlgorithmTest, CalculatesSquaredDistanceWithCrossAxisCorrelations)
 {
-    const math::Vector residual{10.0, 10.0, 30.0};
-    const math::SquareMatrix covariance{
-        {100.0, 50.0, 0.0}, {50.0, 200.0, 0.0}, {0.0, 0.0, 300.0}};
+    const math::Vector residual({10.0, 10.0, 30.0});
+    const math::SquareMatrix covariance({
+        {100.0, 50.0, 0.0},
+        {50.0, 200.0, 0.0},
+        {0.0, 0.0, 300.0}
+    });
     const auto score = NdsAlgorithm::calculate(residual, covariance);
     ASSERT_TRUE(score);
     // The correlated x/y block contributes 8/7; z contributes 30^2/300.
@@ -29,7 +32,9 @@ TEST(NdsAlgorithmTest, CalculatesSquaredDistanceWithCrossAxisCorrelations)
 TEST(NdsAlgorithmTest, ReturnsScoresBeyondTheAssociationGate)
 {
     const auto score = NdsAlgorithm::calculate(
-        math::Vector{1000.0, 0.0, 0.0}, math::SquareMatrix::identity(3) * 98.0);
+        math::Vector({1000.0, 0.0, 0.0}),
+        math::SquareMatrix::identity(3) * 98.0
+    );
     ASSERT_TRUE(score);
     EXPECT_NEAR(*score, 1000000.0 / 98.0, 1e-9);
     EXPECT_GT(*score, 11.345);
@@ -42,13 +47,13 @@ TEST(NdsAlgorithmTest, OwnsAnIndependentFactorizationForRepeatedResiduals)
     ASSERT_TRUE(algorithm);
     covariance(0, 0) = 100.0;
 
-    const auto first = algorithm->calculate(math::Vector{10.0, 0.0, 0.0});
-    const auto second = algorithm->calculate(math::Vector{0.0, 20.0, 0.0});
+    const auto first = algorithm->calculate(math::Vector({10.0, 0.0, 0.0}));
+    const auto second = algorithm->calculate(math::Vector({0.0, 20.0, 0.0}));
     ASSERT_TRUE(first);
     ASSERT_TRUE(second);
     EXPECT_DOUBLE_EQ(*first, 25.0);
     EXPECT_DOUBLE_EQ(*second, 100.0);
-    const auto changed = NdsAlgorithm::calculate(math::Vector{10.0, 0.0, 0.0}, covariance);
+    const auto changed = NdsAlgorithm::calculate(math::Vector({10.0, 0.0, 0.0}), covariance);
     ASSERT_TRUE(changed);
     EXPECT_DOUBLE_EQ(*changed, 1.0);
     EXPECT_FALSE(algorithm->calculate(math::Vector(2)));
@@ -77,9 +82,10 @@ TEST(NdsAlgorithmTest, RejectsNonfiniteResidualsAndCovariance)
     const auto algorithm = NdsAlgorithm::from(math::SquareMatrix::identity(3));
     ASSERT_TRUE(algorithm);
     for (double invalid : {std::numeric_limits<double>::quiet_NaN(),
-             std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()})
+             std::numeric_limits<double>::infinity(),
+             -std::numeric_limits<double>::infinity()})
     {
-        const math::Vector residual{invalid, 0.0, 0.0};
+        const math::Vector residual({invalid, 0.0, 0.0});
         EXPECT_FALSE(algorithm->calculate(residual));
         EXPECT_FALSE(NdsAlgorithm::calculate(residual, math::SquareMatrix::identity(3)));
         auto covariance = math::SquareMatrix::identity(3);
@@ -106,10 +112,13 @@ TEST(NdsAlgorithmTest, RejectsSingularNegativeAndIndefiniteCovariance)
 
 TEST(NdsAlgorithmTest, RepairsOnlyAcceptedSymmetryRoundoffWithoutChangingTheInput)
 {
-    math::SquareMatrix covariance{
-        {2.0, 1.0 + 5e-10, 0.0}, {1.0, 2.0, 0.0}, {0.0, 0.0, 3.0}};
+    math::SquareMatrix covariance({
+        {2.0, 1.0 + 5e-10, 0.0},
+        {1.0, 2.0, 0.0},
+        {0.0, 0.0, 3.0}
+    });
     const auto original = covariance;
-    const auto score = NdsAlgorithm::calculate(math::Vector{1.0, 1.0, 0.0}, covariance);
+    const auto score = NdsAlgorithm::calculate(math::Vector({1.0, 1.0, 0.0}), covariance);
     ASSERT_TRUE(score);
     const double symmetricEntry = 1.0 + 0.5 * (covariance(0, 1) - 1.0);
     EXPECT_NEAR(*score, 2.0 / (2.0 + symmetricEntry), 1e-14);
@@ -125,12 +134,12 @@ TEST(NdsAlgorithmTest, PreservesTinyScoresAndRejectsUnrepresentableCalculations)
     const auto algorithm = NdsAlgorithm::from(math::SquareMatrix::identity(3));
     ASSERT_TRUE(algorithm);
     const double tiny = 1e-160;
-    const auto score = algorithm->calculate(math::Vector{tiny, 0.0, 0.0});
+    const auto score = algorithm->calculate(math::Vector({tiny, 0.0, 0.0}));
     ASSERT_TRUE(score);
     EXPECT_GT(*score, 0.0);
     EXPECT_DOUBLE_EQ(*score, tiny * tiny);
 
-    const math::Vector overflowing{std::numeric_limits<double>::max(), 0.0, 0.0};
+    const math::Vector overflowing({std::numeric_limits<double>::max(), 0.0, 0.0});
     EXPECT_FALSE(algorithm->calculate(overflowing));
     const auto tinyCovariance = NdsAlgorithm::from(math::SquareMatrix::identity(3) * 1e-300);
     ASSERT_TRUE(tinyCovariance);

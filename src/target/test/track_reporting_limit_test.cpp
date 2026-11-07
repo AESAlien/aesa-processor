@@ -100,11 +100,14 @@ void expire(TargetController& controller, std::uint32_t id, Time firstMiss)
 
 TEST(TrackReportingLimitTest, HandlesZeroNinetyNineOneHundredAndOneHundredOneTrackingTargets)
 {
-    TargetController controller(TargetConfig(
-        AssociationConfig(1000_mps, 30_mps, 11.345),
-        MeasurementConfig(7_m),
-        TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)));
+    TargetController controller(
+        TargetConfig(
+            AssociationConfig(1000_mps, 30_mps, 11.345),
+            MeasurementConfig(7_m),
+            TrackingConfig(10_mps2, 0_mps2),
+            TrackManagementConfig(100ms, 1000ms, 3, 100)
+        )
+    );
     addCandidates(controller, 103);
     // The first and last repository entries stay Tentative and never consume
     // a reporting slot. There are initially zero Tracking entries.
@@ -121,11 +124,14 @@ TEST(TrackReportingLimitTest, HandlesZeroNinetyNineOneHundredAndOneHundredOneTra
 
 TEST(TrackReportingLimitTest, UnreportedTargetCanUpdateAndExpireWithoutAffectingTheFirstHundred)
 {
-    TargetController controller(TargetConfig(
-        AssociationConfig(1000_mps, 30_mps, 11.345),
-        MeasurementConfig(7_m),
-        TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)));
+    TargetController controller(
+        TargetConfig(
+            AssociationConfig(1000_mps, 30_mps, 11.345),
+            MeasurementConfig(7_m),
+            TrackingConfig(10_mps2, 0_mps2),
+            TrackManagementConfig(100ms, 1000ms, 3, 100)
+        )
+    );
     addCandidates(controller, 101);
     confirm(controller, 1, 101);
     expectReportedIds(controller, 100, 1);
@@ -147,11 +153,14 @@ TEST(TrackReportingLimitTest, UnreportedTargetCanUpdateAndExpireWithoutAffecting
 
 TEST(TrackReportingLimitTest, RevealsTheNextStoredTrackingTargetWhenAReportedTargetExpires)
 {
-    TargetController controller(TargetConfig(
-        AssociationConfig(1000_mps, 30_mps, 11.345),
-        MeasurementConfig(7_m),
-        TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)));
+    TargetController controller(
+        TargetConfig(
+            AssociationConfig(1000_mps, 30_mps, 11.345),
+            MeasurementConfig(7_m),
+            TrackingConfig(10_mps2, 0_mps2),
+            TrackManagementConfig(100ms, 1000ms, 3, 100)
+        )
+    );
     addCandidates(controller, 101);
     confirm(controller, 1, 101);
     expectReportedIds(controller, 100, 1);
@@ -166,7 +175,8 @@ TEST(TrackReportingLimitTest, UsesInjectedLimitWithoutLimitingTentativeOrHiddenT
         AssociationConfig(1000_mps, 30_mps, 11.345),
         MeasurementConfig(7_m),
         TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 2));
+        TrackManagementConfig(100ms, 1000ms, 3, 2)
+    );
     TargetController controller(config);
     addCandidates(controller, 5);
     // ID 1 stays Tentative; IDs 2..5 all become Tracking despite the reporting limit.
@@ -186,23 +196,27 @@ TEST(TrackReportingLimitTest, UsesInjectedLimitWithoutLimitingTentativeOrHiddenT
 TEST(TrackReportingLimitTest, ValidatesConfiguredCountAgainstTheMessageMaximum)
 {
     EXPECT_EQ(TrackManagementConfig::MAXIMUM_REPORTED_TRACK_COUNT, 100u);
-    for (std::size_t count : {std::size_t{1}, std::size_t{100}})
+    for (std::size_t count : {std::size_t(1), std::size_t(100)})
     {
         const TargetConfig config(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, count));
+            TrackManagementConfig(100ms, 1000ms, 3, count)
+        );
         EXPECT_EQ(config.trackManagement.maxReportedTrackCount(), count);
     }
-    for (std::size_t count : {std::size_t{0}, std::size_t{101},
-             std::numeric_limits<std::size_t>::max()})
+    for (std::size_t count : {std::size_t(0), std::size_t(101), std::numeric_limits<std::size_t>::max()})
     {
-        EXPECT_THROW(TargetConfig(
-            AssociationConfig(1000_mps, 30_mps, 11.345),
-            MeasurementConfig(7_m),
-            TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, count)), std::invalid_argument);
+        EXPECT_THROW(
+            TargetConfig(
+                AssociationConfig(1000_mps, 30_mps, 11.345),
+                MeasurementConfig(7_m),
+                TrackingConfig(10_mps2, 0_mps2),
+                TrackManagementConfig(100ms, 1000ms, 3, count)
+            ),
+            std::invalid_argument
+        );
     }
 }
 

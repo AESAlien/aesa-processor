@@ -17,7 +17,7 @@ std::optional<NdsAlgorithm> NdsAlgorithm::from(
     const math::SquareMatrix& covariance
 ) {
     if (covariance.size() != DIMENSION ||
-        !covariance.isSymmetric(math::Tolerance{0.0, 1e-9}))
+        !covariance.isSymmetric(math::Tolerance(0.0, 1e-9)))
     {
         return std::nullopt;
     }
@@ -66,7 +66,7 @@ std::optional<double> NdsAlgorithm::calculate(const math::Vector& residual) cons
         // Solve L y = r: ||y||^2 = r^T S^-1 r. norm() preserves tiny components.
         const double norm = transformed.norm();
         const double score = norm * norm;
-        return std::isfinite(score) ? std::optional<double>{score} : std::nullopt;
+        return std::isfinite(score) ? std::optional<double>(score) : std::nullopt;
     }
     catch (const std::domain_error&)
     {

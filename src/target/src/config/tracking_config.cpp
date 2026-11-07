@@ -48,7 +48,8 @@ TrackingConfig TrackingConfig::Builder::build() const
 
     return TrackingConfig(
         *_initialAccelerationStandardDeviation,
-        *_processAccelerationStandardDeviation);
+        *_processAccelerationStandardDeviation
+    );
 }
 
 } // namespace target

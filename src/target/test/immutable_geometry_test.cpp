@@ -18,7 +18,7 @@ namespace
 {
 math::SphericalPosition position(math::Length range)
 {
-    return math::SphericalPosition{range, 0_deg, 0_deg};
+    return math::SphericalPosition(range, 0_deg, 0_deg);
 }
 } // namespace
 
@@ -28,13 +28,22 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     target::TrackRepository repository;
     const auto firstId = repository.add(
         target::TrackFactory(algorithm).from(
-            1, target::Observation(position(100_m), 1_mps, 1.0f, 0ms)));
+            1,
+            target::Observation(position(100_m), 1_mps, 1.0f, 0ms)
+        )
+    );
     const auto middleId = repository.add(
         target::TrackFactory(algorithm).from(
-            2, target::Observation(position(200_m), 1_mps, 1.0f, 0ms)));
+            2,
+            target::Observation(position(200_m), 1_mps, 1.0f, 0ms)
+        )
+    );
     const auto lastId = repository.add(
         target::TrackFactory(algorithm).from(
-            3, target::Observation(position(300_m), 1_mps, 1.0f, 0ms)));
+            3,
+            target::Observation(position(300_m), 1_mps, 1.0f, 0ms)
+        )
+    );
 
     auto confirmedLastTrack = target::TrackFactory::from(*repository.findTentative(lastId), target::Observation(position(301_m), 1_mps, 1.0f, 1000ms));
     ASSERT_TRUE(confirmedLastTrack);
@@ -49,8 +58,26 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     EXPECT_FALSE(repository.remove(0));
     ASSERT_TRUE(repository.remove(middleId));
     ASSERT_EQ(repository.targets().size(), 2u);
-    EXPECT_EQ(std::visit([](const auto& value) { return value.id(); }, repository.targets().front()), firstId);
-    EXPECT_EQ(std::visit([](const auto& value) { return value.id(); }, repository.targets().back()), lastId);
+    EXPECT_EQ(
+        std::visit(
+            [](const auto& value)
+            {
+                return value.id();
+            },
+            repository.targets().front()
+        ),
+        firstId
+    );
+    EXPECT_EQ(
+        std::visit(
+            [](const auto& value)
+            {
+                return value.id();
+            },
+            repository.targets().back()
+        ),
+        lastId
+    );
     EXPECT_EQ(repository.findTrack(middleId), nullptr);
     tracked = repository.findTrack(lastId);
     ASSERT_TRUE(tracked->trackingState());
@@ -69,19 +96,31 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
     using BeamType = beam::BeamType;
     for (double displacement : {0.0, 1.0})
     {
-        target::TargetController controller(target::TargetConfig(
-            target::AssociationConfig(1000_mps, 30_mps, 11.345),
-            target::MeasurementConfig(7_m),
-            target::TrackingConfig(10_mps2, 0_mps2),
-            target::TrackManagementConfig(100ms, 1000ms, 3, 100)));
-        const auto confirmation = controller.handleDetection(target::DetectionEvent(
-            BeamType::SEARCH, 1, 0ms, {{math::Distance(100_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, 1.0f}}));
+        target::TargetController controller(
+            target::TargetConfig(
+                target::AssociationConfig(1000_mps, 30_mps, 11.345),
+                target::MeasurementConfig(7_m),
+                target::TrackingConfig(10_mps2, 0_mps2),
+                target::TrackManagementConfig(100ms, 1000ms, 3, 100)
+            )
+        );
+        const auto confirmation = controller.handleDetection(
+            target::DetectionEvent(
+                BeamType::SEARCH,
+                1,
+                0ms,
+                {target::DetectionEvent::Plot(math::Distance(100_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, 1.0f)}
+            )
+        );
         ASSERT_TRUE(confirmation.has_value());
-        const auto tracking = controller.handleDetection(target::DetectionEvent(
-            BeamType::CONFIRMATION,
-            confirmation->requestId,
-            1000ms,
-            {{math::Distance::fromMeters(100.0 + displacement), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, 1.0f}}));
+        const auto tracking = controller.handleDetection(
+            target::DetectionEvent(
+                BeamType::CONFIRMATION,
+                confirmation->requestId,
+                1000ms,
+                {target::DetectionEvent::Plot(math::Distance::fromMeters(100.0 + displacement), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, 1.0f)}
+            )
+        );
         ASSERT_TRUE(tracking.has_value());
         const auto events = controller.nextTrackEvents();
         ASSERT_EQ(events.size(), 1u);
@@ -98,19 +137,32 @@ TEST(ImmutableGeometryTest, ReportsNormalizedWestboundHeadingAndSignedFlightPath
     using BeamType = beam::BeamType;
     for (const auto verticalDisplacement : {-1_m, 1_m})
     {
-        target::TargetController controller(target::TargetConfig(
-            target::AssociationConfig(1000_mps, 30_mps, 11.345),
-            target::MeasurementConfig(7_m),
-            target::TrackingConfig(10_mps2, 0_mps2),
-            target::TrackManagementConfig(100ms, 1000ms, 3, 100)));
-        const auto confirmation = controller.handleDetection(target::DetectionEvent(
-            BeamType::SEARCH, 1, 0ms,
-            {{math::Distance(100_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, 1.0f}}));
+        target::TargetController controller(
+            target::TargetConfig(
+                target::AssociationConfig(1000_mps, 30_mps, 11.345),
+                target::MeasurementConfig(7_m),
+                target::TrackingConfig(10_mps2, 0_mps2),
+                target::TrackManagementConfig(100ms, 1000ms, 3, 100)
+            )
+        );
+        const auto confirmation = controller.handleDetection(
+            target::DetectionEvent(
+                BeamType::SEARCH,
+                1,
+                0ms,
+                {target::DetectionEvent::Plot(math::Distance(100_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, 1.0f)}
+            )
+        );
         ASSERT_TRUE(confirmation.has_value());
         const auto observation = math::CartesianPosition(-1_m, 100_m, verticalDisplacement).toSpherical();
-        const auto tracking = controller.handleDetection(target::DetectionEvent(
-            BeamType::CONFIRMATION, confirmation->requestId, 1000ms,
-            {{observation.radius, observation.direction.azimuth, observation.direction.elevation, 0_mps, 1.0f}}));
+        const auto tracking = controller.handleDetection(
+            target::DetectionEvent(
+                BeamType::CONFIRMATION,
+                confirmation->requestId,
+                1000ms,
+                {target::DetectionEvent::Plot(observation.radius, observation.direction.azimuth, observation.direction.elevation, 0_mps, 1.0f)}
+            )
+        );
         ASSERT_TRUE(tracking.has_value());
 
         const auto events = controller.nextTrackEvents();
