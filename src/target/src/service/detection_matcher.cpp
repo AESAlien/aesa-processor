@@ -134,7 +134,7 @@ std::optional<double> DetectionMatcher::matchesPosition(
 
 std::optional<double> DetectionMatcher::matchesPosition(
     const Observation& observation,
-    const Track& other
+    const ConfirmedTrack& other
 ) const {
     const auto time = observation.lastObservationTime();
     const auto referenceTime = other.lastObservationTime();
@@ -160,10 +160,10 @@ std::optional<double> DetectionMatcher::matchesPosition(
     }
 
     auto covariance = _measurementDifferenceCovariance;
-    if (other.trackingState()->errorCovariance())
+    if (other.state()->errorCovariance())
     {
         math::SquareMatrix positionCovariance(POSITION_DIMENSION);
-        const auto& stateCovariance = *other.trackingState()->errorCovariance();
+        const auto& stateCovariance = *other.state()->errorCovariance();
         for (std::size_t row = 0; row < POSITION_DIMENSION; ++row)
         {
             for (std::size_t column = 0; column < POSITION_DIMENSION; ++column)
@@ -213,14 +213,14 @@ std::optional<double> DetectionMatcher::matchesConfirmation(
 
 std::optional<double> DetectionMatcher::matchesTracking(
     const Observation& observation,
-    const Track& tracking
+    const ConfirmedTrack& tracking
 ) const {
     const auto association = prepareTracking(tracking, observation.lastObservationTime());
     return association ? association->matches(observation) : std::nullopt;
 }
 
 std::optional<TrackingAssociation> DetectionMatcher::prepareTracking(
-    const Track& tracking,
+    const ConfirmedTrack& tracking,
     std::chrono::milliseconds time
 ) const {
     if (time <= tracking.lastResultTime())

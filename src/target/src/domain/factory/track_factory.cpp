@@ -5,7 +5,6 @@
 
 namespace target
 {
-
 TrackFactory::TrackFactory(
     std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm
 ) : _trackingAlgorithm(std::move(trackingAlgorithm))
@@ -21,20 +20,11 @@ TentativeTrack TrackFactory::from(std::uint32_t id, Observation observation) con
     return TentativeTrack(id, std::move(observation), _trackingAlgorithm);
 }
 
-std::optional<Track> TrackFactory::from(
+std::optional<ConfirmedTrack> TrackFactory::from(
     const TentativeTrack& tentative,
     const Observation& observation
 ) {
     return tentative.confirm(observation);
-}
-
-Track TrackFactory::from(
-    std::uint32_t id,
-    std::chrono::milliseconds initialTime,
-    TargetTrackingState state,
-    std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm
-) {
-    return Track(id, initialTime, std::move(state), std::move(trackingAlgorithm));
 }
 
 } // namespace target

@@ -17,7 +17,7 @@ namespace target
 
 class Observation;
 class TentativeTrack;
-class Track;
+class ConfirmedTrack;
 
 // Owns one prediction and factorization for a single observation batch.
 class TrackingAssociation
@@ -51,16 +51,16 @@ public:
     // Tracking scores use predicted position covariance + measurement covariance.
     // Older searches use the stored position covariance with the motion allowance.
     std::optional<double> matchesPosition(const Observation& observation, const TentativeTrack& other) const;
-    std::optional<double> matchesPosition(const Observation& observation, const Track& other) const;
+    std::optional<double> matchesPosition(const Observation& observation, const ConfirmedTrack& other) const;
     // Return an NDS rank after the speed/Doppler checks; nullopt means ineligible.
     // Confirmation ranking has no additional NDS threshold.
     std::optional<double> matchesConfirmation(const Observation& observation, const TentativeTrack& tentative) const;
     // Return an NDS score inside the position gate around the prediction at observation time.
     // Algorithms without predicted covariance retain the legacy two-measurement approximation.
-    std::optional<double> matchesTracking(const Observation& observation, const Track& tracking) const;
+    std::optional<double> matchesTracking(const Observation& observation, const ConfirmedTrack& tracking) const;
     // Reuse only within one batch, before the track changes; retains no track reference.
     std::optional<TrackingAssociation> prepareTracking(
-        const Track& tracking,
+        const ConfirmedTrack& tracking,
         std::chrono::milliseconds time
     ) const;
 

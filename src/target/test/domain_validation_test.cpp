@@ -42,12 +42,12 @@ static_assert(std::is_constructible_v<TargetController, const TargetConfig&>);
 static_assert(std::is_copy_constructible_v<TargetController>);
 static_assert(std::is_copy_assignable_v<TargetController>);
 static_assert(std::is_copy_assignable_v<TargetPrediction>);
-static_assert(std::is_copy_assignable_v<TargetTrackingState>);
+static_assert(std::is_copy_assignable_v<TrackState>);
 static_assert(
-    std::is_same_v<decltype(std::declval<const Track&>().sphericalPosition()), const math::SphericalPosition&>
+    std::is_same_v<decltype(std::declval<const ConfirmedTrack&>().sphericalPosition()), const math::SphericalPosition&>
 );
 static_assert(
-    std::is_same_v<decltype(std::declval<const Track&>().trackingState()), const std::shared_ptr<const TargetTrackingState>&>
+    std::is_same_v<decltype(std::declval<const ConfirmedTrack&>().state()), const std::shared_ptr<const TrackState>&>
 );
 
 math::SphericalPosition position(math::Length range = 1000_m)
@@ -63,9 +63,9 @@ Observation observation(
     return Observation(position(range), doppler, -10.0f, time);
 }
 
-TargetTrackingState state(Time time = 100ms, float power = -10.0f)
+TrackState state(Time time = 100ms, float power = -10.0f)
 {
-    return TargetTrackingState(
+    return TrackState(
         position(),
         0_mps,
         power,
@@ -96,18 +96,18 @@ public:
         NO_RESULT
     };
 
-    std::optional<TargetTrackingState> initialize(const Observation& first, const Observation& second) const override
+    std::optional<TrackState> initialize(const Observation& first, const Observation& second) const override
     {
         ++_initializationCount;
         return alter(_algorithm.initialize(first, second));
     }
 
-    std::optional<TargetTrackingState> update(const Track& current, const Observation& incoming) const override
+    std::optional<TrackState> update(const ConfirmedTrack& current, const Observation& incoming) const override
     {
         return alter(_algorithm.update(current, incoming));
     }
 
-    std::optional<TargetPrediction> predict(const Track& current, Time time) const override
+    std::optional<TargetPrediction> predict(const ConfirmedTrack& current, Time time) const override
     {
         if (fault == Fault::NO_RESULT)
         {
@@ -132,7 +132,7 @@ public:
     }
 
 private:
-    std::optional<TargetTrackingState> alter(std::optional<TargetTrackingState> calculated) const
+    std::optional<TrackState> alter(std::optional<TrackState> calculated) const
     {
         if (fault == Fault::NO_RESULT)
         {
@@ -192,7 +192,7 @@ TEST(DomainValidationTest, PredictionAndTrackingStateValidateTheirOwnConstructio
     EXPECT_THROW(state(-1ms), std::invalid_argument);
     EXPECT_THROW(state(100ms, std::numeric_limits<float>::quiet_NaN()), std::invalid_argument);
     EXPECT_THROW(
-        (TargetTrackingState(
+        (TrackState(
             position(0_m),
             0_mps,
             0.0f,
@@ -204,7 +204,7 @@ TEST(DomainValidationTest, PredictionAndTrackingStateValidateTheirOwnConstructio
     );
     const auto maximum = math::LinearVelocity::fromMetersPerSecond(std::numeric_limits<double>::max());
     EXPECT_THROW(
-        (TargetTrackingState(
+        (TrackState(
             position(),
             0_mps,
             0.0f,
@@ -218,11 +218,39 @@ TEST(DomainValidationTest, PredictionAndTrackingStateValidateTheirOwnConstructio
     EXPECT_NO_THROW(TargetPrediction(0ms, position()));
 }
 
+TEST(ConfirmedTrackTest, RejectsInvalidIdentityAndTrackingAlgorithm)
+{
+    const auto algorithm = std::make_shared<ConstantVelocityAlgorithm>();
+    EXPECT_THROW(ConfirmedTrack(0, 0ms, state(), algorithm), std::invalid_argument);
+    EXPECT_THROW(ConfirmedTrack(1, 0ms, state(), nullptr), std::invalid_argument);
+}
+
+TEST(ConfirmedTrackTest, RequiresStateTimeAfterNonnegativeInitialTime)
+{
+    const auto algorithm = std::make_shared<ConstantVelocityAlgorithm>();
+    EXPECT_THROW(ConfirmedTrack(1, -1ms, state(), algorithm), std::invalid_argument);
+    EXPECT_THROW(ConfirmedTrack(1, 100ms, state(), algorithm), std::invalid_argument);
+    EXPECT_THROW(ConfirmedTrack(1, 101ms, state(), algorithm), std::invalid_argument);
+}
+
+TEST(ConfirmedTrackTest, OwnsValidatedStateWithoutFactoryAccess)
+{
+    const auto algorithm = std::make_shared<ConstantVelocityAlgorithm>();
+    const ConfirmedTrack track(7, 0ms, state(), algorithm);
+    EXPECT_EQ(track.id(), 7u);
+    EXPECT_EQ(track.initialTime(), 0ms);
+    EXPECT_EQ(track.lastObservationTime(), 100ms);
+    EXPECT_EQ(track.lastResultTime(), 100ms);
+    EXPECT_EQ(track.consecutiveMissCount(), 0u);
+    EXPECT_EQ(track.slantRange(), 1000_m);
+    ASSERT_TRUE(track.state());
+}
+
 TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingTheFirstObservation)
 {
     const auto algorithm = std::make_shared<FaultAlgorithm>();
     const TrackFactory factory(algorithm);
-    const auto tentative = factory.from(7, observation(100ms));
+    const auto tentative = factory.from(1, observation(100ms));
     EXPECT_FALSE(tentative.initialize(observation(0ms)));
     EXPECT_FALSE(tentative.initialize(observation(100ms)));
     EXPECT_EQ(algorithm->initializationCount(), 0u);
@@ -236,7 +264,7 @@ TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingThe
     const auto track = TrackFactory::from(tentative, observation(200ms, 1010_m));
     ASSERT_TRUE(track);
     EXPECT_EQ(algorithm->initializationCount(), 2u);
-    EXPECT_EQ(track->id(), 7u);
+    EXPECT_EQ(track->id(), tentative.id());
     EXPECT_EQ(track->initialTime(), 100ms);
     EXPECT_EQ(track->lastObservationTime(), 200ms);
 
@@ -245,7 +273,7 @@ TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingThe
     EXPECT_EQ(algorithm->initializationCount(), 3u);
     EXPECT_EQ(confirmed->initialTime(), 100ms);
     EXPECT_EQ(confirmed->lastObservationTime(), 300ms);
-    EXPECT_EQ(tentative.id(), 7u);
+    EXPECT_EQ(tentative.id(), 1u);
     EXPECT_EQ(tentative.lastResultTime(), 100ms);
     EXPECT_EQ(tentative.observation().slantRange(), 1000_m);
 }
@@ -253,7 +281,7 @@ TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingThe
 TEST(TentativeTrackTest, InitializationFailuresPreserveTheSourceAndAllowRetry)
 {
     const auto algorithm = std::make_shared<FaultAlgorithm>();
-    const auto tentative = TrackFactory(algorithm).from(7, observation(0ms));
+    const auto tentative = TrackFactory(algorithm).from(1, observation(0ms));
     algorithm->fault = FaultAlgorithm::Fault::NO_RESULT;
     EXPECT_FALSE(tentative.initialize(observation(100ms)));
     EXPECT_EQ(algorithm->initializationCount(), 1u);
@@ -264,7 +292,7 @@ TEST(TentativeTrackTest, InitializationFailuresPreserveTheSourceAndAllowRetry)
         algorithm->fault = fault;
         EXPECT_THROW(tentative.initialize(observation(100ms)), std::invalid_argument);
         EXPECT_EQ(algorithm->initializationCount(), ++expectedCalls);
-        EXPECT_EQ(tentative.id(), 7u);
+        EXPECT_EQ(tentative.id(), 1u);
         EXPECT_EQ(tentative.lastResultTime(), 0ms);
         EXPECT_EQ(tentative.observation().slantRange(), 1000_m);
     }
@@ -280,7 +308,7 @@ TEST(DomainValidationTest, RejectedInitializationPreservesTentativeAndCanBeRetri
     TrackRepository repository;
     const auto id = repository.add(
         TrackFactory(algorithm).from(
-            1,
+            repository.nextId(),
             observation(0ms, 1000_m, 0_mps)
         )
     );
@@ -304,14 +332,14 @@ TEST(TrackFactoryTest, RejectedCreationPreservesTentativeForRetry)
 {
     const auto algorithm = std::make_shared<FaultAlgorithm>();
     const TrackFactory factory(algorithm);
-    const auto tentative = factory.from(7, observation(0ms));
+    const auto tentative = factory.from(1, observation(0ms));
 
     for (auto fault : {FaultAlgorithm::Fault::INVALID_STATE, FaultAlgorithm::Fault::WRONG_TIME})
     {
         algorithm->fault = fault;
         EXPECT_FALSE(TrackFactory::from(tentative, observation(0ms)));
         EXPECT_THROW(TrackFactory::from(tentative, observation(100ms)), std::invalid_argument);
-        EXPECT_EQ(tentative.id(), 7u);
+        EXPECT_EQ(tentative.id(), 1u);
         EXPECT_EQ(tentative.lastResultTime(), 0ms);
         EXPECT_EQ(tentative.observation().slantRange(), 1000_m);
     }
@@ -333,7 +361,7 @@ TEST(DomainValidationTest, RejectedUpdatePreservesStateAndMissHistory)
     TrackRepository repository;
     const auto id = repository.add(
         TrackFactory(algorithm).from(
-            1,
+            repository.nextId(),
             observation(0ms, 1000_m, 0_mps)
         )
     );
@@ -342,12 +370,12 @@ TEST(DomainValidationTest, RejectedUpdatePreservesStateAndMissHistory)
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
     auto& target = *repository.findTrack(id);
     ASSERT_TRUE(target.recordTrackingMiss(1100ms));
-    const auto* saved = target.trackingState().get();
+    const auto* saved = target.state().get();
     for (auto fault : {FaultAlgorithm::Fault::INVALID_STATE, FaultAlgorithm::Fault::WRONG_TIME})
     {
         algorithm->fault = fault;
         EXPECT_THROW(target.update(observation(2100ms)), std::invalid_argument);
-        EXPECT_EQ(target.trackingState().get(), saved);
+        EXPECT_EQ(target.state().get(), saved);
         EXPECT_EQ(target.lastObservationTime(), 100ms);
         EXPECT_EQ(target.lastResultTime(), 1100ms);
         EXPECT_EQ(target.consecutiveMissCount(), 1u);
@@ -365,7 +393,7 @@ TEST(DomainValidationTest, PredictionContractErrorsThrowAndComputationFailuresRe
     TrackRepository repository;
     const auto id = repository.add(
         TrackFactory(algorithm).from(
-            1,
+            repository.nextId(),
             observation(0ms, 1000_m, 0_mps)
         )
     );
@@ -453,7 +481,7 @@ TEST(TargetConfigTest, MatcherUsesInjectedSpeedDopplerNoiseAndGate)
 {
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).from(1, observation())
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).from(repository.nextId(), observation())
     );
     const auto& tentative = *repository.findTentative(id);
     const AssociationConfig association(1000_mps, 30_mps, 11.345);

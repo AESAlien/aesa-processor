@@ -41,12 +41,12 @@ private:
     void validate() const;
 };
 
-class TargetTrackingState
+class TrackState
 {
 public:
     static constexpr std::size_t STATE_DIMENSION = 9;
 
-    TargetTrackingState(
+    TrackState(
         math::SphericalPosition sphericalPosition,
         math::LinearVelocity dopplerVelocity,
         float power_db,

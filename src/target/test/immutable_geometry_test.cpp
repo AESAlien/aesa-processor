@@ -25,22 +25,23 @@ math::SphericalPosition position(math::Length range)
 TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
 {
     const auto algorithm = std::make_shared<target::ConstantVelocityAlgorithm>();
+    target::TrackFactory factory(algorithm);
     target::TrackRepository repository;
     const auto firstId = repository.add(
-        target::TrackFactory(algorithm).from(
-            1,
+        factory.from(
+            repository.nextId(),
             target::Observation(position(100_m), 1_mps, 1.0f, 0ms)
         )
     );
     const auto middleId = repository.add(
-        target::TrackFactory(algorithm).from(
-            2,
+        factory.from(
+            repository.nextId(),
             target::Observation(position(200_m), 1_mps, 1.0f, 0ms)
         )
     );
     const auto lastId = repository.add(
-        target::TrackFactory(algorithm).from(
-            3,
+        factory.from(
+            repository.nextId(),
             target::Observation(position(300_m), 1_mps, 1.0f, 0ms)
         )
     );
@@ -50,10 +51,10 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     ASSERT_TRUE(repository.replace(std::move(confirmedLastTrack).value()));
     auto* tracked = repository.findTrack(lastId);
     ASSERT_TRUE(tracked->update(target::Observation(position(302_m), 1_mps, 1.0f, 2000ms)));
-    EXPECT_EQ(tracked->trackingState()->position().x, 0_m);
-    EXPECT_EQ(tracked->trackingState()->position().y, 302_m);
-    EXPECT_EQ(tracked->trackingState()->velocity().x, 0_mps);
-    EXPECT_EQ(tracked->trackingState()->velocity().y, 1_mps);
+    EXPECT_EQ(tracked->state()->position().x, 0_m);
+    EXPECT_EQ(tracked->state()->position().y, 302_m);
+    EXPECT_EQ(tracked->state()->velocity().x, 0_mps);
+    EXPECT_EQ(tracked->state()->velocity().y, 1_mps);
 
     EXPECT_FALSE(repository.remove(0));
     ASSERT_TRUE(repository.remove(middleId));
@@ -80,10 +81,10 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     );
     EXPECT_EQ(repository.findTrack(middleId), nullptr);
     tracked = repository.findTrack(lastId);
-    ASSERT_TRUE(tracked->trackingState());
-    EXPECT_EQ(tracked->trackingState()->position().y, 302_m);
+    ASSERT_TRUE(tracked->state());
+    EXPECT_EQ(tracked->state()->position().y, 302_m);
     ASSERT_TRUE(tracked->update(target::Observation(position(303_m), 1_mps, 1.0f, 3000ms)));
-    EXPECT_EQ(tracked->trackingState()->position().y, 303_m);
+    EXPECT_EQ(tracked->state()->position().y, 303_m);
 
     EXPECT_TRUE(repository.remove(firstId));
     EXPECT_TRUE(repository.remove(lastId));

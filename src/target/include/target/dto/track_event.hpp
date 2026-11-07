@@ -15,10 +15,10 @@ namespace target
 
 struct TrackEvent
 {
-    enum class TrackState;
+    enum class TrackStatus;
 
     uint16_t id;
-    TrackState state;
+    TrackStatus state;
     math::Distance slantRange;
     math::Distance groundRange;
     math::CircularAngle azimuth;
@@ -33,7 +33,7 @@ struct TrackEvent
     // Elapsed time since the shared start at 0 ms.
     std::chrono::milliseconds timestamp;
 
-    enum class TrackState
+    enum class TrackStatus
     {
         INIT = 1,
         TRACKING = 2
@@ -41,7 +41,7 @@ struct TrackEvent
 
     TrackEvent(
         uint16_t id,
-        TrackState state,
+        TrackStatus state,
         math::Distance slantRange,
         math::Distance groundRange,
         math::CircularAngle azimuth,
@@ -80,7 +80,7 @@ struct TrackEvent
             return *this;
         }
 
-        Builder& state(TrackState value)
+        Builder& state(TrackStatus value)
         {
             _state = value;
             return *this;
@@ -210,7 +210,7 @@ struct TrackEvent
 
     private:
         std::optional<uint16_t> _id;
-        std::optional<TrackState> _state;
+        std::optional<TrackStatus> _state;
         std::optional<math::Distance> _slantRange;
         std::optional<math::Distance> _groundRange;
         std::optional<math::CircularAngle> _azimuth;

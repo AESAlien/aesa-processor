@@ -1,6 +1,6 @@
 #include "constant_velocity_algorithm.hpp"
 
-#include "domain/track.hpp"
+#include "domain/confirmed_track.hpp"
 
 #include <math/geometry/cartesian_displacement.hpp>
 #include <math/geometry/cartesian_position.hpp>
@@ -25,7 +25,7 @@ double elapsedSeconds(
     return std::chrono::duration<double>(current - previous).count();
 }
 
-std::optional<TargetTrackingState> estimateTrackingState(
+std::optional<TrackState> estimateTrackingState(
     const math::CartesianPosition& previousPosition,
     std::chrono::milliseconds previousTime,
     const Observation& observation
@@ -34,7 +34,7 @@ std::optional<TargetTrackingState> estimateTrackingState(
     const auto position = observation.sphericalPosition().toCartesian();
     const auto velocity = (position - previousPosition).toVelocity(std::chrono::duration<double>(elapsedSeconds(previousTime, time)));
     // The temporary CV strategy leaves acceleration zero and covariance unestimated.
-    return TargetTrackingState(
+    return TrackState(
         observation.sphericalPosition(),
         observation.dopplerVelocity(),
         observation.power_db(),
@@ -46,7 +46,7 @@ std::optional<TargetTrackingState> estimateTrackingState(
 
 } // namespace
 
-std::optional<TargetTrackingState> ConstantVelocityAlgorithm::initialize(
+std::optional<TrackState> ConstantVelocityAlgorithm::initialize(
     const Observation& first,
     const Observation& second
 ) const {
@@ -60,11 +60,11 @@ std::optional<TargetTrackingState> ConstantVelocityAlgorithm::initialize(
     return estimateTrackingState(first.sphericalPosition().toCartesian(), firstTime, second);
 }
 
-std::optional<TargetTrackingState> ConstantVelocityAlgorithm::update(
-    const Track& current,
+std::optional<TrackState> ConstantVelocityAlgorithm::update(
+    const ConfirmedTrack& current,
     const Observation& observation
 ) const {
-    const auto& currentState = current.trackingState();
+    const auto& currentState = current.state();
     const auto time = observation.lastObservationTime();
     if (time <= currentState->timestamp())
     {
@@ -75,10 +75,10 @@ std::optional<TargetTrackingState> ConstantVelocityAlgorithm::update(
 }
 
 std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
-    const Track& current,
+    const ConfirmedTrack& current,
     std::chrono::milliseconds time
 ) const {
-    const auto& currentState = current.trackingState();
+    const auto& currentState = current.state();
     if (!currentState || time < currentState->timestamp())
     {
         return std::nullopt;

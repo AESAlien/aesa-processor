@@ -73,7 +73,7 @@ void expectReportedIds(
     {
         const auto id = static_cast<std::uint16_t>(static_cast<std::size_t>(first) + index);
         EXPECT_EQ(events[index].id, id);
-        EXPECT_EQ(events[index].state, TrackEvent::TrackState::TRACKING);
+        EXPECT_EQ(events[index].state, TrackEvent::TrackStatus::TRACKING);
         EXPECT_EQ(events[index].timestamp, 100ms);
         EXPECT_NEAR(events[index].slantRange.m(), range(id).m(), 1e-9);
     }

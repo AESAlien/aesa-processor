@@ -61,7 +61,7 @@ std::optional<std::size_t> TrackSelector::selectObservation(
 }
 
 std::optional<std::size_t> TrackSelector::selectObservation(
-    const Track& track,
+    const ConfirmedTrack& track,
     std::chrono::milliseconds resultTime,
     const std::vector<Observation>& observations
 ) const {
@@ -72,7 +72,7 @@ std::optional<std::size_t> TrackSelector::selectObservation(
         &track,
         resultTime,
         observations,
-        [&](const Observation& observation, const Track& current)
+        [&](const Observation& observation, const ConfirmedTrack& current)
         {
             if (!prepared)
             {
