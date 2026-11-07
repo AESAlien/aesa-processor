@@ -41,8 +41,7 @@ EncodeResult failed(EncodingError error)
 protocol::ST_MsgHeader makeHeader(
     protocol::MessageId messageId,
     std::size_t blockSize
-)
-{
+) {
     protocol::ST_MsgHeader header{};
     header.message_Id = static_cast<uint16_t>(messageId);
     header.block_size = static_cast<uint32_t>(blockSize);
@@ -65,7 +64,8 @@ float convertFloat(double value)
         value > MAXIMUM_FLOAT)
     {
         throw std::out_of_range(
-            "Value cannot be represented as protocol float");
+            "Value cannot be represented as protocol float"
+        );
     }
 
     return static_cast<float>(value);
@@ -74,15 +74,15 @@ float convertFloat(double value)
 // Converts a DTO timestamp to the protocol uint32 representation.
 uint32_t convertTimestamp(
     std::chrono::milliseconds timestamp
-)
-{
+) {
     const std::chrono::milliseconds::rep count = timestamp.count();
     if (count < 0 ||
         static_cast<uint64_t>(count) >
             std::numeric_limits<uint32_t>::max())
     {
         throw std::out_of_range(
-            "Timestamp cannot be represented as protocol uint32");
+            "Timestamp cannot be represented as protocol uint32"
+        );
     }
 
     return static_cast<uint32_t>(count);
@@ -90,8 +90,7 @@ uint32_t convertTimestamp(
 
 protocol::ST_BeamTx encodeBeam(
     const beam::TransmitBeamCommand& command
-)
-{
+) {
     protocol::ST_BeamTx encodedBeam{};
     encodedBeam.beamType =      static_cast<uint8_t>(command.beamType);
     encodedBeam.beamID =        command.beamId;
@@ -107,8 +106,7 @@ protocol::ST_BeamTx encodeBeam(
 
 protocol::ST_Trk encodeTrack(
     const target::TrackEvent& event
-)
-{
+) {
     protocol::ST_Trk encodedTrack{};
     encodedTrack.ID =           event.id;
     encodedTrack.type =         static_cast<uint8_t>(event.state);
@@ -134,7 +132,8 @@ std::vector<uint8_t> toBytes(const Message& message)
 {
     static_assert(
         std::is_trivially_copyable<Message>::value,
-        "Protocol messages must be trivially copyable");
+        "Protocol messages must be trivially copyable"
+    );
 
     std::vector<uint8_t> bytes(sizeof(message));
     std::memcpy(bytes.data(), &message, sizeof(message));
@@ -145,16 +144,16 @@ std::vector<uint8_t> toBytes(const Message& message)
 
 EncodeResult encodeBeamCommand(
     const beam::TransmitBeamCommand& command
-)
-{
+) {
     try
     {
         const protocol::ST_BeamTx encodedBeam = encodeBeam(command);
 
         protocol::ST_BeamTxMsg message{};
         message.msgHeader = makeHeader(
-            protocol::MessageId::BeamTransmit,
-            sizeof(message));
+            protocol::MessageId::BEAM_TRANSMIT,
+            sizeof(message)
+        );
         message.beam_cmd = encodedBeam;
 
         return encoded(toBytes(message));
@@ -167,8 +166,7 @@ EncodeResult encodeBeamCommand(
 
 EncodeResult encodeTrackEvents(
     const std::vector<target::TrackEvent>& trackEvents
-)
-{
+) {
     if (trackEvents.size() > MAXIMUM_TRACK_COUNT)
     {
         return failed(EncodingError::TOO_MANY_TRACKS);
@@ -191,8 +189,9 @@ EncodeResult encodeTrackEvents(
     const std::size_t blockSize =
         TRACK_DATA_OFFSET + encodedTracks.size() * sizeof(protocol::ST_Trk);
     const protocol::ST_MsgHeader header = makeHeader(
-        protocol::MessageId::TrackInformation,
-        blockSize);
+        protocol::MessageId::TRACK_INFORMATION,
+        blockSize
+    );
 
     protocol::ST_TrkHeader trackHeader{};
     trackHeader.number = static_cast<uint16_t>(encodedTracks.size());
@@ -206,7 +205,8 @@ EncodeResult encodeTrackEvents(
     std::memcpy(
         bytes.data() + offset,
         &trackHeader,
-        sizeof(trackHeader));
+        sizeof(trackHeader)
+    );
     offset += sizeof(trackHeader);
 
     if (!encodedTracks.empty())
@@ -214,7 +214,8 @@ EncodeResult encodeTrackEvents(
         std::memcpy(
             bytes.data() + offset,
             encodedTracks.data(),
-            encodedTracks.size() * sizeof(protocol::ST_Trk));
+            encodedTracks.size() * sizeof(protocol::ST_Trk)
+        );
     }
 
     return encoded(std::move(bytes));
