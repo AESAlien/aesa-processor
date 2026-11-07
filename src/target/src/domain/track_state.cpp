@@ -1,4 +1,4 @@
-#include "tracking_state.hpp"
+#include "track_state.hpp"
 
 #include <cmath>
 #include <stdexcept>
@@ -81,7 +81,7 @@ void TargetPrediction::validate() const
     }
 }
 
-TargetTrackingState::TargetTrackingState(
+TrackState::TrackState(
     math::SphericalPosition sphericalPosition,
     math::LinearVelocity dopplerVelocity,
     float power_db,
@@ -102,47 +102,47 @@ TargetTrackingState::TargetTrackingState(
     validate();
 }
 
-const math::SphericalPosition& TargetTrackingState::sphericalPosition() const noexcept
+const math::SphericalPosition& TrackState::sphericalPosition() const noexcept
 {
     return _sphericalPosition;
 }
 
-const math::LinearVelocity& TargetTrackingState::dopplerVelocity() const noexcept
+const math::LinearVelocity& TrackState::dopplerVelocity() const noexcept
 {
     return _dopplerVelocity;
 }
 
-float TargetTrackingState::power_db() const noexcept
+float TrackState::power_db() const noexcept
 {
     return _power_db;
 }
 
-std::chrono::milliseconds TargetTrackingState::timestamp() const noexcept
+std::chrono::milliseconds TrackState::timestamp() const noexcept
 {
     return _timestamp;
 }
 
-const math::CartesianPosition& TargetTrackingState::position() const noexcept
+const math::CartesianPosition& TrackState::position() const noexcept
 {
     return _position;
 }
 
-const math::CartesianVelocity& TargetTrackingState::velocity() const noexcept
+const math::CartesianVelocity& TrackState::velocity() const noexcept
 {
     return _velocity;
 }
 
-const math::CartesianAcceleration& TargetTrackingState::acceleration() const noexcept
+const math::CartesianAcceleration& TrackState::acceleration() const noexcept
 {
     return _acceleration;
 }
 
-const std::optional<math::SquareMatrix>& TargetTrackingState::errorCovariance() const noexcept
+const std::optional<math::SquareMatrix>& TrackState::errorCovariance() const noexcept
 {
     return _errorCovariance;
 }
 
-void TargetTrackingState::validate() const
+void TrackState::validate() const
 {
     if (_timestamp.count() < 0 ||
         !_sphericalPosition.radius.greaterThan(

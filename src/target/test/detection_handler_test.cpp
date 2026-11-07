@@ -185,21 +185,24 @@ TEST_F(DetectionHandlerTest, EmptySearchesAdvanceHistoryWithoutConsumingIdentity
     EXPECT_EQ(third->requestId, 3u);
 }
 
-TEST_F(DetectionHandlerTest, RegistrationFailurePreservesIdentityAndSearchHistoryForRetry)
+TEST_F(DetectionHandlerTest, PreexistingTargetsDoNotCollideWithNewRegistrations)
 {
     const Observation existing(math::SphericalPosition(9000_m, 0_deg, 0_deg), 0_mps, -10.0f, 0ms);
-    ASSERT_EQ(_repository.add(_factory.from(1, existing)), 1u);
+    ASSERT_EQ(_repository.add(_factory.from(_repository.nextId(), existing)), 1u);
     const auto* original = _repository.findTentative(1);
 
-    EXPECT_THROW(_handler.handle(result(BeamType::SEARCH, 5, 0ms)), std::invalid_argument);
+    const auto registered = _handler.handle(result(BeamType::SEARCH, 5, 0ms));
+    ASSERT_TRUE(registered);
+    EXPECT_EQ(registered->requestId, 2u);
     EXPECT_EQ(_repository.findTentative(1), original);
-    EXPECT_EQ(_repository.targets().size(), 1u);
+    EXPECT_EQ(_repository.targets().size(), 2u);
 
     ASSERT_TRUE(_repository.remove(1));
-    const auto retry = _handler.handle(result(BeamType::SEARCH, 5, 0ms));
-    ASSERT_TRUE(retry);
-    EXPECT_EQ(retry->requestId, 1u);
-    EXPECT_EQ(_repository.targets().size(), 1u);
+    EXPECT_FALSE(_handler.handle(result(BeamType::SEARCH, 5, 0ms)));
+    const auto next = _handler.handle(result(BeamType::SEARCH, 6, 0ms, 3000_m));
+    ASSERT_TRUE(next);
+    EXPECT_EQ(next->requestId, 3u);
+    EXPECT_EQ(_repository.targets().size(), 2u);
 }
 
 } // namespace

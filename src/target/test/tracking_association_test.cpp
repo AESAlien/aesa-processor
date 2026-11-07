@@ -2,7 +2,6 @@
 #include "algorithm/constant_velocity_algorithm.hpp"
 #include "domain/factory/track_factory.hpp"
 #include "repository/track_repository.hpp"
-#include "service/track_id_generator.hpp"
 #include "service/track_selector.hpp"
 
 #include <target/config/target_config.hpp>
@@ -32,7 +31,7 @@ using BeamType = beam::BeamType;
 
 static_assert(
     std::is_same_v<
-        decltype(std::declval<const Track&>().slantRange()),
+        decltype(std::declval<const ConfirmedTrack&>().slantRange()),
         math::Distance>
 );
 
@@ -58,17 +57,17 @@ DetectionEvent result(
 class NoPredictionAlgorithm final : public ITrackingAlgorithm
 {
 public:
-    std::optional<TargetTrackingState> initialize(const Observation& first, const Observation& second) const override
+    std::optional<TrackState> initialize(const Observation& first, const Observation& second) const override
     {
         return _algorithm.initialize(first, second);
     }
 
-    std::optional<TargetTrackingState> update(const Track& current, const Observation& incoming) const override
+    std::optional<TrackState> update(const ConfirmedTrack& current, const Observation& incoming) const override
     {
         return _algorithm.update(current, incoming);
     }
 
-    std::optional<TargetPrediction> predict(const Track&, Time) const override
+    std::optional<TargetPrediction> predict(const ConfirmedTrack&, Time) const override
     {
         return std::nullopt;
     }
@@ -85,17 +84,17 @@ public:
     {
     }
 
-    std::optional<TargetTrackingState> initialize(const Observation& first, const Observation& second) const override
+    std::optional<TrackState> initialize(const Observation& first, const Observation& second) const override
     {
         return withCovariance(_algorithm.initialize(first, second));
     }
 
-    std::optional<TargetTrackingState> update(const Track& current, const Observation& incoming) const override
+    std::optional<TrackState> update(const ConfirmedTrack& current, const Observation& incoming) const override
     {
         return withCovariance(_algorithm.update(current, incoming));
     }
 
-    std::optional<TargetPrediction> predict(const Track& current, Time time) const override
+    std::optional<TargetPrediction> predict(const ConfirmedTrack& current, Time time) const override
     {
         const auto prediction = _algorithm.predict(current, time);
         if (!prediction)
@@ -111,14 +110,14 @@ public:
     }
 
 private:
-    std::optional<TargetTrackingState> withCovariance(
-        const std::optional<TargetTrackingState>& state
+    std::optional<TrackState> withCovariance(
+        const std::optional<TrackState>& state
     ) const {
         if (!state)
         {
             return std::nullopt;
         }
-        math::SquareMatrix covariance(TargetTrackingState::STATE_DIMENSION);
+        math::SquareMatrix covariance(TrackState::STATE_DIMENSION);
         for (std::size_t row = 0; row < TargetPrediction::POSITION_DIMENSION; ++row)
         {
             for (std::size_t column = 0; column < TargetPrediction::POSITION_DIMENSION; ++column)
@@ -126,7 +125,7 @@ private:
                 covariance(row, column) = _positionCovariance(row, column);
             }
         }
-        return TargetTrackingState(
+        return TrackState(
             state->sphericalPosition(),
             state->dopplerVelocity(),
             state->power_db(),
@@ -150,21 +149,21 @@ public:
     {
     }
 
-    std::optional<TargetTrackingState> initialize(
+    std::optional<TrackState> initialize(
         const Observation& first,
         const Observation& second
     ) const override {
         return _algorithm.initialize(first, second);
     }
 
-    std::optional<TargetTrackingState> update(
-        const Track& current,
+    std::optional<TrackState> update(
+        const ConfirmedTrack& current,
         const Observation& incoming
     ) const override {
         return _algorithm.update(current, incoming);
     }
 
-    std::optional<TargetPrediction> predict(const Track& current, Time time) const override
+    std::optional<TargetPrediction> predict(const ConfirmedTrack& current, Time time) const override
     {
         ++_predictionCount;
         return _predictionAvailable ? _algorithm.predict(current, time) : std::nullopt;
@@ -199,9 +198,8 @@ protected:
             algorithm = _algorithm;
         }
         const auto id = _repository.add(
-            TrackFactory(std::move(algorithm)).from(_trackIdGenerator.nextId(), Observation(position(firstRange), 0_mps, -10.0f, 0ms))
+            TrackFactory(std::move(algorithm)).from(_repository.nextId(), observation(firstRange, 0ms))
         );
-        _trackIdGenerator.commit();
         auto confirmedTrack = TrackFactory::from(*_repository.findTentative(id), observation(secondRange, 100ms));
         EXPECT_TRUE(confirmedTrack);
         EXPECT_TRUE(_repository.replace(std::move(confirmedTrack).value()));
@@ -210,7 +208,6 @@ protected:
 
     const std::shared_ptr<const ITrackingAlgorithm> _algorithm = std::make_shared<ConstantVelocityAlgorithm>();
     TrackRepository _repository;
-    TrackIdGenerator _trackIdGenerator;
     DetectionMatcher _matcher = DetectionMatcher(
         AssociationConfig(1000_mps, 30_mps, 11.345),
         MeasurementConfig(7_m)
@@ -402,9 +399,8 @@ TEST(TrackingPredictionCovarianceTest, ValidatesCovarianceOnlyAtConstruction)
 TEST_F(TrackingAssociationTest, RejectsTentativeIdsAndStaleOrDuplicateResults)
 {
     const auto tentativeId = _repository.add(
-        TrackFactory(_algorithm).from(_trackIdGenerator.nextId(), observation(1000_m, 0ms))
+        TrackFactory(_algorithm).from(_repository.nextId(), observation(1000_m, 0ms))
     );
-    _trackIdGenerator.commit();
     EXPECT_EQ(_repository.findTrack(tentativeId), nullptr);
     EXPECT_FALSE(_selector.selectObservation(tentativeId, 1100ms, {observation(1000_m, 1100ms)}));
 

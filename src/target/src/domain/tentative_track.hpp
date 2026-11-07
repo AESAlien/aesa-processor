@@ -1,12 +1,12 @@
 #pragma once
 
 #include "observation.hpp"
-#include "track.hpp"
+#include "confirmed_track.hpp"
 
 namespace target
 {
 
-// Confirmation delegates Track creation without mutating this first observation.
+// Confirmation creates a ConfirmedTrack without mutating this first observation.
 class TentativeTrack
 {
 public:
@@ -20,8 +20,8 @@ public:
     const Observation& observation() const;
     std::chrono::milliseconds lastResultTime() const;
 
-    std::optional<TargetTrackingState> initialize(const Observation& observation) const;
-    std::optional<Track> confirm(const Observation& observation) const;
+    std::optional<TrackState> initialize(const Observation& observation) const;
+    std::optional<ConfirmedTrack> confirm(const Observation& observation) const;
 
 private:
     const std::uint32_t _id;

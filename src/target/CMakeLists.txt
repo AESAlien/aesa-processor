@@ -6,7 +6,6 @@ add_library(target STATIC
     src/config/target_config.cpp
     src/controller/target_controller.cpp
     src/service/detection_handler.cpp
-    src/service/track_id_generator.cpp
     src/service/detection_matcher.cpp
     src/algorithm/nds_algorithm.cpp
     src/algorithm/constant_velocity_algorithm.cpp
@@ -16,11 +15,12 @@ add_library(target STATIC
     src/domain/detection_result.cpp
     src/domain/observation.cpp
     src/domain/tentative_track.cpp
-    src/domain/track.cpp
+    src/domain/confirmed_track.cpp
     src/domain/factory/observation_factory.cpp
     src/domain/factory/detection_result_factory.cpp
     src/domain/factory/track_factory.cpp
-    src/domain/tracking_state.cpp
+    src/dto/factory/track_event_factory.cpp
+    src/domain/track_state.cpp
     src/repository/track_repository.cpp
 )
 
@@ -34,12 +34,12 @@ if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     include(GoogleTest)
 
-    add_executable(target_track_id_generator_test test/track_id_generator_test.cpp)
-    target_include_directories(target_track_id_generator_test PRIVATE
+    add_executable(target_track_repository_test test/track_repository_test.cpp)
+    target_include_directories(target_track_repository_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
-    target_link_libraries(target_track_id_generator_test PRIVATE target GTest::gtest_main)
-    gtest_discover_tests(target_track_id_generator_test)
+    target_link_libraries(target_track_repository_test PRIVATE target GTest::gtest_main)
+    gtest_discover_tests(target_track_repository_test)
 
     add_executable(target_detection_handler_test test/detection_handler_test.cpp)
     target_include_directories(target_detection_handler_test PRIVATE

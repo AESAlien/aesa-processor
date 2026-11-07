@@ -1,6 +1,6 @@
 #include "constant_acceleration_algorithm.hpp"
 
-#include "domain/track.hpp"
+#include "domain/confirmed_track.hpp"
 
 #include <math/geometry/cartesian_displacement.hpp>
 #include <math/geometry/cartesian_position.hpp>
@@ -24,7 +24,7 @@ using namespace math::literals;
 constexpr std::size_t POSITION_DIMENSION = 3;
 constexpr std::size_t VELOCITY_OFFSET = 3;
 constexpr std::size_t ACCELERATION_OFFSET = 6;
-constexpr std::size_t STATE_DIMENSION = TargetTrackingState::STATE_DIMENSION;
+constexpr std::size_t STATE_DIMENSION = TrackState::STATE_DIMENSION;
 
 double elapsedSeconds(
     std::chrono::milliseconds previous,
@@ -33,7 +33,7 @@ double elapsedSeconds(
     return std::chrono::duration<double>(current - previous).count();
 }
 
-math::Vector stateVector(const TargetTrackingState& state)
+math::Vector stateVector(const TrackState& state)
 {
     return math::Vector({
         state.position().x.m(),
@@ -148,7 +148,7 @@ math::SquareMatrix processNoiseCovariance(
 }
 
 std::optional<PredictedState> predictState(
-    const TargetTrackingState& state,
+    const TrackState& state,
     std::chrono::milliseconds time,
     math::LinearAcceleration processAccelerationStandardDeviation
 ) {
@@ -231,7 +231,7 @@ ConstantAccelerationAlgorithm::ConstantAccelerationAlgorithm(
 {
 }
 
-std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::initialize(
+std::optional<TrackState> ConstantAccelerationAlgorithm::initialize(
     const Observation& first,
     const Observation& second
 ) const {
@@ -274,7 +274,7 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::initialize(
     {
         return std::nullopt;
     }
-    return TargetTrackingState(
+    return TrackState(
         position.toSpherical(),
         second.dopplerVelocity(),
         second.power_db(),
@@ -286,8 +286,8 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::initialize(
     );
 }
 
-std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
-    const Track& current,
+std::optional<TrackState> ConstantAccelerationAlgorithm::update(
+    const ConfirmedTrack& current,
     const Observation& observation
 ) const {
     const auto& state = current.trackingState();
@@ -359,7 +359,7 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
     {
         return std::nullopt;
     }
-    return TargetTrackingState(
+    return TrackState(
         position->toSpherical(),
         observation.dopplerVelocity(),
         observation.power_db(),
@@ -376,7 +376,7 @@ std::optional<TargetTrackingState> ConstantAccelerationAlgorithm::update(
 }
 
 std::optional<TargetPrediction> ConstantAccelerationAlgorithm::predict(
-    const Track& current,
+    const ConfirmedTrack& current,
     std::chrono::milliseconds time
 ) const {
     const auto& state = current.trackingState();

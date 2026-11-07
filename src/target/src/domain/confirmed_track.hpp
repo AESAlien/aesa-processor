@@ -1,9 +1,7 @@
 #pragma once
 
 #include "observation.hpp"
-#include "tracking_state.hpp"
-
-#include <target/dto/track_event.hpp>
+#include "track_state.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -13,12 +11,18 @@ namespace target
 {
 
 class ITrackingAlgorithm;
-class TrackFactory;
 
 // A confirmed target always owns a non-null, immutable tracking state.
-class Track
+class ConfirmedTrack
 {
 public:
+    ConfirmedTrack(
+        std::uint32_t id,
+        std::chrono::milliseconds initialTime,
+        TrackState state,
+        std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm
+    );
+
     std::uint32_t id() const;
     math::Distance slantRange() const;
     math::CircularAngle azimuth() const;
@@ -30,24 +34,15 @@ public:
     std::chrono::milliseconds lastObservationTime() const;
     std::chrono::milliseconds lastResultTime() const;
     std::uint32_t consecutiveMissCount() const;
-    const std::shared_ptr<const TargetTrackingState>& trackingState() const;
+    const std::shared_ptr<const TrackState>& trackingState() const;
 
     bool update(const Observation& observation);
     bool recordTrackingMiss(std::chrono::milliseconds time);
     std::optional<TargetPrediction> predict(std::chrono::milliseconds time) const;
-    TrackEvent toTrackEvent() const;
 
 private:
-    friend class TrackFactory;
-
-    Track(
-        std::uint32_t id,
-        std::chrono::milliseconds initialTime,
-        TargetTrackingState state,
-        std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm
-    );
     bool applyTrackingState(
-        std::optional<TargetTrackingState> state,
+        std::optional<TrackState> state,
         std::chrono::milliseconds time
     );
 
@@ -55,7 +50,7 @@ private:
     const std::chrono::milliseconds _initialTime;
     std::chrono::milliseconds _lastResultTime;
     std::uint32_t _consecutiveMissCount = 0;
-    std::shared_ptr<const TargetTrackingState> _trackingState;
+    std::shared_ptr<const TrackState> _trackingState;
     std::shared_ptr<const ITrackingAlgorithm> _trackingAlgorithm;
 };
 

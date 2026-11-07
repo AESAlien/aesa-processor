@@ -1,7 +1,6 @@
 #pragma once
 
 #include "domain/detection_result.hpp"
-#include "track_id_generator.hpp"
 
 #include <beam/dto/request_beam_command.hpp>
 #include <target/config/track_management_config.hpp>
@@ -44,7 +43,6 @@ private:
     const TrackFactory& _trackFactory;
     const TentativeSelector& _tentativeSelector;
     const TrackSelector& _trackSelector;
-    TrackIdGenerator _trackIdGenerator;
     std::unordered_map<std::uint32_t, std::chrono::milliseconds> _lastSearchResultTimes;
 };
 

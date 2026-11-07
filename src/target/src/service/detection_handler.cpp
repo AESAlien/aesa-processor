@@ -28,7 +28,7 @@ std::chrono::milliseconds addTime(
 
 std::optional<beam::RequestBeamCommand> trackingRequestOrRemove(
     TrackRepository& repository,
-    const Track& target,
+    const ConfirmedTrack& target,
     std::chrono::milliseconds transmitTime
 ) {
     const auto prediction = target.predict(transmitTime);
@@ -91,8 +91,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
 
     const auto transmitTime = addTime(result.transmitTime, _config.confirmationDelay());
     const auto& candidate = result.observations[*selected];
-    const auto id = _trackRepository.add(_trackFactory.from(_trackIdGenerator.nextId(), candidate));
-    _trackIdGenerator.commit();
+    const auto id = _trackRepository.add(_trackFactory.from(_trackRepository.nextId(), candidate));
     _lastSearchResultTimes.insert_or_assign(result.requestId, result.transmitTime);
     return beam::RequestBeamCommand(
         beam::RequestBeamType::CONFIRMATION,
@@ -143,7 +142,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
 std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     const TrackingDetectionResult& result
 ) {
-    Track* track = _trackRepository.findTrack(result.requestId);
+    ConfirmedTrack* track = _trackRepository.findTrack(result.requestId);
     if (!track || result.transmitTime <= track->lastResultTime())
     {
         return std::nullopt;

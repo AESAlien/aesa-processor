@@ -14,18 +14,18 @@ class ConstantAccelerationAlgorithm final : public ITrackingAlgorithm
 public:
     ConstantAccelerationAlgorithm(TrackingConfig config, MeasurementConfig measurementConfig);
 
-    std::optional<TargetTrackingState> initialize(
+    std::optional<TrackState> initialize(
         const Observation& first,
         const Observation& second
     ) const override;
 
-    std::optional<TargetTrackingState> update(
-        const Track& current,
+    std::optional<TrackState> update(
+        const ConfirmedTrack& current,
         const Observation& observation
     ) const override;
 
     std::optional<TargetPrediction> predict(
-        const Track& current,
+        const ConfirmedTrack& current,
         std::chrono::milliseconds time
     ) const override;
 

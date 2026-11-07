@@ -53,30 +53,30 @@ TrackingConfig processNoiseConfig(math::LinearAcceleration sigma)
 class SeedStateAlgorithm final : public ITrackingAlgorithm
 {
 public:
-    explicit SeedStateAlgorithm(TargetTrackingState state) : _state(std::move(state))
+    explicit SeedStateAlgorithm(TrackState state) : _state(std::move(state))
     {
     }
 
-    std::optional<TargetTrackingState> initialize(const Observation&, const Observation&) const override
+    std::optional<TrackState> initialize(const Observation&, const Observation&) const override
     {
         return _state;
     }
 
-    std::optional<TargetTrackingState> update(const Track&, const Observation&) const override
+    std::optional<TrackState> update(const ConfirmedTrack&, const Observation&) const override
     {
         return std::nullopt;
     }
 
-    std::optional<TargetPrediction> predict(const Track&, Time) const override
+    std::optional<TargetPrediction> predict(const ConfirmedTrack&, Time) const override
     {
         return std::nullopt;
     }
 
 private:
-    const TargetTrackingState _state;
+    const TrackState _state;
 };
 
-Track seededTarget(
+ConfirmedTrack seededTarget(
     math::CartesianPosition point,
     math::CartesianVelocity velocity,
     math::CartesianAcceleration acceleration,
@@ -84,7 +84,7 @@ Track seededTarget(
     Time time = 100ms
 ) {
     const auto algorithm = std::make_shared<SeedStateAlgorithm>(
-        TargetTrackingState(
+        TrackState(
             point.toSpherical(),
             0_mps,
             -10.0f,
@@ -96,7 +96,7 @@ Track seededTarget(
         )
     );
     TrackRepository repository;
-    const auto id = repository.add(TrackFactory(algorithm).from(1, observation(point, 0ms)));
+    const auto id = repository.add(TrackFactory(algorithm).from(repository.nextId(), observation(point, 0ms)));
     auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(point, time));
     EXPECT_TRUE(confirmedTrack);
     EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
@@ -107,7 +107,7 @@ Track seededTarget(
 class ConstantAccelerationAlgorithmTest : public ::testing::Test
 {
 protected:
-    Track makeTracking(
+    ConfirmedTrack makeTracking(
         math::CartesianPosition first = position(0.0, 1000.0, 0.0),
         math::CartesianPosition second = position(0.0, 1000.0, 0.0),
         Time firstTime = 0ms,
@@ -121,7 +121,7 @@ protected:
         TrackRepository repository;
         const auto id = repository.add(
             TrackFactory(algorithm).from(
-                1,
+                repository.nextId(),
                 observation(first, firstTime)
             )
         );
@@ -567,7 +567,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, ProcessNoiseReachesRealTrackingAndSear
 
 TEST_F(ConstantAccelerationAlgorithmTest, LearnsAccelerationWithZeroProcessNoise)
 {
-    Track target = makeTracking(
+    ConfirmedTrack target = makeTracking(
         position(0.0, 1000.0, 0.0),
         position(0.0, 1011.0, 0.0),
         0ms,
@@ -588,7 +588,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, LearnsAccelerationWithZeroProcessNoise
 
 TEST_F(ConstantAccelerationAlgorithmTest, MissesDoNotShortenElapsedTimeFromTheLastObservation)
 {
-    Track target = makeTracking(position(0.0, 1000.0, 0.0), position(0.0, 1001.0, 0.0));
+    ConfirmedTrack target = makeTracking(position(0.0, 1000.0, 0.0), position(0.0, 1001.0, 0.0));
     const auto saved = target.trackingState();
     ASSERT_TRUE(target.recordTrackingMiss(1100ms));
     ASSERT_TRUE(target.recordTrackingMiss(2100ms));

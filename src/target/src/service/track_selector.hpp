@@ -13,7 +13,7 @@ namespace target
 
 class TrackRepository;
 class DetectionMatcher;
-class Track;
+class ConfirmedTrack;
 class TentativeTrack;
 
 // Select the eligible observation with minimum NDS without modifying the requested target.
@@ -39,7 +39,7 @@ public:
 
     // References are used only during this call, before any repository mutation.
     std::optional<std::size_t> selectObservation(
-        const Track& track,
+        const ConfirmedTrack& track,
         std::chrono::milliseconds resultTime,
         const std::vector<Observation>& observations
     ) const;

@@ -1,6 +1,5 @@
 #include "tentative_track.hpp"
 
-#include "domain/factory/track_factory.hpp"
 #include "domain/tracking_algorithm.hpp"
 
 #include <stdexcept>
@@ -38,7 +37,7 @@ std::chrono::milliseconds TentativeTrack::lastResultTime() const
     return _observation.lastObservationTime();
 }
 
-std::optional<TargetTrackingState> TentativeTrack::initialize(const Observation& observation) const
+std::optional<TrackState> TentativeTrack::initialize(const Observation& observation) const
 {
     const auto time = observation.lastObservationTime();
     if (time <= lastResultTime())
@@ -54,14 +53,14 @@ std::optional<TargetTrackingState> TentativeTrack::initialize(const Observation&
     return state;
 }
 
-std::optional<Track> TentativeTrack::confirm(const Observation& observation) const
+std::optional<ConfirmedTrack> TentativeTrack::confirm(const Observation& observation) const
 {
     auto state = initialize(observation);
     if (!state)
     {
         return std::nullopt;
     }
-    return TrackFactory::from(_id, lastResultTime(), std::move(*state), _trackingAlgorithm);
+    return ConfirmedTrack(_id, lastResultTime(), std::move(*state), _trackingAlgorithm);
 }
 
 } // namespace target
