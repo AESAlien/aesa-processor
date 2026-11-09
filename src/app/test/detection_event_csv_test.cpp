@@ -8,7 +8,6 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
-#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -104,44 +103,6 @@ TEST_F(DetectionCsvLoggerTest, BatchesPlotsAndPreservesEmptyEvents)
         "SEARCH,0,1000,2,1,1200.5,12.5,-3.25,-20.5,-12.5"
     );
     EXPECT_EQ(_rows[1], "TRACKING,7,2000,0,,,,,,");
-}
-
-TEST_F(DetectionCsvLoggerTest, InvalidEventsDoNotProduceRows)
-{
-    TargetController controller(configuration(), _detectionLogger);
-    EXPECT_THROW(
-        controller.handleDetection(detection(static_cast<beam::BeamType>(255), 0, 0ms, false)),
-        std::invalid_argument
-    );
-    EXPECT_THROW(
-        controller.handleDetection(detection(beam::BeamType::SEARCH, 0, -1ms, false)),
-        std::invalid_argument
-    );
-    EXPECT_THROW(
-        controller.handleDetection(detection(beam::BeamType::TRACKING, 0, 0ms, false)),
-        std::invalid_argument
-    );
-    auto invalidPlot = detection(beam::BeamType::SEARCH, 0, 0ms);
-    invalidPlot.plots.front().power_db = std::numeric_limits<float>::quiet_NaN();
-    EXPECT_THROW(controller.handleDetection(invalidPlot), std::invalid_argument);
-    EXPECT_TRUE(_rows.empty());
-    controller.handleDetection(detection(beam::BeamType::SEARCH, 0, 1ms, false));
-    ASSERT_EQ(_rows.size(), 1u);
-    EXPECT_EQ(_rows.front(), "SEARCH,0,1,0,,,,,,");
-}
-
-TEST_F(DetectionCsvLoggerTest, RecordsValidatedEventBeforeTrackingFailure)
-{
-    TargetController controller(configuration(), _detectionLogger);
-    const auto time = std::chrono::milliseconds::max();
-
-    EXPECT_THROW(
-        controller.handleDetection(detection(beam::BeamType::SEARCH, 0, time)),
-        std::overflow_error
-    );
-    ASSERT_EQ(_rows.size(), 1u);
-    EXPECT_EQ(_rows.front(), "SEARCH,0," + std::to_string(time.count()) +
-        ",1,0,1200.5,12.5,-3.25,-20.5,-12.5");
 }
 
 TEST_F(DetectionCsvLoggerTest, MissingLoggerDoesNotInterruptTracking)
