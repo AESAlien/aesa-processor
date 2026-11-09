@@ -35,10 +35,13 @@ std::optional<ReceivedFrames> NetworkManager::poll(std::chrono::milliseconds tim
 
     // Only the current sessions are watched. A replaced session that a sender
     // still holds is never watched again, so it cannot be taken for a new one.
-    const std::shared_ptr<Session> operatorConsole = _operatorConsole.snapshotSession();
-    const std::shared_ptr<Session> scenarioSimulator = _scenarioSimulator.snapshotSession();
+    std::vector<std::shared_ptr<Session>> currentSessions;
+    for (PeerConnection* peer : peers())
+    {
+        currentSessions.push_back(peer->snapshotSession());
+    }
 
-    const ServerEvent event = _server->poll({operatorConsole, scenarioSimulator}, timeout);
+    const ServerEvent event = _server->poll(currentSessions, timeout);
     switch (event.kind)
     {
     case ServerEventKind::NEW_SESSION:
@@ -46,15 +49,7 @@ std::optional<ReceivedFrames> NetworkManager::poll(std::chrono::milliseconds tim
         return std::nullopt;
 
     case ServerEventKind::READABLE:
-        if (event.session == operatorConsole)
-        {
-            return receiveFrom(_operatorConsole, event.session);
-        }
-        if (event.session == scenarioSimulator)
-        {
-            return receiveFrom(_scenarioSimulator, event.session);
-        }
-        return std::nullopt;
+        return receiveFrom(event.session);
 
     case ServerEventKind::NONE:
         return std::nullopt;
@@ -77,18 +72,21 @@ void NetworkManager::sendToScenarioSimulator(
     _scenarioSimulator.send(data, timeout);
 }
 
+std::array<PeerConnection*, NetworkManager::PEER_COUNT> NetworkManager::peers() noexcept
+{
+    return {&_operatorConsole, &_scenarioSimulator};
+}
+
 void NetworkManager::assignSession(const std::shared_ptr<Session>& session)
 {
     const CommEndpoint& remoteEndpoint = session->getRemoteEndpoint();
-    if (_operatorConsole.matches(remoteEndpoint))
+    for (PeerConnection* peer : peers())
     {
-        _operatorConsole.replaceSession(session);
-        return;
-    }
-    if (_scenarioSimulator.matches(remoteEndpoint))
-    {
-        _scenarioSimulator.replaceSession(session);
-        return;
+        if (peer->matches(remoteEndpoint))
+        {
+            peer->replaceSession(session);
+            return;
+        }
     }
 
     // The rejected session is released, and its connection closed, on return.
@@ -97,16 +95,22 @@ void NetworkManager::assignSession(const std::shared_ptr<Session>& session)
               << ", remotePort=" << remoteEndpoint.getPort() << '\n';
 }
 
-std::optional<ReceivedFrames> NetworkManager::receiveFrom(
-    PeerConnection& connection,
-    const std::shared_ptr<Session>& session
-) {
-    std::optional<std::vector<MessageFrame>> frames = connection.receiveIfCurrent(session);
-    if (!frames || frames->empty())
+std::optional<ReceivedFrames> NetworkManager::receiveFrom(const std::shared_ptr<Session>& session)
+{
+    for (PeerConnection* peer : peers())
     {
-        return std::nullopt;
+        // Only the peer whose current session it is receives; others return nullopt.
+        std::optional<std::vector<MessageFrame>> frames = peer->receiveIfCurrent(session);
+        if (frames)
+        {
+            if (frames->empty())
+            {
+                return std::nullopt;
+            }
+            return ReceivedFrames{peer->getName(), std::move(*frames)};
+        }
     }
-    return ReceivedFrames{connection.getName(), std::move(*frames)};
+    return std::nullopt;
 }
 
 } // namespace comm
