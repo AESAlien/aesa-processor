@@ -25,7 +25,7 @@ public:
     std::optional<double> calculate(
         const math::SphericalPosition& observation,
         const math::SphericalPosition& reference,
-        std::optional<math::Length> maximumTravel = std::nullopt
+        std::optional<math::Distance> maximumTravel = std::nullopt
     ) const;
 
 private:

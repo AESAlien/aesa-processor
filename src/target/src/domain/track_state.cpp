@@ -8,31 +8,6 @@ namespace target
 {
 using namespace math::literals;
 
-namespace
-{
-
-void validateCovariance(
-    const math::SquareMatrix& covariance,
-    std::size_t dimension,
-    const char* shapeMessage,
-    const char* varianceMessage
-) {
-    if (covariance.size() != dimension ||
-        !covariance.isSymmetric(math::NONE_TOLERANCE))
-    {
-        throw std::invalid_argument(shapeMessage);
-    }
-    for (std::size_t index = 0; index < dimension; ++index)
-    {
-        if (covariance(index, index) < 0.0)
-        {
-            throw std::invalid_argument(varianceMessage);
-        }
-    }
-}
-
-} // namespace
-
 TargetPrediction::TargetPrediction(
     std::chrono::milliseconds timestamp,
     math::SphericalPosition sphericalPosition,
@@ -54,30 +29,28 @@ const math::SphericalPosition& TargetPrediction::sphericalPosition() const noexc
     return _sphericalPosition;
 }
 
-const std::optional<math::SquareMatrix>& TargetPrediction::positionCovariance() const noexcept
-{
-    return _positionCovariance;
-}
-
 void TargetPrediction::validate() const
 {
     if (_timestamp.count() < 0 ||
-        !_sphericalPosition.radius.greaterThan(
-            0.0_m,
-            math::Length::NONE_TOLERANCE
-        ))
-    {
+        _sphericalPosition.radius.isNonpositive()
+    ) {
         throw std::invalid_argument("Prediction requires a positive range and nonnegative time");
     }
 
     if (_positionCovariance)
     {
-        validateCovariance(
-            *_positionCovariance,
-            POSITION_DIMENSION,
-            "Prediction covariance requires a finite symmetric 3x3 matrix",
-            "Prediction covariance variances must be nonnegative"
-        );
+        if (_positionCovariance->size() != POSITION_DIMENSION)
+        {
+            throw std::invalid_argument("Prediction covariance requires a 3x3 matrix");
+        }
+        try
+        {
+            static_cast<void>(math::cholesky(*_positionCovariance));
+        }
+        catch (const std::domain_error&)
+        {
+            throw std::invalid_argument("Prediction covariance must be positive definite");
+        }
     }
 }
 
@@ -145,12 +118,9 @@ const std::optional<math::SquareMatrix>& TrackState::errorCovariance() const noe
 void TrackState::validate() const
 {
     if (_timestamp.count() < 0 ||
-        !_sphericalPosition.radius.greaterThan(
-            0.0_m,
-            math::Length::NONE_TOLERANCE
-        ) ||
-        !std::isfinite(_power_db))
-    {
+        _sphericalPosition.radius.isNonpositive() ||
+        !std::isfinite(_power_db)
+    ) {
         throw std::invalid_argument("Tracking state requires valid observation values and time");
     }
 
@@ -159,12 +129,18 @@ void TrackState::validate() const
 
     if (_errorCovariance)
     {
-        validateCovariance(
-            *_errorCovariance,
-            STATE_DIMENSION,
-            "Tracking covariance requires a finite symmetric 9x9 matrix",
-            "Tracking covariance variances must be nonnegative"
-        );
+        if (_errorCovariance->size() != STATE_DIMENSION)
+        {
+            throw std::invalid_argument("Tracking covariance requires a 9x9 matrix");
+        }
+        try
+        {
+            static_cast<void>(math::cholesky(*_errorCovariance));
+        }
+        catch (const std::domain_error&)
+        {
+            throw std::invalid_argument("Tracking covariance must be positive definite");
+        }
     }
 }
 

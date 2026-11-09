@@ -1,5 +1,6 @@
 #pragma once
 
+#include <math/bounded/distance.hpp>
 #include <math/geometry/spherical_position.hpp>
 #include <math/linear_algebra/vector.hpp>
 
@@ -28,7 +29,7 @@ public:
     virtual std::optional<double> calculate(
         const math::SphericalPosition& observation,
         const math::SphericalPosition& reference,
-        std::optional<math::Length> maximumTravel = std::nullopt
+        std::optional<math::Distance> maximumTravel = std::nullopt
     ) const = 0;
 };
 

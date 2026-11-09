@@ -8,8 +8,33 @@
 
 namespace target
 {
+
+std::optional<math::SquareMatrix> positionCovariance(const TargetPrediction& prediction)
+{
+    return prediction._positionCovariance;
+}
+
 namespace
 {
+
+std::optional<math::SquareMatrix> positionCovariance(const TrackState& state)
+{
+    const auto& covariance = state.errorCovariance();
+    if (!covariance)
+    {
+        return std::nullopt;
+    }
+
+    math::SquareMatrix result(NdsCalculation::DIMENSION);
+    for (std::size_t row = 0; row < NdsCalculation::DIMENSION; ++row)
+    {
+        for (std::size_t column = 0; column < NdsCalculation::DIMENSION; ++column)
+        {
+            result(row, column) = (*covariance)(row, column);
+        }
+    }
+    return result;
+}
 
 std::optional<math::SquareMatrix> measurementCovariance(const MeasurementConfig& measurement, double count)
 {
@@ -45,7 +70,8 @@ bool NdsAlgorithm::prepareMeasurements()
 bool NdsAlgorithm::preparePrediction(const TargetPrediction& prediction)
 {
     _calculation.reset();
-    if (!prediction.positionCovariance())
+    const auto covariance = positionCovariance(prediction);
+    if (!covariance)
     {
         return prepareMeasurements();
     }
@@ -55,7 +81,7 @@ bool NdsAlgorithm::preparePrediction(const TargetPrediction& prediction)
     }
     try
     {
-        _calculation = NdsCalculation::from(*prediction.positionCovariance() + *_measurementCovariance);
+        _calculation = NdsCalculation::from(*covariance + *_measurementCovariance);
         return _calculation.has_value();
     }
     catch (const std::invalid_argument&)
@@ -67,7 +93,8 @@ bool NdsAlgorithm::preparePrediction(const TargetPrediction& prediction)
 bool NdsAlgorithm::prepareState(const TrackState& state)
 {
     _calculation.reset();
-    if (!state.errorCovariance())
+    const auto covariance = positionCovariance(state);
+    if (!covariance)
     {
         return prepareMeasurements();
     }
@@ -77,15 +104,7 @@ bool NdsAlgorithm::prepareState(const TrackState& state)
     }
     try
     {
-        math::SquareMatrix positionCovariance(NdsCalculation::DIMENSION);
-        for (std::size_t row = 0; row < NdsCalculation::DIMENSION; ++row)
-        {
-            for (std::size_t column = 0; column < NdsCalculation::DIMENSION; ++column)
-            {
-                positionCovariance(row, column) = (*state.errorCovariance())(row, column);
-            }
-        }
-        _calculation = NdsCalculation::from(positionCovariance + *_measurementCovariance);
+        _calculation = NdsCalculation::from(*covariance + *_measurementCovariance);
         return _calculation.has_value();
     }
     catch (const std::invalid_argument&)
@@ -102,7 +121,7 @@ std::optional<double> NdsAlgorithm::calculate(const math::Vector& residual) cons
 std::optional<double> NdsAlgorithm::calculate(
     const math::SphericalPosition& observation,
     const math::SphericalPosition& reference,
-    std::optional<math::Length> maximumTravel
+    std::optional<math::Distance> maximumTravel
 ) const {
     return _calculation ? _calculation->calculate(observation, reference, maximumTravel) : std::nullopt;
 }

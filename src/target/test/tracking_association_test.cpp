@@ -173,7 +173,7 @@ private:
         {
             return std::nullopt;
         }
-        math::SquareMatrix covariance(TrackState::STATE_DIMENSION);
+        math::SquareMatrix covariance = math::SquareMatrix::identity(TrackState::STATE_DIMENSION);
         for (std::size_t row = 0; row < TargetPrediction::POSITION_DIMENSION; ++row)
         {
             for (std::size_t column = 0; column < TargetPrediction::POSITION_DIMENSION; ++column)
@@ -524,7 +524,7 @@ TEST_F(TrackingAssociationTest, PastSearchUsesStoredPositionCovarianceAndMotionA
 TEST(TrackingPredictionCovarianceTest, ValidatesCovarianceOnlyAtConstruction)
 {
     EXPECT_NO_THROW(TargetPrediction(0ms, position(1000_m)));
-    EXPECT_NO_THROW(TargetPrediction(0ms, position(1000_m), math::SquareMatrix(3)));
+    EXPECT_NO_THROW(TargetPrediction(0ms, position(1000_m), math::SquareMatrix::identity(3)));
     for (std::size_t dimension : {2u, 4u, 9u})
     {
         EXPECT_THROW(
@@ -541,6 +541,7 @@ TEST(TrackingPredictionCovarianceTest, ValidatesCovarianceOnlyAtConstruction)
     EXPECT_THROW(TargetPrediction(0ms, position(1000_m), covariance), std::invalid_argument);
     covariance(1, 0) = 0.5;
     EXPECT_NO_THROW(TargetPrediction(0ms, position(1000_m), covariance));
+    EXPECT_THROW(TargetPrediction(0ms, position(1000_m), math::SquareMatrix(3)), std::invalid_argument);
     covariance(0, 0) = -1.0;
     EXPECT_THROW(TargetPrediction(0ms, position(1000_m), covariance), std::invalid_argument);
     for (double invalid : {std::numeric_limits<double>::quiet_NaN(),
@@ -689,25 +690,10 @@ TEST_F(TrackingAssociationTest, DoesNotRetryFailedPredictionUntilTheNextBatch)
     EXPECT_EQ(track.consecutiveMissCount(), 0u);
 }
 
-TEST_F(TrackingAssociationTest, RejectsNonPositiveDefiniteInnovationWithoutChangingTheTrack)
+TEST(TrackingPredictionCovarianceTest, RejectsIndefinitePredictionCovarianceAtConstruction)
 {
-    const auto algorithm = std::make_shared<CovarianceAlgorithm>(
-        math::SquareMatrix({{1.0, 100.0, 0.0}, {100.0, 1.0, 0.0}, {0.0, 0.0, 1.0}})
-    );
-    const auto id = addTracking(1000_m, 1000_m, algorithm);
-    const auto& track = *_repository.findTrack(id);
-    const auto previousState = track.state();
-
-    EXPECT_FALSE(
-        _selector.selectObservation(
-            track,
-            1100ms,
-            {observation(1000_m, 1100ms), observation(1001_m, 1100ms)}
-        )
-    );
-    EXPECT_EQ(track.state(), previousState);
-    EXPECT_EQ(track.lastResultTime(), 100ms);
-    EXPECT_EQ(track.consecutiveMissCount(), 0u);
+    const math::SquareMatrix indefinite({{1.0, 100.0, 0.0}, {100.0, 1.0, 0.0}, {0.0, 0.0, 1.0}});
+    EXPECT_THROW(TargetPrediction(0ms, position(1000_m), indefinite), std::invalid_argument);
 }
 
 TEST(TrackingAssociationControllerTest, OutOfGatePlotsKeepRetryingUntilThreeMissesDeleteTheTarget)

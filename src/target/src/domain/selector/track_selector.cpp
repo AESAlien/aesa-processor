@@ -136,12 +136,15 @@ std::optional<double> TrackSelector::confirmationScore(
         const auto displacement = position - initialPosition;
         // Ordered nonnegative times keep this integer subtraction within its range.
         const auto elapsed = std::chrono::duration<double>(time - tentative.lastResultTime());
-        const auto speed = displacement.toVelocity(elapsed).speed();
-        if (speed.greaterThan(_config.maxAssociationSpeed(), math::LinearVelocity::NONE_TOLERANCE) ||
-            !observation.dopplerVelocity().equals(
-                tentative.observation().dopplerVelocity(),
-                math::QuantityTolerance<math::LinearVelocity>(_config.maxInitialDopplerDifference(), 0.0)
-            ))
+
+        const auto speed = (displacement / elapsed).speed();
+        if (speed > _config.maxAssociationSpeed())
+        {
+            return std::nullopt;
+        }
+
+        const auto differnce = math::QuantityTolerance<math::LinearVelocity>(_config.maxInitialDopplerDifference(), 0.0);
+        if (observation.dopplerVelocity().notEquals(tentative.observation().dopplerVelocity(), differnce))
         {
             return std::nullopt;
         }

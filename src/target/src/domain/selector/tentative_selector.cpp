@@ -61,11 +61,11 @@ std::optional<double> TentativeSelector::positionScore(
 ) const {
     try
     {
-        std::optional<math::Length> maximumTravel;
+        std::optional<math::Distance> maximumTravel;
         if (compensateMotion)
         {
             const auto elapsed = std::chrono::abs(observation.lastObservationTime() - referenceTime);
-            maximumTravel = _config.maxAssociationSpeed() * elapsed;
+            maximumTravel = math::Distance(_config.maxAssociationSpeed() * elapsed);
         }
         const auto score = _algorithm->calculate(observation.sphericalPosition(), referencePosition, maximumTravel);
         return score && *score <= _config.positionNdsThreshold() ? score : std::nullopt;

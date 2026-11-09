@@ -36,10 +36,10 @@ double AssociationConfig::positionNdsThreshold() const noexcept
 
 void AssociationConfig::validate() const
 {
-    if (_maxAssociationSpeed.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE) ||
-        _maxInitialDopplerDifference.lessThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE) ||
-        !std::isfinite(_positionNdsThreshold) || _positionNdsThreshold < 0.0)
-    {
+    if (_maxAssociationSpeed.isNegative() ||
+        _maxInitialDopplerDifference.isNegative() ||
+        !std::isfinite(_positionNdsThreshold) || _positionNdsThreshold < 0.0
+    ) {
         throw std::invalid_argument("Invalid association configuration");
     }
 }

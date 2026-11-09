@@ -29,14 +29,14 @@ public:
 
     std::chrono::milliseconds timestamp() const noexcept;
     const math::SphericalPosition& sphericalPosition() const noexcept;
-    // Predicted Cartesian position covariance [px, py, pz] in m^2.
-    // Absence is retained for algorithms that do not estimate uncertainty.
-    // The producing algorithm must ensure positive semidefiniteness.
-    const std::optional<math::SquareMatrix>& positionCovariance() const noexcept;
-
 private:
+    friend std::optional<math::SquareMatrix> positionCovariance(const TargetPrediction& prediction);
+
     std::chrono::milliseconds _timestamp;
     math::SphericalPosition _sphericalPosition;
+    // Predicted Cartesian position covariance [px, py, pz] in m^2.
+    // Absence is retained for algorithms that do not estimate uncertainty.
+    // The producing algorithm must ensure positive definiteness.
     std::optional<math::SquareMatrix> _positionCovariance;
     void validate() const;
 };

@@ -22,9 +22,9 @@ TEST(NdsAlgorithmTest, AppliesTravelAllowanceBeforeScoringPositions)
     const math::SphericalPosition reference(1000_m, 0_deg, 0_deg);
     const math::SphericalPosition observation(1010_m, 0_deg, 0_deg);
     const auto raw = algorithm.calculate(observation, reference);
-    const auto compensated = algorithm.calculate(observation, reference, 6_m);
-    const auto covered = algorithm.calculate(observation, reference, 12_m);
-    const auto coincident = algorithm.calculate(reference, reference, 0_m);
+    const auto compensated = algorithm.calculate(observation, reference, math::Distance(6_m));
+    const auto covered = algorithm.calculate(observation, reference, math::Distance(12_m));
+    const auto coincident = algorithm.calculate(reference, reference, math::Distance(0_m));
     ASSERT_TRUE(raw);
     ASSERT_TRUE(compensated);
     ASSERT_TRUE(covered);
@@ -33,7 +33,7 @@ TEST(NdsAlgorithmTest, AppliesTravelAllowanceBeforeScoringPositions)
     EXPECT_DOUBLE_EQ(*compensated, 2.0);
     EXPECT_DOUBLE_EQ(*covered, 0.0);
     EXPECT_DOUBLE_EQ(*coincident, 0.0);
-    EXPECT_FALSE(algorithm.calculate(observation, reference, -1_m));
+    EXPECT_THROW(math::Distance(-1_m), std::invalid_argument);
 }
 
 TEST(NdsAlgorithmTest, RepreparesPredictionNoiseAndFallsBackOnlyWhenCovarianceIsAbsent)
@@ -50,31 +50,17 @@ TEST(NdsAlgorithmTest, RepreparesPredictionNoiseAndFallsBackOnlyWhenCovarianceIs
     const auto known = algorithm.calculate(residual);
     ASSERT_TRUE(known);
     EXPECT_DOUBLE_EQ(*known, 1.0);
-    ASSERT_TRUE(algorithm.preparePrediction(TargetPrediction(1ms, position, math::SquareMatrix(3))));
-    const auto zero = algorithm.calculate(residual);
-    ASSERT_TRUE(zero);
-    EXPECT_DOUBLE_EQ(*zero, 4.0);
     ASSERT_TRUE(algorithm.prepareMeasurements());
     const auto measurements = algorithm.calculate(residual);
     ASSERT_TRUE(measurements);
     EXPECT_DOUBLE_EQ(*measurements, 2.0);
 }
 
-TEST(NdsAlgorithmTest, FailedPreparationClearsEarlierStateAndAllowsRecovery)
+TEST(NdsAlgorithmTest, PredictionCovarianceIsValidatedBeforePreparation)
 {
-    NdsAlgorithm algorithm{MeasurementConfig(2_m)};
     const math::SphericalPosition position(1000_m, 0_deg, 0_deg);
-    const math::Vector residual({4.0, 0.0, 0.0});
-    ASSERT_TRUE(algorithm.prepareMeasurements());
-    ASSERT_TRUE(algorithm.calculate(residual));
     const math::SquareMatrix indefinite({{1.0, 100.0, 0.0}, {100.0, 1.0, 0.0}, {0.0, 0.0, 1.0}});
-    EXPECT_FALSE(algorithm.preparePrediction(TargetPrediction(1ms, position, indefinite)));
-    EXPECT_FALSE(algorithm.calculate(residual));
-    EXPECT_FALSE(algorithm.calculate(position, position));
-    ASSERT_TRUE(algorithm.prepareMeasurements());
-    const auto recovered = algorithm.calculate(residual);
-    ASSERT_TRUE(recovered);
-    EXPECT_DOUBLE_EQ(*recovered, 2.0);
+    EXPECT_THROW(TargetPrediction(1ms, position, indefinite), std::invalid_argument);
 }
 
 TEST(NdsCalculationTest, CalculatesSquaredDistanceWithCrossAxisCorrelations)

@@ -210,9 +210,9 @@ TEST_F(ConstantAccelerationAlgorithmTest, PredictsCaPositionAndPositionCovarianc
     EXPECT_NEAR(point.x.m(), 1011.0, 1e-8);
     EXPECT_NEAR(point.y.m(), 1022.0, 1e-8);
     EXPECT_NEAR(point.z.m(), 1033.0, 1e-8);
-    ASSERT_TRUE(first->positionCovariance());
-    EXPECT_NEAR((*first->positionCovariance())(0, 0), 10859.25, 1e-7);
-    EXPECT_TRUE(first->positionCovariance()->equals(*repeated->positionCovariance(), math::NONE_TOLERANCE));
+    ASSERT_TRUE(positionCovariance(*first));
+    EXPECT_NEAR((*positionCovariance(*first))(0, 0), 10859.25, 1e-7);
+    EXPECT_TRUE(positionCovariance(*first)->equals(*positionCovariance(*repeated), math::NONE_TOLERANCE));
     EXPECT_EQ(target.state(), saved);
     EXPECT_EQ(target.lastObservationTime(), 100ms);
     EXPECT_EQ(target.lastResultTime(), 100ms);
@@ -321,14 +321,14 @@ TEST_F(ConstantAccelerationAlgorithmTest, NonzeroProcessNoisePredictsExactFracti
     EXPECT_NEAR(point.x.m(), 1028.125, 1e-8);
     EXPECT_NEAR(point.y.m(), 1943.75, 1e-8);
     EXPECT_NEAR(point.z.m(), 3084.375, 1e-8);
-    ASSERT_TRUE(predicted->positionCovariance());
+    ASSERT_TRUE(positionCovariance(*predicted));
     // dt = 2.5 s: F I F^T gives 17.015625, and Qpp = 100 * dt^4 / 4.
     for (std::size_t row = 0; row < 3; ++row)
     {
         for (std::size_t column = 0; column < 3; ++column)
         {
             EXPECT_DOUBLE_EQ(
-                (*predicted->positionCovariance())(row, column),
+                (*positionCovariance(*predicted))(row, column),
                 row == column ? 993.578125 : 0.0
             );
         }
@@ -434,15 +434,15 @@ TEST_F(ConstantAccelerationAlgorithmTest, DoublingProcessSigmaQuadruplesAddedPre
     ASSERT_TRUE(baseline);
     ASSERT_TRUE(five);
     ASSERT_TRUE(ten);
-    ASSERT_TRUE(baseline->positionCovariance());
-    ASSERT_TRUE(five->positionCovariance());
-    ASSERT_TRUE(ten->positionCovariance());
+    ASSERT_TRUE(positionCovariance(*baseline));
+    ASSERT_TRUE(positionCovariance(*five));
+    ASSERT_TRUE(positionCovariance(*ten));
     for (std::size_t axis = 0; axis < 3; ++axis)
     {
-        const double addedFive = (*five->positionCovariance())(axis, axis)
-            - (*baseline->positionCovariance())(axis, axis);
-        const double addedTen = (*ten->positionCovariance())(axis, axis)
-            - (*baseline->positionCovariance())(axis, axis);
+        const double addedFive = (*positionCovariance(*five))(axis, axis)
+            - (*positionCovariance(*baseline))(axis, axis);
+        const double addedTen = (*positionCovariance(*ten))(axis, axis)
+            - (*positionCovariance(*baseline))(axis, axis);
         EXPECT_DOUBLE_EQ(addedFive, 244.140625);
         EXPECT_DOUBLE_EQ(addedTen, 4.0 * addedFive);
     }
@@ -463,19 +463,19 @@ TEST_F(ConstantAccelerationAlgorithmTest, ZeroElapsedPredictionAddsNoProcessNois
     const auto repeated = target.predict(100ms);
     ASSERT_TRUE(predicted);
     ASSERT_TRUE(repeated);
-    ASSERT_TRUE(predicted->positionCovariance());
-    ASSERT_TRUE(repeated->positionCovariance());
+    ASSERT_TRUE(positionCovariance(*predicted));
+    ASSERT_TRUE(positionCovariance(*repeated));
     for (std::size_t row = 0; row < 3; ++row)
     {
         for (std::size_t column = 0; column < 3; ++column)
         {
             EXPECT_DOUBLE_EQ(
-                (*predicted->positionCovariance())(row, column),
+                (*positionCovariance(*predicted))(row, column),
                 (*saved->errorCovariance())(row, column)
             );
         }
     }
-    EXPECT_TRUE(predicted->positionCovariance()->equals(*repeated->positionCovariance(), math::NONE_TOLERANCE));
+    EXPECT_TRUE(positionCovariance(*predicted)->equals(*positionCovariance(*repeated), math::NONE_TOLERANCE));
     EXPECT_EQ(target.state(), saved);
     EXPECT_EQ(target.lastObservationTime(), 100ms);
     EXPECT_EQ(target.lastResultTime(), 100ms);
@@ -501,17 +501,17 @@ TEST_F(ConstantAccelerationAlgorithmTest, MissesAndRepeatedPredictionsUseFullEla
     const auto repeated = target.predict(3100ms);
     ASSERT_TRUE(predicted);
     ASSERT_TRUE(repeated);
-    ASSERT_TRUE(predicted->positionCovariance());
-    ASSERT_TRUE(repeated->positionCovariance());
+    ASSERT_TRUE(positionCovariance(*predicted));
+    ASSERT_TRUE(positionCovariance(*repeated));
     EXPECT_NEAR(predicted->sphericalPosition().toCartesian().y.m(), 1031.0, 1e-9);
     // F(3s) P F(3s)^T + Q(3s); Qpp is 100 * 3^4 / 4 = 2025.
     const double expectedVariance = 49.0 + 6.0 * 490.0 + 9.0 * 9800.25
         + 27.0 * 5.0 + 81.0 * 25.0 + 2025.0;
     for (std::size_t axis = 0; axis < 3; ++axis)
     {
-        EXPECT_NEAR((*predicted->positionCovariance())(axis, axis), expectedVariance, 1e-7);
+        EXPECT_NEAR((*positionCovariance(*predicted))(axis, axis), expectedVariance, 1e-7);
     }
-    EXPECT_TRUE(predicted->positionCovariance()->equals(*repeated->positionCovariance(), math::NONE_TOLERANCE));
+    EXPECT_TRUE(positionCovariance(*predicted)->equals(*positionCovariance(*repeated), math::NONE_TOLERANCE));
     EXPECT_EQ(target.state(), saved);
     EXPECT_EQ(target.lastObservationTime(), 100ms);
     EXPECT_EQ(target.lastResultTime(), 2100ms);
@@ -596,10 +596,10 @@ TEST_F(ConstantAccelerationAlgorithmTest, MissesDoNotShortenElapsedTimeFromTheLa
     const auto predicted = target.predict(3100ms);
     ASSERT_TRUE(predicted);
     EXPECT_NEAR(predicted->sphericalPosition().toCartesian().y.m(), 1031.0, 1e-9);
-    ASSERT_TRUE(predicted->positionCovariance());
+    ASSERT_TRUE(positionCovariance(*predicted));
     // F(3s) P(100ms) F(3s)^T; misses do not replace P with repeated predictions.
     EXPECT_NEAR(
-        (*predicted->positionCovariance())(1, 1),
+        (*positionCovariance(*predicted))(1, 1),
         49.0 + 6.0 * 490.0 + 9.0 * 9800.25 + 27.0 * 5.0 + 81.0 * 25.0,
         1e-7
     );
@@ -657,26 +657,20 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsOriginAndNonfinitePredictionsWi
     EXPECT_EQ(overflowTarget.state(), saved);
 }
 
-TEST_F(ConstantAccelerationAlgorithmTest, PropagatesInvalidInnovationCovarianceAsMathError)
+TEST_F(ConstantAccelerationAlgorithmTest, RejectsIndefiniteStateCovarianceAtConstruction)
 {
     auto covariance = math::SquareMatrix::identity(9);
     covariance(0, 1) = 100.0;
     covariance(1, 0) = 100.0;
-    const auto target = seededTarget(
-        position(1000.0, 2000.0, 3000.0),
-        math::CartesianVelocity(0_mps, 0_mps, 0_mps),
-        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
-        covariance
-    );
-    const auto saved = target.state();
     EXPECT_THROW(
-        _algorithm->update(
-            target,
-            observation(position(1000.0, 2000.0, 3000.0), 1100ms)
+        seededTarget(
+            position(1000.0, 2000.0, 3000.0),
+            math::CartesianVelocity(0_mps, 0_mps, 0_mps),
+            math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
+            covariance
         ),
-        std::domain_error
+        std::invalid_argument
     );
-    EXPECT_EQ(target.state(), saved);
 }
 
 TEST(ConstantAccelerationConfigTest, ValidatesInitialAccelerationVarianceAndSingleMeasurementNoise)

@@ -14,12 +14,8 @@ namespace target
 std::optional<double> NdsCalculation::calculate(
     const math::SphericalPosition& observation,
     const math::SphericalPosition& reference,
-    std::optional<math::Length> maximumTravel
+    std::optional<math::Distance> maximumTravel
 ) const {
-    if (maximumTravel && (!std::isfinite(maximumTravel->m()) || maximumTravel->m() < 0.0))
-    {
-        return std::nullopt;
-    }
     try
     {
         const auto displacement = observation.toCartesian() - reference.toCartesian();
@@ -29,7 +25,7 @@ std::optional<double> NdsCalculation::calculate(
             const auto distance = displacement.distance();
             residual = distance <= *maximumTravel
                 ? math::Vector(DIMENSION)
-                : residual * ((distance - *maximumTravel) / distance);
+                : residual * (1.0 - *maximumTravel / distance);
         }
         return calculate(residual);
     }
@@ -47,8 +43,7 @@ NdsCalculation::NdsCalculation(math::SquareMatrix lowerCovariance) : _lowerCovar
 std::optional<NdsCalculation> NdsCalculation::from(
     const math::SquareMatrix& covariance
 ) {
-    if (covariance.size() != DIMENSION ||
-        !covariance.isSymmetric(math::Tolerance(0.0, 1e-9)))
+    if (covariance.size() != DIMENSION || !covariance.isFinite())
     {
         return std::nullopt;
     }
@@ -97,7 +92,13 @@ std::optional<double> NdsCalculation::calculate(const math::Vector& residual) co
         // Solve L y = r: ||y||^2 = r^T S^-1 r. norm() preserves tiny components.
         const double norm = transformed.norm();
         const double score = norm * norm;
-        return std::isfinite(score) ? std::optional<double>(score) : std::nullopt;
+
+        if (!std::isfinite(score))
+        {
+            return std::nullopt;
+        }
+
+        return std::optional<double>(score);
     }
     catch (const std::domain_error&)
     {
@@ -113,8 +114,15 @@ std::optional<double> NdsCalculation::calculate(
     {
         return std::nullopt;
     }
+
     const auto calculation = from(covariance);
-    return calculation ? calculation->calculate(residual) : std::nullopt;
+
+    if (!calculation)
+    {
+        return std::nullopt;
+    }
+
+    return calculation->calculate(residual);
 }
 
 } // namespace target

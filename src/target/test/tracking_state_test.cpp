@@ -216,7 +216,7 @@ TEST(TrackingStateTest, RejectsNonfiniteOrAsymmetricCovariance)
     );
 }
 
-TEST(TrackingStateTest, RejectsNegativeDiagonalButAllowsExplicitSingularZeroCovariance)
+TEST(TrackingStateTest, RejectsCovarianceThatIsNotPositiveDefinite)
 {
     auto negative = math::SquareMatrix::identity(TrackState::STATE_DIMENSION);
     negative(0, 0) = -1.0;
@@ -225,13 +225,11 @@ TEST(TrackingStateTest, RejectsNegativeDiagonalButAllowsExplicitSingularZeroCova
         std::invalid_argument
     );
 
-    const auto explicitZero = state(
-        math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
-        math::SquareMatrix(TrackState::STATE_DIMENSION)
+    const math::SquareMatrix singular(TrackState::STATE_DIMENSION);
+    EXPECT_THROW(
+        state(math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2), singular),
+        std::invalid_argument
     );
-    ASSERT_TRUE(explicitZero.errorCovariance());
-    EXPECT_EQ(*explicitZero.errorCovariance(), math::SquareMatrix(9));
-    // These are structural checks; they do not establish positive semidefiniteness for arbitrary matrices.
 }
 
 TEST(TrackingStateTest, StoresAlgorithmStateAcrossUpdatesAndPreservesItDuringMisses)

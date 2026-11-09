@@ -32,7 +32,7 @@ std::optional<TrackState> estimateTrackingState(
 ) {
     const auto time = observation.lastObservationTime();
     const auto position = observation.sphericalPosition().toCartesian();
-    const auto velocity = (position - previousPosition).toVelocity(std::chrono::duration<double>(elapsedSeconds(previousTime, time)));
+    const auto velocity = (position - previousPosition) / std::chrono::duration<double>(elapsedSeconds(previousTime, time));
     // The temporary CV strategy leaves acceleration zero and covariance unestimated.
     return TrackState(
         observation.sphericalPosition(),

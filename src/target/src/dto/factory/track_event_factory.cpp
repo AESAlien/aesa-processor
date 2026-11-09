@@ -25,12 +25,12 @@ TrackEvent TrackEventFactory::from(const ConfirmedTrack& track)
     const auto horizontalSpeed = velocity.horizontalSpeed();
     const auto speed = velocity.speed();
     const math::CircularAngle heading(
-        horizontalSpeed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+        horizontalSpeed.isPositive()
             ? math::atan2(velocity.x, velocity.y)
             : 0_deg
     );
     const math::TiltAngle flightPathAngle(
-        speed.greaterThan(0.0_mps, math::LinearVelocity::NONE_TOLERANCE)
+        speed.isPositive()
             ? math::atan2(velocity.z, horizontalSpeed)
             : 0_deg
     );

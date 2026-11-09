@@ -65,7 +65,7 @@ std::optional<math::CartesianVelocity> initialVelocity(
 ) {
     try
     {
-        const auto velocity = (second - first).toVelocity(std::chrono::duration<double>(seconds));
+        const auto velocity = (second - first) / std::chrono::duration<double>(seconds);
         static_cast<void>(velocity.speed());
         return velocity;
     }

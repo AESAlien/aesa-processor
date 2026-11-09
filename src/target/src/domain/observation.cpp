@@ -19,9 +19,9 @@ Observation::Observation(
 {
     using namespace math::literals;
     if (time.count() < 0 ||
-        !_position.radius.greaterThan(0_m, math::Length::NONE_TOLERANCE) ||
-        !std::isfinite(power_db))
-    {
+        _position.radius.isNonpositive() ||
+        !std::isfinite(power_db)
+    ) {
         throw std::invalid_argument("Observation requires a valid measurement and time");
     }
 }
