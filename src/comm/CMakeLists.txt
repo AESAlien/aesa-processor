@@ -18,6 +18,7 @@ target_link_libraries(comm PUBLIC
     beam
     target
 )
+target_link_libraries(comm PRIVATE Threads::Threads)
 
 if(WIN32)
     target_link_libraries(comm PUBLIC ws2_32)
@@ -69,6 +70,5 @@ if(BUILD_TESTING)
         comm
         GTest::gtest_main
     )
-    target_link_libraries(comm PUBLIC radar_logging)
     gtest_discover_tests(comm_message_encoder_test)
 endif()
