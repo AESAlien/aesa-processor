@@ -17,7 +17,7 @@ BeamRequestFactory::BeamRequestFactory(const RequestBeamConfig& config) : _confi
 {
 }
 
-BeamRequest BeamRequestFactory::from(const RequestBeamCommand& command) const
+BeamRequest BeamRequestFactory::create(const RequestBeamCommand& command) const
 {
     // 잘못된 transmitTime/requestId이면 BeamRequest 생성자가 예외를 던진다.
     switch (command.beamType)

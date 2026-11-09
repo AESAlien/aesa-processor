@@ -1,65 +1,61 @@
 #pragma once
 
-#include <target/config/association_config.hpp>
-#include <target/config/measurement_config.hpp>
-#include <target/config/tracking_config.hpp>
-#include <target/config/track_management_config.hpp>
+#include <math/quantity/length.hpp>
+#include <math/quantity/linear_acceleration.hpp>
+#include <math/quantity/linear_velocity.hpp>
 
-#include <optional>
-#include <utility>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
 
 namespace target
 {
 
-struct TargetConfig
+class TargetConfig
 {
-    class Builder
-    {
-    public:
-        Builder& associationConfig(AssociationConfig value)
-        {
-            _association.emplace(std::move(value));
-            return *this;
-        }
-
-        Builder& measurementConfig(MeasurementConfig value)
-        {
-            _measurement.emplace(std::move(value));
-            return *this;
-        }
-
-        Builder& trackingConfig(TrackingConfig value)
-        {
-            _tracking.emplace(std::move(value));
-            return *this;
-        }
-
-        Builder& trackManagementConfig(TrackManagementConfig value)
-        {
-            _trackManagement.emplace(std::move(value));
-            return *this;
-        }
-
-        TargetConfig build() const;
-
-    private:
-        std::optional<AssociationConfig> _association;
-        std::optional<MeasurementConfig> _measurement;
-        std::optional<TrackingConfig> _tracking;
-        std::optional<TrackManagementConfig> _trackManagement;
-    };
+public:
+    // Maximum console message capacity; a smaller reporting limit can be injected.
+    static constexpr std::size_t MAXIMUM_REPORTED_TRACK_COUNT = 100;
 
     TargetConfig(
-        AssociationConfig association,
-        MeasurementConfig measurement,
-        TrackingConfig tracking,
-        TrackManagementConfig trackManagement
-    );
+        math::LinearVelocity maxAssociationSpeed,
+        math::LinearVelocity maxInitialDopplerDifference,
+        math::Length measurementStandardDeviation,
+        double positionNdsThreshold,
+        std::chrono::milliseconds confirmationDelay,
+        std::chrono::milliseconds trackingInterval,
+        std::uint32_t maxConsecutiveTrackingMisses,
+        math::LinearAcceleration initialAccelerationStandardDeviation,
+        std::size_t maxReportedTrackCount,
+        math::LinearAcceleration processAccelerationStandardDeviation);
 
-    AssociationConfig association;
-    MeasurementConfig measurement;
-    TrackingConfig tracking;
-    TrackManagementConfig trackManagement;
+    const math::LinearVelocity& maxAssociationSpeed() const noexcept;
+    const math::LinearVelocity& maxInitialDopplerDifference() const noexcept;
+    const math::Length& measurementStandardDeviation() const noexcept;
+    // Provisional chi-square gate for three dimensions at 99%; tune at construction.
+    double positionNdsThreshold() const noexcept;
+    std::chrono::milliseconds confirmationDelay() const noexcept;
+    std::chrono::milliseconds trackingInterval() const noexcept;
+    std::uint32_t maxConsecutiveTrackingMisses() const noexcept;
+    // Per-axis initial acceleration uncertainty in m/s^2; a tunable starting value.
+    const math::LinearAcceleration& initialAccelerationStandardDeviation() const noexcept;
+    std::size_t maxReportedTrackCount() const noexcept;
+    // Per-axis acceleration disturbance (1 sigma) for each prediction interval.
+    const math::LinearAcceleration& processAccelerationStandardDeviation() const noexcept;
+
+private:
+    // Throws std::invalid_argument when a setting cannot be used by Target.
+    math::LinearVelocity _maxAssociationSpeed;
+    math::LinearVelocity _maxInitialDopplerDifference;
+    math::Length _measurementStandardDeviation;
+    double _positionNdsThreshold;
+    std::chrono::milliseconds _confirmationDelay;
+    std::chrono::milliseconds _trackingInterval;
+    std::uint32_t _maxConsecutiveTrackingMisses;
+    math::LinearAcceleration _initialAccelerationStandardDeviation;
+    std::size_t _maxReportedTrackCount;
+    math::LinearAcceleration _processAccelerationStandardDeviation;
+    void validate() const;
 };
 
 } // namespace target

@@ -40,7 +40,7 @@ void BeamController::setAttitude(SetAttitudeCommand command)
 RequestBeamResult BeamController::requestBeam(RequestBeamCommand command)
 {
     // 잘못된 요청이면 팩토리가 std::invalid_argument를 던지며, 이때는 결과를 만들지 않는다.
-    const RequestBeamStatus status = _scheduler->addRequest(_requestFactory->from(command));
+    const RequestBeamStatus status = _scheduler->addRequest(_requestFactory->create(command));
     return RequestBeamResult(status, command.requestId);
 }
 

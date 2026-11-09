@@ -41,26 +41,6 @@ double Distance::km() const noexcept
     return _length.km();
 }
 
-bool Distance::isPositive() const noexcept
-{
-    return _length.isPositive();
-}
-
-bool Distance::isNegative() const noexcept
-{
-    return _length.isNegative();
-}
-
-bool Distance::isNonpositive() const noexcept
-{
-    return _length.isNonpositive();
-}
-
-bool Distance::isNonnegative() const noexcept
-{
-    return _length.isNonnegative();
-}
-
 bool Distance::equals(
     const Distance& other,
     const QuantityTolerance<Length>& tolerance

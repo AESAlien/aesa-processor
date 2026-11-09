@@ -43,7 +43,7 @@ TEST(BeamRequestFactoryTest, ConvertsFromRequestBeamCommand)
         .build();
 
     // When: 팩토리로 요청 명령을 변환한다.
-    const auto request = makeFactory().from(command);
+    const auto request = makeFactory().create(command);
 
     // Then: 요청 팩토리는 명령의 송신 시각과 요청 ID 및 방향을 전달한다.
     EXPECT_EQ(request.transmitBeamType(), beam::BeamType::CONFIRMATION);
@@ -60,9 +60,9 @@ TEST(BeamRequestFactoryTest, CreatesRequestMatchingBeamType)
     const auto factory = makeFactory();
 
     // When: 각 종류의 요청을 생성한다.
-    const auto confirmation = factory.from(
+    const auto confirmation = factory.create(
         beam::RequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 1, makeDirection()));
-    const auto tracking = factory.from(
+    const auto tracking = factory.create(
         beam::RequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 2, makeDirection()));
 
     // Then: 요청 팩토리는 빔 종류에 맞는 폭과 우선순위를 지정한다.
@@ -89,15 +89,12 @@ TEST(BeamRequestFactoryTest, RejectsInvalidCommand)
         static_cast<beam::RequestBeamType>(beam::BeamType::SEARCH), 0ms, 1, makeDirection());
 
     // When: 각 명령으로 요청 생성을 시도한다.
-    const auto from = [&](const beam::RequestBeamCommand& command)
-    {
-        return factory.from(command);
-    };
+    const auto create = [&](const beam::RequestBeamCommand& command) { return factory.create(command); };
 
     // Then: 요청 팩토리는 잘못된 ID와 시각 및 빔 종류를 거부한다.
-    EXPECT_THROW(from(zeroId), std::invalid_argument);
-    EXPECT_THROW(from(negativeTime), std::invalid_argument);
-    EXPECT_THROW(from(zeroType), std::invalid_argument);
-    EXPECT_THROW(from(unknownType), std::invalid_argument);
-    EXPECT_THROW(from(searchType), std::invalid_argument);
+    EXPECT_THROW(create(zeroId), std::invalid_argument);
+    EXPECT_THROW(create(negativeTime), std::invalid_argument);
+    EXPECT_THROW(create(zeroType), std::invalid_argument);
+    EXPECT_THROW(create(unknownType), std::invalid_argument);
+    EXPECT_THROW(create(searchType), std::invalid_argument);
 }
