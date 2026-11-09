@@ -116,14 +116,14 @@ TEST(CartesianDisplacementTest, SubtractsIdenticalPositionsToZero)
     const auto displacement = point - point;
 
     EXPECT_EQ(displacement.distance(), 0_m);
-    EXPECT_EQ(displacement.toVelocity(std::chrono::seconds{1}).speed(), 0_mps);
+    EXPECT_EQ((displacement / std::chrono::seconds{1}).speed(), 0_mps);
 }
 
 // 계산 결과와 수치적 안정성을 검증한다.
-TEST(CartesianDisplacementTest, CalculatesVelocityFromElapsedSeconds)
+TEST(CartesianDisplacementTest, DividesDisplacementByElapsedTime)
 {
     const math::CartesianDisplacement displacement(3_m, -4_m, 12_m);
-    const auto velocity = displacement.toVelocity(std::chrono::milliseconds{500});
+    const auto velocity = displacement / std::chrono::milliseconds{500};
 
     EXPECT_EQ(velocity.x, 6_mps);
     EXPECT_EQ(velocity.y, -8_mps);
@@ -194,7 +194,7 @@ TEST(CartesianDisplacementTest, RejectsInvalidElapsedTime)
     for (double seconds : {0.0, -1.0, std::numeric_limits<double>::infinity(),
         -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN()})
     {
-        EXPECT_THROW(displacement.toVelocity(std::chrono::duration<double>{seconds}), std::invalid_argument);
+        EXPECT_THROW(displacement / std::chrono::duration<double>{seconds}, std::invalid_argument);
     }
 }
 
@@ -204,7 +204,7 @@ TEST(CartesianDisplacementTest, DividesSubnormalComponentsWithoutReciprocalOverf
     const double smallest = std::numeric_limits<double>::denorm_min();
     const math::CartesianDisplacement displacement(
         math::Length::fromMeters(smallest), math::Length::fromMeters(-smallest), 0_m);
-    const auto velocity = displacement.toVelocity(std::chrono::duration<double>{smallest});
+    const auto velocity = displacement / std::chrono::duration<double>{smallest};
 
     EXPECT_EQ(velocity.x, 1_mps);
     EXPECT_EQ(velocity.y, -1_mps);
@@ -216,8 +216,8 @@ TEST(CartesianDisplacementTest, RejectsVelocityOverflow)
 {
     const math::CartesianDisplacement displacement(1_m, 0_m, 0_m);
 
-    EXPECT_THROW(displacement.toVelocity(
-        std::chrono::duration<double>{std::numeric_limits<double>::denorm_min()}), std::invalid_argument);
+    EXPECT_THROW(displacement /
+        std::chrono::duration<double>{std::numeric_limits<double>::denorm_min()}, std::invalid_argument);
 }
 
 // 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.

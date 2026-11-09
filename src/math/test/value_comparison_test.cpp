@@ -612,12 +612,28 @@ TYPED_TEST(QuantityComparisonTest, PolicyValidatesStoredUnitsExactly)
 }
 
 // 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
-TYPED_TEST(QuantityComparisonTest, ChecksNonnegativity)
+TYPED_TEST(QuantityComparisonTest, ChecksSignsExactly)
 {
-    EXPECT_TRUE(makeQuantity<TypeParam>(-0.0).isNonnegative());
-    EXPECT_TRUE(makeQuantity<TypeParam>(std::numeric_limits<double>::max()).isNonnegative());
     const auto negative = makeQuantity<TypeParam>(-0.5e-12);
+    const auto zero = makeQuantity<TypeParam>(0.0);
+    const auto positive = makeQuantity<TypeParam>(0.5e-12);
+
+    EXPECT_TRUE(negative.isNegative());
+    EXPECT_TRUE(negative.isNonpositive());
+    EXPECT_FALSE(negative.isPositive());
     EXPECT_FALSE(negative.isNonnegative());
+
+    EXPECT_FALSE(zero.isNegative());
+    EXPECT_TRUE(zero.isNonpositive());
+    EXPECT_FALSE(zero.isPositive());
+    EXPECT_TRUE(zero.isNonnegative());
+    EXPECT_TRUE(makeQuantity<TypeParam>(-0.0).isNonnegative());
+
+    EXPECT_FALSE(positive.isNegative());
+    EXPECT_FALSE(positive.isNonpositive());
+    EXPECT_TRUE(positive.isPositive());
+    EXPECT_TRUE(positive.isNonnegative());
+    EXPECT_TRUE(makeQuantity<TypeParam>(std::numeric_limits<double>::max()).isNonnegative());
 }
 
 // 계산 결과와 수치적 안정성을 검증한다.
