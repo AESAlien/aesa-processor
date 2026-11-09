@@ -43,7 +43,7 @@ NdsCalculation::NdsCalculation(math::SquareMatrix lowerCovariance) : _lowerCovar
 std::optional<NdsCalculation> NdsCalculation::from(
     const math::SquareMatrix& covariance
 ) {
-    if (covariance.size() != DIMENSION || !covariance.isFinite())
+    if (covariance.size() != DIMENSION || !covariance.isSymmetric())
     {
         return std::nullopt;
     }
