@@ -34,18 +34,24 @@ const Observation& TentativeTrack::observation() const
 
 std::chrono::milliseconds TentativeTrack::lastResultTime() const
 {
-    return _observation.lastObservationTime();
+    return _observation.observationTime();
 }
 
 std::optional<TrackState> TentativeTrack::initialize(const Observation& observation) const
 {
-    const auto time = observation.lastObservationTime();
+    std::any algorithmState;
+    return initialize(observation, algorithmState);
+}
+
+std::optional<TrackState> TentativeTrack::initialize(const Observation& observation, std::any& algorithmState) const
+{
+    const auto time = observation.observationTime();
     if (time <= lastResultTime())
     {
         return std::nullopt;
     }
 
-    auto state = _trackingAlgorithm->initialize(_observation, observation);
+    auto state = _trackingAlgorithm->initialize(_observation, observation, algorithmState);
     if (state && state->timestamp() != time)
     {
         throw std::invalid_argument("Tracking state must use the observation time");
@@ -55,12 +61,13 @@ std::optional<TrackState> TentativeTrack::initialize(const Observation& observat
 
 std::optional<ConfirmedTrack> TentativeTrack::confirm(const Observation& observation) const
 {
-    auto state = initialize(observation);
+    std::any algorithmState;
+    auto state = initialize(observation, algorithmState);
     if (!state)
     {
         return std::nullopt;
     }
-    return ConfirmedTrack(_id, lastResultTime(), std::move(*state), _trackingAlgorithm);
+    return ConfirmedTrack(_id, lastResultTime(), std::move(*state), _trackingAlgorithm, std::move(algorithmState));
 }
 
 } // namespace target

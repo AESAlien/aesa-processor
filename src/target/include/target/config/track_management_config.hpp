@@ -11,7 +11,7 @@ namespace target
 class TrackManagementConfig
 {
 public:
-    // Maximum console message capacity; a smaller reporting limit can be injected.
+    // 콘솔 메시지 한 건에 담을 수 있는 최대 트랙 수다.
     static constexpr std::size_t MAXIMUM_REPORTED_TRACK_COUNT = 100;
 
     class Builder

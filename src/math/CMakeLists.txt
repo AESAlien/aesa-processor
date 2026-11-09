@@ -5,6 +5,7 @@ add_library(math STATIC
     src/bounded/circular_angle.cpp
     src/bounded/tilt_angle.cpp
     src/bounded/distance.cpp
+    src/bounded/speed.cpp
     src/geometry/cartesian_acceleration.cpp
     src/geometry/cartesian_displacement.cpp
     src/geometry/cartesian_position.cpp

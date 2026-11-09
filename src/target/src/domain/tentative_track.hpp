@@ -6,7 +6,6 @@
 namespace target
 {
 
-// Confirmation creates a ConfirmedTrack without mutating this first observation.
 class TentativeTrack
 {
 public:
@@ -24,6 +23,8 @@ public:
     std::optional<ConfirmedTrack> confirm(const Observation& observation) const;
 
 private:
+    std::optional<TrackState> initialize(const Observation& observation, std::any& algorithmState) const;
+
     const std::uint32_t _id;
     const Observation _observation;
     const std::shared_ptr<const ITrackingAlgorithm> _trackingAlgorithm;

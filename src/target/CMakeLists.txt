@@ -6,6 +6,7 @@ add_library(target STATIC
     src/config/target_config.cpp
     src/controller/target_controller.cpp
     src/service/detection_handler.cpp
+    src/service/track_reporter.cpp
     src/domain/algorithm/nds_calculation.cpp
     src/domain/algorithm/nds_algorithm.cpp
     src/domain/algorithm/constant_velocity_algorithm.cpp
@@ -20,7 +21,9 @@ add_library(target STATIC
     src/domain/factory/detection_result_factory.cpp
     src/domain/factory/track_factory.cpp
     src/dto/factory/track_event_factory.cpp
+    src/domain/track_prediction.cpp
     src/domain/track_state.cpp
+    src/domain/position_uncertainty.cpp
     src/repository/track_repository.cpp
 )
 

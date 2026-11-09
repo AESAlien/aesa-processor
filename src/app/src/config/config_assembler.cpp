@@ -2,10 +2,10 @@
 
 #include <math/quantity/angle.hpp>
 #include <math/bounded/circular_angle.hpp>
+#include <math/bounded/speed.hpp>
 #include <math/bounded/tilt_angle.hpp>
 #include <math/quantity/length.hpp>
 #include <math/quantity/linear_acceleration.hpp>
-#include <math/quantity/linear_velocity.hpp>
 #include <math/tolerance.hpp>
 
 #include <chrono>
@@ -149,8 +149,8 @@ target::TargetConfig ConfigAssembler::createTargetConfig()
 
         return target::TargetConfig(
             target::AssociationConfig(
-                math::LinearVelocity::fromMetersPerSecond(MAX_ASSOCIATION_SPEED_MPS),
-                math::LinearVelocity::fromMetersPerSecond(MAX_INITIAL_DOPPLER_DIFFERENCE_MPS),
+                math::Speed::fromMetersPerSecond(MAX_ASSOCIATION_SPEED_MPS),
+                math::Speed::fromMetersPerSecond(MAX_INITIAL_DOPPLER_DIFFERENCE_MPS),
                 POSITION_NDS_THRESHOLD),
             target::MeasurementConfig(
                 math::Length::fromMeters(MEASUREMENT_STANDARD_DEVIATION_M)),

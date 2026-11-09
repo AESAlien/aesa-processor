@@ -40,21 +40,22 @@ target::TrackEvent makeTrackEvent(
     double slantRangeKilometers = 12.5
 )
 {
-    return target::TrackEvent(
-        42,
-        target::TrackEvent::TrackStatus::TRACKING,
-        math::Distance::fromKilometers(slantRangeKilometers),
-        math::Distance(10.25_km),
-        math::CircularAngle(15.5_deg),
-        math::TiltAngle(6.25_deg),
-        -120.5_mps,
-        math::TiltAngle(37.5_deg),
-        math::CircularAngle(127.25_deg),
-        2.5_km,
-        250.75_mps,
-        math::CircularAngle(45.5_deg),
-        math::TiltAngle(-2.25_deg),
-        timestamp);
+    return target::TrackEvent::Builder()
+        .id(42)
+        .state(target::TrackEvent::TrackStatus::TRACKING)
+        .slantRange(math::Distance::fromKilometers(slantRangeKilometers))
+        .groundRange(math::Distance(10.25_km))
+        .azimuth(15.5_deg)
+        .elevation(6.25_deg)
+        .dopplerVelocity(-120.5_mps)
+        .latitude(37.5_deg)
+        .longitude(127.25_deg)
+        .altitude(2.5_km)
+        .speed(math::Speed(250.75_mps))
+        .heading(45.5_deg)
+        .flightPathAngle(-2.25_deg)
+        .timestamp(timestamp)
+        .build();
 }
 
 template <typename Value>

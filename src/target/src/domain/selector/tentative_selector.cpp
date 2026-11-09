@@ -20,22 +20,21 @@ TentativeSelector::TentativeSelector(
     }
 }
 
-std::optional<std::size_t> TentativeSelector::selectNewCandidate(
+std::optional<Observation> TentativeSelector::selectNewCandidate(
     const std::vector<Observation>& observations,
     const std::list<Track>& tracks
 ) const {
-    for (std::size_t index = 0; index < observations.size(); ++index)
+    for (const auto& observation : observations)
     {
-        const Observation& observation = observations[index];
-        bool associated = false;
-        for (const auto& target : tracks)
+        auto associated = false;
+        for (const auto& track : tracks)
         {
             const auto score = std::visit(
-                [&](const auto& registeredTarget)
+                [&](const auto& existingTrack)
                 {
-                    return matchesPosition(observation, registeredTarget);
+                    return matchingPositionScore(observation, existingTrack);
                 },
-                target
+                track
             );
             if (score)
             {
@@ -46,7 +45,7 @@ std::optional<std::size_t> TentativeSelector::selectNewCandidate(
 
         if (!associated)
         {
-            return index;
+            return observation;
         }
     }
 
@@ -64,8 +63,8 @@ std::optional<double> TentativeSelector::positionScore(
         std::optional<math::Distance> maximumTravel;
         if (compensateMotion)
         {
-            const auto elapsed = std::chrono::abs(observation.lastObservationTime() - referenceTime);
-            maximumTravel = math::Distance(_config.maxAssociationSpeed() * elapsed);
+            const auto elapsed = std::chrono::abs(observation.observationTime() - referenceTime);
+            maximumTravel = math::Distance(_config.maxAssociationSpeed().asLinearVelocity() * elapsed);
         }
         const auto score = _algorithm->calculate(observation.sphericalPosition(), referencePosition, maximumTravel);
         return score && *score <= _config.positionNdsThreshold() ? score : std::nullopt;
@@ -76,7 +75,7 @@ std::optional<double> TentativeSelector::positionScore(
     }
 }
 
-std::optional<double> TentativeSelector::matchesPosition(
+std::optional<double> TentativeSelector::matchingPositionScore(
     const Observation& observation,
     const TentativeTrack& other
 ) const {
@@ -88,25 +87,21 @@ std::optional<double> TentativeSelector::matchesPosition(
     return positionScore(
         observation,
         first.sphericalPosition(),
-        first.lastObservationTime(),
+        first.observationTime(),
         true
     );
 }
 
-std::optional<double> TentativeSelector::matchesPosition(
+std::optional<double> TentativeSelector::matchingPositionScore(
     const Observation& observation,
     const ConfirmedTrack& other
 ) const {
-    const auto time = observation.lastObservationTime();
+    const auto time = observation.observationTime();
     const auto referenceTime = other.lastObservationTime();
     if (time >= referenceTime)
     {
-        const auto prediction = other.predict(time);
+        const auto prediction = _algorithm->predictAndPrepare(other, time);
         if (!prediction)
-        {
-            return std::nullopt;
-        }
-        if (!_algorithm->preparePrediction(*prediction))
         {
             return std::nullopt;
         }
@@ -118,7 +113,7 @@ std::optional<double> TentativeSelector::matchesPosition(
         );
     }
 
-    return _algorithm->prepareState(*other.state())
+    return _algorithm->prepareFromLastObservation(other)
         ? positionScore(observation, other.sphericalPosition(), referenceTime, true)
         : std::nullopt;
 }

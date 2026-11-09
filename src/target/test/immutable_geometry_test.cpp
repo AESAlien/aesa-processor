@@ -46,10 +46,10 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
         )
     );
 
-    auto confirmedLastTrack = repository.findTentative(lastId)->confirm(target::Observation(position(301_m), 1_mps, 1.0f, 1000ms));
+    auto confirmedLastTrack = repository.findTentativeTrack(lastId)->confirm(target::Observation(position(301_m), 1_mps, 1.0f, 1000ms));
     ASSERT_TRUE(confirmedLastTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedLastTrack).value()));
-    auto* tracked = repository.findTrack(lastId);
+    auto* tracked = repository.findConfirmedTrack(lastId);
     ASSERT_TRUE(tracked->update(target::Observation(position(302_m), 1_mps, 1.0f, 2000ms)));
     EXPECT_EQ(tracked->state()->position().x, 0_m);
     EXPECT_EQ(tracked->state()->position().y, 302_m);
@@ -58,14 +58,14 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
 
     EXPECT_FALSE(repository.remove(0));
     ASSERT_TRUE(repository.remove(middleId));
-    ASSERT_EQ(repository.targets().size(), 2u);
+    ASSERT_EQ(repository.tracks().size(), 2u);
     EXPECT_EQ(
         std::visit(
             [](const auto& value)
             {
                 return value.id();
             },
-            repository.targets().front()
+            repository.tracks().front()
         ),
         firstId
     );
@@ -75,12 +75,12 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
             {
                 return value.id();
             },
-            repository.targets().back()
+            repository.tracks().back()
         ),
         lastId
     );
-    EXPECT_EQ(repository.findTrack(middleId), nullptr);
-    tracked = repository.findTrack(lastId);
+    EXPECT_EQ(repository.findConfirmedTrack(middleId), nullptr);
+    tracked = repository.findConfirmedTrack(lastId);
     ASSERT_TRUE(tracked->state());
     EXPECT_EQ(tracked->state()->position().y, 302_m);
     ASSERT_TRUE(tracked->update(target::Observation(position(303_m), 1_mps, 1.0f, 3000ms)));
@@ -88,14 +88,14 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
 
     EXPECT_TRUE(repository.remove(firstId));
     EXPECT_TRUE(repository.remove(lastId));
-    EXPECT_TRUE(repository.targets().empty());
+    EXPECT_TRUE(repository.tracks().empty());
     EXPECT_FALSE(repository.remove(lastId));
 }
 
 TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
 {
     using BeamType = beam::BeamType;
-    for (double displacement : {0.0, 1.0})
+    for (auto displacement : {0.0, 1.0})
     {
         target::TargetController controller(
             target::TargetConfig(
@@ -125,7 +125,7 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
         ASSERT_TRUE(tracking.has_value());
         const auto events = controller.nextTrackEvents();
         ASSERT_EQ(events.size(), 1u);
-        EXPECT_DOUBLE_EQ(events[0].velocity.mps(), displacement);
+        EXPECT_DOUBLE_EQ(events[0].speed.mps(), displacement);
         EXPECT_DOUBLE_EQ(events[0].latitude.deg(), 0.0);
         EXPECT_DOUBLE_EQ(events[0].longitude.deg(), 0.0);
         EXPECT_DOUBLE_EQ(events[0].heading.deg(), 0.0);

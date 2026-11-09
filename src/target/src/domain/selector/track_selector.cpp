@@ -15,7 +15,7 @@ namespace
 {
 
 template <typename TargetType, typename Match>
-std::optional<std::size_t> selectBestObservation(
+std::optional<Observation> selectBestObservation(
     const TargetType& target,
     std::chrono::milliseconds resultTime,
     const std::vector<Observation>& observations,
@@ -26,25 +26,28 @@ std::optional<std::size_t> selectBestObservation(
         return std::nullopt;
     }
 
-    std::optional<std::size_t> bestIndex;
-    double bestScore = 0.0;
-    for (std::size_t index = 0; index < observations.size(); ++index)
+    const Observation* bestObservation = nullptr;
+    auto bestScore = 0.0;
+    for (const auto& observation : observations)
     {
-        const auto& observation = observations[index];
-        if (observation.lastObservationTime() != resultTime)
+        if (observation.observationTime() != resultTime)
         {
             continue;
         }
 
         const auto score = match(observation, target);
-        // Keep the first observation when two eligible scores are equal.
-        if (score && (!bestIndex || *score < bestScore))
+        // 점수가 같으면 먼저 나온 관측을 유지한다.
+        if (score && (!bestObservation || *score < bestScore))
         {
-            bestIndex = index;
+            bestObservation = &observation;
             bestScore = *score;
         }
     }
-    return bestIndex;
+    if (bestObservation)
+    {
+        return *bestObservation;
+    }
+    return std::nullopt;
 }
 
 } // namespace
@@ -61,48 +64,42 @@ TrackSelector::TrackSelector(
     }
 }
 
-std::optional<std::size_t> TrackSelector::selectObservation(
-    const ConfirmedTrack& track,
+std::optional<Observation> TrackSelector::selectTrackingObservation(
+    const ConfirmedTrack& confirmedTrack,
     std::chrono::milliseconds resultTime,
     const std::vector<Observation>& observations
 ) const {
-    bool prepared = false;
-    std::optional<math::SphericalPosition> predictedPosition;
-    bool ready = false;
-    // Empty batches and observations at other times must not trigger prediction.
+    auto prepared = false;
+    std::optional<TrackPrediction> prediction;
     return selectBestObservation(
-        track,
+        confirmedTrack,
         resultTime,
         observations,
         [&](const Observation& observation, const ConfirmedTrack& current)
         {
+            // 결과 시각에 맞는 관측이 처음 들어올 때만 예측한다.
             if (!prepared)
             {
                 prepared = true;
-                const auto prediction = current.predict(resultTime);
-                if (prediction)
-                {
-                    predictedPosition = prediction->sphericalPosition();
-                    ready = _algorithm->preparePrediction(*prediction);
-                }
+                prediction = _algorithm->predictAndPrepare(current, resultTime);
             }
-            if (!ready)
+            if (!prediction)
             {
                 return std::optional<double>();
             }
-            const auto score = _algorithm->calculate(observation.sphericalPosition(), *predictedPosition);
+            const auto score = _algorithm->calculate(observation.sphericalPosition(), prediction->sphericalPosition());
             return score && *score <= _config.positionNdsThreshold() ? score : std::nullopt;
         }
     );
 }
 
-std::optional<std::size_t> TrackSelector::selectConfirmation(
+std::optional<Observation> TrackSelector::selectConfirmationObservation(
     const TentativeTrack& tentative,
     std::chrono::milliseconds resultTime,
     const std::vector<Observation>& observations
 ) const {
-    bool prepared = false;
-    bool ready = false;
+    auto prepared = false;
+    auto ready = false;
     return selectBestObservation(
         tentative,
         resultTime,
@@ -123,7 +120,7 @@ std::optional<double> TrackSelector::confirmationScore(
     const Observation& observation,
     const TentativeTrack& tentative
 ) const {
-    const auto time = observation.lastObservationTime();
+    const auto time = observation.observationTime();
     if (time <= tentative.lastResultTime())
     {
         return std::nullopt;
@@ -134,7 +131,6 @@ std::optional<double> TrackSelector::confirmationScore(
     try
     {
         const auto displacement = position - initialPosition;
-        // Ordered nonnegative times keep this integer subtraction within its range.
         const auto elapsed = std::chrono::duration<double>(time - tentative.lastResultTime());
 
         const auto speed = (displacement / elapsed).speed();
@@ -143,8 +139,11 @@ std::optional<double> TrackSelector::confirmationScore(
             return std::nullopt;
         }
 
-        const auto differnce = math::QuantityTolerance<math::LinearVelocity>(_config.maxInitialDopplerDifference(), 0.0);
-        if (observation.dopplerVelocity().notEquals(tentative.observation().dopplerVelocity(), differnce))
+        const auto dopplerTolerance = math::QuantityTolerance<math::LinearVelocity>(
+            _config.maxInitialDopplerDifference().asLinearVelocity(),
+            0.0
+        );
+        if (observation.dopplerVelocity().notEquals(tentative.observation().dopplerVelocity(), dopplerTolerance))
         {
             return std::nullopt;
         }

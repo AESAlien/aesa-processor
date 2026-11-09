@@ -11,29 +11,53 @@
 
 namespace target
 {
-namespace
-{
 
-using namespace math::literals;
+std::optional<TrackState> ConstantVelocityAlgorithm::initialize(
+    const Observation& first,
+    const Observation& second,
+    std::any&
+) const {
+    const auto firstTime = first.observationTime();
+    const auto secondTime = second.observationTime();
+    if (secondTime <= firstTime)
+    {
+        return std::nullopt;
+    }
 
-double elapsedSeconds(
-    std::chrono::milliseconds previous,
-    std::chrono::milliseconds current
-) {
-    // Validated nonnegative, ordered times keep the integer difference in range.
-    // Subtract before conversion to preserve short intervals at large timestamps.
-    return std::chrono::duration<double>(current - previous).count();
+    const auto firstPosition = first.sphericalPosition().toCartesian();
+    const auto secondPosition = second.sphericalPosition().toCartesian();
+    // 시각이 큰 경우에도 짧은 간격을 보존하도록 먼저 뺀 뒤 초 단위로 변환한다.
+    const auto elapsed = std::chrono::duration<double>(secondTime - firstTime);
+    const auto velocity = (secondPosition - firstPosition) / elapsed;
+
+    return TrackState(
+        second.sphericalPosition(),
+        second.dopplerVelocity(),
+        second.power_db(),
+        secondTime,
+        secondPosition,
+        velocity
+    );
 }
 
-std::optional<TrackState> estimateTrackingState(
-    const math::CartesianPosition& previousPosition,
-    std::chrono::milliseconds previousTime,
-    const Observation& observation
-) {
-    const auto time = observation.lastObservationTime();
+std::optional<TrackState> ConstantVelocityAlgorithm::update(
+    const ConfirmedTrack& current,
+    const Observation& observation,
+    std::any&
+) const {
+    const auto& currentState = current.state();
+    const auto previousTime = currentState->timestamp();
+    const auto time = observation.observationTime();
+    if (time <= previousTime)
+    {
+        return std::nullopt;
+    }
+
     const auto position = observation.sphericalPosition().toCartesian();
-    const auto velocity = (position - previousPosition) / std::chrono::duration<double>(elapsedSeconds(previousTime, time));
-    // The temporary CV strategy leaves acceleration zero and covariance unestimated.
+    // 시각이 큰 경우에도 짧은 간격을 보존하도록 먼저 뺀 뒤 초 단위로 변환한다.
+    const auto elapsed = std::chrono::duration<double>(time - previousTime);
+    const auto velocity = (position - currentState->position()) / elapsed;
+
     return TrackState(
         observation.sphericalPosition(),
         observation.dopplerVelocity(),
@@ -44,40 +68,12 @@ std::optional<TrackState> estimateTrackingState(
     );
 }
 
-} // namespace
-
-std::optional<TrackState> ConstantVelocityAlgorithm::initialize(
-    const Observation& first,
-    const Observation& second
-) const {
-    const auto firstTime = first.lastObservationTime();
-    const auto secondTime = second.lastObservationTime();
-    if (secondTime <= firstTime)
-    {
-        return std::nullopt;
-    }
-
-    return estimateTrackingState(first.sphericalPosition().toCartesian(), firstTime, second);
-}
-
-std::optional<TrackState> ConstantVelocityAlgorithm::update(
-    const ConfirmedTrack& current,
-    const Observation& observation
-) const {
-    const auto& currentState = current.state();
-    const auto time = observation.lastObservationTime();
-    if (time <= currentState->timestamp())
-    {
-        return std::nullopt;
-    }
-
-    return estimateTrackingState(currentState->position(), currentState->timestamp(), observation);
-}
-
-std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
+std::optional<TrackPrediction> ConstantVelocityAlgorithm::predict(
     const ConfirmedTrack& current,
     std::chrono::milliseconds time
 ) const {
+    using namespace math::literals;
+
     const auto& currentState = current.state();
     if (!currentState || time < currentState->timestamp())
     {
@@ -85,20 +81,18 @@ std::optional<TargetPrediction> ConstantVelocityAlgorithm::predict(
     }
 
     const auto& state = *currentState;
-    // Preserve a stationary measured position without conversion roundoff.
     const auto& velocity = state.velocity();
-    if (velocity.x.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE) &&
-        velocity.y.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE) &&
-        velocity.z.equals(0.0_mps, math::LinearVelocity::NONE_TOLERANCE))
+    if (velocity.x == 0_mps && velocity.y == 0_mps && velocity.z == 0_mps)
     {
-        return TargetPrediction(time, state.sphericalPosition());
+        // 정지 상태에서는 좌표 변환 오차 없이 관측 위치를 보존한다.
+        return TrackPrediction(time, state.sphericalPosition());
     }
 
     try
     {
         const auto displacement = velocity * (time - state.timestamp());
         const auto predictedPosition = state.position() + displacement;
-        return TargetPrediction(time, predictedPosition.toSpherical());
+        return TrackPrediction(time, predictedPosition.toSpherical());
     }
     catch (const std::invalid_argument&)
     {

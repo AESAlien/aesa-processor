@@ -56,7 +56,7 @@ float Observation::power_db() const
     return _power_db;
 }
 
-std::chrono::milliseconds Observation::lastObservationTime() const
+std::chrono::milliseconds Observation::observationTime() const
 {
     return _time;
 }

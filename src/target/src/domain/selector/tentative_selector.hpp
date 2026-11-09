@@ -6,7 +6,6 @@
 
 #include <target/config/association_config.hpp>
 
-#include <cstddef>
 #include <list>
 #include <optional>
 #include <memory>
@@ -18,7 +17,7 @@ namespace target
 class TentativeTrack;
 class ConfirmedTrack;
 
-// Select at most one new tentative target from a search beam result.
+// 연관 점수 계산에 쓰는 준비 상태를 공유하므로 한 인스턴스에 대한 호출은 겹치면 안 된다.
 class TentativeSelector
 {
 public:
@@ -27,15 +26,14 @@ public:
         std::unique_ptr<IAssociationAlgorithm> algorithm
     );
 
-    // Inputs are read only during this call and are not retained.
-    std::optional<std::size_t> selectNewCandidate(
+    std::optional<Observation> selectNewCandidate(
         const std::vector<Observation>& observations,
         const std::list<Track>& tracks
     ) const;
 
 private:
-    std::optional<double> matchesPosition(const Observation& observation, const TentativeTrack& other) const;
-    std::optional<double> matchesPosition(const Observation& observation, const ConfirmedTrack& other) const;
+    std::optional<double> matchingPositionScore(const Observation& observation, const TentativeTrack& other) const;
+    std::optional<double> matchingPositionScore(const Observation& observation, const ConfirmedTrack& other) const;
     std::optional<double> positionScore(
         const Observation& observation,
         const math::SphericalPosition& referencePosition,
@@ -43,7 +41,6 @@ private:
         bool compensateMotion
     ) const;
 
-    // Owns mutable preparation state. Calls on one selector must not overlap.
     const AssociationConfig _config;
     const std::unique_ptr<IAssociationAlgorithm> _algorithm;
 };

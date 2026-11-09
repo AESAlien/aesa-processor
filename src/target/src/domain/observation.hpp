@@ -8,7 +8,6 @@
 namespace target
 {
 
-// A measurement has no repository identity or tracking strategy.
 class Observation
 {
 public:
@@ -25,7 +24,7 @@ public:
     math::TiltAngle elevation() const;
     math::LinearVelocity dopplerVelocity() const;
     float power_db() const;
-    std::chrono::milliseconds lastObservationTime() const;
+    std::chrono::milliseconds observationTime() const;
 
 private:
     const math::SphericalPosition _position;

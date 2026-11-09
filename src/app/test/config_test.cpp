@@ -192,8 +192,8 @@ TEST(AppConfigTest, LoadsEveryConfigurationValue)
     EXPECT_EQ(config.beamConfig.requestCoverage.elevationRange().start(), -5_deg);
     EXPECT_EQ(config.beamConfig.requestCoverage.elevationRange().end(), 65_deg);
 
-    EXPECT_EQ(config.targetConfig.association.maxAssociationSpeed(), 900_mps);
-    EXPECT_EQ(config.targetConfig.association.maxInitialDopplerDifference(), 25_mps);
+    EXPECT_EQ(config.targetConfig.association.maxAssociationSpeed(), math::Speed(900_mps));
+    EXPECT_EQ(config.targetConfig.association.maxInitialDopplerDifference(), math::Speed(25_mps));
     EXPECT_EQ(config.targetConfig.measurement.standardDeviation(), 6_m);
     EXPECT_DOUBLE_EQ(config.targetConfig.association.positionNdsThreshold(), 10.0);
     EXPECT_EQ(config.targetConfig.trackManagement.confirmationDelay(), 150ms);
@@ -303,7 +303,7 @@ TEST(AppConfigTest, ParsesQuotedValuesAndInlineComments)
     const app::Config config = loadConfig(file.path());
 
     EXPECT_EQ(config.beamConfig.attitude.maxAbsPitch(), 60_deg);
-    EXPECT_EQ(config.targetConfig.association.maxAssociationSpeed(), 900_mps);
+    EXPECT_EQ(config.targetConfig.association.maxAssociationSpeed(), math::Speed(900_mps));
     EXPECT_EQ(config.commConfig.server().address(), "127.0.0.1");
 }
 

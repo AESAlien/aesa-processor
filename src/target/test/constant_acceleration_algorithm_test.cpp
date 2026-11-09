@@ -20,11 +20,38 @@
 
 namespace target
 {
+namespace test_support
+{
+
+class KalmanStateAccess : private ITrackingAlgorithm
+{
+public:
+    static std::any makeState(math::SquareMatrix covariance)
+    {
+        std::any state;
+        ConstantAccelerationAlgorithm::storeCovariance(state, std::move(covariance));
+        return state;
+    }
+
+    static const math::SquareMatrix* covariance(const ConfirmedTrack& track) noexcept
+    {
+        return covariance(algorithmState(track));
+    }
+
+    static const math::SquareMatrix* covariance(const std::any& state) noexcept
+    {
+        return ConstantAccelerationAlgorithm::stateCovariance(state);
+    }
+};
+
+} // namespace test_support
+
 namespace
 {
 
 using namespace math::literals;
 using namespace std::chrono_literals;
+using test_support::KalmanStateAccess;
 using Time = std::chrono::milliseconds;
 
 math::CartesianPosition position(double x, double y, double z)
@@ -53,27 +80,29 @@ TrackingConfig processNoiseConfig(math::LinearAcceleration sigma)
 class SeedStateAlgorithm final : public ITrackingAlgorithm
 {
 public:
-    explicit SeedStateAlgorithm(TrackState state) : _state(std::move(state))
+    SeedStateAlgorithm(TrackState state, std::any data) : _state(std::move(state)), _data(std::move(data))
     {
     }
 
-    std::optional<TrackState> initialize(const Observation&, const Observation&) const override
+    std::optional<TrackState> initialize(const Observation&, const Observation&, std::any& data) const override
     {
+        data = _data;
         return _state;
     }
 
-    std::optional<TrackState> update(const ConfirmedTrack&, const Observation&) const override
+    std::optional<TrackState> update(const ConfirmedTrack&, const Observation&, std::any&) const override
     {
         return std::nullopt;
     }
 
-    std::optional<TargetPrediction> predict(const ConfirmedTrack&, Time) const override
+    std::optional<TrackPrediction> predict(const ConfirmedTrack&, Time) const override
     {
         return std::nullopt;
     }
 
 private:
     const TrackState _state;
+    const std::any _data;
 };
 
 ConfirmedTrack seededTarget(
@@ -83,24 +112,24 @@ ConfirmedTrack seededTarget(
     std::optional<math::SquareMatrix> covariance,
     Time time = 100ms
 ) {
+    auto state = TrackState(
+        point.toSpherical(),
+        0_mps,
+        -10.0f,
+        time,
+        point,
+        velocity,
+        std::move(acceleration)
+    );
     const auto algorithm = std::make_shared<SeedStateAlgorithm>(
-        TrackState(
-            point.toSpherical(),
-            0_mps,
-            -10.0f,
-            time,
-            point,
-            velocity,
-            std::move(acceleration),
-            std::move(covariance)
-        )
+        std::move(state), covariance ? KalmanStateAccess::makeState(std::move(*covariance)) : std::any{}
     );
     TrackRepository repository;
     const auto id = repository.add(TrackFactory(algorithm).createTentative(repository.nextId(), observation(point, 0ms)));
-    auto confirmedTrack = repository.findTentative(id)->confirm(observation(point, time));
+    auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(point, time));
     EXPECT_TRUE(confirmedTrack);
     EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
-    auto& target = *repository.findTrack(id);
+    auto& target = *repository.findConfirmedTrack(id);
     return target;
 }
 
@@ -125,10 +154,10 @@ protected:
                 observation(first, firstTime)
             )
         );
-        auto confirmedTrack = repository.findTentative(id)->confirm(observation(second, secondTime));
+        auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(second, secondTime));
         EXPECT_TRUE(confirmedTrack);
         EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
-        auto& target = *repository.findTrack(id);
+        auto& target = *repository.findConfirmedTrack(id);
         return target;
     }
 
@@ -146,8 +175,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, InitializesExactTwoPointCovarianceAndZ
 {
     const auto target = makeTracking();
     const auto& state = *target.state();
-    ASSERT_TRUE(state.errorCovariance());
-    const auto& covariance = *state.errorCovariance();
+    ASSERT_TRUE(KalmanStateAccess::covariance(target));
+    const auto& covariance = *KalmanStateAccess::covariance(target);
     EXPECT_TRUE(covariance.isSymmetric(math::NONE_TOLERANCE));
     for (std::size_t axis = 0; axis < 3; ++axis)
     {
@@ -189,10 +218,10 @@ TEST_F(ConstantAccelerationAlgorithmTest, InitialVelocityUsesActualThreeDimensio
     EXPECT_NEAR(state.velocity().y.mps(), -20.0, 1e-8);
     EXPECT_NEAR(state.velocity().z.mps(), 30.0, 1e-8);
     EXPECT_EQ(state.timestamp(), 400ms);
-    ASSERT_TRUE(state.errorCovariance());
-    EXPECT_NEAR((*state.errorCovariance())(0, 3), 49.0 / 0.3, 1e-9);
-    EXPECT_NEAR((*state.errorCovariance())(3, 3), 98.0 / 0.09 + 2.25, 1e-8);
-    EXPECT_NEAR((*state.errorCovariance())(3, 6), 15.0, 1e-10);
+    ASSERT_TRUE(KalmanStateAccess::covariance(target));
+    EXPECT_NEAR((*KalmanStateAccess::covariance(target))(0, 3), 49.0 / 0.3, 1e-9);
+    EXPECT_NEAR((*KalmanStateAccess::covariance(target))(3, 3), 98.0 / 0.09 + 2.25, 1e-8);
+    EXPECT_NEAR((*KalmanStateAccess::covariance(target))(3, 6), 15.0, 1e-10);
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, PredictsCaPositionAndPositionCovarianceWithoutAdvancingState)
@@ -202,17 +231,22 @@ TEST_F(ConstantAccelerationAlgorithmTest, PredictsCaPositionAndPositionCovarianc
         position(1001.0, 1002.0, 1003.0)
     );
     const auto saved = target.state();
-    const auto first = target.predict(1100ms);
-    const auto repeated = target.predict(1100ms);
+    std::optional<math::SquareMatrix> firstCovariance;
+    const auto first = IPositionUncertainty::predict(target, 1100ms, firstCovariance);
+    std::optional<math::SquareMatrix> repeatedCovariance;
+    const auto repeated = IPositionUncertainty::predict(target, 1100ms, repeatedCovariance);
     ASSERT_TRUE(first);
     ASSERT_TRUE(repeated);
     const auto point = first->sphericalPosition().toCartesian();
     EXPECT_NEAR(point.x.m(), 1011.0, 1e-8);
     EXPECT_NEAR(point.y.m(), 1022.0, 1e-8);
     EXPECT_NEAR(point.z.m(), 1033.0, 1e-8);
-    ASSERT_TRUE(positionCovariance(*first));
-    EXPECT_NEAR((*positionCovariance(*first))(0, 0), 10859.25, 1e-7);
-    EXPECT_TRUE(positionCovariance(*first)->equals(*positionCovariance(*repeated), math::NONE_TOLERANCE));
+    ASSERT_TRUE(firstCovariance);
+    EXPECT_NEAR((*firstCovariance)(0, 0), 10859.25, 1e-7);
+    EXPECT_TRUE(firstCovariance->equals(
+        *repeatedCovariance,
+        math::NONE_TOLERANCE
+    ));
     EXPECT_EQ(target.state(), saved);
     EXPECT_EQ(target.lastObservationTime(), 100ms);
     EXPECT_EQ(target.lastResultTime(), 100ms);
@@ -226,15 +260,18 @@ TEST_F(ConstantAccelerationAlgorithmTest, UsesStoredAccelerationAndUnequalPredic
         math::CartesianAcceleration(1_mps2, -2_mps2, 3_mps2),
         math::SquareMatrix::identity(9)
     );
-    const auto predicted = _algorithm->predict(target, 2600ms);
+    std::optional<math::SquareMatrix> predictedCovariance;
+    const auto predicted = _algorithm->predictWithPositionCovariance(target, 2600ms, predictedCovariance);
     ASSERT_TRUE(predicted);
     const auto point = predicted->sphericalPosition().toCartesian();
     EXPECT_NEAR(point.x.m(), 1028.125, 1e-8);
     EXPECT_NEAR(point.y.m(), 1943.75, 1e-8);
     EXPECT_NEAR(point.z.m(), 3084.375, 1e-8);
+    std::any correctedData;
     const auto corrected = _algorithm->update(
         target,
-        observation(point, 2600ms)
+        observation(point, 2600ms),
+        correctedData
     );
     ASSERT_TRUE(corrected);
     EXPECT_NEAR(corrected->velocity().x.mps(), 12.5, 1e-8);
@@ -253,13 +290,15 @@ TEST_F(ConstantAccelerationAlgorithmTest, MeasurementUpdateMatchesIndependentSca
         0ms,
         1000ms
     );
+    std::any updatedData;
     const auto updated = _algorithm->update(
         target,
-        observation(position(0.0, 1010.0, 0.0), 2000ms, -12_mps, 8.0f)
+        observation(position(0.0, 1010.0, 0.0), 2000ms, -12_mps, 8.0f),
+        updatedData
     );
     ASSERT_TRUE(updated);
-    // At dt_init = dt_predict = 1: Pminus column_y = [345, 297, 100]^T.
-    constexpr double INNOVATION_VARIANCE = 394.0;
+    // 초기화와 예측 간격이 각각 1초일 때 y축 [p, v, a] 공분산의 위치 열은 [345, 297, 100]^T다.
+    constexpr auto INNOVATION_VARIANCE = 394.0;
     EXPECT_NEAR(updated->position().y.m(), 1000.0 + 3450.0 / INNOVATION_VARIANCE, 1e-9);
     EXPECT_NEAR(updated->velocity().y.mps(), 2970.0 / INNOVATION_VARIANCE, 1e-9);
     EXPECT_NEAR(updated->acceleration().y.mps2(), 1000.0 / INNOVATION_VARIANCE, 1e-9);
@@ -268,8 +307,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, MeasurementUpdateMatchesIndependentSca
     EXPECT_EQ(updated->dopplerVelocity(), -12_mps);
     EXPECT_FLOAT_EQ(updated->power_db(), 8.0f);
     EXPECT_EQ(updated->timestamp(), 2000ms);
-    ASSERT_TRUE(updated->errorCovariance());
-    const auto& covariance = *updated->errorCovariance();
+    ASSERT_TRUE(KalmanStateAccess::covariance(updatedData));
+    const auto& covariance = *KalmanStateAccess::covariance(updatedData);
     EXPECT_NEAR(covariance(1, 1), 345.0 * 49.0 / INNOVATION_VARIANCE, 1e-9);
     EXPECT_NEAR(covariance(1, 4), 297.0 * 49.0 / INNOVATION_VARIANCE, 1e-9);
     EXPECT_NEAR(covariance(1, 7), 100.0 * 49.0 / INNOVATION_VARIANCE, 1e-9);
@@ -291,18 +330,20 @@ TEST_F(ConstantAccelerationAlgorithmTest, PreservesCrossAxisCovarianceInTheGain)
         math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
         covariance
     );
+    std::any updatedData;
     const auto updated = _algorithm->update(
         target,
-        observation(position(1000.0, 2010.0, 3000.0), 1100ms)
+        observation(position(1000.0, 2010.0, 3000.0), 1100ms),
+        updatedData
     );
     ASSERT_TRUE(updated);
-    // Predicted position variances are 1 + 1 + 1/4, with xy covariance 1/2.
-    const double expectedCrossGain = 49.0 * 0.5 / (51.25 * 51.25 - 0.25);
+    // 예측 위치의 축별 분산은 1 + 1 + 1/4이고, x와 y의 공분산은 1/2이다.
+    const auto expectedCrossGain = 49.0 * 0.5 / (51.25 * 51.25 - 0.25);
     EXPECT_NEAR(updated->position().x.m(), 1000.0 + expectedCrossGain * 10.0, 1e-9);
     EXPECT_NEAR(updated->position().z.m(), 3000.0, 1e-9);
-    ASSERT_TRUE(updated->errorCovariance());
-    EXPECT_GT((*updated->errorCovariance())(0, 1), 0.0);
-    EXPECT_NO_THROW(math::cholesky(*updated->errorCovariance()));
+    ASSERT_TRUE(KalmanStateAccess::covariance(updatedData));
+    EXPECT_GT((*KalmanStateAccess::covariance(updatedData))(0, 1), 0.0);
+    EXPECT_NO_THROW(math::cholesky(*KalmanStateAccess::covariance(updatedData)));
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, NonzeroProcessNoisePredictsExactFractionalIntervalOnEveryAxis)
@@ -315,20 +356,21 @@ TEST_F(ConstantAccelerationAlgorithmTest, NonzeroProcessNoisePredictsExactFracti
         math::SquareMatrix::identity(9)
     );
     const auto saved = target.state();
-    const auto predicted = algorithm->predict(target, 2600ms);
+    std::optional<math::SquareMatrix> predictedCovariance;
+    const auto predicted = algorithm->predictWithPositionCovariance(target, 2600ms, predictedCovariance);
     ASSERT_TRUE(predicted);
     const auto point = predicted->sphericalPosition().toCartesian();
     EXPECT_NEAR(point.x.m(), 1028.125, 1e-8);
     EXPECT_NEAR(point.y.m(), 1943.75, 1e-8);
     EXPECT_NEAR(point.z.m(), 3084.375, 1e-8);
-    ASSERT_TRUE(positionCovariance(*predicted));
-    // dt = 2.5 s: F I F^T gives 17.015625, and Qpp = 100 * dt^4 / 4.
+    ASSERT_TRUE(predictedCovariance);
+    // dt = 2.5 s일 때 F I F^T의 위치 분산은 17.015625, 잡음 항 Qpp는 100 * dt^4 / 4다.
     for (std::size_t row = 0; row < 3; ++row)
     {
         for (std::size_t column = 0; column < 3; ++column)
         {
             EXPECT_DOUBLE_EQ(
-                (*positionCovariance(*predicted))(row, column),
+                (*predictedCovariance)(row, column),
                 row == column ? 993.578125 : 0.0
             );
         }
@@ -345,19 +387,21 @@ TEST_F(ConstantAccelerationAlgorithmTest, NonzeroProcessNoiseUpdateMatchesIndepe
         math::CartesianAcceleration(1_mps2, -2_mps2, 3_mps2),
         math::SquareMatrix::identity(9)
     );
+    std::any updatedData;
     const auto updated = algorithm->update(
         target,
-        observation(position(1020.125, 1959.75, 3060.375), 1600ms)
+        observation(position(1020.125, 1959.75, 3060.375), 1600ms),
+        updatedData
     );
     ASSERT_TRUE(updated);
 
-    // Independently expanded scalar [p,v,a] covariance at dt = 1.5 s, sigma^2 = 100.
+    // dt = 1.5 s, sigma^2 = 100을 대입해 한 축의 [p, v, a] 공분산을 별도로 계산한 값이다.
     constexpr double PREDICTED_COVARIANCE[3][3] = {
         {131.078125, 171.9375, 113.625},
         {171.9375, 228.25, 151.5},
         {113.625, 151.5, 101.0}
     };
-    constexpr double INNOVATION_VARIANCE = 180.078125;
+    constexpr auto INNOVATION_VARIANCE = 180.078125;
     constexpr double RESIDUALS[] = {4.0, -8.0, 12.0};
     constexpr double PREDICTED_POSITIONS[] = {1016.125, 1967.75, 3048.375};
     constexpr double PREDICTED_VELOCITIES[] = {11.5, -23.0, 34.5};
@@ -398,15 +442,15 @@ TEST_F(ConstantAccelerationAlgorithmTest, NonzeroProcessNoiseUpdateMatchesIndepe
             1e-9
         );
     }
-    ASSERT_TRUE(updated->errorCovariance());
-    const auto& covariance = *updated->errorCovariance();
+    ASSERT_TRUE(KalmanStateAccess::covariance(updatedData));
+    const auto& covariance = *KalmanStateAccess::covariance(updatedData);
     for (std::size_t row = 0; row < 9; ++row)
     {
         for (std::size_t column = 0; column < 9; ++column)
         {
             const auto componentRow = row / 3;
             const auto componentColumn = column / 3;
-            const double expected = row % 3 == column % 3
+            const auto expected = row % 3 == column % 3
                 ? PREDICTED_COVARIANCE[componentRow][componentColumn]
                     - PREDICTED_COVARIANCE[componentRow][0]
                         * PREDICTED_COVARIANCE[0][componentColumn] / INNOVATION_VARIANCE
@@ -426,23 +470,26 @@ TEST_F(ConstantAccelerationAlgorithmTest, DoublingProcessSigmaQuadruplesAddedPre
         math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
         math::SquareMatrix::identity(9)
     );
-    const ConstantAccelerationAlgorithm sigmaFive(processNoiseConfig(5_mps2), MeasurementConfig(7_m));
-    const ConstantAccelerationAlgorithm sigmaTen(processNoiseConfig(10_mps2), MeasurementConfig(7_m));
-    const auto baseline = _algorithm->predict(target, 2600ms);
-    const auto five = sigmaFive.predict(target, 2600ms);
-    const auto ten = sigmaTen.predict(target, 2600ms);
+    const auto sigmaFive = ConstantAccelerationAlgorithm(processNoiseConfig(5_mps2), MeasurementConfig(7_m));
+    const auto sigmaTen = ConstantAccelerationAlgorithm(processNoiseConfig(10_mps2), MeasurementConfig(7_m));
+    std::optional<math::SquareMatrix> baselineCovariance;
+    const auto baseline = _algorithm->predictWithPositionCovariance(target, 2600ms, baselineCovariance);
+    std::optional<math::SquareMatrix> fiveCovariance;
+    const auto five = sigmaFive.predictWithPositionCovariance(target, 2600ms, fiveCovariance);
+    std::optional<math::SquareMatrix> tenCovariance;
+    const auto ten = sigmaTen.predictWithPositionCovariance(target, 2600ms, tenCovariance);
     ASSERT_TRUE(baseline);
     ASSERT_TRUE(five);
     ASSERT_TRUE(ten);
-    ASSERT_TRUE(positionCovariance(*baseline));
-    ASSERT_TRUE(positionCovariance(*five));
-    ASSERT_TRUE(positionCovariance(*ten));
+    ASSERT_TRUE(baselineCovariance);
+    ASSERT_TRUE(fiveCovariance);
+    ASSERT_TRUE(tenCovariance);
     for (std::size_t axis = 0; axis < 3; ++axis)
     {
-        const double addedFive = (*positionCovariance(*five))(axis, axis)
-            - (*positionCovariance(*baseline))(axis, axis);
-        const double addedTen = (*positionCovariance(*ten))(axis, axis)
-            - (*positionCovariance(*baseline))(axis, axis);
+        const auto addedFive = (*fiveCovariance)(axis, axis)
+            - (*baselineCovariance)(axis, axis);
+        const auto addedTen = (*tenCovariance)(axis, axis)
+            - (*baselineCovariance)(axis, axis);
         EXPECT_DOUBLE_EQ(addedFive, 244.140625);
         EXPECT_DOUBLE_EQ(addedTen, 4.0 * addedFive);
     }
@@ -459,23 +506,28 @@ TEST_F(ConstantAccelerationAlgorithmTest, ZeroElapsedPredictionAddsNoProcessNois
         algorithm
     );
     const auto saved = target.state();
-    const auto predicted = target.predict(100ms);
-    const auto repeated = target.predict(100ms);
+    std::optional<math::SquareMatrix> predictedCovariance;
+    const auto predicted = IPositionUncertainty::predict(target, 100ms, predictedCovariance);
+    std::optional<math::SquareMatrix> repeatedCovariance;
+    const auto repeated = IPositionUncertainty::predict(target, 100ms, repeatedCovariance);
     ASSERT_TRUE(predicted);
     ASSERT_TRUE(repeated);
-    ASSERT_TRUE(positionCovariance(*predicted));
-    ASSERT_TRUE(positionCovariance(*repeated));
+    ASSERT_TRUE(predictedCovariance);
+    ASSERT_TRUE(repeatedCovariance);
     for (std::size_t row = 0; row < 3; ++row)
     {
         for (std::size_t column = 0; column < 3; ++column)
         {
             EXPECT_DOUBLE_EQ(
-                (*positionCovariance(*predicted))(row, column),
-                (*saved->errorCovariance())(row, column)
+                (*predictedCovariance)(row, column),
+                (*KalmanStateAccess::covariance(target))(row, column)
             );
         }
     }
-    EXPECT_TRUE(positionCovariance(*predicted)->equals(*positionCovariance(*repeated), math::NONE_TOLERANCE));
+    EXPECT_TRUE(predictedCovariance->equals(
+        *repeatedCovariance,
+        math::NONE_TOLERANCE
+    ));
     EXPECT_EQ(target.state(), saved);
     EXPECT_EQ(target.lastObservationTime(), 100ms);
     EXPECT_EQ(target.lastResultTime(), 100ms);
@@ -497,37 +549,47 @@ TEST_F(ConstantAccelerationAlgorithmTest, MissesAndRepeatedPredictionsUseFullEla
     ASSERT_TRUE(target.recordTrackingMiss(1100ms));
     ASSERT_TRUE(target.predict(2100ms));
     ASSERT_TRUE(target.recordTrackingMiss(2100ms));
-    const auto predicted = target.predict(3100ms);
-    const auto repeated = target.predict(3100ms);
+    std::optional<math::SquareMatrix> predictedCovariance;
+    const auto predicted = IPositionUncertainty::predict(target, 3100ms, predictedCovariance);
+    std::optional<math::SquareMatrix> repeatedCovariance;
+    const auto repeated = IPositionUncertainty::predict(target, 3100ms, repeatedCovariance);
     ASSERT_TRUE(predicted);
     ASSERT_TRUE(repeated);
-    ASSERT_TRUE(positionCovariance(*predicted));
-    ASSERT_TRUE(positionCovariance(*repeated));
+    ASSERT_TRUE(predictedCovariance);
+    ASSERT_TRUE(repeatedCovariance);
     EXPECT_NEAR(predicted->sphericalPosition().toCartesian().y.m(), 1031.0, 1e-9);
-    // F(3s) P F(3s)^T + Q(3s); Qpp is 100 * 3^4 / 4 = 2025.
-    const double expectedVariance = 49.0 + 6.0 * 490.0 + 9.0 * 9800.25
+    // 3초 뒤 공분산 F(3s) P F(3s)^T + Q(3s)에서 위치 잡음 항은 100 * 3^4 / 4 = 2025다.
+    const auto expectedVariance = 49.0 + 6.0 * 490.0 + 9.0 * 9800.25
         + 27.0 * 5.0 + 81.0 * 25.0 + 2025.0;
     for (std::size_t axis = 0; axis < 3; ++axis)
     {
-        EXPECT_NEAR((*positionCovariance(*predicted))(axis, axis), expectedVariance, 1e-7);
+        EXPECT_NEAR((*predictedCovariance)(axis, axis), expectedVariance, 1e-7);
     }
-    EXPECT_TRUE(positionCovariance(*predicted)->equals(*positionCovariance(*repeated), math::NONE_TOLERANCE));
+    EXPECT_TRUE(predictedCovariance->equals(
+        *repeatedCovariance,
+        math::NONE_TOLERANCE
+    ));
     EXPECT_EQ(target.state(), saved);
     EXPECT_EQ(target.lastObservationTime(), 100ms);
     EXPECT_EQ(target.lastResultTime(), 2100ms);
     EXPECT_EQ(target.consecutiveMissCount(), 2u);
 
     const auto incoming = observation(position(0.0, 1041.0, 0.0), 3100ms);
-    const auto updated = algorithm->update(target, incoming);
-    const auto withoutMisses = algorithm->update(control, incoming);
+    std::any updatedData;
+    const auto updated = algorithm->update(target, incoming, updatedData);
+    std::any withoutMissesData;
+    const auto withoutMisses = algorithm->update(control, incoming, withoutMissesData);
     ASSERT_TRUE(updated);
     ASSERT_TRUE(withoutMisses);
-    ASSERT_TRUE(updated->errorCovariance());
-    ASSERT_TRUE(withoutMisses->errorCovariance());
+    ASSERT_TRUE(KalmanStateAccess::covariance(updatedData));
+    ASSERT_TRUE(KalmanStateAccess::covariance(withoutMissesData));
     EXPECT_NEAR(updated->position().y.m(), withoutMisses->position().y.m(), 1e-9);
     EXPECT_NEAR(updated->velocity().y.mps(), withoutMisses->velocity().y.mps(), 1e-9);
     EXPECT_NEAR(updated->acceleration().y.mps2(), withoutMisses->acceleration().y.mps2(), 1e-9);
-    EXPECT_TRUE(updated->errorCovariance()->equals(*withoutMisses->errorCovariance(), math::NONE_TOLERANCE));
+    EXPECT_TRUE(KalmanStateAccess::covariance(updatedData)->equals(
+        *KalmanStateAccess::covariance(withoutMissesData),
+        math::NONE_TOLERANCE
+    ));
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, ProcessNoiseReachesRealTrackingAndSearchNdsGates)
@@ -551,10 +613,10 @@ TEST_F(ConstantAccelerationAlgorithmTest, ProcessNoiseReachesRealTrackingAndSear
     EXPECT_FALSE(test_support::isDuplicate(incoming, zeroNoise, _config.association, _config.measurement));
     EXPECT_TRUE(test_support::selectTracking(incoming, withNoise, _config.association, _config.measurement));
     EXPECT_TRUE(test_support::isDuplicate(incoming, withNoise, _config.association, _config.measurement));
-    // S = Ppp + R = (345 + 25) + 49 = 419; the zero-noise S is 394.
-    const double expected = 68.0 * 68.0 / 419.0;
-    const AssociationConfig larger(1000_mps, 30_mps, expected + 1e-10);
-    const AssociationConfig smaller(1000_mps, 30_mps, expected - 1e-10);
+    // 가속도 잡음이 위치 분산에 25를 더해 잔차 분산이 394에서 419가 된다.
+    const auto expected = 68.0 * 68.0 / 419.0;
+    const auto larger = AssociationConfig(1000_mps, 30_mps, expected + 1e-10);
+    const auto smaller = AssociationConfig(1000_mps, 30_mps, expected - 1e-10);
     EXPECT_TRUE(test_support::selectTracking(incoming, withNoise, larger, _config.measurement));
     EXPECT_FALSE(test_support::selectTracking(incoming, withNoise, smaller, _config.measurement));
     EXPECT_TRUE(test_support::isDuplicate(incoming, withNoise, larger, _config.measurement));
@@ -568,38 +630,39 @@ TEST_F(ConstantAccelerationAlgorithmTest, ProcessNoiseReachesRealTrackingAndSear
 
 TEST_F(ConstantAccelerationAlgorithmTest, LearnsAccelerationWithZeroProcessNoise)
 {
-    ConfirmedTrack target = makeTracking(
+    auto target = makeTracking(
         position(0.0, 1000.0, 0.0),
         position(0.0, 1011.0, 0.0),
         0ms,
         1000ms
     );
-    const auto initialAccelerationVariance = (*target.state()->errorCovariance())(7, 7);
-    for (int second = 2; second <= 30; ++second)
+    const auto initialAccelerationVariance = (*KalmanStateAccess::covariance(target))(7, 7);
+    for (auto second = 2; second <= 30; ++second)
     {
-        const double elapsed = static_cast<double>(second);
-        const double y = 1000.0 + 10.0 * elapsed + elapsed * elapsed;
+        const auto elapsed = static_cast<double>(second);
+        const auto y = 1000.0 + 10.0 * elapsed + elapsed * elapsed;
         ASSERT_TRUE(target.update(observation(position(0.0, y, 0.0), Time(second * 1000))));
     }
     EXPECT_NEAR(target.state()->acceleration().y.mps2(), 2.0, 0.001);
     EXPECT_NEAR(target.state()->velocity().y.mps(), 70.0, 0.01);
     EXPECT_NEAR(target.state()->position().y.m(), 2200.0, 0.1);
-    EXPECT_LT((*target.state()->errorCovariance())(7, 7), initialAccelerationVariance);
+    EXPECT_LT((*KalmanStateAccess::covariance(target))(7, 7), initialAccelerationVariance);
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, MissesDoNotShortenElapsedTimeFromTheLastObservation)
 {
-    ConfirmedTrack target = makeTracking(position(0.0, 1000.0, 0.0), position(0.0, 1001.0, 0.0));
+    auto target = makeTracking(position(0.0, 1000.0, 0.0), position(0.0, 1001.0, 0.0));
     const auto saved = target.state();
     ASSERT_TRUE(target.recordTrackingMiss(1100ms));
     ASSERT_TRUE(target.recordTrackingMiss(2100ms));
-    const auto predicted = target.predict(3100ms);
+    std::optional<math::SquareMatrix> predictedCovariance;
+    const auto predicted = IPositionUncertainty::predict(target, 3100ms, predictedCovariance);
     ASSERT_TRUE(predicted);
     EXPECT_NEAR(predicted->sphericalPosition().toCartesian().y.m(), 1031.0, 1e-9);
-    ASSERT_TRUE(positionCovariance(*predicted));
-    // F(3s) P(100ms) F(3s)^T; misses do not replace P with repeated predictions.
+    ASSERT_TRUE(predictedCovariance);
+    // 연속 미탐 뒤에도 100 ms에 저장한 공분산에서 3초를 한 번에 예측한다.
     EXPECT_NEAR(
-        (*positionCovariance(*predicted))(1, 1),
+        (*predictedCovariance)(1, 1),
         49.0 + 6.0 * 490.0 + 9.0 * 9800.25 + 27.0 * 5.0 + 81.0 * 25.0,
         1e-7
     );
@@ -613,8 +676,9 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsUnavailableCovarianceAndNonIncr
 {
     const auto target = makeTracking();
     const auto incoming = observation(position(0.0, 1000.0, 0.0), 100ms);
-    EXPECT_FALSE(_algorithm->initialize(incoming, incoming));
-    EXPECT_FALSE(_algorithm->update(target, incoming));
+    std::any nextData;
+    EXPECT_FALSE(_algorithm->initialize(incoming, incoming, nextData));
+    EXPECT_FALSE(_algorithm->update(target, incoming, nextData));
     EXPECT_FALSE(_algorithm->predict(target, 99ms));
     EXPECT_TRUE(_algorithm->predict(target, 100ms));
     const auto withoutCovariance = seededTarget(
@@ -627,7 +691,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsUnavailableCovarianceAndNonIncr
     EXPECT_FALSE(
         _algorithm->update(
             withoutCovariance,
-            observation(position(0.0, 1000.0, 0.0), 1100ms)
+            observation(position(0.0, 1000.0, 0.0), 1100ms),
+            nextData
         )
     );
 }
@@ -641,7 +706,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsOriginAndNonfinitePredictionsWi
         math::SquareMatrix::identity(9)
     );
     EXPECT_FALSE(_algorithm->predict(originTarget, 1100ms));
-    const double maximum = std::numeric_limits<double>::max();
+    const auto maximum = std::numeric_limits<double>::max();
     const auto overflowTarget = seededTarget(
         position(0.0, 1000.0, 0.0),
         math::CartesianVelocity(0_mps, 0_mps, 0_mps),
@@ -673,9 +738,60 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsIndefiniteStateCovarianceAtCons
     );
 }
 
+TEST(KalmanStateTest, CopiesCovarianceIndependentlyOfTheSource)
+{
+    auto covariance = math::SquareMatrix::identity(TrackState::STATE_DIMENSION) * 25.0;
+    covariance(0, 3) = 2.0;
+    covariance(3, 0) = 2.0;
+    auto state = KalmanStateAccess::makeState(covariance);
+    const auto copy = state;
+    state.reset();
+    covariance(0, 0) = 99.0;
+
+    const auto* stored = KalmanStateAccess::covariance(copy);
+    ASSERT_NE(stored, nullptr);
+    EXPECT_EQ(stored->size(), 9u);
+    EXPECT_DOUBLE_EQ((*stored)(0, 0), 25.0);
+    EXPECT_DOUBLE_EQ((*stored)(0, 3), 2.0);
+    EXPECT_DOUBLE_EQ((*stored)(3, 0), 2.0);
+}
+
+TEST(KalmanStateTest, RejectsCovarianceWithWrongDimension)
+{
+    for (std::size_t size : {0u, 3u, 8u, 10u})
+    {
+        SCOPED_TRACE(size);
+        EXPECT_THROW(KalmanStateAccess::makeState(math::SquareMatrix(size)), std::invalid_argument);
+    }
+}
+
+TEST(KalmanStateTest, RejectsNonfiniteOrAsymmetricCovariance)
+{
+    for (auto invalid : {std::numeric_limits<double>::quiet_NaN(),
+             std::numeric_limits<double>::infinity(),
+             -std::numeric_limits<double>::infinity()})
+    {
+        auto covariance = math::SquareMatrix::identity(TrackState::STATE_DIMENSION);
+        covariance(0, 0) = invalid;
+        EXPECT_THROW(KalmanStateAccess::makeState(covariance), std::invalid_argument);
+    }
+    auto asymmetric = math::SquareMatrix::identity(TrackState::STATE_DIMENSION);
+    asymmetric(0, 1) = std::numeric_limits<double>::epsilon();
+    EXPECT_THROW(KalmanStateAccess::makeState(asymmetric), std::invalid_argument);
+}
+
+TEST(KalmanStateTest, RejectsNegativeOrSingularCovariance)
+{
+    auto negative = math::SquareMatrix::identity(TrackState::STATE_DIMENSION);
+    negative(0, 0) = -1.0;
+    EXPECT_THROW(KalmanStateAccess::makeState(negative), std::invalid_argument);
+    EXPECT_THROW(KalmanStateAccess::makeState(math::SquareMatrix(TrackState::STATE_DIMENSION)),
+        std::invalid_argument);
+}
+
 TEST(ConstantAccelerationConfigTest, ValidatesInitialAccelerationVarianceAndSingleMeasurementNoise)
 {
-    for (double sigma : {0.0, -1.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(), std::numeric_limits<double>::max(), 1e-300})
+    for (auto sigma : {0.0, -1.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(), std::numeric_limits<double>::max(), 1e-300})
     {
         EXPECT_THROW(
             TargetConfig(
@@ -696,7 +812,7 @@ TEST(ConstantAccelerationConfigTest, ValidatesInitialAccelerationVarianceAndSing
         ),
         std::invalid_argument
     );
-    const TargetConfig compatible(
+    const auto compatible = TargetConfig(
         AssociationConfig(1000_mps, 30_mps, 11.345),
         MeasurementConfig(7_m),
         TrackingConfig(10_mps2, 0_mps2),
@@ -711,7 +827,7 @@ TEST(ConstantAccelerationConfigTest, AcceptsZeroAndValidatesProcessAccelerationV
     EXPECT_EQ(zero.processAccelerationStandardDeviation(), 0_mps2);
     const auto nonzero = processNoiseConfig(10_mps2);
     EXPECT_EQ(nonzero.processAccelerationStandardDeviation(), 10_mps2);
-    for (double sigma : {-1.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::max(), 1e-300})
+    for (auto sigma : {-1.0, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::max(), 1e-300})
     {
         SCOPED_TRACE(sigma);
         EXPECT_THROW(
@@ -723,22 +839,24 @@ TEST(ConstantAccelerationConfigTest, AcceptsZeroAndValidatesProcessAccelerationV
 
 TEST(ConstantAccelerationConfigTest, UsesInjectedInitialAccelerationUncertainty)
 {
-    const TargetConfig config(
+    const auto config = TargetConfig(
         AssociationConfig(1000_mps, 30_mps, 11.345),
         MeasurementConfig(7_m),
         TrackingConfig(2_mps2, 0_mps2),
         TrackManagementConfig(100ms, 1000ms, 3, 100)
     );
     const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(config.tracking, config.measurement);
+    std::any stateData;
     const auto state = algorithm->initialize(
         observation(position(0.0, 1000.0, 0.0), 0ms),
-        observation(position(0.0, 1000.0, 0.0), 100ms)
+        observation(position(0.0, 1000.0, 0.0), 100ms),
+        stateData
     );
     ASSERT_TRUE(state);
-    ASSERT_TRUE(state->errorCovariance());
-    EXPECT_DOUBLE_EQ((*state->errorCovariance())(6, 6), 4.0);
-    EXPECT_NEAR((*state->errorCovariance())(3, 6), 0.2, 1e-12);
-    EXPECT_NEAR((*state->errorCovariance())(3, 3), 9800.01, 1e-8);
+    ASSERT_TRUE(KalmanStateAccess::covariance(stateData));
+    EXPECT_DOUBLE_EQ((*KalmanStateAccess::covariance(stateData))(6, 6), 4.0);
+    EXPECT_NEAR((*KalmanStateAccess::covariance(stateData))(3, 6), 0.2, 1e-12);
+    EXPECT_NEAR((*KalmanStateAccess::covariance(stateData))(3, 3), 9800.01, 1e-8);
 }
 
 } // namespace

@@ -1,5 +1,7 @@
 #include "math/quantity/linear_velocity.hpp"
 
+#include "math/bounded/speed.hpp"
+
 #include <gtest/gtest.h>
 
 #include <limits>
@@ -250,4 +252,99 @@ TEST(LinearVelocityTest, RejectsNonFiniteResultsFromDurationDivision)
     EXPECT_THROW(length / std::chrono::duration<double>(-0.5), std::invalid_argument);
     EXPECT_THROW(1_m / std::chrono::duration<double>(std::numeric_limits<double>::quiet_NaN()),
         std::invalid_argument);
+}
+
+TEST(SpeedTest, AcceptsOnlyFiniteNonnegativeVelocities)
+{
+    static_assert(!std::is_convertible_v<math::LinearVelocity, math::Speed>);
+
+    const math::Speed zero(0_mps);
+    const auto speed = math::Speed::fromMetersPerSecond(2.5);
+    EXPECT_DOUBLE_EQ(zero.mps(), 0.0);
+    EXPECT_FALSE(zero.isPositive());
+    EXPECT_FALSE(zero.isNegative());
+    EXPECT_TRUE(zero.isNonpositive());
+    EXPECT_TRUE(zero.isNonnegative());
+    EXPECT_TRUE(speed.isPositive());
+    EXPECT_FALSE(speed.isNonpositive());
+    EXPECT_EQ(speed.asLinearVelocity(), 2.5_mps);
+    EXPECT_GT(speed, zero);
+
+    EXPECT_THROW(math::Speed(-1_mps), std::invalid_argument);
+    EXPECT_THROW(math::Speed::fromMetersPerSecond(std::numeric_limits<double>::infinity()),
+        std::invalid_argument);
+    EXPECT_THROW(math::Speed::fromMetersPerSecond(std::numeric_limits<double>::quiet_NaN()),
+        std::invalid_argument);
+}
+
+TEST(SpeedTest, ComparesWithSpeedsAndSignedVelocities)
+{
+    const math::Speed speed(2_mps);
+    const math::Speed nearby(2.25_mps);
+    const math::QuantityTolerance tolerance{0.25_mps, 0.0};
+    const auto& exact = math::LinearVelocity::NONE_TOLERANCE;
+
+    EXPECT_TRUE(speed.equals(nearby, tolerance));
+    EXPECT_TRUE(speed.equals(2.25_mps, tolerance));
+    EXPECT_TRUE(speed.notEquals(nearby, exact));
+    EXPECT_TRUE(speed.notEquals(2.25_mps, exact));
+    EXPECT_TRUE(speed.lessThan(nearby, exact));
+    EXPECT_TRUE(speed.lessThan(2.25_mps, exact));
+    EXPECT_TRUE(speed.lessThanOrEqual(nearby, tolerance));
+    EXPECT_TRUE(speed.lessThanOrEqual(2.25_mps, tolerance));
+    EXPECT_TRUE(nearby.greaterThan(speed, exact));
+    EXPECT_TRUE(nearby.greaterThan(2_mps, exact));
+    EXPECT_TRUE(speed.greaterThanOrEqual(nearby, tolerance));
+    EXPECT_TRUE(speed.greaterThanOrEqual(2.25_mps, tolerance));
+
+    EXPECT_EQ(speed, 2_mps);
+    EXPECT_EQ(2_mps, speed);
+    EXPECT_NE(speed, -2_mps);
+    EXPECT_NE(-2_mps, speed);
+    EXPECT_LT(speed, 3_mps);
+    EXPECT_LT(-1_mps, speed);
+    EXPECT_LE(speed, 2_mps);
+    EXPECT_LE(2_mps, speed);
+    EXPECT_GT(speed, -1_mps);
+    EXPECT_GT(3_mps, speed);
+    EXPECT_GE(speed, 2_mps);
+    EXPECT_GE(2_mps, speed);
+}
+
+TEST(SpeedTest, AppliesSignedVelocityOffsets)
+{
+    math::Speed speed(5_mps);
+
+    static_assert(std::is_same_v<decltype(speed + 2_mps), math::Speed>);
+    static_assert(std::is_same_v<decltype(2_mps + speed), math::Speed>);
+    static_assert(std::is_same_v<decltype(speed - 2_mps), math::Speed>);
+
+    EXPECT_EQ(speed + 2_mps, 7_mps);
+    EXPECT_EQ(2_mps + speed, 7_mps);
+    EXPECT_EQ(speed - 2_mps, 3_mps);
+    EXPECT_EQ(speed - (-2_mps), 7_mps);
+    EXPECT_EQ(speed + (-5_mps), 0_mps);
+
+    speed += -1_mps;
+    EXPECT_EQ(speed, 4_mps);
+    speed -= 2_mps;
+    EXPECT_EQ(speed, 2_mps);
+
+    EXPECT_THROW(speed += -3_mps, std::invalid_argument);
+    EXPECT_THROW(speed -= 3_mps, std::invalid_argument);
+    EXPECT_EQ(speed, 2_mps);
+}
+
+TEST(SpeedTest, DividesSpeedsToProduceUnitlessRatio)
+{
+    const math::Speed speed(6_mps);
+    const math::Speed divisor(3_mps);
+    const auto tiny = math::Speed::fromMetersPerSecond(std::numeric_limits<double>::min());
+    const auto largest = math::Speed::fromMetersPerSecond(std::numeric_limits<double>::max());
+
+    static_assert(std::is_same_v<decltype(speed / divisor), double>);
+    EXPECT_DOUBLE_EQ(speed / divisor, 2.0);
+    EXPECT_DOUBLE_EQ(tiny / tiny, 1.0);
+    EXPECT_THROW(speed / math::Speed(0_mps), std::domain_error);
+    EXPECT_THROW(largest / tiny, std::overflow_error);
 }

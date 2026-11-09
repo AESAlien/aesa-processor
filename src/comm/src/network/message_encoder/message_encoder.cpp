@@ -120,7 +120,7 @@ protocol::ST_Trk encodeTrack(
     encodedTrack.lat_deg =      convertFloat(event.latitude.deg());
     encodedTrack.lon_deg =      convertFloat(event.longitude.deg());
     encodedTrack.alt_km =       convertFloat(event.altitude.km());
-    encodedTrack.velocity_mps = convertFloat(event.velocity.mps());
+    encodedTrack.velocity_mps = convertFloat(event.speed.mps());
     encodedTrack.heading_deg =  convertFloat(event.heading.deg());
     encodedTrack.fpa_deg =      convertFloat(event.flightPathAngle.deg());
     encodedTrack.timeStamp =    convertTimestamp(event.timestamp);

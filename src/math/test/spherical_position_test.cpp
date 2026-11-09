@@ -241,8 +241,8 @@ TEST(CartesianVelocityTest, CalculatesHorizontalAndThreeDimensionalSpeed)
 {
     const math::CartesianVelocity velocity(3_mps, 4_mps, 12_mps);
 
-    EXPECT_EQ(velocity.horizontalSpeed(), 5_mps);
-    EXPECT_EQ(velocity.speed(), 13_mps);
+    EXPECT_EQ(velocity.horizontalSpeed(), math::Speed(5_mps));
+    EXPECT_EQ(velocity.speed(), math::Speed(13_mps));
 }
 
 // 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.

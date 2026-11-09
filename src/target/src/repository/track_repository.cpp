@@ -13,28 +13,46 @@ namespace
 
 constexpr std::uint32_t MAX_TRACK_ID = std::numeric_limits<std::uint16_t>::max();
 
-std::uint32_t targetId(const Track& target)
+std::uint32_t trackId(const Track& track)
 {
     return std::visit(
         [](const auto& value)
         {
             return value.id();
         },
-        target
+        track
     );
 }
 
-template <typename Targets>
-auto findTarget(Targets& targets, std::uint32_t id)
+template <typename Tracks>
+auto findTrackById(Tracks& tracks, std::uint32_t id)
 {
     return std::find_if(
-        targets.begin(),
-        targets.end(),
-        [id](const Track& target)
+        tracks.begin(),
+        tracks.end(),
+        [id](const Track& track)
         {
-            return targetId(target) == id;
+            return trackId(track) == id;
         }
     );
+}
+
+template <typename TrackType>
+std::vector<const TrackType*> tracksOfType(const std::list<Track>& tracks, std::size_t limit)
+{
+    std::vector<const TrackType*> matches;
+    for (const auto& track : tracks)
+    {
+        if (matches.size() == limit)
+        {
+            break;
+        }
+        if (const auto* match = std::get_if<TrackType>(&track))
+        {
+            matches.push_back(match);
+        }
+    }
+    return matches;
 }
 
 } // namespace
@@ -43,88 +61,98 @@ std::uint32_t TrackRepository::nextId() const
 {
     if (_nextId > MAX_TRACK_ID)
     {
-        throw std::overflow_error("Target ID exceeds the console ID range");
+        throw std::overflow_error("Track ID exceeds the console ID range");
     }
     return _nextId;
 }
 
-std::uint32_t TrackRepository::add(TentativeTrack track)
+std::uint32_t TrackRepository::add(TentativeTrack tentativeTrack)
 {
-    return add(Track(std::move(track)));
+    return add(Track(std::move(tentativeTrack)));
 }
 
-std::uint32_t TrackRepository::add(ConfirmedTrack track)
+std::uint32_t TrackRepository::add(ConfirmedTrack confirmedTrack)
 {
-    return add(Track(std::move(track)));
+    return add(Track(std::move(confirmedTrack)));
 }
 
 std::uint32_t TrackRepository::add(Track track)
 {
-    const auto id = targetId(track);
+    const auto id = trackId(track);
     if (id > MAX_TRACK_ID)
     {
-        throw std::overflow_error("Target ID exceeds the console ID range");
+        throw std::overflow_error("Track ID exceeds the console ID range");
     }
-    if (findTarget(_targets, id) != _targets.end())
+    if (findTrackById(_tracks, id) != _tracks.end())
     {
         throw std::invalid_argument("Track ID is already registered");
     }
-    _targets.emplace_back(std::move(track));
+    _tracks.emplace_back(std::move(track));
     _nextId = std::max(_nextId, id + 1);
     return id;
 }
 
-TentativeTrack* TrackRepository::findTentative(std::uint32_t id)
+TentativeTrack* TrackRepository::findTentativeTrack(std::uint32_t id)
 {
-    const auto target = findTarget(_targets, id);
-    return target != _targets.end() ? std::get_if<TentativeTrack>(&*target) : nullptr;
+    const auto track = findTrackById(_tracks, id);
+    return track != _tracks.end() ? std::get_if<TentativeTrack>(&*track) : nullptr;
 }
 
-const TentativeTrack* TrackRepository::findTentative(std::uint32_t id) const
+const TentativeTrack* TrackRepository::findTentativeTrack(std::uint32_t id) const
 {
-    const auto target = findTarget(_targets, id);
-    return target != _targets.end() ? std::get_if<TentativeTrack>(&*target) : nullptr;
+    const auto track = findTrackById(_tracks, id);
+    return track != _tracks.end() ? std::get_if<TentativeTrack>(&*track) : nullptr;
 }
 
-ConfirmedTrack* TrackRepository::findTrack(std::uint32_t id)
+ConfirmedTrack* TrackRepository::findConfirmedTrack(std::uint32_t id)
 {
-    const auto target = findTarget(_targets, id);
-    return target != _targets.end() ? std::get_if<ConfirmedTrack>(&*target) : nullptr;
+    const auto track = findTrackById(_tracks, id);
+    return track != _tracks.end() ? std::get_if<ConfirmedTrack>(&*track) : nullptr;
 }
 
-const ConfirmedTrack* TrackRepository::findTrack(std::uint32_t id) const
+const ConfirmedTrack* TrackRepository::findConfirmedTrack(std::uint32_t id) const
 {
-    const auto target = findTarget(_targets, id);
-    return target != _targets.end() ? std::get_if<ConfirmedTrack>(&*target) : nullptr;
+    const auto track = findTrackById(_tracks, id);
+    return track != _tracks.end() ? std::get_if<ConfirmedTrack>(&*track) : nullptr;
 }
 
-bool TrackRepository::replace(ConfirmedTrack track)
+bool TrackRepository::replace(ConfirmedTrack confirmedTrack)
 {
-    const auto target = findTarget(_targets, track.id());
-    if (target == _targets.end())
+    const auto track = findTrackById(_tracks, confirmedTrack.id());
+    if (track == _tracks.end())
     {
         return false;
     }
-    // Replacement preserves the list node and cannot fail after destroying its old value.
+    // 기존 값을 파괴한 뒤에도 예외 없이 같은 목록 노드에 새 값을 생성해야 한다.
     static_assert(std::is_nothrow_move_constructible_v<ConfirmedTrack>);
-    target->emplace<ConfirmedTrack>(std::move(track));
+    track->emplace<ConfirmedTrack>(std::move(confirmedTrack));
     return true;
 }
 
 bool TrackRepository::remove(std::uint32_t id)
 {
-    const auto target = findTarget(_targets, id);
-    if (target == _targets.end())
+    const auto track = findTrackById(_tracks, id);
+    if (track == _tracks.end())
     {
         return false;
     }
-    _targets.erase(target);
+    _tracks.erase(track);
     return true;
 }
 
-const std::list<Track>& TrackRepository::targets() const
+const std::list<Track>& TrackRepository::tracks() const
 {
-    return _targets;
+    return _tracks;
+}
+
+std::vector<const ConfirmedTrack*> TrackRepository::confirmedTracks(std::size_t limit) const
+{
+    return tracksOfType<ConfirmedTrack>(_tracks, limit);
+}
+
+std::vector<const TentativeTrack*> TrackRepository::tentativeTracks(std::size_t limit) const
+{
+    return tracksOfType<TentativeTrack>(_tracks, limit);
 }
 
 } // namespace target
