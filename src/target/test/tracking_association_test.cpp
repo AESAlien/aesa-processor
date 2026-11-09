@@ -80,7 +80,7 @@ public:
     std::optional<double> calculate(
         const math::SphericalPosition& observation,
         const math::SphericalPosition&,
-        std::optional<math::Length>
+        std::optional<math::Distance>
     ) const override {
         ++_counts->evaluations;
         return _ready ? std::optional<double>(observation.radius.m() == 1020.0 ? 1.0 : 100.0) : std::nullopt;
