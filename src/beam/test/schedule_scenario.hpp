@@ -120,7 +120,7 @@ inline RequestSpec makeRequestSpec(
             beam::BeamWidth(3_deg, 3_deg))};
     return RequestSpec{
         name,
-        factory.create(beam::RequestBeamCommand(
+        factory.from(beam::RequestBeamCommand(
             beamType,
             transmitTime,
             REQUEST_ID,

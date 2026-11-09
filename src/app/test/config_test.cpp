@@ -192,16 +192,16 @@ TEST(AppConfigTest, LoadsEveryConfigurationValue)
     EXPECT_EQ(config.beamConfig.requestCoverage.elevationRange().start(), -5_deg);
     EXPECT_EQ(config.beamConfig.requestCoverage.elevationRange().end(), 65_deg);
 
-    EXPECT_EQ(config.targetConfig.maxAssociationSpeed(), 900_mps);
-    EXPECT_EQ(config.targetConfig.maxInitialDopplerDifference(), 25_mps);
-    EXPECT_EQ(config.targetConfig.measurementStandardDeviation(), 6_m);
-    EXPECT_DOUBLE_EQ(config.targetConfig.positionNdsThreshold(), 10.0);
-    EXPECT_EQ(config.targetConfig.confirmationDelay(), 150ms);
-    EXPECT_EQ(config.targetConfig.trackingInterval(), 800ms);
-    EXPECT_EQ(config.targetConfig.maxConsecutiveTrackingMisses(), 4u);
-    EXPECT_EQ(config.targetConfig.initialAccelerationStandardDeviation(), 8_mps2);
-    EXPECT_EQ(config.targetConfig.maxReportedTrackCount(), 75u);
-    EXPECT_EQ(config.targetConfig.processAccelerationStandardDeviation(), 5_mps2);
+    EXPECT_EQ(config.targetConfig.association.maxAssociationSpeed(), 900_mps);
+    EXPECT_EQ(config.targetConfig.association.maxInitialDopplerDifference(), 25_mps);
+    EXPECT_EQ(config.targetConfig.measurement.standardDeviation(), 6_m);
+    EXPECT_DOUBLE_EQ(config.targetConfig.association.positionNdsThreshold(), 10.0);
+    EXPECT_EQ(config.targetConfig.trackManagement.confirmationDelay(), 150ms);
+    EXPECT_EQ(config.targetConfig.trackManagement.trackingInterval(), 800ms);
+    EXPECT_EQ(config.targetConfig.trackManagement.maxConsecutiveTrackingMisses(), 4u);
+    EXPECT_EQ(config.targetConfig.tracking.initialAccelerationStandardDeviation(), 8_mps2);
+    EXPECT_EQ(config.targetConfig.trackManagement.maxReportedTrackCount(), 75u);
+    EXPECT_EQ(config.targetConfig.tracking.processAccelerationStandardDeviation(), 5_mps2);
 
     EXPECT_EQ(config.commConfig.server().address(), "127.0.0.1");
     EXPECT_EQ(config.commConfig.server().port(), 43200);
@@ -237,7 +237,7 @@ TEST(AppConfigTest, LoadsConfigurationFromEnvFilePath)
     const app::Config config = app::ConfigLoader::load(file.path());
 
     EXPECT_EQ(config.beamConfig.searchGrid.azimuthCount(), 3u);
-    EXPECT_EQ(config.targetConfig.maxReportedTrackCount(), 75u);
+    EXPECT_EQ(config.targetConfig.trackManagement.maxReportedTrackCount(), 75u);
     EXPECT_EQ(config.commConfig.server().port(), 43200);
 }
 
@@ -303,7 +303,7 @@ TEST(AppConfigTest, ParsesQuotedValuesAndInlineComments)
     const app::Config config = loadConfig(file.path());
 
     EXPECT_EQ(config.beamConfig.attitude.maxAbsPitch(), 60_deg);
-    EXPECT_EQ(config.targetConfig.maxAssociationSpeed(), 900_mps);
+    EXPECT_EQ(config.targetConfig.association.maxAssociationSpeed(), 900_mps);
     EXPECT_EQ(config.commConfig.server().address(), "127.0.0.1");
 }
 

@@ -12,9 +12,9 @@
 namespace target
 {
 
-class TargetRepository;
-class ITrackingAlgorithm;
-class DetectionMatcher;
+class TrackRepository;
+class TrackFactory;
+class DetectionHandler;
 class TentativeSelector;
 class TrackSelector;
 
@@ -27,13 +27,13 @@ public:
     std::vector<TrackEvent> nextTrackEvents() const;
 
 private:
-    std::shared_ptr<const TargetConfig> _config;
-    std::shared_ptr<const ITrackingAlgorithm> _trackingAlgorithm;
-    std::shared_ptr<TargetRepository> _targetRepository;
-    std::shared_ptr<const DetectionMatcher> _matcher;
-    // The selectors share the repository and matcher owned by this controller.
+    std::shared_ptr<const TrackManagementConfig> _config;
+    std::shared_ptr<const TrackFactory> _trackFactory;
+    std::shared_ptr<TrackRepository> _trackRepository;
+    // Selectors and the handler borrow objects shared by controller copies.
     std::shared_ptr<const TentativeSelector> _tentativeSelector;
     std::shared_ptr<const TrackSelector> _trackSelector;
+    std::shared_ptr<DetectionHandler> _detectionHandler;
 };
 
 } // namespace target

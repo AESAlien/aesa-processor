@@ -148,18 +148,22 @@ target::TargetConfig ConfigAssembler::createTargetConfig()
                 "TARGET_PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2");
 
         return target::TargetConfig(
-            math::LinearVelocity::fromMetersPerSecond(MAX_ASSOCIATION_SPEED_MPS),
-            math::LinearVelocity::fromMetersPerSecond(MAX_INITIAL_DOPPLER_DIFFERENCE_MPS),
-            math::Length::fromMeters(MEASUREMENT_STANDARD_DEVIATION_M),
-            POSITION_NDS_THRESHOLD,
-            CONFIRMATION_DELAY,
-            TRACKING_INTERVAL,
-            MAX_CONSECUTIVE_TRACKING_MISSES,
-            math::LinearAcceleration::fromMetersPerSecondSquared(
-                INITIAL_ACCELERATION_STANDARD_DEVIATION_MPS2),
-            MAX_REPORTED_TRACK_COUNT,
-            math::LinearAcceleration::fromMetersPerSecondSquared(
-                PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2));
+            target::AssociationConfig(
+                math::LinearVelocity::fromMetersPerSecond(MAX_ASSOCIATION_SPEED_MPS),
+                math::LinearVelocity::fromMetersPerSecond(MAX_INITIAL_DOPPLER_DIFFERENCE_MPS),
+                POSITION_NDS_THRESHOLD),
+            target::MeasurementConfig(
+                math::Length::fromMeters(MEASUREMENT_STANDARD_DEVIATION_M)),
+            target::TrackingConfig(
+                math::LinearAcceleration::fromMetersPerSecondSquared(
+                    INITIAL_ACCELERATION_STANDARD_DEVIATION_MPS2),
+                math::LinearAcceleration::fromMetersPerSecondSquared(
+                    PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2)),
+            target::TrackManagementConfig(
+                CONFIRMATION_DELAY,
+                TRACKING_INTERVAL,
+                MAX_CONSECUTIVE_TRACKING_MISSES,
+                MAX_REPORTED_TRACK_COUNT));
     }
     catch (const std::invalid_argument& error)
     {
