@@ -38,6 +38,10 @@ public:
 
     bool isConnected() const;
 
+    // Returns the current session, or nullptr while disconnected. The copy
+    // keeps the session alive even if it is replaced meanwhile.
+    std::shared_ptr<Session> snapshotSession() const;
+
     // Replaces the active session when the configured peer reconnects.
     void replaceSession(std::shared_ptr<Session> session);
 
@@ -47,7 +51,6 @@ public:
     );
 
 private:
-    std::shared_ptr<Session> snapshotSession() const;
     void detachIfCurrent(const std::shared_ptr<Session>& session);
 
     std::string _name;

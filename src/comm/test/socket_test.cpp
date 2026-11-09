@@ -1,11 +1,11 @@
 #include <comm/config/comm_endpoint.hpp>
 #include <comm/error/comm_error.hpp>
 #include <network/network_manager/network_manager.hpp>
-#include <network/connection_listener/connection_listener.hpp>
 #include <network/peer_connection/peer_connection.hpp>
 #include <network/session/session.hpp>
 #include <network/socket_selector/socket_selector.hpp>
 #include <network/socket/socket.hpp>
+#include <network/tcp_server/tcp_server.hpp>
 #include <network/listen_socket/listen_socket.hpp>
 #include <network/connected_socket/connected_socket.hpp>
 
@@ -136,6 +136,34 @@ comm::ConnectedSocket connectPeer(NativePeer& client)
     return std::move(*accepted);
 }
 
+comm::CommConfig makeConfig(
+    uint16_t serverPort,
+    const NativePeer& operatorConsole,
+    const NativePeer& scenarioSimulator
+) {
+    return comm::CommConfig(
+        comm::CommEndpoint("127.0.0.1", serverPort),
+        comm::CommEndpoint("127.0.0.1", operatorConsole.localPort()),
+        comm::CommEndpoint("127.0.0.1", scenarioSimulator.localPort())
+    );
+}
+
+// Handles pending accepts and closures; a reset connection ends its session.
+void pollFor(comm::NetworkManager& manager, std::chrono::milliseconds duration)
+{
+    const auto deadline = std::chrono::steady_clock::now() + duration;
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+        try
+        {
+            manager.poll(std::chrono::milliseconds{10});
+        }
+        catch (const comm::ReceiveError&)
+        {
+        }
+    }
+}
+
 TEST(NetworkManagerTest, OwnsConnectionsAndRoutesDestinationSpecificSends)
 {
     TestSocket apiLifetime;
@@ -202,103 +230,84 @@ TEST(NetworkManagerTest, OwnsConnectionsAndRoutesDestinationSpecificSends)
     EXPECT_EQ(simulator.receiveByte(received), 0);
 }
 
-TEST(ConnectionListenerTest, RoutesRegisteredConnectionsByObjectNotDiagnosticName)
+TEST(NetworkManagerTest, PeerClosureDisconnectsOnlyThatPeer)
 {
     TestSocket apiLifetime;
-    NativePeer firstClient;
-    NativePeer secondClient;
-    ASSERT_EQ(firstClient.bind(), 0);
-    ASSERT_EQ(secondClient.bind(), 0);
-    comm::PeerConnection first(
-        "same-name", comm::CommEndpoint("127.0.0.1", firstClient.localPort())
-    );
-    comm::PeerConnection second(
-        "same-name", comm::CommEndpoint("127.0.0.1", secondClient.localPort())
-    );
+    NativePeer console;
+    NativePeer simulator;
+    ASSERT_EQ(console.bind(), 0);
+    ASSERT_EQ(simulator.bind(), 0);
     const uint16_t port = availablePort();
-    comm::ConnectionListener manager(
-        comm::CommEndpoint("127.0.0.1", port), {first, second}
-    );
+    comm::NetworkManager manager(makeConfig(port, console, simulator));
     manager.start();
-
-    ASSERT_EQ(firstClient.connect(port), 0);
+    ASSERT_EQ(console.connect(port), 0);
     EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
-    ASSERT_TRUE(first.isConnected());
-    EXPECT_FALSE(second.isConnected());
-    ASSERT_EQ(secondClient.connect(port), 0);
+    ASSERT_EQ(simulator.connect(port), 0);
     EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
-    ASSERT_TRUE(second.isConnected());
 
-    first.send({0x31}, SOCKET_WAIT_TIMEOUT);
-    second.send({0x42}, SOCKET_WAIT_TIMEOUT);
+    console.close();
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+    manager.sendToScenarioSimulator({0x42}, SOCKET_WAIT_TIMEOUT);
     uint8_t received = 0;
-    ASSERT_EQ(firstClient.waitReadable(), 1);
-    ASSERT_EQ(firstClient.receiveByte(received), 1);
-    EXPECT_EQ(received, 0x31);
-    ASSERT_EQ(secondClient.waitReadable(), 1);
-    ASSERT_EQ(secondClient.receiveByte(received), 1);
+    ASSERT_EQ(simulator.waitReadable(), 1);
+    ASSERT_EQ(simulator.receiveByte(received), 1);
     EXPECT_EQ(received, 0x42);
-
-    comm::protocol::ST_MsgHeader header{};
-    header.message_Id = static_cast<uint16_t>(comm::protocol::MessageId::OPERATOR_CONTROL);
-    header.block_size = sizeof(header);
-    std::vector<uint8_t> bytes(sizeof(header));
-    std::memcpy(bytes.data(), &header, sizeof(header));
-    for (uint8_t byte : bytes)
-    {
-        ASSERT_EQ(firstClient.sendByte(byte), 1);
-    }
-    std::optional<comm::ReceivedFrames> frames;
-    const auto deadline = std::chrono::steady_clock::now() + SOCKET_WAIT_TIMEOUT;
-    while (!frames && std::chrono::steady_clock::now() < deadline)
-    {
-        frames = manager.poll(std::chrono::milliseconds{10});
-    }
-    ASSERT_TRUE(frames);
-    EXPECT_EQ(frames->peerName, "same-name");
-    ASSERT_EQ(frames->frames.size(), 1U);
-    EXPECT_EQ(frames->frames[0].bytes, bytes);
-
-    firstClient.close();
-    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
-    EXPECT_FALSE(first.isConnected());
-    EXPECT_TRUE(second.isConnected());
 }
 
-TEST(ConnectionListenerTest, ReconnectionReplacesSessionThroughAcceptancePath)
+TEST(NetworkManagerTest, ReconnectionFromSameEndpointReplacesSession)
 {
     TestSocket apiLifetime;
-    NativePeer previousClient;
-    NativePeer replacementClient;
-    ASSERT_EQ(previousClient.setReuseAddress(), 0);
-    ASSERT_EQ(replacementClient.setReuseAddress(), 0);
-    ASSERT_EQ(previousClient.bind(), 0);
-    comm::PeerConnection connection(
-        "reconnecting", comm::CommEndpoint("127.0.0.1", previousClient.localPort())
-    );
-    // Different listener ports allow two simultaneous connections from the
-    // same configured peer endpoint without relying on TCP TIME_WAIT timing.
-    const uint16_t firstPort = availablePort();
-    comm::ConnectionListener first(comm::CommEndpoint("127.0.0.1", firstPort), {connection});
-    first.start();
-    const uint16_t secondPort = availablePort();
-    comm::ConnectionListener second(comm::CommEndpoint("127.0.0.1", secondPort), {connection});
-    second.start();
-    ASSERT_EQ(previousClient.connect(firstPort), 0);
-    EXPECT_FALSE(first.poll(SOCKET_WAIT_TIMEOUT));
-    ASSERT_TRUE(connection.isConnected());
-    ASSERT_EQ(replacementClient.bind(previousClient.localPort()), 0);
-    ASSERT_EQ(replacementClient.connect(secondPort), 0);
-    EXPECT_FALSE(second.poll(SOCKET_WAIT_TIMEOUT));
-    ASSERT_TRUE(connection.isConnected());
+    NativePeer previousConsole;
+    NativePeer replacementConsole;
+    NativePeer simulator;
+    ASSERT_EQ(previousConsole.setReuseAddress(), 0);
+    ASSERT_EQ(replacementConsole.setReuseAddress(), 0);
+    ASSERT_EQ(previousConsole.bind(), 0);
+    ASSERT_EQ(simulator.bind(), 0);
+    const uint16_t port = availablePort();
+    comm::NetworkManager manager(makeConfig(port, previousConsole, simulator));
+    manager.start();
+    ASSERT_EQ(previousConsole.connect(port), 0);
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+
+    // A reset leaves no TIME_WAIT, so the same endpoint can connect again.
+    const uint16_t consolePort = previousConsole.localPort();
+    ASSERT_EQ(previousConsole.setAbortiveClose(), 0);
+    previousConsole.close();
+    ASSERT_EQ(replacementConsole.bind(consolePort), 0);
+    ASSERT_EQ(replacementConsole.connect(port), 0);
+    pollFor(manager, std::chrono::milliseconds{200});
+
+    manager.sendToOperatorConsole({0x6E}, SOCKET_WAIT_TIMEOUT);
+    uint8_t received = 0;
+    ASSERT_EQ(replacementConsole.waitReadable(), 1);
+    ASSERT_EQ(replacementConsole.receiveByte(received), 1);
+    EXPECT_EQ(received, 0x6E);
+}
+
+TEST(NetworkManagerTest, RejectsUnknownPeerWithoutReplacingKnownConnection)
+{
+    TestSocket apiLifetime;
+    NativePeer console;
+    NativePeer simulator;
+    NativePeer unknown;
+    ASSERT_EQ(console.bind(), 0);
+    ASSERT_EQ(simulator.bind(), 0);
+    const uint16_t port = availablePort();
+    comm::NetworkManager manager(makeConfig(port, console, simulator));
+    manager.start();
+    ASSERT_EQ(console.connect(port), 0);
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+    ASSERT_EQ(unknown.connect(port), 0);
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
 
     uint8_t received = 0;
-    ASSERT_EQ(previousClient.waitReadable(), 1);
-    EXPECT_EQ(previousClient.receiveByte(received), 0);
-    connection.send({0x6E});
-    ASSERT_EQ(replacementClient.waitReadable(), 1);
-    ASSERT_EQ(replacementClient.receiveByte(received), 1);
-    EXPECT_EQ(received, 0x6E);
+    ASSERT_EQ(unknown.waitReadable(), 1);
+    EXPECT_EQ(unknown.receiveByte(received), 0);
+    manager.sendToOperatorConsole({0x51}, SOCKET_WAIT_TIMEOUT);
+    ASSERT_EQ(console.waitReadable(), 1);
+    ASSERT_EQ(console.receiveByte(received), 1);
+    EXPECT_EQ(received, 0x51);
 }
 
 TEST(PeerConnectionTest, DisconnectedSendPreservesValidationAndNoOpBehavior)
@@ -323,7 +332,7 @@ TEST(PeerConnectionTest, MatchesBothAddressAndPort)
     EXPECT_FALSE(connection.matches(comm::CommEndpoint("127.0.0.1", 4101)));
 }
 
-TEST(SessionListenerTest, SessionsOwnConnectionsAndExposeRemoteAddress)
+TEST(TcpServerTest, ReportsNewConnectionsAsNewSessions)
 {
     TestSocket apiLifetime;
     NativePeer firstClient;
@@ -332,27 +341,31 @@ TEST(SessionListenerTest, SessionsOwnConnectionsAndExposeRemoteAddress)
     std::shared_ptr<comm::Session> second;
     {
         const uint16_t port = availablePort();
-        comm::SessionListener listener(comm::CommEndpoint("127.0.0.1", port));
-        EXPECT_FALSE(listener.accept());
+        comm::TcpServer server(comm::CommEndpoint("127.0.0.1", port));
+        EXPECT_EQ(server.poll({}, std::chrono::milliseconds{0}).kind, comm::ServerEventKind::NONE);
         ASSERT_EQ(firstClient.connect(port), 0);
-        first = listener.poll(SOCKET_WAIT_TIMEOUT);
+        const comm::ServerEvent firstEvent = server.poll({}, SOCKET_WAIT_TIMEOUT);
+        ASSERT_EQ(firstEvent.kind, comm::ServerEventKind::NEW_SESSION);
+        first = firstEvent.session;
         ASSERT_TRUE(first);
         EXPECT_EQ(first->getRemoteEndpoint().getPort(), firstClient.localPort());
         EXPECT_EQ(first->getRemoteEndpoint().getAddress(), "127.0.0.1");
         EXPECT_EQ(first->getSocket().getRemoteEndpoint(), first->getRemoteEndpoint());
         ASSERT_EQ(secondClient.connect(port), 0);
-        second = listener.poll(SOCKET_WAIT_TIMEOUT);
-        ASSERT_TRUE(second);
+        const comm::ServerEvent secondEvent = server.poll({first}, SOCKET_WAIT_TIMEOUT);
+        ASSERT_EQ(secondEvent.kind, comm::ServerEventKind::NEW_SESSION);
+        second = secondEvent.session;
         ASSERT_NE(first, second);
         EXPECT_EQ(second->getRemoteEndpoint().getPort(), secondClient.localPort());
 
         firstClient.close();
-        const auto readable = listener.poll(SOCKET_WAIT_TIMEOUT);
-        EXPECT_EQ(readable, first);
+        const comm::ServerEvent readable = server.poll({first, second}, SOCKET_WAIT_TIMEOUT);
+        EXPECT_EQ(readable.kind, comm::ServerEventKind::READABLE);
+        EXPECT_EQ(readable.session, first);
         EXPECT_TRUE(first->receive().empty());
         EXPECT_FALSE(first->isOpen());
     }
-    // Closing the listener does not invalidate accepted sessions.
+    // Closing the server does not invalidate accepted sessions.
     second->send({0x6E}, SOCKET_WAIT_TIMEOUT);
     uint8_t received = 0;
     ASSERT_EQ(secondClient.waitReadable(), 1);
@@ -363,52 +376,65 @@ TEST(SessionListenerTest, SessionsOwnConnectionsAndExposeRemoteAddress)
     EXPECT_EQ(secondClient.receiveByte(received), 0);
 }
 
-TEST(SessionListenerTest, RotatesBetweenSocketsThatAreReadyAtTheSameTime)
+TEST(TcpServerTest, RotatesBetweenSocketsThatAreReadyAtTheSameTime)
 {
     TestSocket apiLifetime;
     NativePeer firstClient;
     NativePeer secondClient;
     const uint16_t port = availablePort();
-    comm::SessionListener listener(comm::CommEndpoint("127.0.0.1", port));
+    comm::TcpServer server(comm::CommEndpoint("127.0.0.1", port));
 
     ASSERT_EQ(firstClient.connect(port), 0);
-    const auto first = listener.poll(SOCKET_WAIT_TIMEOUT);
+    const auto first = server.poll({}, SOCKET_WAIT_TIMEOUT).session;
     ASSERT_TRUE(first);
     ASSERT_EQ(secondClient.connect(port), 0);
-    const auto second = listener.poll(SOCKET_WAIT_TIMEOUT);
+    const auto second = server.poll({first}, SOCKET_WAIT_TIMEOUT).session;
     ASSERT_TRUE(second);
 
     ASSERT_EQ(firstClient.sendByte(0x31), 1);
     ASSERT_EQ(secondClient.sendByte(0x42), 1);
-    EXPECT_EQ(listener.poll(std::chrono::milliseconds{0}), first);
-    EXPECT_EQ(listener.poll(std::chrono::milliseconds{0}), second);
+    // Loopback delivery can lag behind send(), so wait until both are readable.
+    const comm::SocketSelector selector({&first->getSocket(), &second->getSocket()});
+    const auto deadline = std::chrono::steady_clock::now() + SOCKET_WAIT_TIMEOUT;
+    while (selector.waitReadable(std::chrono::milliseconds{10}).size() < 2 &&
+        std::chrono::steady_clock::now() < deadline)
+    {
+    }
+
+    const std::vector<std::shared_ptr<comm::Session>> sessions{first, second};
+    EXPECT_EQ(server.poll(sessions, std::chrono::milliseconds{0}).session, first);
+    EXPECT_EQ(server.poll(sessions, std::chrono::milliseconds{0}).session, second);
 }
 
-TEST(ConnectionListenerTest, RejectsUnknownPeerWithoutReplacingKnownConnection)
+TEST(TcpServerTest, ReplacedSessionIsNeitherWatchedNorReportedAsNew)
 {
     TestSocket apiLifetime;
-    NativePeer known;
-    NativePeer unknown;
-    ASSERT_EQ(known.bind(), 0);
-    comm::PeerConnection connection(
-        "known", comm::CommEndpoint("127.0.0.1", known.localPort())
-    );
+    NativePeer previousClient;
+    NativePeer replacementClient;
     const uint16_t port = availablePort();
-    comm::ConnectionListener manager(comm::CommEndpoint("127.0.0.1", port), {connection});
-    manager.start();
-    EXPECT_NO_THROW(manager.start());
-    ASSERT_EQ(known.connect(port), 0);
-    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
-    ASSERT_TRUE(connection.isConnected());
-    ASSERT_EQ(unknown.connect(port), 0);
-    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
-    ASSERT_EQ(unknown.waitReadable(), 1);
-    uint8_t received = 0;
-    EXPECT_EQ(unknown.receiveByte(received), 0);
-    connection.send({0x51});
-    ASSERT_EQ(known.waitReadable(), 1);
-    ASSERT_EQ(known.receiveByte(received), 1);
-    EXPECT_EQ(received, 0x51);
+    comm::TcpServer server(comm::CommEndpoint("127.0.0.1", port));
+    ASSERT_EQ(previousClient.connect(port), 0);
+    const comm::ServerEvent previous = server.poll({}, SOCKET_WAIT_TIMEOUT);
+    ASSERT_EQ(previous.kind, comm::ServerEventKind::NEW_SESSION);
+    ASSERT_EQ(replacementClient.connect(port), 0);
+    const comm::ServerEvent replacement = server.poll({previous.session}, SOCKET_WAIT_TIMEOUT);
+    ASSERT_EQ(replacement.kind, comm::ServerEventKind::NEW_SESSION);
+
+    // A sender may still hold the replaced session after its peer closes it.
+    previousClient.close();
+    ASSERT_EQ(
+        comm::SocketSelector({&previous.session->getSocket()}).waitReadable(SOCKET_WAIT_TIMEOUT).size(),
+        1U
+    );
+    EXPECT_EQ(
+        server.poll({replacement.session}, std::chrono::milliseconds{50}).kind,
+        comm::ServerEventKind::NONE
+    );
+
+    ASSERT_EQ(replacementClient.sendByte(0x31), 1);
+    const comm::ServerEvent readable = server.poll({replacement.session}, SOCKET_WAIT_TIMEOUT);
+    EXPECT_EQ(readable.kind, comm::ServerEventKind::READABLE);
+    EXPECT_EQ(readable.session, replacement.session);
 }
 
 TEST(SocketTest, OwnsApiAndSupportsMoveAndRepeatedClose)

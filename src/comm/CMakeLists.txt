@@ -8,8 +8,6 @@ add_library(comm STATIC
     src/network/message_decoder/message_decoder.cpp
     src/network/message_encoder/message_encoder.cpp
     src/network/message_framer/message_framer.cpp
-    src/network/connection_listener/connection_listener.cpp
-    src/network/session_listener/session_listener.cpp
     src/network/network_manager/network_manager.cpp
     src/network/peer_connection/peer_connection.cpp
     src/network/session/session.cpp
@@ -18,6 +16,7 @@ add_library(comm STATIC
     src/network/socket/socket.cpp
     src/network/listen_socket/listen_socket.cpp
     src/network/connected_socket/connected_socket.cpp
+    src/network/tcp_server/tcp_server.cpp
 )
 target_include_directories(comm
     PUBLIC

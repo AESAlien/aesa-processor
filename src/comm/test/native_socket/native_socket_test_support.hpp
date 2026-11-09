@@ -33,6 +33,8 @@ public:
     void close();
     int bind(uint16_t port = 0);
     int setReuseAddress();
+    // Makes close() reset the connection instead of leaving TIME_WAIT behind.
+    int setAbortiveClose();
     int connect(uint16_t port);
     int setReceiveBufferSize(int size);
     uint16_t localPort() const;

@@ -123,6 +123,11 @@ int NativePeer::setReuseAddress()
     );
 }
 
+int NativePeer::setAbortiveClose()
+{
+    return comm::native_socket::setAbortiveClose(_handle);
+}
+
 int NativePeer::connect(uint16_t port)
 {
     const sockaddr_in address = loopbackAddress(port);
