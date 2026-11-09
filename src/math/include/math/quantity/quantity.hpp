@@ -18,24 +18,6 @@ public:
         return _value;
     }
 
-    // 저장된 값이 0보다 크면 true를 반환한다.
-    bool isPositive() const noexcept
-    {
-        return _value > 0.0;
-    }
-
-    // 저장된 값이 0보다 작으면 true를 반환한다.
-    bool isNegative() const noexcept
-    {
-        return _value < 0.0;
-    }
-
-    // 저장된 값이 0 이하이면 true를 반환한다.
-    bool isNonpositive() const noexcept
-    {
-        return _value <= 0.0;
-    }
-
     // 저장된 값이 0 이상이면 true를 반환한다.
     bool isNonnegative() const noexcept
     {

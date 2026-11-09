@@ -64,11 +64,10 @@ PR 제목이나 커밋 메시지는 `<유형>: <요약>` 형식으로 만듭니�
 
 ## C++ 코드 포맷
 
-### 헤더 파일 (`number_printer.hpp`)
-
 ```cpp
-#pragma once
-
+#include <algorithm>
+#include <iostream>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -77,75 +76,41 @@ namespace print
 class NumberPrinter
 {
 public:
-    NumberPrinter();
-
-    void setSeparator(char separator);
-
     void print(
         const std::vector<int>& values,
         const std::string& title,
         int minimumValue
-    ) const;
-
-private:
-    char _separator;
-};
-}
-```
-
-### 구현 파일 (`number_printer.cpp`)
-
-```cpp
-#include "number_printer.hpp"
-
-#include <algorithm>
-#include <iostream>
-#include <iterator>
-#include <vector>
-
-namespace print
-{
-NumberPrinter::NumberPrinter()
-  : _separator('\n')
-{
-}
-
-void NumberPrinter::setSeparator(char separator)
-{
-    _separator = separator;
-}
-
-void NumberPrinter::print(
-    const std::vector<int>& values,
-    const std::string& title,
-    int minimumValue
-) const {
-    if (values.empty())
-    {
-        std::cout << "No numbers" << '\n';
-        return;
-    }
-
-    std::cout << title << '\n';
-    for (std::size_t index = 0; index < values.size(); ++index)
-    {
-        int value = std::max(values[index], minimumValue);
-        int remainder = value % 2;
-
-        switch (remainder)
+    ) const {
+        if (values.empty())
         {
-        case 0:
-            std::cout << "Even: ";
-            break;
-
-        default:
-            std::cout << "Odd: ";
-            break;
+            std::cout << "No numbers" << '\n';
+            return;
         }
 
-        std::cout << value << _separator;
+        std::cout << title << '\n';
+        for (std::size_t index = 0; index < values.size(); ++index)
+        {
+            int value = std::max(values[index], minimumValue);
+            int remainder = value % 2;
+
+            switch (remainder)
+            {
+            case 0:
+                std::cout << "Even: ";
+                break;
+
+            default:
+                std::cout << "Odd: ";
+                break;
+            }
+
+            std::cout << value << _separator;
+        }
     }
-}
+
+private:
+    char _separator = '\n';
+};
 }
 
 int main()
@@ -159,12 +124,10 @@ int main()
 
     const std::vector<int> values(std::begin(INITIAL_VALUES), std::end(INITIAL_VALUES));
     print::NumberPrinter printer;
-    printer.setSeparator('\n');
     printer.print(
         values,
         "Example numbers",
-        0
-    );
+        0);
 
     return 0;
 }

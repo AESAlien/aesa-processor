@@ -34,7 +34,7 @@ Vector CartesianDisplacement::toVector() const
     return Vector{x.m(), y.m(), z.m()};
 }
 
-CartesianVelocity CartesianDisplacement::operator/(std::chrono::duration<double> elapsed) const
+CartesianVelocity CartesianDisplacement::toVelocity(std::chrono::duration<double> elapsed) const
 {
     const double seconds = elapsed.count();
     if (!std::isfinite(seconds) || seconds <= 0.0)

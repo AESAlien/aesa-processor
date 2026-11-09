@@ -16,11 +16,6 @@ public:
     double m() const noexcept;
     double km() const noexcept;
 
-    bool isPositive() const noexcept;
-    bool isNegative() const noexcept;
-    bool isNonpositive() const noexcept;
-    bool isNonnegative() const noexcept;
-
     bool equals(
         const Distance& other,
         const QuantityTolerance<Length>& tolerance = Length::DEFAULT_TOLERANCE
