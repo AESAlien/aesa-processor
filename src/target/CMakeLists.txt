@@ -6,12 +6,12 @@ add_library(target STATIC
     src/config/target_config.cpp
     src/controller/target_controller.cpp
     src/service/detection_handler.cpp
-    src/service/detection_matcher.cpp
-    src/algorithm/nds_algorithm.cpp
-    src/algorithm/constant_velocity_algorithm.cpp
-    src/algorithm/constant_acceleration_algorithm.cpp
-    src/service/tentative_selector.cpp
-    src/service/track_selector.cpp
+    src/domain/algorithm/nds_calculation.cpp
+    src/domain/algorithm/nds_algorithm.cpp
+    src/domain/algorithm/constant_velocity_algorithm.cpp
+    src/domain/algorithm/constant_acceleration_algorithm.cpp
+    src/domain/selector/tentative_selector.cpp
+    src/domain/selector/track_selector.cpp
     src/domain/detection_result.cpp
     src/domain/observation.cpp
     src/domain/tentative_track.cpp

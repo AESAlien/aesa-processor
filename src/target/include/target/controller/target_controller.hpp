@@ -14,7 +14,6 @@ namespace target
 
 class TrackRepository;
 class TrackFactory;
-class DetectionMatcher;
 class DetectionHandler;
 class TentativeSelector;
 class TrackSelector;
@@ -31,7 +30,6 @@ private:
     std::shared_ptr<const TrackManagementConfig> _config;
     std::shared_ptr<const TrackFactory> _trackFactory;
     std::shared_ptr<TrackRepository> _trackRepository;
-    std::shared_ptr<const DetectionMatcher> _matcher;
     // Selectors and the handler borrow objects shared by controller copies.
     std::shared_ptr<const TentativeSelector> _tentativeSelector;
     std::shared_ptr<const TrackSelector> _trackSelector;

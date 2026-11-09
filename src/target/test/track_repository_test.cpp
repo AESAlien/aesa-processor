@@ -1,4 +1,4 @@
-#include "algorithm/constant_velocity_algorithm.hpp"
+#include "domain/algorithm/constant_velocity_algorithm.hpp"
 #include "domain/factory/track_factory.hpp"
 #include "repository/track_repository.hpp"
 
@@ -28,7 +28,7 @@ TEST(TrackRepositoryTest, AdvancesIdentityOnlyAfterSuccessfulRegistration)
     TrackRepository repository;
     const TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>());
     EXPECT_EQ(repository.nextId(), 1u);
-    const auto tentative = factory.from(repository.nextId(), observation());
+    const auto tentative = factory.createTentative(repository.nextId(), observation());
     EXPECT_EQ(repository.nextId(), 1u);
 
     EXPECT_EQ(repository.add(tentative), 1u);
@@ -46,7 +46,7 @@ TEST(TrackRepositoryTest, ExhaustionDoesNotWrapOrReuseDeletedIds)
     for (std::uint32_t id = 1; id <= maximum; ++id)
     {
         ASSERT_EQ(repository.nextId(), id);
-        ASSERT_EQ(repository.add(factory.from(repository.nextId(), observation())), id);
+        ASSERT_EQ(repository.add(factory.createTentative(repository.nextId(), observation())), id);
         ASSERT_TRUE(repository.remove(id));
     }
     EXPECT_TRUE(repository.targets().empty());
@@ -58,11 +58,11 @@ TEST(TrackRepositoryTest, ConfirmationPreservesIdentityWithoutConsumingAnotherId
 {
     TrackRepository repository;
     const TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>());
-    const auto tentative = factory.from(repository.nextId(), observation());
+    const auto tentative = factory.createTentative(repository.nextId(), observation());
     repository.add(tentative);
 
     const Observation confirmation(math::SphericalPosition(1001_m, 0_deg, 0_deg), 0_mps, -10.0f, 100ms);
-    const auto track = TrackFactory::from(tentative, confirmation);
+    const auto track = tentative.confirm(confirmation);
 
     ASSERT_TRUE(track);
     EXPECT_EQ(track->id(), tentative.id());
@@ -74,17 +74,17 @@ TEST(TrackRepositoryTest, PreparedIdentitiesAdvanceTheSequenceWithoutMovingItBac
 {
     TrackRepository repository;
     const TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>());
-    EXPECT_EQ(repository.add(factory.from(42, observation())), 42u);
+    EXPECT_EQ(repository.add(factory.createTentative(42, observation())), 42u);
     EXPECT_EQ(repository.nextId(), 43u);
 
-    const auto tentative = factory.from(7, observation());
+    const auto tentative = factory.createTentative(7, observation());
     const Observation confirmation(math::SphericalPosition(1001_m, 0_deg, 0_deg), 0_mps, -10.0f, 100ms);
-    const auto track = TrackFactory::from(tentative, confirmation);
+    const auto track = tentative.confirm(confirmation);
     ASSERT_TRUE(track);
     EXPECT_EQ(repository.add(*track), 7u);
     EXPECT_EQ(repository.nextId(), 43u);
     ASSERT_TRUE(repository.remove(42));
-    EXPECT_EQ(repository.add(factory.from(repository.nextId(), observation())), 43u);
+    EXPECT_EQ(repository.add(factory.createTentative(repository.nextId(), observation())), 43u);
 }
 
 TEST(TrackRepositoryTest, RejectsUnreportableIdentitiesWithoutConsumingAnId)
@@ -92,17 +92,17 @@ TEST(TrackRepositoryTest, RejectsUnreportableIdentitiesWithoutConsumingAnId)
     TrackRepository repository;
     const TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>());
     const auto invalid = std::uint32_t{std::numeric_limits<std::uint16_t>::max()} + 1;
-    const auto tentative = factory.from(invalid, observation());
+    const auto tentative = factory.createTentative(invalid, observation());
     EXPECT_THROW(repository.add(tentative), std::overflow_error);
     EXPECT_EQ(repository.nextId(), 1u);
 
     const Observation confirmation(math::SphericalPosition(1001_m, 0_deg, 0_deg), 0_mps, -10.0f, 100ms);
-    const auto track = TrackFactory::from(tentative, confirmation);
+    const auto track = tentative.confirm(confirmation);
     ASSERT_TRUE(track);
     EXPECT_THROW(repository.add(*track), std::overflow_error);
     EXPECT_TRUE(repository.targets().empty());
     EXPECT_EQ(repository.nextId(), 1u);
-    EXPECT_EQ(repository.add(factory.from(repository.nextId(), observation())), 1u);
+    EXPECT_EQ(repository.add(factory.createTentative(repository.nextId(), observation())), 1u);
 }
 
 } // namespace

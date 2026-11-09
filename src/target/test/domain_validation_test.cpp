@@ -1,5 +1,6 @@
-#include "service/detection_matcher.hpp"
-#include "algorithm/constant_velocity_algorithm.hpp"
+#include "domain/algorithm/nds_algorithm.hpp"
+#include "association_selection_helpers.hpp"
+#include "domain/algorithm/constant_velocity_algorithm.hpp"
 #include "domain/tentative_track.hpp"
 #include "domain/factory/track_factory.hpp"
 #include "repository/track_repository.hpp"
@@ -250,7 +251,7 @@ TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingThe
 {
     const auto algorithm = std::make_shared<FaultAlgorithm>();
     const TrackFactory factory(algorithm);
-    const auto tentative = factory.from(1, observation(100ms));
+    const auto tentative = factory.createTentative(1, observation(100ms));
     EXPECT_FALSE(tentative.initialize(observation(0ms)));
     EXPECT_FALSE(tentative.initialize(observation(100ms)));
     EXPECT_EQ(algorithm->initializationCount(), 0u);
@@ -261,7 +262,7 @@ TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingThe
     EXPECT_EQ(initialized->timestamp(), 200ms);
     EXPECT_EQ(initialized->sphericalPosition().radius, 1010_m);
 
-    const auto track = TrackFactory::from(tentative, observation(200ms, 1010_m));
+    const auto track = tentative.confirm(observation(200ms, 1010_m));
     ASSERT_TRUE(track);
     EXPECT_EQ(algorithm->initializationCount(), 2u);
     EXPECT_EQ(track->id(), tentative.id());
@@ -281,7 +282,7 @@ TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingThe
 TEST(TentativeTrackTest, InitializationFailuresPreserveTheSourceAndAllowRetry)
 {
     const auto algorithm = std::make_shared<FaultAlgorithm>();
-    const auto tentative = TrackFactory(algorithm).from(1, observation(0ms));
+    const auto tentative = TrackFactory(algorithm).createTentative(1, observation(0ms));
     algorithm->fault = FaultAlgorithm::Fault::NO_RESULT;
     EXPECT_FALSE(tentative.initialize(observation(100ms)));
     EXPECT_EQ(algorithm->initializationCount(), 1u);
@@ -307,7 +308,7 @@ TEST(DomainValidationTest, RejectedInitializationPreservesTentativeAndCanBeRetri
     const auto algorithm = std::make_shared<FaultAlgorithm>();
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(algorithm).from(
+        TrackFactory(algorithm).createTentative(
             repository.nextId(),
             observation(0ms, 1000_m, 0_mps)
         )
@@ -316,14 +317,14 @@ TEST(DomainValidationTest, RejectedInitializationPreservesTentativeAndCanBeRetri
     for (auto fault : {FaultAlgorithm::Fault::INVALID_STATE, FaultAlgorithm::Fault::WRONG_TIME})
     {
         algorithm->fault = fault;
-        EXPECT_THROW(TrackFactory::from(target, observation(100ms)), std::invalid_argument);
+        EXPECT_THROW(target.confirm(observation(100ms)), std::invalid_argument);
         EXPECT_EQ(repository.findTentative(id), &target);
         EXPECT_EQ(repository.findTrack(id), nullptr);
         EXPECT_EQ(target.lastResultTime(), 0ms);
         EXPECT_EQ(target.observation().lastObservationTime(), 0ms);
     }
     algorithm->fault = FaultAlgorithm::Fault::NONE;
-    auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(100ms));
+    auto confirmedTrack = repository.findTentative(id)->confirm(observation(100ms));
     EXPECT_TRUE(confirmedTrack);
     EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
 }
@@ -332,22 +333,22 @@ TEST(TrackFactoryTest, RejectedCreationPreservesTentativeForRetry)
 {
     const auto algorithm = std::make_shared<FaultAlgorithm>();
     const TrackFactory factory(algorithm);
-    const auto tentative = factory.from(1, observation(0ms));
+    const auto tentative = factory.createTentative(1, observation(0ms));
 
     for (auto fault : {FaultAlgorithm::Fault::INVALID_STATE, FaultAlgorithm::Fault::WRONG_TIME})
     {
         algorithm->fault = fault;
-        EXPECT_FALSE(TrackFactory::from(tentative, observation(0ms)));
-        EXPECT_THROW(TrackFactory::from(tentative, observation(100ms)), std::invalid_argument);
+        EXPECT_FALSE(tentative.confirm(observation(0ms)));
+        EXPECT_THROW(tentative.confirm(observation(100ms)), std::invalid_argument);
         EXPECT_EQ(tentative.id(), 1u);
         EXPECT_EQ(tentative.lastResultTime(), 0ms);
         EXPECT_EQ(tentative.observation().slantRange(), 1000_m);
     }
 
     algorithm->fault = FaultAlgorithm::Fault::NO_RESULT;
-    EXPECT_FALSE(TrackFactory::from(tentative, observation(100ms)));
+    EXPECT_FALSE(tentative.confirm(observation(100ms)));
     algorithm->fault = FaultAlgorithm::Fault::NONE;
-    const auto track = TrackFactory::from(tentative, observation(100ms));
+    const auto track = tentative.confirm(observation(100ms));
     ASSERT_TRUE(track);
     EXPECT_EQ(track->id(), tentative.id());
     EXPECT_EQ(track->initialTime(), 0ms);
@@ -360,12 +361,12 @@ TEST(DomainValidationTest, RejectedUpdatePreservesStateAndMissHistory)
     const auto algorithm = std::make_shared<FaultAlgorithm>();
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(algorithm).from(
+        TrackFactory(algorithm).createTentative(
             repository.nextId(),
             observation(0ms, 1000_m, 0_mps)
         )
     );
-    auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(100ms));
+    auto confirmedTrack = repository.findTentative(id)->confirm(observation(100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
     auto& target = *repository.findTrack(id);
@@ -392,12 +393,12 @@ TEST(DomainValidationTest, PredictionContractErrorsThrowAndComputationFailuresRe
     const auto algorithm = std::make_shared<FaultAlgorithm>();
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(algorithm).from(
+        TrackFactory(algorithm).createTentative(
             repository.nextId(),
             observation(0ms, 1000_m, 0_mps)
         )
     );
-    auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(100ms));
+    auto confirmedTrack = repository.findTentative(id)->confirm(observation(100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
     auto& target = *repository.findTrack(id);
@@ -477,33 +478,33 @@ TEST(TargetConfigTest, RejectsInvalidSettingsDuringConstruction)
     }
 }
 
-TEST(TargetConfigTest, MatcherUsesInjectedSpeedDopplerNoiseAndGate)
+TEST(TargetConfigTest, SelectorsUseInjectedSpeedDopplerNoiseAndGate)
 {
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).from(repository.nextId(), observation())
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).createTentative(repository.nextId(), observation())
     );
     const auto& tentative = *repository.findTentative(id);
     const AssociationConfig association(1000_mps, 30_mps, 11.345);
+    const AssociationConfig speedRestricted(100_mps, 30_mps, 11.345);
     const MeasurementConfig measurement(7_m);
-    const DetectionMatcher defaults(association, measurement);
-    const DetectionMatcher speedRestricted(AssociationConfig(100_mps, 30_mps, 11.345), measurement);
+    const TrackSelector defaults(association, std::make_unique<NdsAlgorithm>(measurement));
+    const TrackSelector speedSelector(speedRestricted, std::make_unique<NdsAlgorithm>(measurement));
 
-    EXPECT_FALSE(speedRestricted.matchesPosition(observation(100ms, 1100_m), tentative));
-    EXPECT_TRUE(defaults.matchesPosition(observation(100ms, 1100_m), tentative));
-    EXPECT_FALSE(speedRestricted.matchesConfirmation(observation(100ms, 1100_m), tentative));
-    EXPECT_TRUE(defaults.matchesConfirmation(observation(100ms, 1100_m), tentative));
+    EXPECT_FALSE(test_support::isDuplicate(observation(100ms, 1100_m), tentative, speedRestricted));
+    EXPECT_TRUE(test_support::isDuplicate(observation(100ms, 1100_m), tentative, association));
+    EXPECT_FALSE(speedSelector.selectConfirmation(tentative, 100ms, {observation(100ms, 1100_m)}));
+    EXPECT_TRUE(defaults.selectConfirmation(tentative, 100ms, {observation(100ms, 1100_m)}));
 
-    const DetectionMatcher dopplerRestricted(AssociationConfig(1000_mps, 2_mps, 11.345), measurement);
-    EXPECT_FALSE(dopplerRestricted.matchesConfirmation(observation(100ms, 1000_m, 3_mps), tentative));
-    EXPECT_TRUE(defaults.matchesConfirmation(observation(100ms, 1000_m, 3_mps), tentative));
+    const TrackSelector dopplerRestricted(AssociationConfig(1000_mps, 2_mps, 11.345), std::make_unique<NdsAlgorithm>(measurement));
+    EXPECT_FALSE(dopplerRestricted.selectConfirmation(tentative, 100ms, {observation(100ms, 1000_m, 3_mps)}));
+    EXPECT_TRUE(defaults.selectConfirmation(tentative, 100ms, {observation(100ms, 1000_m, 3_mps)}));
 
-    const DetectionMatcher lowerNoise(association, MeasurementConfig(1_m));
-    EXPECT_FALSE(lowerNoise.matchesPosition(observation(0ms, 1010_m), tentative));
-    EXPECT_TRUE(defaults.matchesPosition(observation(0ms, 1010_m), tentative));
-    const DetectionMatcher exactGate(AssociationConfig(1000_mps, 30_mps, 0.0), measurement);
-    EXPECT_TRUE(exactGate.matchesPosition(observation(), tentative));
-    EXPECT_FALSE(exactGate.matchesPosition(observation(0ms, 1001_m), tentative));
+    EXPECT_FALSE(test_support::isDuplicate(observation(0ms, 1010_m), tentative, association, MeasurementConfig(1_m)));
+    EXPECT_TRUE(test_support::isDuplicate(observation(0ms, 1010_m), tentative, association));
+    const AssociationConfig exactGate(1000_mps, 30_mps, 0.0);
+    EXPECT_TRUE(test_support::isDuplicate(observation(), tentative, exactGate));
+    EXPECT_FALSE(test_support::isDuplicate(observation(0ms, 1001_m), tentative, exactGate));
 }
 
 TEST(TargetConfigTest, ControllerOwnsTemporaryConfigAndUsesInjectedIntervalsAndMissLimit)

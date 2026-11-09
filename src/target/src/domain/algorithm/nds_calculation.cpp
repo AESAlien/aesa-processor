@@ -1,5 +1,7 @@
-#include "nds_algorithm.hpp"
+#include "nds_calculation.hpp"
 
+#include <math/geometry/cartesian_displacement.hpp>
+#include <math/geometry/cartesian_position.hpp>
 #include <math/tolerance.hpp>
 
 #include <cmath>
@@ -9,11 +11,40 @@
 namespace target
 {
 
-NdsAlgorithm::NdsAlgorithm(math::SquareMatrix lowerCovariance) : _lowerCovariance(std::move(lowerCovariance))
+std::optional<double> NdsCalculation::calculate(
+    const math::SphericalPosition& observation,
+    const math::SphericalPosition& reference,
+    std::optional<math::Length> maximumTravel
+) const {
+    if (maximumTravel && (!std::isfinite(maximumTravel->m()) || maximumTravel->m() < 0.0))
+    {
+        return std::nullopt;
+    }
+    try
+    {
+        const auto displacement = observation.toCartesian() - reference.toCartesian();
+        auto residual = displacement.toVector();
+        if (maximumTravel)
+        {
+            const auto distance = displacement.distance();
+            residual = distance <= *maximumTravel
+                ? math::Vector(DIMENSION)
+                : residual * ((distance - *maximumTravel) / distance);
+        }
+        return calculate(residual);
+    }
+    catch (const std::invalid_argument&)
+    {
+        return std::nullopt;
+    }
+}
+
+
+NdsCalculation::NdsCalculation(math::SquareMatrix lowerCovariance) : _lowerCovariance(std::move(lowerCovariance))
 {
 }
 
-std::optional<NdsAlgorithm> NdsAlgorithm::from(
+std::optional<NdsCalculation> NdsCalculation::from(
     const math::SquareMatrix& covariance
 ) {
     if (covariance.size() != DIMENSION ||
@@ -42,7 +73,7 @@ std::optional<NdsAlgorithm> NdsAlgorithm::from(
 
     try
     {
-        return NdsAlgorithm(math::cholesky(symmetricCovariance));
+        return NdsCalculation(math::cholesky(symmetricCovariance));
     }
     catch (const std::domain_error&)
     {
@@ -52,7 +83,7 @@ std::optional<NdsAlgorithm> NdsAlgorithm::from(
 
 // Cartesian residual components are metres; covariance entries are square metres.
 // Returns the dimensionless squared distance r^T S^-1 r, not a gated decision.
-std::optional<double> NdsAlgorithm::calculate(const math::Vector& residual) const
+std::optional<double> NdsCalculation::calculate(const math::Vector& residual) const
 {
     if (residual.size() != DIMENSION || !residual.isFinite())
     {
@@ -74,7 +105,7 @@ std::optional<double> NdsAlgorithm::calculate(const math::Vector& residual) cons
     }
 }
 
-std::optional<double> NdsAlgorithm::calculate(
+std::optional<double> NdsCalculation::calculate(
     const math::Vector& residual,
     const math::SquareMatrix& covariance
 ) {
@@ -82,8 +113,8 @@ std::optional<double> NdsAlgorithm::calculate(
     {
         return std::nullopt;
     }
-    const auto algorithm = from(covariance);
-    return algorithm ? algorithm->calculate(residual) : std::nullopt;
+    const auto calculation = from(covariance);
+    return calculation ? calculation->calculate(residual) : std::nullopt;
 }
 
 } // namespace target

@@ -2,8 +2,8 @@
 
 #include "domain/factory/track_factory.hpp"
 #include "repository/track_repository.hpp"
-#include "service/tentative_selector.hpp"
-#include "service/track_selector.hpp"
+#include "domain/selector/tentative_selector.hpp"
+#include "domain/selector/track_selector.hpp"
 
 #include <limits>
 #include <stdexcept>
@@ -82,7 +82,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
         return std::nullopt;
     }
 
-    const auto selected = _tentativeSelector.selectNewCandidate(result.observations);
+    const auto selected = _tentativeSelector.selectNewCandidate(result.observations, _trackRepository.targets());
     if (!selected)
     {
         _lastSearchResultTimes.insert_or_assign(result.requestId, result.transmitTime);
@@ -91,7 +91,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
 
     const auto transmitTime = addTime(result.transmitTime, _config.confirmationDelay());
     const auto& candidate = result.observations[*selected];
-    const auto id = _trackRepository.add(_trackFactory.from(_trackRepository.nextId(), candidate));
+    const auto id = _trackRepository.add(_trackFactory.createTentative(_trackRepository.nextId(), candidate));
     _lastSearchResultTimes.insert_or_assign(result.requestId, result.transmitTime);
     return beam::RequestBeamCommand(
         beam::RequestBeamType::CONFIRMATION,
@@ -122,7 +122,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     }
 
     const auto transmitTime = addTime(result.transmitTime, _config.trackingInterval());
-    auto track = TrackFactory::from(*tentative, result.observations[*selected]);
+    auto track = tentative->confirm(result.observations[*selected]);
     if (!track)
     {
         _trackRepository.remove(result.requestId);

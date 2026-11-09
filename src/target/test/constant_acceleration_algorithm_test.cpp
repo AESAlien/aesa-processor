@@ -1,5 +1,5 @@
-#include "service/detection_matcher.hpp"
-#include "algorithm/constant_acceleration_algorithm.hpp"
+#include "association_selection_helpers.hpp"
+#include "domain/algorithm/constant_acceleration_algorithm.hpp"
 #include "domain/tentative_track.hpp"
 #include "domain/factory/track_factory.hpp"
 #include "repository/track_repository.hpp"
@@ -96,8 +96,8 @@ ConfirmedTrack seededTarget(
         )
     );
     TrackRepository repository;
-    const auto id = repository.add(TrackFactory(algorithm).from(repository.nextId(), observation(point, 0ms)));
-    auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(point, time));
+    const auto id = repository.add(TrackFactory(algorithm).createTentative(repository.nextId(), observation(point, 0ms)));
+    auto confirmedTrack = repository.findTentative(id)->confirm(observation(point, time));
     EXPECT_TRUE(confirmedTrack);
     EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
     auto& target = *repository.findTrack(id);
@@ -120,12 +120,12 @@ protected:
         }
         TrackRepository repository;
         const auto id = repository.add(
-            TrackFactory(algorithm).from(
+            TrackFactory(algorithm).createTentative(
                 repository.nextId(),
                 observation(first, firstTime)
             )
         );
-        auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(second, secondTime));
+        auto confirmedTrack = repository.findTentative(id)->confirm(observation(second, secondTime));
         EXPECT_TRUE(confirmedTrack);
         EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
         auto& target = *repository.findTrack(id);
@@ -546,21 +546,22 @@ TEST_F(ConstantAccelerationAlgorithmTest, ProcessNoiseReachesRealTrackingAndSear
         1000ms,
         algorithm
     );
-    // Use one matcher with unchanged measurement noise and threshold for both real filters.
-    const DetectionMatcher matcher(_config.association, _config.measurement);
     const auto incoming = observation(position(0.0, 1068.0, 0.0), 2000ms);
-    EXPECT_FALSE(matcher.matchesTracking(incoming, zeroNoise));
-    EXPECT_FALSE(matcher.matchesPosition(incoming, zeroNoise));
-    const auto trackingScore = matcher.matchesTracking(incoming, withNoise);
-    const auto searchScore = matcher.matchesPosition(incoming, withNoise);
-    ASSERT_TRUE(trackingScore);
-    ASSERT_TRUE(searchScore);
+    EXPECT_FALSE(test_support::selectTracking(incoming, zeroNoise, _config.association, _config.measurement));
+    EXPECT_FALSE(test_support::isDuplicate(incoming, zeroNoise, _config.association, _config.measurement));
+    EXPECT_TRUE(test_support::selectTracking(incoming, withNoise, _config.association, _config.measurement));
+    EXPECT_TRUE(test_support::isDuplicate(incoming, withNoise, _config.association, _config.measurement));
     // S = Ppp + R = (345 + 25) + 49 = 419; the zero-noise S is 394.
-    EXPECT_NEAR(*trackingScore, 68.0 * 68.0 / 419.0, 1e-10);
-    EXPECT_NEAR(*searchScore, *trackingScore, 1e-10);
+    const double expected = 68.0 * 68.0 / 419.0;
+    const AssociationConfig larger(1000_mps, 30_mps, expected + 1e-10);
+    const AssociationConfig smaller(1000_mps, 30_mps, expected - 1e-10);
+    EXPECT_TRUE(test_support::selectTracking(incoming, withNoise, larger, _config.measurement));
+    EXPECT_FALSE(test_support::selectTracking(incoming, withNoise, smaller, _config.measurement));
+    EXPECT_TRUE(test_support::isDuplicate(incoming, withNoise, larger, _config.measurement));
+    EXPECT_FALSE(test_support::isDuplicate(incoming, withNoise, smaller, _config.measurement));
     const auto outside = observation(position(0.0, 1069.0, 0.0), 2000ms);
-    EXPECT_FALSE(matcher.matchesTracking(outside, withNoise));
-    EXPECT_FALSE(matcher.matchesPosition(outside, withNoise));
+    EXPECT_FALSE(test_support::selectTracking(outside, withNoise, _config.association, _config.measurement));
+    EXPECT_FALSE(test_support::isDuplicate(outside, withNoise, _config.association, _config.measurement));
     EXPECT_EQ(withNoise.lastObservationTime(), 1000ms);
     EXPECT_EQ(withNoise.lastResultTime(), 1000ms);
 }

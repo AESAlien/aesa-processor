@@ -15,16 +15,9 @@ TrackFactory::TrackFactory(
     }
 }
 
-TentativeTrack TrackFactory::from(std::uint32_t id, Observation observation) const
+TentativeTrack TrackFactory::createTentative(std::uint32_t id, Observation observation) const
 {
     return TentativeTrack(id, std::move(observation), _trackingAlgorithm);
-}
-
-std::optional<ConfirmedTrack> TrackFactory::from(
-    const TentativeTrack& tentative,
-    const Observation& observation
-) {
-    return tentative.confirm(observation);
 }
 
 } // namespace target

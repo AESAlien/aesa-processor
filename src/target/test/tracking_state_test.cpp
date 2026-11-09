@@ -1,4 +1,4 @@
-#include "algorithm/constant_velocity_algorithm.hpp"
+#include "domain/algorithm/constant_velocity_algorithm.hpp"
 #include "domain/track_state.hpp"
 #include "domain/factory/track_factory.hpp"
 #include "repository/track_repository.hpp"
@@ -127,9 +127,9 @@ TEST(TrackingStateTest, ExistingConstructorAndConstantVelocityLeaveCovarianceUna
 
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).from(repository.nextId(), observation(1000_m, 0ms))
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).createTentative(repository.nextId(), observation(1000_m, 0ms))
     );
-    auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(1010_m, 100ms));
+    auto confirmedTrack = repository.findTentative(id)->confirm(observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
     auto& target = *repository.findTrack(id);
@@ -238,8 +238,8 @@ TEST(TrackingStateTest, StoresAlgorithmStateAcrossUpdatesAndPreservesItDuringMis
 {
     const auto algorithm = std::make_shared<EnrichedAlgorithm>();
     TrackRepository repository;
-    const auto id = repository.add(TrackFactory(algorithm).from(repository.nextId(), observation(1000_m, 0ms)));
-    auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(1010_m, 100ms));
+    const auto id = repository.add(TrackFactory(algorithm).createTentative(repository.nextId(), observation(1000_m, 0ms)));
+    auto confirmedTrack = repository.findTentative(id)->confirm(observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
     auto& target = *repository.findTrack(id);
@@ -273,8 +273,8 @@ TEST(TrackingStateTest, RejectedAlgorithmStatesPreserveAccelerationCovarianceAnd
 {
     const auto algorithm = std::make_shared<EnrichedAlgorithm>();
     TrackRepository repository;
-    const auto id = repository.add(TrackFactory(algorithm).from(repository.nextId(), observation(1000_m, 0ms)));
-    auto confirmedTrack = TrackFactory::from(*repository.findTentative(id), observation(1010_m, 100ms));
+    const auto id = repository.add(TrackFactory(algorithm).createTentative(repository.nextId(), observation(1000_m, 0ms)));
+    auto confirmedTrack = repository.findTentative(id)->confirm(observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
     auto& target = *repository.findTrack(id);
@@ -310,30 +310,30 @@ TEST(TrackingStateTest, RemovingTargetsPreservesRemainingAccelerationAndCovarian
     TrackFactory factory(algorithm);
     TrackRepository repository;
     const auto firstId = repository.add(
-        factory.from(
+        factory.createTentative(
             repository.nextId(),
             observation(1000_m, 0ms)
         )
     );
     const auto middleId = repository.add(
-        factory.from(
+        factory.createTentative(
             repository.nextId(),
             observation(2000_m, 0ms)
         )
     );
     const auto lastId = repository.add(
-        factory.from(
+        factory.createTentative(
             repository.nextId(),
             observation(3000_m, 0ms)
         )
     );
-    auto confirmedFirstTrack = TrackFactory::from(*repository.findTentative(firstId), observation(1001_m, 100ms));
+    auto confirmedFirstTrack = repository.findTentative(firstId)->confirm(observation(1001_m, 100ms));
     ASSERT_TRUE(confirmedFirstTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedFirstTrack).value()));
-    auto confirmedMiddleTrack = TrackFactory::from(*repository.findTentative(middleId), observation(2001_m, 100ms));
+    auto confirmedMiddleTrack = repository.findTentative(middleId)->confirm(observation(2001_m, 100ms));
     ASSERT_TRUE(confirmedMiddleTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedMiddleTrack).value()));
-    auto confirmedLastTrack = TrackFactory::from(*repository.findTentative(lastId), observation(3001_m, 100ms));
+    auto confirmedLastTrack = repository.findTentative(lastId)->confirm(observation(3001_m, 100ms));
     ASSERT_TRUE(confirmedLastTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedLastTrack).value()));
     ASSERT_TRUE(repository.findTrack(lastId)->update(observation(3002_m, 200ms)));

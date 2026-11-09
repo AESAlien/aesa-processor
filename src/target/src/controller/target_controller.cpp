@@ -1,14 +1,14 @@
 #include <target/controller/target_controller.hpp>
 
-#include "algorithm/constant_acceleration_algorithm.hpp"
+#include "domain/algorithm/constant_acceleration_algorithm.hpp"
+#include "domain/algorithm/nds_algorithm.hpp"
 #include "domain/factory/detection_result_factory.hpp"
 #include "domain/factory/track_factory.hpp"
 #include "dto/factory/track_event_factory.hpp"
 #include "repository/track_repository.hpp"
-#include "service/detection_matcher.hpp"
 #include "service/detection_handler.hpp"
-#include "service/tentative_selector.hpp"
-#include "service/track_selector.hpp"
+#include "domain/selector/tentative_selector.hpp"
+#include "domain/selector/track_selector.hpp"
 
 namespace target
 {
@@ -21,17 +21,16 @@ TargetController::TargetController(const TargetConfig& config)
         )
     ),
     _trackRepository(std::make_shared<TrackRepository>()),
-    _matcher(std::make_shared<DetectionMatcher>(config.association, config.measurement)),
     _tentativeSelector(
         std::make_shared<TentativeSelector>(
-            *_trackRepository,
-            *_matcher
+            config.association,
+            std::make_unique<NdsAlgorithm>(config.measurement)
         )
     ),
     _trackSelector(
         std::make_shared<TrackSelector>(
-            *_trackRepository,
-            *_matcher
+            config.association,
+            std::make_unique<NdsAlgorithm>(config.measurement)
         )
     ),
     _detectionHandler(

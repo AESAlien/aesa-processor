@@ -1,14 +1,11 @@
 #pragma once
 
-#include "domain/tentative_track.hpp"
+#include "domain/track.hpp"
 
 #include <list>
-#include <variant>
 
 namespace target
 {
-
-using Track = std::variant<TentativeTrack, ConfirmedTrack>;
 
 // Registration order and identity survive confirmation.
 class TrackRepository

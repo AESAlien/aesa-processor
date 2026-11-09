@@ -1,4 +1,4 @@
-#include "algorithm/constant_velocity_algorithm.hpp"
+#include "domain/algorithm/constant_velocity_algorithm.hpp"
 #include "domain/factory/track_factory.hpp"
 #include "repository/track_repository.hpp"
 #include <target/config/target_config.hpp>
@@ -28,25 +28,25 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     target::TrackFactory factory(algorithm);
     target::TrackRepository repository;
     const auto firstId = repository.add(
-        factory.from(
+        factory.createTentative(
             repository.nextId(),
             target::Observation(position(100_m), 1_mps, 1.0f, 0ms)
         )
     );
     const auto middleId = repository.add(
-        factory.from(
+        factory.createTentative(
             repository.nextId(),
             target::Observation(position(200_m), 1_mps, 1.0f, 0ms)
         )
     );
     const auto lastId = repository.add(
-        factory.from(
+        factory.createTentative(
             repository.nextId(),
             target::Observation(position(300_m), 1_mps, 1.0f, 0ms)
         )
     );
 
-    auto confirmedLastTrack = target::TrackFactory::from(*repository.findTentative(lastId), target::Observation(position(301_m), 1_mps, 1.0f, 1000ms));
+    auto confirmedLastTrack = repository.findTentative(lastId)->confirm(target::Observation(position(301_m), 1_mps, 1.0f, 1000ms));
     ASSERT_TRUE(confirmedLastTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedLastTrack).value()));
     auto* tracked = repository.findTrack(lastId);

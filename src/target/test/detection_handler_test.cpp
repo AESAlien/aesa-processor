@@ -1,11 +1,11 @@
-#include "algorithm/constant_velocity_algorithm.hpp"
+#include "domain/algorithm/nds_algorithm.hpp"
+#include "domain/algorithm/constant_velocity_algorithm.hpp"
 #include "domain/factory/detection_result_factory.hpp"
 #include "domain/factory/track_factory.hpp"
 #include "repository/track_repository.hpp"
-#include "service/detection_matcher.hpp"
 #include "service/detection_handler.hpp"
-#include "service/tentative_selector.hpp"
-#include "service/track_selector.hpp"
+#include "domain/selector/tentative_selector.hpp"
+#include "domain/selector/track_selector.hpp"
 
 #include <gtest/gtest.h>
 
@@ -48,9 +48,8 @@ class DetectionHandlerTest : public ::testing::Test
 protected:
     TrackRepository _repository;
     TrackFactory _factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
-    DetectionMatcher _matcher = DetectionMatcher(AssociationConfig(1000_mps, 30_mps, 11.345), MeasurementConfig(7_m));
-    TentativeSelector _tentativeSelector = TentativeSelector(_repository, _matcher);
-    TrackSelector _trackSelector = TrackSelector(_repository, _matcher);
+    TentativeSelector _tentativeSelector = TentativeSelector(AssociationConfig(1000_mps, 30_mps, 11.345), std::make_unique<NdsAlgorithm>(MeasurementConfig(7_m)));
+    TrackSelector _trackSelector = TrackSelector(AssociationConfig(1000_mps, 30_mps, 11.345), std::make_unique<NdsAlgorithm>(MeasurementConfig(7_m)));
     DetectionHandler _handler = DetectionHandler(
         TrackManagementConfig(100ms, 1000ms, 3, 100),
         _repository,
@@ -188,7 +187,7 @@ TEST_F(DetectionHandlerTest, EmptySearchesAdvanceHistoryWithoutConsumingIdentity
 TEST_F(DetectionHandlerTest, PreexistingTargetsDoNotCollideWithNewRegistrations)
 {
     const Observation existing(math::SphericalPosition(9000_m, 0_deg, 0_deg), 0_mps, -10.0f, 0ms);
-    ASSERT_EQ(_repository.add(_factory.from(_repository.nextId(), existing)), 1u);
+    ASSERT_EQ(_repository.add(_factory.createTentative(_repository.nextId(), existing)), 1u);
     const auto* original = _repository.findTentative(1);
 
     const auto registered = _handler.handle(result(BeamType::SEARCH, 5, 0ms));

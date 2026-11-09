@@ -1,5 +1,6 @@
-#include "algorithm/constant_acceleration_algorithm.hpp"
-#include "service/detection_matcher.hpp"
+#include "domain/algorithm/constant_acceleration_algorithm.hpp"
+#include "domain/selector/track_selector.hpp"
+#include "domain/selector/tentative_selector.hpp"
 
 #include <target/config/target_config.hpp>
 #include <target/controller/target_controller.hpp>
@@ -22,8 +23,9 @@ using namespace std::chrono_literals;
 
 static_assert(!std::is_default_constructible_v<TargetConfig>);
 static_assert(std::is_copy_assignable_v<TargetConfig>);
-static_assert(!std::is_constructible_v<DetectionMatcher, TargetConfig>);
-static_assert(std::is_constructible_v<DetectionMatcher, AssociationConfig, MeasurementConfig>);
+static_assert(!std::is_constructible_v<TrackSelector, TargetConfig>);
+static_assert(std::is_constructible_v<TrackSelector, AssociationConfig, std::unique_ptr<IAssociationAlgorithm>>);
+static_assert(std::is_constructible_v<TentativeSelector, AssociationConfig, std::unique_ptr<IAssociationAlgorithm>>);
 static_assert(!std::is_constructible_v<ConstantAccelerationAlgorithm, TargetConfig>);
 static_assert(std::is_constructible_v<ConstantAccelerationAlgorithm, TrackingConfig, MeasurementConfig>);
 
