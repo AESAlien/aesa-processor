@@ -35,24 +35,33 @@ std::optional<ReceivedFrames> NetworkManager::poll(std::chrono::milliseconds tim
 
     // Only the current sessions are watched. A replaced session that a sender
     // still holds is never watched again, so it cannot be taken for a new one.
+    // currentSessions[index] belongs to peers()[index].
+    const std::array<PeerConnection*, PEER_COUNT> connections = peers();
     std::vector<std::shared_ptr<Session>> currentSessions;
-    for (PeerConnection* peer : peers())
+    for (PeerConnection* peer : connections)
     {
-        currentSessions.push_back(peer->snapshotSession());
+        currentSessions.push_back(peer->getSession());
     }
 
     const ServerEvent event = _server->poll(currentSessions, timeout);
     switch (event.kind)
     {
     case ServerEventKind::NEW_SESSION:
-        assignSession(event.session);
+        assignToPeer(event.session);
         return std::nullopt;
 
     case ServerEventKind::READABLE:
-        return receiveFrom(event.session);
+        for (std::size_t index = 0; index < PEER_COUNT; ++index)
+        {
+            if (currentSessions[index] == event.session)
+            {
+                return receiveFrom(*connections[index]);
+            }
+        }
+        return std::nullopt;
 
     case ServerEventKind::NONE:
-        return std::nullopt;
+        return std::nullopt; 
     }
 
     return std::nullopt;
@@ -77,40 +86,32 @@ std::array<PeerConnection*, NetworkManager::PEER_COUNT> NetworkManager::peers() 
     return {&_operatorConsole, &_scenarioSimulator};
 }
 
-void NetworkManager::assignSession(const std::shared_ptr<Session>& session)
+void NetworkManager::assignToPeer(const std::shared_ptr<Session>& session)
 {
-    const CommEndpoint& remoteEndpoint = session->getRemoteEndpoint();
     for (PeerConnection* peer : peers())
     {
-        if (peer->matches(remoteEndpoint))
+        if (peer->matches(*session))
         {
-            peer->replaceSession(session);
+            peer->setSession(session);
             return;
         }
     }
 
     // The rejected session is released, and its connection closed, on return.
+    const CommEndpoint& remoteEndpoint = session->getRemoteEndpoint();
     std::cerr << "[NetworkManager] Rejected unknown connection: remoteAddress="
               << remoteEndpoint.getAddress()
               << ", remotePort=" << remoteEndpoint.getPort() << '\n';
 }
 
-std::optional<ReceivedFrames> NetworkManager::receiveFrom(const std::shared_ptr<Session>& session)
+std::optional<ReceivedFrames> NetworkManager::receiveFrom(PeerConnection& peer)
 {
-    for (PeerConnection* peer : peers())
+    std::vector<MessageFrame> frames = peer.receive();
+    if (frames.empty())
     {
-        // Only the peer whose current session it is receives; others return nullopt.
-        std::optional<std::vector<MessageFrame>> frames = peer->receiveIfCurrent(session);
-        if (frames)
-        {
-            if (frames->empty())
-            {
-                return std::nullopt;
-            }
-            return ReceivedFrames{peer->getName(), std::move(*frames)};
-        }
+        return std::nullopt;
     }
-    return std::nullopt;
+    return ReceivedFrames{peer.getName(), std::move(frames)};
 }
 
 } // namespace comm

@@ -56,10 +56,9 @@ private:
 
     // Hands a newly accepted session to the peer with the same endpoint.
     // Unknown connections are rejected and closed.
-    void assignSession(const std::shared_ptr<Session>& session);
+    void assignToPeer(const std::shared_ptr<Session>& session);
 
-    // Receives from the peer that owns the readable session.
-    std::optional<ReceivedFrames> receiveFrom(const std::shared_ptr<Session>& session);
+    std::optional<ReceivedFrames> receiveFrom(PeerConnection& peer);
 
     CommEndpoint _serverEndpoint;
     PeerConnection _operatorConsole;

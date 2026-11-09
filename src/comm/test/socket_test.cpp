@@ -326,7 +326,7 @@ TEST(PeerConnectionTest, MatchesBothAddressAndPort)
     );
 
     EXPECT_EQ(connection.getName(), "operator-console");
-    EXPECT_FALSE(connection.isConnected());
+    EXPECT_FALSE(connection.getSession());
     EXPECT_TRUE(connection.matches(comm::CommEndpoint("127.0.0.1", 4100)));
     EXPECT_FALSE(connection.matches(comm::CommEndpoint("127.0.0.2", 4100)));
     EXPECT_FALSE(connection.matches(comm::CommEndpoint("127.0.0.1", 4101)));
@@ -357,6 +357,12 @@ TEST(TcpServerTest, ReportsNewConnectionsAsNewSessions)
         second = secondEvent.session;
         ASSERT_NE(first, second);
         EXPECT_EQ(second->getRemoteEndpoint().getPort(), secondClient.localPort());
+
+        const comm::PeerConnection firstPeer(
+            "first", comm::CommEndpoint("127.0.0.1", firstClient.localPort())
+        );
+        EXPECT_TRUE(firstPeer.matches(*first));
+        EXPECT_FALSE(firstPeer.matches(*second));
 
         firstClient.close();
         const comm::ServerEvent readable = server.poll({first, second}, SOCKET_WAIT_TIMEOUT);

@@ -7,15 +7,16 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <string>
 #include <vector>
 
 namespace comm
 {
 
-// A configured peer persists across TCP reconnections. Session snapshots keep
-// an old connection alive while a sender or receiver is still using it.
+// A configured peer persists across TCP reconnections and holds its current
+// session. Sessions are replaced and cleared only on the receiving thread;
+// the sending thread only reads them. A session copy keeps an old connection
+// alive while a sender is still using it.
 class PeerConnection
 {
 public:
@@ -28,6 +29,8 @@ public:
 
     const std::string& getName() const noexcept;
     bool matches(const CommEndpoint& remoteEndpoint) const;
+    // Compares the session's remote endpoint with this peer's endpoint.
+    bool matches(const Session& session) const;
 
     // Does nothing while disconnected. Throws SendError on send failure.
     // A peer has one sending thread, as required by Session.
@@ -36,23 +39,19 @@ public:
         std::chrono::milliseconds timeout = std::chrono::milliseconds{1000}
     );
 
-    bool isConnected() const;
+    // Receives once from the current session and returns the completed frames.
+    // Clears the session when the connection has ended. Returns no frames while
+    // disconnected. Throws ReceiveError. Called on the receiving thread only.
+    std::vector<MessageFrame> receive();
 
-    // Returns the current session, or nullptr while disconnected. The copy
-    // keeps the session alive even if it is replaced meanwhile.
-    std::shared_ptr<Session> snapshotSession() const;
+    // Returns the current session, or nullptr while disconnected.
+    std::shared_ptr<Session> getSession() const;
 
-    // Replaces the active session when the configured peer reconnects.
-    void replaceSession(std::shared_ptr<Session> session);
-
-    // Receives only if this is still the active session; nullopt means stale.
-    std::optional<std::vector<MessageFrame>> receiveIfCurrent(
-        const std::shared_ptr<Session>& session
-    );
+    // Replaces the current session; nullptr clears it. The previous session
+    // is released outside the lock. Called on the receiving thread only.
+    void setSession(std::shared_ptr<Session> session);
 
 private:
-    void detachIfCurrent(const std::shared_ptr<Session>& session);
-
     std::string _name;
     CommEndpoint _endpoint;
     mutable std::mutex _mutex;
