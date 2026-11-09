@@ -37,8 +37,18 @@ endfunction()
 
 add_radar_spdlog()
 
+# magic_enum v0.9.7: https://github.com/Neargye/magic_enum/releases/tag/v0.9.7
+add_library(magic_enum INTERFACE)
+add_library(magic_enum::magic_enum ALIAS magic_enum)
+target_include_directories(magic_enum SYSTEM INTERFACE
+    "${PROJECT_SOURCE_DIR}/third_party/magic_enum/include"
+)
+
 add_library(radar_logging STATIC
-    app/src/log/logger.cpp
+    app/src/log/log_manager.cpp
+    app/src/log/message_log_manager.cpp
+    app/src/log/csv_log_manager.cpp
+    app/src/log/support/timestamped_log_path.cpp
 )
 
 target_include_directories(radar_logging PUBLIC

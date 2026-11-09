@@ -11,6 +11,8 @@ add_library(app_runtime STATIC
     src/config/config_value_reader.cpp
     src/config/env_file_reader.cpp
 
+    src/log/logger/detection_event_csv_logger.cpp
+
     src/worker/beam_worker.cpp
     src/worker/comm_worker.cpp
     src/worker/target_worker.cpp
@@ -27,6 +29,7 @@ target_link_libraries(app_runtime PUBLIC
     target
     comm
     Threads::Threads
+    PRIVATE magic_enum::magic_enum
 )
 
 add_executable(app
@@ -67,4 +70,20 @@ if(BUILD_TESTING)
     )
 
     gtest_discover_tests(app_config_test)
+
+    add_executable(app_log_manager_test
+        test/detection_event_csv_test.cpp
+        test/log_manager_test.cpp
+    )
+
+    target_include_directories(app_log_manager_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/log"
+    )
+
+    target_link_libraries(app_log_manager_test PRIVATE
+        app_runtime
+        GTest::gtest_main
+    )
+
+    gtest_discover_tests(app_log_manager_test)
 endif()
