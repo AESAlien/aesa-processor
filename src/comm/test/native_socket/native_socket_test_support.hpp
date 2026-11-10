@@ -21,7 +21,7 @@ ErrorCodes errorCodes() noexcept;
 void setLastError(int errorCode) noexcept;
 bool supportsBoundedSendBuffer() noexcept;
 
-// Independent native peer. The test supplies the socket API lifetime.
+// 독립적인 네이티브 상대 소켓이다. 소켓 API의 수명은 테스트에서 관리한다.
 class NativePeer
 {
 public:
@@ -33,7 +33,7 @@ public:
     void close();
     int bind(uint16_t port = 0);
     int setReuseAddress();
-    // Makes close() reset the connection instead of leaving TIME_WAIT behind.
+    // close()가 TIME_WAIT를 남기지 않고 연결을 리셋하도록 한다.
     int setAbortiveClose();
     int connect(uint16_t port);
     int setReceiveBufferSize(int size);

@@ -17,8 +17,8 @@ namespace comm
 
 class TcpServer;
 
-// Owns configured connections and hides their lifetime and transport details.
-// start() and poll() run on the receiving thread; sending may run concurrently.
+// 설정에 따라 만든 연결을 소유하고 수명 관리와 전송의 세부 구현을 감춘다.
+// start()와 poll()은 수신 스레드에서 실행하며, 송신은 동시에 실행할 수 있다.
 class NetworkManager
 {
 public:
@@ -30,16 +30,16 @@ public:
     NetworkManager(NetworkManager&&) = delete;
     NetworkManager& operator=(NetworkManager&&) = delete;
 
-    // Throws ServerOpenError. Repeated calls are safe.
+    // ServerOpenError를 던질 수 있다. 반복 호출해도 안전하다.
     void start();
 
-    // Watches the server and the current session of each peer.
-    // Accepting a connection returns nullopt; completed frames are returned.
-    // Throws ConnectionError or ReceiveError.
+    // 서버와 각 상대의 현재 세션을 감시한다.
+    // 연결을 수락하면 nullopt를 반환하고, 프레임이 완성되면 해당 프레임들을 반환한다.
+    // ConnectionError 또는 ReceiveError를 던질 수 있다.
     std::optional<ReceivedFrames> poll(std::chrono::milliseconds timeout);
 
-    // One sending thread per destination. Disconnected sends are ignored.
-    // Throws SendError; rejects empty data and negative timeouts.
+    // 목적지마다 송신 스레드는 하나만 사용한다. 연결이 끊긴 상태의 송신은 무시한다.
+    // SendError를 던질 수 있다. 빈 데이터와 음수 타임아웃은 거부한다.
     void sendToOperatorConsole(
         const std::vector<uint8_t>& data,
         std::chrono::milliseconds timeout = std::chrono::milliseconds{1000}
@@ -54,8 +54,8 @@ private:
 
     std::array<PeerConnection*, PEER_COUNT> peers() noexcept;
 
-    // Hands a newly accepted session to the peer with the same endpoint.
-    // Unknown connections are rejected and closed.
+    // 새로 수락한 세션을 엔드포인트가 같은 상대에게 전달한다.
+    // 알 수 없는 상대의 연결은 거부하고 닫는다.
     void assignToPeer(const std::shared_ptr<Session>& session);
 
     std::optional<ReceivedFrames> receiveFrom(PeerConnection& peer);

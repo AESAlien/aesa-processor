@@ -5,8 +5,8 @@
 namespace comm
 {
 
-// A snapshot of one native socket error. Queries never read the native error
-// state again. Call captureLast() immediately after a failed socket operation.
+// 네이티브 소켓 오류 하나를 저장한 값이다. 조회 시 네이티브 오류 상태를 다시 읽지 않는다.
+// 소켓 작업이 실패한 직후 captureLast()를 호출해야 한다.
 class SocketError
 {
 public:

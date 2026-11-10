@@ -70,7 +70,7 @@ void setLastError(int errorCode) noexcept
 
 bool supportsBoundedSendBuffer() noexcept
 {
-    // Some providers buffer the complete stress-test payload despite SO_RCVBUF.
+    // 일부 소켓 공급자는 SO_RCVBUF 설정에도 불구하고 부하 테스트 데이터 전체를 버퍼링한다.
 #ifdef __linux__
     return true;
 #else

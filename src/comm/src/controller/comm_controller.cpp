@@ -72,7 +72,7 @@ public:
     }
 
 private:
-    // Messages decoded before a failing frame stay queued.
+    // 오류가 발생한 프레임 이전에 디코딩한 메시지는 대기열에 유지한다.
     void decodeFrames(const ReceivedFrames& received)
     {
         for (const MessageFrame& frame : received.frames)

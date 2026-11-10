@@ -5,7 +5,7 @@
 namespace comm
 {
 
-// Throws Error with a message such as
+// 다음과 같은 메시지를 담은 Error를 던진다.
 // "<message>: operation=bind, systemError=10048".
 template <typename Error>
 [[noreturn]] void throwSystemError(

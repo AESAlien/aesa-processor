@@ -33,9 +33,9 @@ std::optional<ReceivedFrames> NetworkManager::poll(std::chrono::milliseconds tim
         throw ReceiveError("Communication data could not be received: server is not started");
     }
 
-    // Only the current sessions are watched. A replaced session that a sender
-    // still holds is never watched again, so it cannot be taken for a new one.
-    // currentSessions[index] belongs to peers()[index].
+    // 현재 세션만 감시한다. 송신 측이 교체된 이전 세션을 계속 보유하더라도
+    // 다시 감시하지 않으므로 새 세션으로 잘못 처리하지 않는다.
+    // currentSessions[index]는 peers()[index]에 속한다.
     const std::array<PeerConnection*, PEER_COUNT> connections = peers();
     std::vector<std::shared_ptr<Session>> currentSessions;
     for (PeerConnection* peer : connections)
@@ -97,7 +97,7 @@ void NetworkManager::assignToPeer(const std::shared_ptr<Session>& session)
         }
     }
 
-    // The rejected session is released, and its connection closed, on return.
+    // 반환 시 거부한 세션을 해제하고 해당 연결을 닫는다.
     const CommEndpoint& remoteEndpoint = session->getRemoteEndpoint();
     std::cerr << "[NetworkManager] Rejected unknown connection: remoteAddress="
               << remoteEndpoint.getAddress()

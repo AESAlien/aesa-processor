@@ -102,8 +102,8 @@ void Session::send(
 
     while (bytesSent < data.size())
     {
-        // A zero timeout still permits one immediate non-blocking attempt.
-        // Every retry shares the original deadline, including interruptions.
+        // 타임아웃이 0이어도 즉시 수행하는 비차단 시도는 한 번 허용한다.
+        // 인터럽트가 발생한 경우를 포함해 모든 재시도는 최초의 제한 시각을 공유한다.
         if (attempted && Clock::now() >= deadline)
         {
             failSend("timeout", "send", 0, bytesSent);
@@ -150,8 +150,8 @@ void Session::send(
     }
 }
 
-// A partially sent message corrupts the stream, so the connection is shut
-// down. The receive thread then sees it closed and discards the session.
+// 메시지가 일부만 송신되면 스트림이 손상되므로 연결을 종료한다.
+// 이후 수신 스레드가 연결 종료를 확인하고 세션을 폐기한다.
 void Session::failSend(
     const char* status,
     const char* operation,
@@ -166,7 +166,7 @@ void Session::failSend(
         }
         catch (const std::system_error&)
         {
-            // Preserve the send failure if the peer has already disconnected.
+            // 상대가 이미 연결을 끊었더라도 원래의 송신 오류를 유지한다.
         }
     }
 

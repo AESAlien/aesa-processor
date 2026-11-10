@@ -91,7 +91,7 @@ void PeerConnection::setSession(std::shared_ptr<Session> session)
         std::lock_guard<std::mutex> lock(_mutex);
         _session.swap(session);
     }
-    // The previous session, now in session, is released here outside the lock.
+    // 이전 세션은 현재 session에 담겨 있으며, 잠금이 해제된 이 지점에서 해제된다.
 }
 
 } // namespace comm

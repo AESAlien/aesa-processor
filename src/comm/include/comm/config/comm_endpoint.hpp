@@ -9,12 +9,12 @@ namespace comm
 class CommEndpoint
 {
 public:
-    // Throws std::invalid_argument.
+    // std::invalid_argument를 던질 수 있다.
     CommEndpoint(std::string address, std::uint16_t port);
 
     const std::string& getAddress() const noexcept;
 
-    // The value passed to bind() and compared with accepted addresses.
+    // bind()에 전달하고 수락한 연결의 주소와 비교하는 값이다.
     std::uint32_t getIntAddress() const noexcept;
 
     std::uint16_t getPort() const noexcept;

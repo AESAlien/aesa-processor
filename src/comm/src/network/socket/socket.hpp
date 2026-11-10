@@ -5,7 +5,7 @@
 namespace comm
 {
 
-// Common owner for listening and connected sockets.
+// 리스닝 소켓과 연결된 소켓의 공통 소유자이다.
 class Socket
 {
 public:
@@ -14,13 +14,13 @@ public:
     Socket(const Socket&) = delete;
     Socket& operator=(const Socket&) = delete;
 
-    // Borrows the handle; ownership remains with this socket.
+    // 핸들을 빌려준다. 소유권은 이 소켓에 남는다.
     SocketHandle getHandle() const noexcept;
     void close() noexcept;
 
 protected:
     Socket();
-    // Takes ownership immediately, including on initialization failure.
+    // 즉시 소유권을 넘겨받으며, 초기화에 실패해도 소유권을 책임진다.
     explicit Socket(SocketHandle handle);
     Socket(Socket&& other) noexcept;
     Socket& operator=(Socket&& other) noexcept;

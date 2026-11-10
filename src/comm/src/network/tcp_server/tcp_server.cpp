@@ -21,7 +21,7 @@ ServerEvent TcpServer::poll(
     const std::vector<std::shared_ptr<Session>>& sessions,
     std::chrono::milliseconds timeout
 ) {
-    // Index 0 is the listener; the others hold the session of the same index.
+    // 인덱스 0은 리스닝 소켓이고, 나머지는 같은 인덱스의 세션을 가리킨다.
     std::vector<const Socket*> sockets{&_listenSocket};
     std::vector<std::shared_ptr<Session>> watchedSessions{nullptr};
     for (const std::shared_ptr<Session>& session : sessions)

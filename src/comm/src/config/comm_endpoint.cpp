@@ -13,7 +13,7 @@ namespace
 
 constexpr std::size_t OCTET_COUNT = 4;
 
-// Throws std::invalid_argument.
+// std::invalid_argument를 던질 수 있다.
 std::uint32_t parseIpv4Address(const std::string& address)
 {
     const std::invalid_argument invalidAddress(
@@ -64,8 +64,8 @@ std::uint32_t parseIpv4Address(const std::string& address)
         throw invalidAddress;
     }
 
-    // The socket API needs the octets in this order in memory,
-    // whatever the byte order of this machine.
+    // 소켓 API는 시스템의 바이트 순서와 관계없이
+    // 메모리에 옥텟이 이 순서로 배치되어 있어야 한다.
     std::uint32_t intAddress = 0;
     std::memcpy(&intAddress, octets.data(), octets.size());
     return intAddress;

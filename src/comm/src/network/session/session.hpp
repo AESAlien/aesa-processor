@@ -12,15 +12,15 @@
 namespace comm
 {
 
-// One accepted peer connection. Owns the socket and closes it on destruction.
-// The accepted socket is already non-blocking for bounded send/receive.
-// receive() is called from the receive thread only.
-// send() may run concurrently with receive(), but must not run concurrently
-// with another send(); each peer has a single sending thread.
+// 수락한 상대 연결 하나를 나타낸다. 소켓을 소유하며 소멸 시 닫는다.
+// 수락한 소켓은 송수신 대기 시간을 제한할 수 있도록 이미 비차단 상태이다.
+// receive()는 수신 스레드에서만 호출한다.
+// send()는 receive()와 동시에 실행할 수 있지만 다른 send()와는
+// 동시에 실행하면 안 된다. 상대마다 송신 스레드는 하나만 사용한다.
 class Session
 {
 public:
-    // Takes ownership of an accepted non-blocking connection.
+    // 수락한 비차단 연결의 소유권을 넘겨받는다.
     explicit Session(ConnectedSocket socket);
 
     Session(const Session&) = delete;
@@ -28,17 +28,17 @@ public:
     Session(Session&&) = delete;
     Session& operator=(Session&&) = delete;
 
-    // False once the connection has ended; the session should be discarded.
+    // 연결이 종료되면 false를 반환하며, 이때 세션을 폐기해야 한다.
     bool isOpen() const noexcept;
 
     const CommEndpoint& getRemoteEndpoint() const noexcept;
     const ConnectedSocket& getSocket() const noexcept;
 
-    // Returns the frames completed by the received bytes.
-    // Throws ReceiveError.
+    // 수신한 바이트로 완성된 프레임을 반환한다.
+    // ReceiveError를 던질 수 있다.
     std::vector<MessageFrame> receive();
 
-    // Throws SendError.
+    // SendError를 던질 수 있다.
     void send(
         const std::vector<uint8_t>& data,
         std::chrono::milliseconds timeout

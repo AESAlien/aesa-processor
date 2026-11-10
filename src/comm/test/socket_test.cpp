@@ -32,7 +32,7 @@ namespace
 constexpr std::chrono::seconds SOCKET_WAIT_TIMEOUT{2};
 constexpr int BIND_ATTEMPTS = 10;
 
-// Exposes base construction and moves to exercise socket ownership directly.
+// 소켓 소유권을 직접 시험하기 위해 기반 클래스의 생성과 이동을 노출한다.
 class TestSocket : public comm::Socket
 {
 public:
@@ -81,7 +81,7 @@ using comm::native_socket::test::SignalInterruptor;
 
 uint16_t availablePort()
 {
-    // Native probes borrow the API lifetime from a regular socket object.
+    // 네이티브 API 검사는 일반 소켓 객체가 유지하는 API 수명 안에서 수행한다.
     TestSocket runtimeOwner;
     NativePeer reservation;
     if (reservation.bind() < 0)
@@ -148,7 +148,7 @@ comm::CommConfig makeConfig(
     );
 }
 
-// Handles pending accepts and closures; a reset connection ends its session.
+// 대기 중인 연결 수락과 종료를 처리한다. 리셋된 연결의 세션은 종료된다.
 void pollFor(comm::NetworkManager& manager, std::chrono::milliseconds duration)
 {
     const auto deadline = std::chrono::steady_clock::now() + duration;
@@ -223,7 +223,7 @@ TEST(NetworkManagerTest, OwnsConnectionsAndRoutesDestinationSpecificSends)
         ASSERT_EQ(frames->frames.size(), 1U);
         EXPECT_EQ(frames->frames[0].bytes, bytes);
     }
-    // The manager owns both sessions, and its destruction releases them.
+    // 관리자가 두 세션을 모두 소유하며, 소멸 시 해제한다.
     ASSERT_EQ(console.waitReadable(), 1);
     EXPECT_EQ(console.receiveByte(received), 0);
     ASSERT_EQ(simulator.waitReadable(), 1);
@@ -270,7 +270,7 @@ TEST(NetworkManagerTest, ReconnectionFromSameEndpointReplacesSession)
     ASSERT_EQ(previousConsole.connect(port), 0);
     EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
 
-    // A reset leaves no TIME_WAIT, so the same endpoint can connect again.
+    // 리셋은 TIME_WAIT를 남기지 않으므로 같은 엔드포인트로 다시 연결할 수 있다.
     const uint16_t consolePort = previousConsole.localPort();
     ASSERT_EQ(previousConsole.setAbortiveClose(), 0);
     previousConsole.close();
@@ -371,7 +371,7 @@ TEST(TcpServerTest, ReportsNewConnectionsAsNewSessions)
         EXPECT_TRUE(first->receive().empty());
         EXPECT_FALSE(first->isOpen());
     }
-    // Closing the server does not invalidate accepted sessions.
+    // 서버를 닫아도 이미 수락한 세션은 유효하다.
     second->send({0x6E}, SOCKET_WAIT_TIMEOUT);
     uint8_t received = 0;
     ASSERT_EQ(secondClient.waitReadable(), 1);
@@ -399,7 +399,7 @@ TEST(TcpServerTest, RotatesBetweenSocketsThatAreReadyAtTheSameTime)
 
     ASSERT_EQ(firstClient.sendByte(0x31), 1);
     ASSERT_EQ(secondClient.sendByte(0x42), 1);
-    // Loopback delivery can lag behind send(), so wait until both are readable.
+    // 루프백 전달은 send()보다 늦을 수 있으므로 둘 다 읽기 가능해질 때까지 기다린다.
     const comm::SocketSelector selector({&first->getSocket(), &second->getSocket()});
     const auto deadline = std::chrono::steady_clock::now() + SOCKET_WAIT_TIMEOUT;
     while (selector.waitReadable(std::chrono::milliseconds{10}).size() < 2 &&
@@ -426,7 +426,7 @@ TEST(TcpServerTest, ReplacedSessionIsNeitherWatchedNorReportedAsNew)
     const comm::ServerEvent replacement = server.poll({previous.session}, SOCKET_WAIT_TIMEOUT);
     ASSERT_EQ(replacement.kind, comm::ServerEventKind::NEW_SESSION);
 
-    // A sender may still hold the replaced session after its peer closes it.
+    // 상대 객체가 이전 세션을 교체한 뒤에도 송신 측은 그 세션을 보유할 수 있다.
     previousClient.close();
     ASSERT_EQ(
         comm::SocketSelector({&previous.session->getSocket()}).waitReadable(SOCKET_WAIT_TIMEOUT).size(),
@@ -492,7 +492,7 @@ TEST(ListenSocketTest, MoveConstructionPreservesListener)
 
 TEST(ListenSocketTest, BindFailureReportsServerOpenError)
 {
-    // A bound native socket without reuse prevents a second bind on both OSes.
+    // 주소 재사용 없이 바인딩한 네이티브 소켓은 두 운영체제 모두에서 두 번째 바인딩을 막는다.
     TestSocket apiLifetime;
     NativePeer reservation;
     ASSERT_EQ(reservation.bind(), 0);

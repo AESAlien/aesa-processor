@@ -86,7 +86,7 @@ comm::MessageFrame makePlotFrame(const comm::protocol::ST_PlotMsg& message)
 // 운용 제어 메시지의 전원 상태를 켜기 또는 끄기 명령으로 변환한다.
 TEST(MessageDecoderTest, DecodesOperatorOnAndOff)
 {
-    // Given: 켜기와 끄기 상태를 가진 운용 제어 메시지를 준비한다.
+    // 준비: 켜기와 끄기 상태를 가진 운용 제어 메시지를 준비한다.
     const comm::MessageDecoder decoder;
     for (uint8_t status : {uint8_t{0}, uint8_t{1}})
     {
@@ -96,10 +96,10 @@ TEST(MessageDecoderTest, DecodesOperatorOnAndOff)
 
         const auto frame = makeFrame(message, comm::protocol::MessageId::OPERATOR_CONTROL);
 
-        // When: 운용 제어 메시지를 디코딩한다.
+        // 실행: 운용 제어 메시지를 디코딩한다.
         const auto result = decoder.decode(frame);
 
-        // Then: 오류 없이 입력 상태에 맞는 전원 제어 명령을 반환한다.
+        // 검증: 오류 없이 입력 상태에 맞는 전원 제어 명령을 반환한다.
         ASSERT_EQ(result.error, comm::DecodingError::NONE);
         ASSERT_TRUE(result.message.has_value());
         const auto* command = std::get_if<beam::SetOperationStateCommand>(&*result.message);
@@ -111,7 +111,7 @@ TEST(MessageDecoderTest, DecodesOperatorOnAndOff)
 // 정의되지 않은 운용 상태는 명령을 만들지 않고 필드 오류로 반환한다.
 TEST(MessageDecoderTest, RejectsUnknownOperatorState)
 {
-    // Given: 정상 상태인 0과 1 이외의 운용 상태를 준비한다.
+    // 준비: 정상 상태인 0과 1 이외의 운용 상태를 준비한다.
     const comm::MessageDecoder decoder;
     for (uint8_t status : {uint8_t{2}, uint8_t{255}})
     {
@@ -120,10 +120,10 @@ TEST(MessageDecoderTest, RejectsUnknownOperatorState)
         message.oper_status = status;
         const auto frame = makeFrame(message, comm::protocol::MessageId::OPERATOR_CONTROL);
 
-        // When: 정의되지 않은 상태를 가진 메시지를 디코딩한다.
+        // 실행: 정의되지 않은 상태를 가진 메시지를 디코딩한다.
         const auto result = decoder.decode(frame);
 
-        // Then: 필드 오류를 반환하고 명령은 반환하지 않는다.
+        // 검증: 필드 오류를 반환하고 명령은 반환하지 않는다.
         EXPECT_EQ(result.error, comm::DecodingError::INVALID_FIELD_VALUE);
         EXPECT_FALSE(result.message.has_value());
     }
@@ -132,7 +132,7 @@ TEST(MessageDecoderTest, RejectsUnknownOperatorState)
 // 헤더에 선언한 크기와 실제 바이트 수가 다르면 메시지를 거부한다.
 TEST(MessageDecoderTest, RejectsMismatchBetweenDeclaredAndActualSize)
 {
-    // Given: 실제 바이트 수보다 선언한 크기가 작거나 큰 프레임을 준비한다.
+    // 준비: 실제 바이트 수보다 선언한 크기가 작거나 큰 프레임을 준비한다.
     const comm::MessageDecoder decoder;
     for (int difference : {-1, 1})
     {
@@ -140,10 +140,10 @@ TEST(MessageDecoderTest, RejectsMismatchBetweenDeclaredAndActualSize)
         auto frame = makeFrame(comm::protocol::ST_OperatorMsg{}, comm::protocol::MessageId::OPERATOR_CONTROL);
         frame.header.block_size = static_cast<uint32_t>(static_cast<int>(frame.bytes.size()) + difference);
 
-        // When: 크기가 일치하지 않는 프레임을 디코딩한다.
+        // 실행: 크기가 일치하지 않는 프레임을 디코딩한다.
         const auto result = decoder.decode(frame);
 
-        // Then: 크기 오류를 반환하고 메시지는 반환하지 않는다.
+        // 검증: 크기 오류를 반환하고 메시지는 반환하지 않는다.
         EXPECT_EQ(result.error, comm::DecodingError::INVALID_MESSAGE_SIZE);
         EXPECT_FALSE(result.message.has_value());
     }
@@ -152,7 +152,7 @@ TEST(MessageDecoderTest, RejectsMismatchBetweenDeclaredAndActualSize)
 // 고정 길이 메시지는 헤더와 실제 크기가 같아도 규격 길이와 다르면 거부한다.
 TEST(MessageDecoderTest, RejectsIncorrectFixedMessageSizes)
 {
-    // Given: 운용 제어와 자세 메시지의 규격보다 한 바이트 작거나 큰 프레임을 준비한다.
+    // 준비: 운용 제어와 자세 메시지의 규격보다 한 바이트 작거나 큰 프레임을 준비한다.
     const comm::MessageDecoder decoder;
     for (int difference : {-1, 1})
     {
@@ -168,11 +168,11 @@ TEST(MessageDecoderTest, RejectsIncorrectFixedMessageSizes)
             sizeof(comm::protocol::ST_RadarAttMsg) + difference
         );
 
-        // When: 두 종류의 고정 길이 메시지를 디코딩한다.
+        // 실행: 두 종류의 고정 길이 메시지를 디코딩한다.
         const auto operatorResult = decoder.decode(operatorFrame);
         const auto attitudeResult = decoder.decode(attitudeFrame);
 
-        // Then: 두 프레임 모두 크기 오류를 반환하고 메시지는 반환하지 않는다.
+        // 검증: 두 프레임 모두 크기 오류를 반환하고 메시지는 반환하지 않는다.
         EXPECT_EQ(operatorResult.error, comm::DecodingError::INVALID_MESSAGE_SIZE);
         EXPECT_FALSE(operatorResult.message.has_value());
         EXPECT_EQ(attitudeResult.error, comm::DecodingError::INVALID_MESSAGE_SIZE);
@@ -183,7 +183,7 @@ TEST(MessageDecoderTest, RejectsIncorrectFixedMessageSizes)
 // 수신을 지원하지 않거나 정의되지 않은 메시지 ID를 거부한다.
 TEST(MessageDecoderTest, RejectsUnsupportedAndUnknownMessageIds)
 {
-    // Given: 송신 전용 ID와 정의되지 않은 ID를 가진 프레임을 준비한다.
+    // 준비: 송신 전용 ID와 정의되지 않은 ID를 가진 프레임을 준비한다.
     const comm::MessageDecoder decoder;
     for (auto messageId : {
              comm::protocol::MessageId::TRACK_INFORMATION,
@@ -195,10 +195,10 @@ TEST(MessageDecoderTest, RejectsUnsupportedAndUnknownMessageIds)
         SCOPED_TRACE(static_cast<uint16_t>(messageId));
         const auto frame = makeFrame(comm::protocol::ST_OperatorMsg{}, messageId);
 
-        // When: 지원하지 않는 ID의 프레임을 디코딩한다.
+        // 실행: 지원하지 않는 ID의 프레임을 디코딩한다.
         const auto result = decoder.decode(frame);
 
-        // Then: 지원하지 않는 ID 오류를 반환하고 메시지는 반환하지 않는다.
+        // 검증: 지원하지 않는 ID 오류를 반환하고 메시지는 반환하지 않는다.
         EXPECT_EQ(result.error, comm::DecodingError::UNSUPPORTED_MESSAGE_ID);
         EXPECT_FALSE(result.message.has_value());
     }
@@ -207,14 +207,14 @@ TEST(MessageDecoderTest, RejectsUnsupportedAndUnknownMessageIds)
 // 자세 메시지의 각 축을 보존하고 킬로미터 고도를 미터로 변환한다.
 TEST(MessageDecoderTest, DecodesRadarAttitudeAndConvertsAltitudeToMeters)
 {
-    // Given: 축마다 다른 각도와 1.25킬로미터 고도를 가진 자세 메시지를 준비한다.
+    // 준비: 축마다 다른 각도와 1.25킬로미터 고도를 가진 자세 메시지를 준비한다.
     const comm::MessageDecoder decoder;
     const auto frame = makeFrame(makeAttitudeMessage(), comm::protocol::MessageId::RADAR_ATTITUDE_FROM_SIMULATOR);
 
-    // When: 자세 메시지를 디코딩한다.
+    // 실행: 자세 메시지를 디코딩한다.
     const auto result = decoder.decode(frame);
 
-    // Then: 각 축이 뒤바뀌지 않고 고도는 1250미터인 자세 명령을 반환한다.
+    // 검증: 각 축이 뒤바뀌지 않고 고도는 1250미터인 자세 명령을 반환한다.
     ASSERT_EQ(result.error, comm::DecodingError::NONE);
     ASSERT_TRUE(result.message.has_value());
     const auto* command = std::get_if<beam::SetAttitudeCommand>(&*result.message);
@@ -230,7 +230,7 @@ TEST(MessageDecoderTest, DecodesRadarAttitudeAndConvertsAltitudeToMeters)
 // 자세 메시지의 각 필드에 NaN 또는 무한대가 있으면 거부한다.
 TEST(MessageDecoderTest, RejectsNonFiniteRadarAttitudeFields)
 {
-    // Given: 자세의 모든 실수 필드와 유효하지 않은 실수 값을 준비한다.
+    // 준비: 자세의 모든 실수 필드와 유효하지 않은 실수 값을 준비한다.
     const comm::MessageDecoder decoder;
     using Message = comm::protocol::ST_RadarAttMsg;
     double Message::* const fields[] =
@@ -255,10 +255,10 @@ TEST(MessageDecoderTest, RejectsNonFiniteRadarAttitudeFields)
             message.*fields[fieldIndex] = value;
             const auto frame = makeFrame(message, comm::protocol::MessageId::RADAR_ATTITUDE_FROM_SIMULATOR);
 
-            // When: 한 필드만 유효하지 않은 자세 메시지를 디코딩한다.
+            // 실행: 한 필드만 유효하지 않은 자세 메시지를 디코딩한다.
             const auto result = decoder.decode(frame);
 
-            // Then: 어느 필드에서든 필드 오류를 반환하고 명령은 반환하지 않는다.
+            // 검증: 어느 필드에서든 필드 오류를 반환하고 명령은 반환하지 않는다.
             EXPECT_EQ(result.error, comm::DecodingError::INVALID_FIELD_VALUE);
             EXPECT_FALSE(result.message.has_value());
         }
@@ -268,14 +268,14 @@ TEST(MessageDecoderTest, RejectsNonFiniteRadarAttitudeFields)
 // 플롯의 순서와 값을 보존하고 빔 정보와 단위를 올바르게 변환한다.
 TEST(MessageDecoderTest, DecodesPlotsInOrderAndPreservesBeamMetadata)
 {
-    // Given: 거리가 다른 플롯 두 개와 빔 ID 및 송신 시각을 가진 메시지를 준비한다.
+    // 준비: 거리가 다른 플롯 두 개와 빔 ID 및 송신 시각을 가진 메시지를 준비한다.
     const comm::MessageDecoder decoder;
     const auto frame = makePlotFrame(makePlotMessage(2));
 
-    // When: 플롯 정보 메시지를 디코딩한다.
+    // 실행: 플롯 정보 메시지를 디코딩한다.
     const auto result = decoder.decode(frame);
 
-    // Then: 플롯 순서와 빔 정보를 보존하고 거리는 미터로 변환한다.
+    // 검증: 플롯 순서와 빔 정보를 보존하고 거리는 미터로 변환한다.
     ASSERT_EQ(result.error, comm::DecodingError::NONE);
     ASSERT_TRUE(result.message.has_value());
     const auto* event = std::get_if<target::DetectionEvent>(&*result.message);
@@ -295,7 +295,7 @@ TEST(MessageDecoderTest, DecodesPlotsInOrderAndPreservesBeamMetadata)
 // 탐색과 확인 및 추적 빔 종류를 모두 수신할 수 있다.
 TEST(MessageDecoderTest, AcceptsEverySupportedBeamType)
 {
-    // Given: 지원하는 빔 종류를 하나씩 가진 플롯 메시지를 준비한다.
+    // 준비: 지원하는 빔 종류를 하나씩 가진 플롯 메시지를 준비한다.
     const comm::MessageDecoder decoder;
     for (auto beamType : {beam::BeamType::SEARCH, beam::BeamType::CONFIRMATION, beam::BeamType::TRACKING})
     {
@@ -304,10 +304,10 @@ TEST(MessageDecoderTest, AcceptsEverySupportedBeamType)
         message.beam_cmd.beamType = static_cast<uint8_t>(beamType);
         const auto frame = makePlotFrame(message);
 
-        // When: 각 빔 종류의 플롯 메시지를 디코딩한다.
+        // 실행: 각 빔 종류의 플롯 메시지를 디코딩한다.
         const auto result = decoder.decode(frame);
 
-        // Then: 오류 없이 입력과 같은 빔 종류의 탐지 이벤트를 반환한다.
+        // 검증: 오류 없이 입력과 같은 빔 종류의 탐지 이벤트를 반환한다.
         ASSERT_EQ(result.error, comm::DecodingError::NONE);
         ASSERT_TRUE(result.message.has_value());
         const auto* event = std::get_if<target::DetectionEvent>(&*result.message);
@@ -319,17 +319,17 @@ TEST(MessageDecoderTest, AcceptsEverySupportedBeamType)
 // 플롯 개수가 0개이거나 최대 허용 개수인 메시지를 수신할 수 있다.
 TEST(MessageDecoderTest, AcceptsZeroAndMaximumPlotCounts)
 {
-    // Given: 플롯 개수의 하한과 상한에 해당하는 메시지를 준비한다.
+    // 준비: 플롯 개수의 하한과 상한에 해당하는 메시지를 준비한다.
     const comm::MessageDecoder decoder;
     for (std::size_t count : {std::size_t{0}, MAXIMUM_PLOT_COUNT})
     {
         SCOPED_TRACE(count);
         const auto frame = makePlotFrame(makePlotMessage(static_cast<uint16_t>(count)));
 
-        // When: 경계 개수의 플롯 메시지를 디코딩한다.
+        // 실행: 경계 개수의 플롯 메시지를 디코딩한다.
         const auto result = decoder.decode(frame);
 
-        // Then: 요청한 개수의 플롯을 반환하고 마지막 플롯까지 보존한다.
+        // 검증: 요청한 개수의 플롯을 반환하고 마지막 플롯까지 보존한다.
         ASSERT_EQ(result.error, comm::DecodingError::NONE);
         ASSERT_TRUE(result.message.has_value());
         const auto* event = std::get_if<target::DetectionEvent>(&*result.message);
@@ -345,15 +345,15 @@ TEST(MessageDecoderTest, AcceptsZeroAndMaximumPlotCounts)
 // 최대 허용 개수를 초과한 플롯 메시지는 개수 오류로 거부한다.
 TEST(MessageDecoderTest, RejectsPlotCountAboveMaximum)
 {
-    // Given: 플롯 개수가 최대 허용 개수보다 하나 많은 메시지를 준비한다.
+    // 준비: 플롯 개수가 최대 허용 개수보다 하나 많은 메시지를 준비한다.
     const comm::MessageDecoder decoder;
     const auto message = makePlotMessage(static_cast<uint16_t>(MAXIMUM_PLOT_COUNT + 1));
     const auto frame = makeFrame(message, comm::protocol::MessageId::PLOT_INFORMATION, PLOT_DATA_OFFSET);
 
-    // When: 플롯 개수가 범위를 벗어난 메시지를 디코딩한다.
+    // 실행: 플롯 개수가 범위를 벗어난 메시지를 디코딩한다.
     const auto result = decoder.decode(frame);
 
-    // Then: 개수 오류를 반환하고 메시지는 반환하지 않는다.
+    // 검증: 개수 오류를 반환하고 메시지는 반환하지 않는다.
     EXPECT_EQ(result.error, comm::DecodingError::INVALID_ITEM_COUNT);
     EXPECT_FALSE(result.message.has_value());
 }
@@ -361,16 +361,16 @@ TEST(MessageDecoderTest, RejectsPlotCountAboveMaximum)
 // 플롯 데이터 앞의 헤더가 잘린 메시지를 읽기 전에 거부한다.
 TEST(MessageDecoderTest, RejectsTruncatedPlotHeaders)
 {
-    // Given: 빔 정보와 플롯 헤더가 끝나기 한 바이트 전에 잘린 메시지를 준비한다.
+    // 준비: 빔 정보와 플롯 헤더가 끝나기 한 바이트 전에 잘린 메시지를 준비한다.
     const comm::MessageDecoder decoder;
     const auto frame = makeFrame(
         makePlotMessage(1), comm::protocol::MessageId::PLOT_INFORMATION, PLOT_DATA_OFFSET - 1
     );
 
-    // When: 헤더가 잘린 플롯 메시지를 디코딩한다.
+    // 실행: 헤더가 잘린 플롯 메시지를 디코딩한다.
     const auto result = decoder.decode(frame);
 
-    // Then: 크기 오류를 반환하고 메시지는 반환하지 않는다.
+    // 검증: 크기 오류를 반환하고 메시지는 반환하지 않는다.
     EXPECT_EQ(result.error, comm::DecodingError::INVALID_MESSAGE_SIZE);
     EXPECT_FALSE(result.message.has_value());
 }
@@ -378,7 +378,7 @@ TEST(MessageDecoderTest, RejectsTruncatedPlotHeaders)
 // 선언한 플롯 개수와 실제 데이터 길이가 다르면 메시지를 거부한다.
 TEST(MessageDecoderTest, RejectsPlotPayloadSizeMismatch)
 {
-    // Given: 플롯은 두 개로 선언하고 실제 데이터는 부족하거나 남는 메시지를 준비한다.
+    // 준비: 플롯은 두 개로 선언하고 실제 데이터는 부족하거나 남는 메시지를 준비한다.
     const comm::MessageDecoder decoder;
     const auto message = makePlotMessage(2);
     for (std::size_t byteCount : {
@@ -389,10 +389,10 @@ TEST(MessageDecoderTest, RejectsPlotPayloadSizeMismatch)
         SCOPED_TRACE(byteCount);
         const auto frame = makeFrame(message, comm::protocol::MessageId::PLOT_INFORMATION, byteCount);
 
-        // When: 플롯 개수와 데이터 길이가 일치하지 않는 메시지를 디코딩한다.
+        // 실행: 플롯 개수와 데이터 길이가 일치하지 않는 메시지를 디코딩한다.
         const auto result = decoder.decode(frame);
 
-        // Then: 크기 오류를 반환하고 메시지는 반환하지 않는다.
+        // 검증: 크기 오류를 반환하고 메시지는 반환하지 않는다.
         EXPECT_EQ(result.error, comm::DecodingError::INVALID_MESSAGE_SIZE);
         EXPECT_FALSE(result.message.has_value());
     }
@@ -401,7 +401,7 @@ TEST(MessageDecoderTest, RejectsPlotPayloadSizeMismatch)
 // 정의되지 않은 빔 종류는 탐지 이벤트를 만들지 않고 거부한다.
 TEST(MessageDecoderTest, RejectsUnknownBeamType)
 {
-    // Given: 정의된 빔 종류에 해당하지 않는 값을 가진 플롯 메시지를 준비한다.
+    // 준비: 정의된 빔 종류에 해당하지 않는 값을 가진 플롯 메시지를 준비한다.
     const comm::MessageDecoder decoder;
     for (uint8_t beamType : {uint8_t{0}, uint8_t{255}})
     {
@@ -410,10 +410,10 @@ TEST(MessageDecoderTest, RejectsUnknownBeamType)
         message.beam_cmd.beamType = beamType;
         const auto frame = makePlotFrame(message);
 
-        // When: 정의되지 않은 빔 종류의 메시지를 디코딩한다.
+        // 실행: 정의되지 않은 빔 종류의 메시지를 디코딩한다.
         const auto result = decoder.decode(frame);
 
-        // Then: 필드 오류를 반환하고 탐지 이벤트는 반환하지 않는다.
+        // 검증: 필드 오류를 반환하고 탐지 이벤트는 반환하지 않는다.
         EXPECT_EQ(result.error, comm::DecodingError::INVALID_FIELD_VALUE);
         EXPECT_FALSE(result.message.has_value());
     }
@@ -422,7 +422,7 @@ TEST(MessageDecoderTest, RejectsUnknownBeamType)
 // 뒤쪽 플롯에 NaN 또는 무한대가 있으면 앞쪽 플롯도 부분 반환하지 않는다.
 TEST(MessageDecoderTest, RejectsNonFinitePlotFieldsWithoutReturningPartialMessage)
 {
-    // Given: 두 번째 플롯의 실수 필드 하나만 유효하지 않은 메시지를 준비한다.
+    // 준비: 두 번째 플롯의 실수 필드 하나만 유효하지 않은 메시지를 준비한다.
     const comm::MessageDecoder decoder;
     using Plot = comm::protocol::ST_Plot;
     float Plot::* const fields[] =
@@ -446,10 +446,10 @@ TEST(MessageDecoderTest, RejectsNonFinitePlotFieldsWithoutReturningPartialMessag
             message.plot[1].*fields[fieldIndex] = value;
             const auto frame = makePlotFrame(message);
 
-            // When: 정상 플롯 뒤에 잘못된 플롯이 있는 메시지를 디코딩한다.
+            // 실행: 정상 플롯 뒤에 잘못된 플롯이 있는 메시지를 디코딩한다.
             const auto result = decoder.decode(frame);
 
-            // Then: 필드 오류를 반환하고 정상 플롯만 따로 반환하지 않는다.
+            // 검증: 필드 오류를 반환하고 정상 플롯만 따로 반환하지 않는다.
             EXPECT_EQ(result.error, comm::DecodingError::INVALID_FIELD_VALUE);
             EXPECT_FALSE(result.message.has_value());
         }
@@ -459,7 +459,7 @@ TEST(MessageDecoderTest, RejectsNonFinitePlotFieldsWithoutReturningPartialMessag
 // 음수 거리는 거부하고 경계인 거리 0은 허용한다.
 TEST(MessageDecoderTest, RejectsNegativeRangeAndAcceptsZeroRange)
 {
-    // Given: 거리가 음수인 플롯과 0인 플롯을 각각 준비한다.
+    // 준비: 거리가 음수인 플롯과 0인 플롯을 각각 준비한다.
     const comm::MessageDecoder decoder;
     auto negativeRange = makePlotMessage(1);
     negativeRange.plot[0].slantR_km = -0.5F;
@@ -468,11 +468,11 @@ TEST(MessageDecoderTest, RejectsNegativeRangeAndAcceptsZeroRange)
     const auto negativeFrame = makePlotFrame(negativeRange);
     const auto zeroFrame = makePlotFrame(zeroRange);
 
-    // When: 음수 거리와 거리 0을 가진 메시지를 각각 디코딩한다.
+    // 실행: 음수 거리와 거리 0을 가진 메시지를 각각 디코딩한다.
     const auto negativeResult = decoder.decode(negativeFrame);
     const auto result = decoder.decode(zeroFrame);
 
-    // Then: 음수 거리는 오류로 반환하고 거리 0은 정상 플롯으로 반환한다.
+    // 검증: 음수 거리는 오류로 반환하고 거리 0은 정상 플롯으로 반환한다.
     EXPECT_EQ(negativeResult.error, comm::DecodingError::INVALID_FIELD_VALUE);
     EXPECT_FALSE(negativeResult.message.has_value());
     ASSERT_EQ(result.error, comm::DecodingError::NONE);

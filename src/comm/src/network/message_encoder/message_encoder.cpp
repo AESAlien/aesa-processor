@@ -37,7 +37,7 @@ EncodeResult failed(EncodingError error)
     return result;
 }
 
-// Creates the common header shared by protocol message structures.
+// 프로토콜 메시지 구조체가 공유하는 공통 헤더를 생성한다.
 protocol::ST_MsgHeader makeHeader(
     protocol::MessageId messageId,
     std::size_t blockSize
@@ -48,7 +48,7 @@ protocol::ST_MsgHeader makeHeader(
     return header;
 }
 
-// Converts a DTO value to the protocol float representation.
+// DTO 값을 프로토콜의 float 표현으로 변환한다.
 float convertFloat(double value)
 {
     if (std::isnan(value))
@@ -71,7 +71,7 @@ float convertFloat(double value)
     return static_cast<float>(value);
 }
 
-// Converts a DTO timestamp to the protocol uint32 representation.
+// DTO 타임스탬프를 프로토콜의 uint32 표현으로 변환한다.
 uint32_t convertTimestamp(
     std::chrono::milliseconds timestamp
 ) {
@@ -126,7 +126,7 @@ protocol::ST_Trk encodeTrack(
     return encodedTrack;
 }
 
-// Serializes a protocol message for TCP transmission.
+// TCP 전송을 위해 프로토콜 메시지를 직렬화한다.
 template <typename Message>
 std::vector<uint8_t> toBytes(const Message& message)
 {

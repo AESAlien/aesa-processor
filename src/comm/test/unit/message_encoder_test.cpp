@@ -99,14 +99,14 @@ float encodeAzimuthToWire(double azimuthDegrees)
 // 빔 명령의 필드를 프로토콜 형식으로 변환하고 미사용 필드는 0으로 채운다.
 TEST(MessageEncoderTest, EncodesBeamCommand)
 {
-    // Given: 빔 종류와 ID 및 각 축의 값이 지정된 송신 명령을 준비한다.
+    // 준비: 빔 종류와 ID 및 각 축의 값이 지정된 송신 명령을 준비한다.
     const auto command = makeBeamCommand();
 
-    // When: 빔 송신 명령을 바이트 배열로 인코딩한다.
+    // 실행: 빔 송신 명령을 바이트 배열로 인코딩한다.
     const comm::EncodeResult result =
         comm::encodeBeamCommand(command);
 
-    // Then: 헤더와 빔 데이터가 입력과 일치하고 패딩은 모두 0이다.
+    // 검증: 헤더와 빔 데이터가 입력과 일치하고 패딩은 모두 0이다.
     ASSERT_EQ(result.error, comm::EncodingError::NONE);
     ASSERT_TRUE(result.bytes.has_value());
     ASSERT_EQ(result.bytes->size(), sizeof(comm::protocol::ST_BeamTxMsg));
@@ -150,15 +150,15 @@ TEST(MessageEncoderTest, EncodesBeamCommand)
 // 음수 방위각은 0도 이상 360도 미만의 값으로 전송한다.
 TEST(MessageEncoderTest, EncodesNegativeAzimuthAsZeroToThreeSixtyOnWire)
 {
-    // Given: 서로 다른 음수 방위각을 준비한다.
+    // 준비: 서로 다른 음수 방위각을 준비한다.
     const double negativeAzimuth = -10.0;
     const double halfTurnAzimuth = -180.0;
 
-    // When: 각 방위각을 가진 빔 명령을 인코딩한다.
+    // 실행: 각 방위각을 가진 빔 명령을 인코딩한다.
     const auto negativeResult = encodeAzimuthToWire(negativeAzimuth);
     const auto halfTurnResult = encodeAzimuthToWire(halfTurnAzimuth);
 
-    // Then: 한 바퀴 안의 양수 방위각으로 변환된다.
+    // 검증: 한 바퀴 안의 양수 방위각으로 변환된다.
     EXPECT_FLOAT_EQ(negativeResult, 350.0F);
     EXPECT_FLOAT_EQ(halfTurnResult, 180.0F);
 }
@@ -166,15 +166,15 @@ TEST(MessageEncoderTest, EncodesNegativeAzimuthAsZeroToThreeSixtyOnWire)
 // 방위각 0도와 한 바퀴인 360도는 모두 0도로 전송한다.
 TEST(MessageEncoderTest, EncodesFullTurnAzimuthAsZeroOnWire)
 {
-    // Given: 방위각 0도와 360도를 준비한다.
+    // 준비: 방위각 0도와 360도를 준비한다.
     const double zeroAzimuth = 0.0;
     const double fullTurnAzimuth = 360.0;
 
-    // When: 두 방위각을 가진 빔 명령을 각각 인코딩한다.
+    // 실행: 두 방위각을 가진 빔 명령을 각각 인코딩한다.
     const auto zeroResult = encodeAzimuthToWire(zeroAzimuth);
     const auto fullTurnResult = encodeAzimuthToWire(fullTurnAzimuth);
 
-    // Then: 한 바퀴 회전 여부와 관계없이 0도로 변환된다.
+    // 검증: 한 바퀴 회전 여부와 관계없이 0도로 변환된다.
     EXPECT_FLOAT_EQ(zeroResult, 0.0F);
     EXPECT_FLOAT_EQ(fullTurnResult, 0.0F);
 }
@@ -182,15 +182,15 @@ TEST(MessageEncoderTest, EncodesFullTurnAzimuthAsZeroOnWire)
 // 한 바퀴를 넘는 방위각은 회전 주기를 제거한 값으로 전송한다.
 TEST(MessageEncoderTest, EncodesAzimuthBeyondFullTurnWithinRangeOnWire)
 {
-    // Given: 한 바퀴와 두 바퀴를 각각 초과하는 방위각을 준비한다.
+    // 준비: 한 바퀴와 두 바퀴를 각각 초과하는 방위각을 준비한다.
     const double beyondOneTurn = 370.0;
     const double beyondTwoTurns = 725.0;
 
-    // When: 여러 바퀴 회전한 방위각을 가진 빔 명령을 인코딩한다.
+    // 실행: 여러 바퀴 회전한 방위각을 가진 빔 명령을 인코딩한다.
     const auto oneTurnResult = encodeAzimuthToWire(beyondOneTurn);
     const auto twoTurnResult = encodeAzimuthToWire(beyondTwoTurns);
 
-    // Then: 완전한 회전 주기를 제외한 방위각으로 변환된다.
+    // 검증: 완전한 회전 주기를 제외한 방위각으로 변환된다.
     EXPECT_FLOAT_EQ(oneTurnResult, 10.0F);
     EXPECT_FLOAT_EQ(twoTurnResult, 5.0F);
 }
@@ -198,17 +198,17 @@ TEST(MessageEncoderTest, EncodesAzimuthBeyondFullTurnWithinRangeOnWire)
 // 이미 정규화된 범위 안의 방위각은 입력값 그대로 전송한다.
 TEST(MessageEncoderTest, KeepsAzimuthAlreadyInRangeOnWire)
 {
-    // Given: 0도와 360도 사이에서 서로 다른 방위각을 준비한다.
+    // 준비: 0도와 360도 사이에서 서로 다른 방위각을 준비한다.
     const double lowerAzimuth = 0.5;
     const double middleAzimuth = 180.0;
     const double upperAzimuth = 359.5;
 
-    // When: 범위 안의 각 방위각을 인코딩한다.
+    // 실행: 범위 안의 각 방위각을 인코딩한다.
     const auto lowerResult = encodeAzimuthToWire(lowerAzimuth);
     const auto middleResult = encodeAzimuthToWire(middleAzimuth);
     const auto upperResult = encodeAzimuthToWire(upperAzimuth);
 
-    // Then: 방위각의 값이 바뀌지 않는다.
+    // 검증: 방위각의 값이 바뀌지 않는다.
     EXPECT_FLOAT_EQ(lowerResult, 0.5F);
     EXPECT_FLOAT_EQ(middleResult, 180.0F);
     EXPECT_FLOAT_EQ(upperResult, 359.5F);
@@ -217,7 +217,7 @@ TEST(MessageEncoderTest, KeepsAzimuthAlreadyInRangeOnWire)
 // 추적 이벤트는 실제 항목 수에 맞는 길이와 프로토콜 필드로 인코딩한다.
 TEST(MessageEncoderTest, EncodesTrackEventsUsingActualMessageSize)
 {
-    // Given: 각 필드를 구분할 수 있는 추적 이벤트 하나를 준비한다.
+    // 준비: 각 필드를 구분할 수 있는 추적 이벤트 하나를 준비한다.
     const std::vector<target::TrackEvent> events
     {
         makeTrackEvent()
@@ -228,10 +228,10 @@ TEST(MessageEncoderTest, EncodesTrackEventsUsingActualMessageSize)
         sizeof(comm::protocol::ST_TrkHeader) +
         sizeof(comm::protocol::ST_Trk);
 
-    // When: 추적 이벤트 목록을 바이트 배열로 인코딩한다.
+    // 실행: 추적 이벤트 목록을 바이트 배열로 인코딩한다.
     const comm::EncodeResult result = comm::encodeTrackEvents(events);
 
-    // Then: 실제 항목 수에 맞는 길이와 입력 필드를 보존하고 미사용 필드는 0이다.
+    // 검증: 실제 항목 수에 맞는 길이와 입력 필드를 보존하고 미사용 필드는 0이다.
     ASSERT_EQ(result.error, comm::EncodingError::NONE);
     ASSERT_TRUE(result.bytes.has_value());
     ASSERT_EQ(result.bytes->size(), expectedSize);
@@ -295,7 +295,7 @@ TEST(MessageEncoderTest, EncodesTrackEventsUsingActualMessageSize)
 // 기수각은 정규화하고 비행 경로각은 부호가 있는 양 끝 경계를 보존한다.
 TEST(MessageEncoderTest, EncodesNormalizedHeadingAndSignedFlightPathBoundaries)
 {
-    // Given: 음수 기수각과 비행 경로각의 양 끝 경계를 가진 추적 이벤트를 준비한다.
+    // 준비: 음수 기수각과 비행 경로각의 양 끝 경계를 가진 추적 이벤트를 준비한다.
     for (const auto flightPathAngle : {-90_deg, 90_deg})
     {
         auto event = makeTrackEvent();
@@ -304,10 +304,10 @@ TEST(MessageEncoderTest, EncodesNormalizedHeadingAndSignedFlightPathBoundaries)
 
         const std::vector<target::TrackEvent> events{event};
 
-        // When: 경계 각도를 가진 추적 이벤트를 인코딩한다.
+        // 실행: 경계 각도를 가진 추적 이벤트를 인코딩한다.
         const auto result = comm::encodeTrackEvents(events);
 
-        // Then: 기수각은 270도가 되고 비행 경로각은 부호와 크기를 보존한다.
+        // 검증: 기수각은 270도가 되고 비행 경로각은 부호와 크기를 보존한다.
         ASSERT_EQ(result.error, comm::EncodingError::NONE);
         ASSERT_TRUE(result.bytes.has_value());
         const auto track = readValue<comm::protocol::ST_Trk>(
@@ -322,16 +322,16 @@ TEST(MessageEncoderTest, EncodesNormalizedHeadingAndSignedFlightPathBoundaries)
 // 최대 허용 개수인 100개를 초과하는 추적 이벤트는 인코딩하지 않는다.
 TEST(MessageEncoderTest, RejectsMoreThanOneHundredTracks)
 {
-    // Given: 최대 허용 개수보다 하나 많은 추적 이벤트를 준비한다.
+    // 준비: 최대 허용 개수보다 하나 많은 추적 이벤트를 준비한다.
     const std::vector<target::TrackEvent> events(
         101,
         makeTrackEvent()
     );
 
-    // When: 추적 이벤트 101개를 인코딩한다.
+    // 실행: 추적 이벤트 101개를 인코딩한다.
     const comm::EncodeResult result = comm::encodeTrackEvents(events);
 
-    // Then: 개수 초과 오류를 반환하고 바이트 배열은 반환하지 않는다.
+    // 검증: 개수 초과 오류를 반환하고 바이트 배열은 반환하지 않는다.
     EXPECT_EQ(result.error, comm::EncodingError::TOO_MANY_TRACKS);
     EXPECT_FALSE(result.bytes.has_value());
 }
@@ -339,16 +339,16 @@ TEST(MessageEncoderTest, RejectsMoreThanOneHundredTracks)
 // 최대 허용 개수인 100개의 추적 이벤트는 인코딩할 수 있다.
 TEST(MessageEncoderTest, AcceptsOneHundredTracks)
 {
-    // Given: 최대 허용 개수만큼의 추적 이벤트를 준비한다.
+    // 준비: 최대 허용 개수만큼의 추적 이벤트를 준비한다.
     const std::vector<target::TrackEvent> events(
         100,
         makeTrackEvent()
     );
 
-    // When: 추적 이벤트 100개를 인코딩한다.
+    // 실행: 추적 이벤트 100개를 인코딩한다.
     const comm::EncodeResult result = comm::encodeTrackEvents(events);
 
-    // Then: 모든 항목을 담는 최대 크기의 바이트 배열을 반환한다.
+    // 검증: 모든 항목을 담는 최대 크기의 바이트 배열을 반환한다.
     ASSERT_EQ(result.error, comm::EncodingError::NONE);
     ASSERT_TRUE(result.bytes.has_value());
     EXPECT_EQ(result.bytes->size(), sizeof(comm::protocol::ST_TrkMsg));
@@ -357,7 +357,7 @@ TEST(MessageEncoderTest, AcceptsOneHundredTracks)
 // 프로토콜의 시각 범위를 벗어난 빔 명령과 추적 이벤트를 거부한다.
 TEST(MessageEncoderTest, RejectsTimestampOutsideProtocolRange)
 {
-    // Given: uint32 상한을 초과한 빔 송신 시각과 음수 추적 시각을 준비한다.
+    // 준비: uint32 상한을 초과한 빔 송신 시각과 음수 추적 시각을 준비한다.
     const auto invalidTimestamp = std::chrono::milliseconds{
         static_cast<std::chrono::milliseconds::rep>(
             std::numeric_limits<uint32_t>::max()
@@ -365,12 +365,12 @@ TEST(MessageEncoderTest, RejectsTimestampOutsideProtocolRange)
     const auto command = makeBeamCommand(invalidTimestamp);
     const std::vector<target::TrackEvent> events{makeTrackEvent(-1ms)};
 
-    // When: 표현 범위를 벗어난 시각을 가진 명령과 이벤트를 인코딩한다.
+    // 실행: 표현 범위를 벗어난 시각을 가진 명령과 이벤트를 인코딩한다.
     const comm::EncodeResult beamResult =
         comm::encodeBeamCommand(command);
     const comm::EncodeResult trackResult = comm::encodeTrackEvents(events);
 
-    // Then: 두 입력 모두 타입 변환 오류를 반환하고 바이트 배열은 반환하지 않는다.
+    // 검증: 두 입력 모두 타입 변환 오류를 반환하고 바이트 배열은 반환하지 않는다.
     EXPECT_EQ(
         beamResult.error,
         comm::EncodingError::TYPE_CONVERSION_ERROR
@@ -386,18 +386,18 @@ TEST(MessageEncoderTest, RejectsTimestampOutsideProtocolRange)
 // 프로토콜의 float 범위로 표현할 수 없는 값은 인코딩하지 않는다.
 TEST(MessageEncoderTest, RejectsValueOutsideFloatRange)
 {
-    // Given: float 상한을 넘는 빔 폭과 추적 거리를 가진 입력을 준비한다.
+    // 준비: float 상한을 넘는 빔 폭과 추적 거리를 가진 입력을 준비한다.
     const double invalidAngle =
         static_cast<double>(std::numeric_limits<float>::max()) * 2.0;
     const auto command = makeBeamCommand(1234ms, invalidAngle);
     const std::vector<target::TrackEvent> events{makeTrackEvent(5678ms, invalidAngle)};
 
-    // When: 프로토콜의 실수 범위를 벗어난 입력을 인코딩한다.
+    // 실행: 프로토콜의 실수 범위를 벗어난 입력을 인코딩한다.
     const comm::EncodeResult beamResult =
         comm::encodeBeamCommand(command);
     const comm::EncodeResult trackResult = comm::encodeTrackEvents(events);
 
-    // Then: 두 입력 모두 타입 변환 오류를 반환하고 바이트 배열은 반환하지 않는다.
+    // 검증: 두 입력 모두 타입 변환 오류를 반환하고 바이트 배열은 반환하지 않는다.
     EXPECT_EQ(
         beamResult.error,
         comm::EncodingError::TYPE_CONVERSION_ERROR
