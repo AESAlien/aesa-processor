@@ -1,5 +1,6 @@
 #include "request/factory/beam_request_factory.hpp"
 
+#include <sstream>
 #include <stdexcept>
 
 namespace beam
@@ -41,7 +42,11 @@ BeamRequest BeamRequestFactory::from(const RequestBeamCommand& command) const
             command.direction_ant);
     }
 
-    throw std::invalid_argument("BeamRequestFactory: unknown request beam type");
+    std::ostringstream message;
+    message << "BeamRequestFactory: unknown request beam type"
+            << ": beamType=" << static_cast<int>(command.beamType)
+            << ", requestId=" << command.requestId;
+    throw std::invalid_argument(message.str());
 }
 
 } // namespace beam

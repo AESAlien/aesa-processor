@@ -7,6 +7,7 @@
 #include <math/linear_algebra/vector.hpp>
 
 #include <cmath>
+#include <sstream>
 #include <stdexcept>
 
 namespace beam
@@ -39,7 +40,11 @@ AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AttitudeCo
     const auto pitch = math::Angle::fromDegrees(attitude.pitch().deg());
     if (pitch <= -config.maxAbsPitch() || pitch >= config.maxAbsPitch())
     {
-        throw std::invalid_argument("AntEnuTransform: pitch is too close to gimbal lock");
+        std::ostringstream message;
+        message << "AntEnuTransform: pitch is too close to gimbal lock"
+                << ": pitch=" << pitch.deg()
+                << ", maxAbsPitch=" << config.maxAbsPitch().deg();
+        throw std::invalid_argument(message.str());
     }
 
     _rotationMatrix =
