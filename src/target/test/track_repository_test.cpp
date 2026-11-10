@@ -1,5 +1,5 @@
-#include "domain/algorithm/constant_velocity_algorithm.hpp"
-#include "domain/factory/track_factory.hpp"
+#include "domain/tracking/constant_velocity_algorithm.hpp"
+#include "domain/track_factory.hpp"
 #include "repository/track_repository.hpp"
 
 #include <gtest/gtest.h>

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "domain/algorithm/constant_velocity_algorithm.hpp"
-#include "domain/algorithm/nds_algorithm.hpp"
-#include "domain/position_uncertainty.hpp"
+#include "domain/tracking/constant_velocity_algorithm.hpp"
+#include "domain/association/nds_algorithm.hpp"
+#include "domain/tracking/position_uncertainty.hpp"
 
-#include "domain/selector/tentative_selector.hpp"
-#include "domain/selector/track_selector.hpp"
+#include "domain/association/tentative_selector.hpp"
+#include "domain/association/track_selector.hpp"
 
 #include <utility>
 
@@ -22,14 +22,14 @@ public:
     {
     }
 
-    std::optional<TrackState> initialize(const Observation& first, const Observation& second, std::any& data) const override
+    std::optional<TrackingResult> initialize(const Observation& first, const Observation& second) const override
     {
-        return _algorithm.initialize(first, second, data);
+        return _algorithm.initialize(first, second);
     }
 
-    std::optional<TrackState> update(const ConfirmedTrack& current, const Observation& incoming, std::any& data) const override
+    std::optional<TrackingResult> update(const ConfirmedTrack& current, const Observation& incoming) const override
     {
-        return _algorithm.update(current, incoming, data);
+        return _algorithm.update(current, incoming);
     }
 
     std::optional<TrackPrediction> predict(const ConfirmedTrack& current, std::chrono::milliseconds time) const override

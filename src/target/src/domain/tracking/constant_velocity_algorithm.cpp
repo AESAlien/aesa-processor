@@ -8,14 +8,14 @@
 #include <math/geometry/spherical_position.hpp>
 
 #include <stdexcept>
+#include <utility>
 
 namespace target
 {
 
-std::optional<TrackState> ConstantVelocityAlgorithm::initialize(
+std::optional<TrackingResult> ConstantVelocityAlgorithm::initialize(
     const Observation& first,
-    const Observation& second,
-    std::any&
+    const Observation& second
 ) const {
     const auto firstTime = first.observationTime();
     const auto secondTime = second.observationTime();
@@ -30,7 +30,7 @@ std::optional<TrackState> ConstantVelocityAlgorithm::initialize(
     const auto elapsed = std::chrono::duration<double>(secondTime - firstTime);
     const auto velocity = (secondPosition - firstPosition) / elapsed;
 
-    return TrackState(
+    auto state = TrackState(
         second.sphericalPosition(),
         second.dopplerVelocity(),
         second.power_db(),
@@ -38,12 +38,12 @@ std::optional<TrackState> ConstantVelocityAlgorithm::initialize(
         secondPosition,
         velocity
     );
+    return TrackingResult{std::move(state), {}};
 }
 
-std::optional<TrackState> ConstantVelocityAlgorithm::update(
+std::optional<TrackingResult> ConstantVelocityAlgorithm::update(
     const ConfirmedTrack& current,
-    const Observation& observation,
-    std::any&
+    const Observation& observation
 ) const {
     const auto& currentState = current.state();
     const auto previousTime = currentState->timestamp();
@@ -58,7 +58,7 @@ std::optional<TrackState> ConstantVelocityAlgorithm::update(
     const auto elapsed = std::chrono::duration<double>(time - previousTime);
     const auto velocity = (position - currentState->position()) / elapsed;
 
-    return TrackState(
+    auto state = TrackState(
         observation.sphericalPosition(),
         observation.dopplerVelocity(),
         observation.power_db(),
@@ -66,6 +66,7 @@ std::optional<TrackState> ConstantVelocityAlgorithm::update(
         position,
         velocity
     );
+    return TrackingResult{std::move(state), {}};
 }
 
 std::optional<TrackPrediction> ConstantVelocityAlgorithm::predict(

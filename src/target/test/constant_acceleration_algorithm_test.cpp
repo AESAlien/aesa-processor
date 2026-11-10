@@ -1,7 +1,7 @@
 #include "association_selection_helpers.hpp"
-#include "domain/algorithm/constant_acceleration_algorithm.hpp"
+#include "domain/tracking/constant_acceleration_algorithm.hpp"
 #include "domain/tentative_track.hpp"
-#include "domain/factory/track_factory.hpp"
+#include "domain/track_factory.hpp"
 #include "repository/track_repository.hpp"
 
 #include <target/config/target_config.hpp>
@@ -84,13 +84,12 @@ public:
     {
     }
 
-    std::optional<TrackState> initialize(const Observation&, const Observation&, std::any& data) const override
+    std::optional<TrackingResult> initialize(const Observation&, const Observation&) const override
     {
-        data = _data;
-        return _state;
+        return TrackingResult{_state, _data};
     }
 
-    std::optional<TrackState> update(const ConfirmedTrack&, const Observation&, std::any&) const override
+    std::optional<TrackingResult> update(const ConfirmedTrack&, const Observation&) const override
     {
         return std::nullopt;
     }
@@ -267,19 +266,18 @@ TEST_F(ConstantAccelerationAlgorithmTest, UsesStoredAccelerationAndUnequalPredic
     EXPECT_NEAR(point.x.m(), 1028.125, 1e-8);
     EXPECT_NEAR(point.y.m(), 1943.75, 1e-8);
     EXPECT_NEAR(point.z.m(), 3084.375, 1e-8);
-    std::any correctedData;
-    const auto corrected = _algorithm->update(
+    const auto correctedResult = _algorithm->update(
         target,
-        observation(point, 2600ms),
-        correctedData
+        observation(point, 2600ms)
     );
-    ASSERT_TRUE(corrected);
-    EXPECT_NEAR(corrected->velocity().x.mps(), 12.5, 1e-8);
-    EXPECT_NEAR(corrected->velocity().y.mps(), -25.0, 1e-8);
-    EXPECT_NEAR(corrected->velocity().z.mps(), 37.5, 1e-8);
-    EXPECT_NEAR(corrected->acceleration().x.mps2(), 1.0, 1e-8);
-    EXPECT_NEAR(corrected->acceleration().y.mps2(), -2.0, 1e-8);
-    EXPECT_NEAR(corrected->acceleration().z.mps2(), 3.0, 1e-8);
+    ASSERT_TRUE(correctedResult);
+    const auto& [corrected, correctedData] = *correctedResult;
+    EXPECT_NEAR(corrected.velocity().x.mps(), 12.5, 1e-8);
+    EXPECT_NEAR(corrected.velocity().y.mps(), -25.0, 1e-8);
+    EXPECT_NEAR(corrected.velocity().z.mps(), 37.5, 1e-8);
+    EXPECT_NEAR(corrected.acceleration().x.mps2(), 1.0, 1e-8);
+    EXPECT_NEAR(corrected.acceleration().y.mps2(), -2.0, 1e-8);
+    EXPECT_NEAR(corrected.acceleration().z.mps2(), 3.0, 1e-8);
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, MeasurementUpdateMatchesIndependentScalarClosedForm)
@@ -290,23 +288,22 @@ TEST_F(ConstantAccelerationAlgorithmTest, MeasurementUpdateMatchesIndependentSca
         0ms,
         1000ms
     );
-    std::any updatedData;
-    const auto updated = _algorithm->update(
+    const auto updatedResult = _algorithm->update(
         target,
-        observation(position(0.0, 1010.0, 0.0), 2000ms, -12_mps, 8.0f),
-        updatedData
+        observation(position(0.0, 1010.0, 0.0), 2000ms, -12_mps, 8.0f)
     );
-    ASSERT_TRUE(updated);
+    ASSERT_TRUE(updatedResult);
+    const auto& [updated, updatedData] = *updatedResult;
     // 초기화와 예측 간격이 각각 1초일 때 y축 [p, v, a] 공분산의 위치 열은 [345, 297, 100]^T다.
     constexpr auto INNOVATION_VARIANCE = 394.0;
-    EXPECT_NEAR(updated->position().y.m(), 1000.0 + 3450.0 / INNOVATION_VARIANCE, 1e-9);
-    EXPECT_NEAR(updated->velocity().y.mps(), 2970.0 / INNOVATION_VARIANCE, 1e-9);
-    EXPECT_NEAR(updated->acceleration().y.mps2(), 1000.0 / INNOVATION_VARIANCE, 1e-9);
-    EXPECT_NEAR(updated->position().x.m(), 0.0, 1e-9);
-    EXPECT_NEAR(updated->position().z.m(), 0.0, 1e-9);
-    EXPECT_EQ(updated->dopplerVelocity(), -12_mps);
-    EXPECT_FLOAT_EQ(updated->power_db(), 8.0f);
-    EXPECT_EQ(updated->timestamp(), 2000ms);
+    EXPECT_NEAR(updated.position().y.m(), 1000.0 + 3450.0 / INNOVATION_VARIANCE, 1e-9);
+    EXPECT_NEAR(updated.velocity().y.mps(), 2970.0 / INNOVATION_VARIANCE, 1e-9);
+    EXPECT_NEAR(updated.acceleration().y.mps2(), 1000.0 / INNOVATION_VARIANCE, 1e-9);
+    EXPECT_NEAR(updated.position().x.m(), 0.0, 1e-9);
+    EXPECT_NEAR(updated.position().z.m(), 0.0, 1e-9);
+    EXPECT_EQ(updated.dopplerVelocity(), -12_mps);
+    EXPECT_FLOAT_EQ(updated.power_db(), 8.0f);
+    EXPECT_EQ(updated.timestamp(), 2000ms);
     ASSERT_TRUE(KalmanStateAccess::covariance(updatedData));
     const auto& covariance = *KalmanStateAccess::covariance(updatedData);
     EXPECT_NEAR(covariance(1, 1), 345.0 * 49.0 / INNOVATION_VARIANCE, 1e-9);
@@ -315,8 +312,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, MeasurementUpdateMatchesIndependentSca
     EXPECT_NEAR(covariance(4, 4), 323.0 - 297.0 * 297.0 / INNOVATION_VARIANCE, 1e-9);
     EXPECT_TRUE(covariance.isSymmetric(math::NONE_TOLERANCE));
     EXPECT_NO_THROW(math::cholesky(covariance));
-    const auto canonical = updated->position().toSpherical().toCartesian();
-    EXPECT_NEAR(canonical.y.m(), updated->sphericalPosition().toCartesian().y.m(), 1e-9);
+    const auto canonical = updated.position().toSpherical().toCartesian();
+    EXPECT_NEAR(canonical.y.m(), updated.sphericalPosition().toCartesian().y.m(), 1e-9);
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, PreservesCrossAxisCovarianceInTheGain)
@@ -330,17 +327,16 @@ TEST_F(ConstantAccelerationAlgorithmTest, PreservesCrossAxisCovarianceInTheGain)
         math::CartesianAcceleration(0_mps2, 0_mps2, 0_mps2),
         covariance
     );
-    std::any updatedData;
-    const auto updated = _algorithm->update(
+    const auto updatedResult = _algorithm->update(
         target,
-        observation(position(1000.0, 2010.0, 3000.0), 1100ms),
-        updatedData
+        observation(position(1000.0, 2010.0, 3000.0), 1100ms)
     );
-    ASSERT_TRUE(updated);
+    ASSERT_TRUE(updatedResult);
+    const auto& [updated, updatedData] = *updatedResult;
     // 예측 위치의 축별 분산은 1 + 1 + 1/4이고, x와 y의 공분산은 1/2이다.
     const auto expectedCrossGain = 49.0 * 0.5 / (51.25 * 51.25 - 0.25);
-    EXPECT_NEAR(updated->position().x.m(), 1000.0 + expectedCrossGain * 10.0, 1e-9);
-    EXPECT_NEAR(updated->position().z.m(), 3000.0, 1e-9);
+    EXPECT_NEAR(updated.position().x.m(), 1000.0 + expectedCrossGain * 10.0, 1e-9);
+    EXPECT_NEAR(updated.position().z.m(), 3000.0, 1e-9);
     ASSERT_TRUE(KalmanStateAccess::covariance(updatedData));
     EXPECT_GT((*KalmanStateAccess::covariance(updatedData))(0, 1), 0.0);
     EXPECT_NO_THROW(math::cholesky(*KalmanStateAccess::covariance(updatedData)));
@@ -387,13 +383,12 @@ TEST_F(ConstantAccelerationAlgorithmTest, NonzeroProcessNoiseUpdateMatchesIndepe
         math::CartesianAcceleration(1_mps2, -2_mps2, 3_mps2),
         math::SquareMatrix::identity(9)
     );
-    std::any updatedData;
-    const auto updated = algorithm->update(
+    const auto updatedResult = algorithm->update(
         target,
-        observation(position(1020.125, 1959.75, 3060.375), 1600ms),
-        updatedData
+        observation(position(1020.125, 1959.75, 3060.375), 1600ms)
     );
-    ASSERT_TRUE(updated);
+    ASSERT_TRUE(updatedResult);
+    const auto& [updated, updatedData] = *updatedResult;
 
     // dt = 1.5 s, sigma^2 = 100을 대입해 한 축의 [p, v, a] 공분산을 별도로 계산한 값이다.
     constexpr double PREDICTED_COVARIANCE[3][3] = {
@@ -407,19 +402,19 @@ TEST_F(ConstantAccelerationAlgorithmTest, NonzeroProcessNoiseUpdateMatchesIndepe
     constexpr double PREDICTED_VELOCITIES[] = {11.5, -23.0, 34.5};
     constexpr double PREDICTED_ACCELERATIONS[] = {1.0, -2.0, 3.0};
     const double updatedPositions[] = {
-        updated->position().x.m(),
-        updated->position().y.m(),
-        updated->position().z.m()
+        updated.position().x.m(),
+        updated.position().y.m(),
+        updated.position().z.m()
     };
     const double updatedVelocities[] = {
-        updated->velocity().x.mps(),
-        updated->velocity().y.mps(),
-        updated->velocity().z.mps()
+        updated.velocity().x.mps(),
+        updated.velocity().y.mps(),
+        updated.velocity().z.mps()
     };
     const double updatedAccelerations[] = {
-        updated->acceleration().x.mps2(),
-        updated->acceleration().y.mps2(),
-        updated->acceleration().z.mps2()
+        updated.acceleration().x.mps2(),
+        updated.acceleration().y.mps2(),
+        updated.acceleration().z.mps2()
     };
     for (std::size_t axis = 0; axis < 3; ++axis)
     {
@@ -575,17 +570,17 @@ TEST_F(ConstantAccelerationAlgorithmTest, MissesAndRepeatedPredictionsUseFullEla
     EXPECT_EQ(target.consecutiveMissCount(), 2u);
 
     const auto incoming = observation(position(0.0, 1041.0, 0.0), 3100ms);
-    std::any updatedData;
-    const auto updated = algorithm->update(target, incoming, updatedData);
-    std::any withoutMissesData;
-    const auto withoutMisses = algorithm->update(control, incoming, withoutMissesData);
-    ASSERT_TRUE(updated);
-    ASSERT_TRUE(withoutMisses);
+    const auto updatedResult = algorithm->update(target, incoming);
+    const auto withoutMissesResult = algorithm->update(control, incoming);
+    ASSERT_TRUE(updatedResult);
+    const auto& [updated, updatedData] = *updatedResult;
+    ASSERT_TRUE(withoutMissesResult);
+    const auto& [withoutMisses, withoutMissesData] = *withoutMissesResult;
     ASSERT_TRUE(KalmanStateAccess::covariance(updatedData));
     ASSERT_TRUE(KalmanStateAccess::covariance(withoutMissesData));
-    EXPECT_NEAR(updated->position().y.m(), withoutMisses->position().y.m(), 1e-9);
-    EXPECT_NEAR(updated->velocity().y.mps(), withoutMisses->velocity().y.mps(), 1e-9);
-    EXPECT_NEAR(updated->acceleration().y.mps2(), withoutMisses->acceleration().y.mps2(), 1e-9);
+    EXPECT_NEAR(updated.position().y.m(), withoutMisses.position().y.m(), 1e-9);
+    EXPECT_NEAR(updated.velocity().y.mps(), withoutMisses.velocity().y.mps(), 1e-9);
+    EXPECT_NEAR(updated.acceleration().y.mps2(), withoutMisses.acceleration().y.mps2(), 1e-9);
     EXPECT_TRUE(KalmanStateAccess::covariance(updatedData)->equals(
         *KalmanStateAccess::covariance(withoutMissesData),
         math::NONE_TOLERANCE
@@ -676,9 +671,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsUnavailableCovarianceAndNonIncr
 {
     const auto target = makeTracking();
     const auto incoming = observation(position(0.0, 1000.0, 0.0), 100ms);
-    std::any nextData;
-    EXPECT_FALSE(_algorithm->initialize(incoming, incoming, nextData));
-    EXPECT_FALSE(_algorithm->update(target, incoming, nextData));
+    EXPECT_FALSE(_algorithm->initialize(incoming, incoming));
+    EXPECT_FALSE(_algorithm->update(target, incoming));
     EXPECT_FALSE(_algorithm->predict(target, 99ms));
     EXPECT_TRUE(_algorithm->predict(target, 100ms));
     const auto withoutCovariance = seededTarget(
@@ -691,8 +685,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, RejectsUnavailableCovarianceAndNonIncr
     EXPECT_FALSE(
         _algorithm->update(
             withoutCovariance,
-            observation(position(0.0, 1000.0, 0.0), 1100ms),
-            nextData
+            observation(position(0.0, 1000.0, 0.0), 1100ms)
         )
     );
 }
@@ -846,17 +839,20 @@ TEST(ConstantAccelerationConfigTest, UsesInjectedInitialAccelerationUncertainty)
         TrackManagementConfig(100ms, 1000ms, 3, 100)
     );
     const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(config.tracking, config.measurement);
-    std::any stateData;
-    const auto state = algorithm->initialize(
-        observation(position(0.0, 1000.0, 0.0), 0ms),
-        observation(position(0.0, 1000.0, 0.0), 100ms),
-        stateData
+    const auto tentative = TrackFactory(algorithm).createTentative(
+        1,
+        observation(position(0.0, 1000.0, 0.0), 0ms)
+    );
+    const auto state = tentative.initialize(
+        observation(position(0.0, 1000.0, 0.0), 100ms)
     );
     ASSERT_TRUE(state);
-    ASSERT_TRUE(KalmanStateAccess::covariance(stateData));
-    EXPECT_DOUBLE_EQ((*KalmanStateAccess::covariance(stateData))(6, 6), 4.0);
-    EXPECT_NEAR((*KalmanStateAccess::covariance(stateData))(3, 6), 0.2, 1e-12);
-    EXPECT_NEAR((*KalmanStateAccess::covariance(stateData))(3, 3), 9800.01, 1e-8);
+    EXPECT_EQ(state->state.timestamp(), 100ms);
+    EXPECT_EQ(state->state.sphericalPosition().radius, 1000_m);
+    ASSERT_TRUE(KalmanStateAccess::covariance(state->algorithmState));
+    EXPECT_DOUBLE_EQ((*KalmanStateAccess::covariance(state->algorithmState))(6, 6), 4.0);
+    EXPECT_NEAR((*KalmanStateAccess::covariance(state->algorithmState))(3, 6), 0.2, 1e-12);
+    EXPECT_NEAR((*KalmanStateAccess::covariance(state->algorithmState))(3, 3), 9800.01, 1e-8);
 }
 
 } // namespace

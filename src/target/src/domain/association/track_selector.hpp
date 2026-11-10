@@ -1,7 +1,7 @@
 #pragma once
 
 #include "domain/observation.hpp"
-#include "domain/association_algorithm.hpp"
+#include "domain/association/association_algorithm.hpp"
 
 #include <target/config/association_config.hpp>
 
@@ -16,13 +16,12 @@ namespace target
 class ConfirmedTrack;
 class TentativeTrack;
 
-// 연관 점수 계산에 쓰는 준비 상태를 공유하므로 한 인스턴스에 대한 호출은 겹치면 안 된다.
 class TrackSelector
 {
 public:
     TrackSelector(
         AssociationConfig config,
-        std::unique_ptr<IAssociationAlgorithm> algorithm
+        std::unique_ptr<const IAssociationAlgorithm> algorithm
     );
 
     std::optional<Observation> selectTrackingObservation(
@@ -38,10 +37,14 @@ public:
     ) const;
 
 private:
-    std::optional<double> confirmationScore(const Observation& observation, const TentativeTrack& tentative) const;
+    std::optional<double> confirmationScore(
+        const IAssociationCalculation& calculation,
+        const Observation& observation,
+        const TentativeTrack& tentative
+    ) const;
 
     const AssociationConfig _config;
-    const std::unique_ptr<IAssociationAlgorithm> _algorithm;
+    const std::unique_ptr<const IAssociationAlgorithm> _algorithm;
 };
 
 } // namespace target

@@ -1,6 +1,6 @@
 #include "association_selection_helpers.hpp"
-#include "domain/algorithm/nds_algorithm.hpp"
-#include "domain/algorithm/nds_calculation.hpp"
+#include "domain/association/nds_algorithm.hpp"
+#include "domain/association/nds_calculation.hpp"
 #include "domain/confirmed_track.hpp"
 
 #include <gtest/gtest.h>
@@ -28,13 +28,14 @@ ConfirmedTrack stationaryTrack(std::shared_ptr<const ITrackingAlgorithm> algorit
 TEST(NdsAlgorithmTest, AppliesTravelAllowanceBeforeScoringPositions)
 {
     auto algorithm = NdsAlgorithm{MeasurementConfig(2_m)};
-    ASSERT_TRUE(algorithm.prepareMeasurements());
+    const auto calculation = algorithm.prepareMeasurements();
+    ASSERT_TRUE(calculation);
     const auto reference = math::SphericalPosition(1000_m, 0_deg, 0_deg);
     const auto observation = math::SphericalPosition(1010_m, 0_deg, 0_deg);
-    const auto raw = algorithm.calculate(observation, reference);
-    const auto compensated = algorithm.calculate(observation, reference, math::Distance(6_m));
-    const auto covered = algorithm.calculate(observation, reference, math::Distance(12_m));
-    const auto coincident = algorithm.calculate(reference, reference, math::Distance(0_m));
+    const auto raw = calculation->calculate(observation, reference);
+    const auto compensated = calculation->calculate(observation, reference, math::Distance(6_m));
+    const auto covered = calculation->calculate(observation, reference, math::Distance(12_m));
+    const auto coincident = calculation->calculate(reference, reference, math::Distance(0_m));
     ASSERT_TRUE(raw);
     ASSERT_TRUE(compensated);
     ASSERT_TRUE(covered);
@@ -46,27 +47,31 @@ TEST(NdsAlgorithmTest, AppliesTravelAllowanceBeforeScoringPositions)
     EXPECT_THROW(math::Distance(-1_m), std::invalid_argument);
 }
 
-TEST(NdsAlgorithmTest, RepreparesPredictionNoiseAndFallsBackOnlyWhenCovarianceIsAbsent)
+TEST(NdsAlgorithmTest, PreparedCalculationsRemainIndependentAcrossPreparations)
 {
     auto algorithm = NdsAlgorithm{MeasurementConfig(2_m)};
     const auto residual = math::Vector({4.0, 0.0, 0.0});
-    EXPECT_FALSE(algorithm.calculate(residual));
     const auto withoutCovariance = stationaryTrack(std::make_shared<ConstantVelocityAlgorithm>());
-    ASSERT_TRUE(algorithm.predictAndPrepare(withoutCovariance, 1100ms));
-    const auto fallback = algorithm.calculate(residual);
+    const auto fallbackPrediction = algorithm.predictAndPrepare(withoutCovariance, 1100ms);
+    ASSERT_TRUE(fallbackPrediction);
+    const auto fallback = fallbackPrediction->second->calculate(residual);
     ASSERT_TRUE(fallback);
     EXPECT_DOUBLE_EQ(*fallback, 2.0);
     const auto withCovariance = stationaryTrack(std::make_shared<test_support::CovarianceAlgorithm>(
         math::SquareMatrix::identity(3) * 12.0
     ));
-    ASSERT_TRUE(algorithm.predictAndPrepare(withCovariance, 1100ms));
-    const auto known = algorithm.calculate(residual);
+    const auto knownPrediction = algorithm.predictAndPrepare(withCovariance, 1100ms);
+    ASSERT_TRUE(knownPrediction);
+    const auto known = knownPrediction->second->calculate(residual);
     ASSERT_TRUE(known);
     EXPECT_DOUBLE_EQ(*known, 1.0);
-    ASSERT_TRUE(algorithm.prepareMeasurements());
-    const auto measurements = algorithm.calculate(residual);
+    const auto calculation = algorithm.prepareMeasurements();
+    ASSERT_TRUE(calculation);
+    const auto measurements = calculation->calculate(residual);
     ASSERT_TRUE(measurements);
     EXPECT_DOUBLE_EQ(*measurements, 2.0);
+    EXPECT_EQ(fallbackPrediction->second->calculate(residual), fallback);
+    EXPECT_EQ(knownPrediction->second->calculate(residual), known);
 }
 
 TEST(NdsAlgorithmTest, PredictionCovarianceIsValidatedBeforePreparation)
@@ -75,7 +80,30 @@ TEST(NdsAlgorithmTest, PredictionCovarianceIsValidatedBeforePreparation)
     const auto track = stationaryTrack(std::make_shared<test_support::CovarianceAlgorithm>(indefinite));
     auto algorithm = NdsAlgorithm{MeasurementConfig(2_m)};
     EXPECT_THROW(algorithm.predictAndPrepare(track, 1100ms), std::invalid_argument);
-    EXPECT_FALSE(algorithm.calculate(math::Vector({4.0, 0.0, 0.0})));
+    EXPECT_TRUE(algorithm.prepareMeasurements());
+}
+
+TEST(NdsAlgorithmTest, PreparedCalculationSurvivesFailedPreparationAndAlgorithmDestruction)
+{
+    const auto residual = math::Vector({4.0, 0.0, 0.0});
+    AssociationCalculation calculation;
+    std::optional<double> originalScore;
+    {
+        const auto algorithm = NdsAlgorithm{MeasurementConfig(2_m)};
+        calculation = algorithm.prepareMeasurements();
+        ASSERT_TRUE(calculation);
+        originalScore = calculation->calculate(residual);
+        ASSERT_TRUE(originalScore);
+        EXPECT_DOUBLE_EQ(*originalScore, 2.0);
+        const auto track = stationaryTrack(std::make_shared<ConstantVelocityAlgorithm>());
+        EXPECT_FALSE(algorithm.predictAndPrepare(track, 0ms));
+        const auto invalidTrack = stationaryTrack(std::make_shared<test_support::CovarianceAlgorithm>(
+            math::SquareMatrix(3)
+        ));
+        EXPECT_THROW(algorithm.prepareFromLastObservation(invalidTrack), std::invalid_argument);
+        EXPECT_EQ(calculation->calculate(residual), originalScore);
+    }
+    EXPECT_EQ(calculation->calculate(residual), originalScore);
 }
 
 TEST(NdsCalculationTest, CalculatesSquaredDistanceWithCrossAxisCorrelations)

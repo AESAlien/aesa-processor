@@ -1,9 +1,9 @@
-#include "domain/algorithm/nds_algorithm.hpp"
-#include "domain/algorithm/constant_velocity_algorithm.hpp"
+#include "domain/association/nds_algorithm.hpp"
+#include "domain/tracking/constant_velocity_algorithm.hpp"
 #include "domain/factory/detection_result_factory.hpp"
-#include "domain/factory/track_factory.hpp"
+#include "domain/track_factory.hpp"
 #include "repository/track_repository.hpp"
-#include "domain/selector/track_selector.hpp"
+#include "domain/association/track_selector.hpp"
 
 #include <target/controller/target_controller.hpp>
 
@@ -329,12 +329,12 @@ TEST(TargetLifecycleTest, StaleAndFailedInitializationPreserveTentative)
     class NoInitializationAlgorithm final : public ITrackingAlgorithm
     {
     public:
-        std::optional<TrackState> initialize(const Observation&, const Observation&, std::any&) const override
+        std::optional<TrackingResult> initialize(const Observation&, const Observation&) const override
         {
             return std::nullopt;
         }
 
-        std::optional<TrackState> update(const ConfirmedTrack&, const Observation&, std::any&) const override
+        std::optional<TrackingResult> update(const ConfirmedTrack&, const Observation&) const override
         {
             return std::nullopt;
         }

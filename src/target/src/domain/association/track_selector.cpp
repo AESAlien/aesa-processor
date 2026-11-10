@@ -5,6 +5,7 @@
 #include <math/geometry/cartesian_displacement.hpp>
 #include <math/quantity/quantity_tolerance.hpp>
 
+#include <algorithm>
 #include <stdexcept>
 #include <utility>
 
@@ -14,11 +15,12 @@ namespace target
 namespace
 {
 
-template <typename TargetType, typename Match>
+template <typename TargetType, typename Prepare, typename Match>
 std::optional<Observation> selectBestObservation(
     const TargetType& target,
     std::chrono::milliseconds resultTime,
     const std::vector<Observation>& observations,
+    const Prepare& prepare,
     const Match& match
 ) {
     if (resultTime <= target.lastResultTime())
@@ -26,16 +28,36 @@ std::optional<Observation> selectBestObservation(
         return std::nullopt;
     }
 
+    const auto first = std::find_if(
+        observations.begin(),
+        observations.end(),
+        [resultTime](const Observation& observation)
+        {
+            return observation.observationTime() == resultTime;
+        }
+    );
+    if (first == observations.end())
+    {
+        return std::nullopt;
+    }
+    // 유효한 시각의 관측이 있을 때만 한 번 준비하고 모든 후보에 재사용한다.
+    const auto calculation = prepare();
+    if (!calculation)
+    {
+        return std::nullopt;
+    }
+
     const Observation* bestObservation = nullptr;
     auto bestScore = 0.0;
-    for (const auto& observation : observations)
+    for (auto current = first; current != observations.end(); ++current)
     {
+        const auto& observation = *current;
         if (observation.observationTime() != resultTime)
         {
             continue;
         }
 
-        const auto score = match(observation, target);
+        const auto score = match(observation, *calculation);
         // 점수가 같으면 먼저 나온 관측을 유지한다.
         if (score && (!bestObservation || *score < bestScore))
         {
@@ -54,7 +76,7 @@ std::optional<Observation> selectBestObservation(
 
 TrackSelector::TrackSelector(
     AssociationConfig config,
-    std::unique_ptr<IAssociationAlgorithm> algorithm
+    std::unique_ptr<const IAssociationAlgorithm> algorithm
 ) : _config(std::move(config)),
     _algorithm(std::move(algorithm))
 {
@@ -69,25 +91,18 @@ std::optional<Observation> TrackSelector::selectTrackingObservation(
     std::chrono::milliseconds resultTime,
     const std::vector<Observation>& observations
 ) const {
-    auto prepared = false;
-    std::optional<TrackPrediction> prediction;
     return selectBestObservation(
         confirmedTrack,
         resultTime,
         observations,
-        [&](const Observation& observation, const ConfirmedTrack& current)
+        [&]()
         {
-            // 결과 시각에 맞는 관측이 처음 들어올 때만 예측한다.
-            if (!prepared)
-            {
-                prepared = true;
-                prediction = _algorithm->predictAndPrepare(current, resultTime);
-            }
-            if (!prediction)
-            {
-                return std::optional<double>();
-            }
-            const auto score = _algorithm->calculate(observation.sphericalPosition(), prediction->sphericalPosition());
+            return _algorithm->predictAndPrepare(confirmedTrack, resultTime);
+        },
+        [&](const Observation& observation, const AssociationPrediction& prepared)
+        {
+            const auto& [prediction, calculation] = prepared;
+            const auto score = calculation->calculate(observation.sphericalPosition(), prediction.sphericalPosition());
             return score && *score <= _config.positionNdsThreshold() ? score : std::nullopt;
         }
     );
@@ -98,25 +113,23 @@ std::optional<Observation> TrackSelector::selectConfirmationObservation(
     std::chrono::milliseconds resultTime,
     const std::vector<Observation>& observations
 ) const {
-    auto prepared = false;
-    auto ready = false;
     return selectBestObservation(
         tentative,
         resultTime,
         observations,
-        [&](const Observation& observation, const TentativeTrack& current)
+        [&]()
         {
-            if (!prepared)
-            {
-                prepared = true;
-                ready = _algorithm->prepareMeasurements();
-            }
-            return ready ? confirmationScore(observation, current) : std::nullopt;
+            return _algorithm->prepareMeasurements();
+        },
+        [&](const Observation& observation, const IAssociationCalculation& calculation)
+        {
+            return confirmationScore(calculation, observation, tentative);
         }
     );
 }
 
 std::optional<double> TrackSelector::confirmationScore(
+    const IAssociationCalculation& calculation,
     const Observation& observation,
     const TentativeTrack& tentative
 ) const {
@@ -148,7 +161,7 @@ std::optional<double> TrackSelector::confirmationScore(
             return std::nullopt;
         }
 
-        return _algorithm->calculate(observation.sphericalPosition(), tentative.observation().sphericalPosition());
+        return calculation.calculate(observation.sphericalPosition(), tentative.observation().sphericalPosition());
     }
     catch (const std::invalid_argument&)
     {

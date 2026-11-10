@@ -1,6 +1,6 @@
-#include "domain/algorithm/constant_velocity_algorithm.hpp"
+#include "domain/tracking/constant_velocity_algorithm.hpp"
 #include "domain/track_state.hpp"
-#include "domain/factory/track_factory.hpp"
+#include "domain/track_factory.hpp"
 #include "repository/track_repository.hpp"
 
 #include <gtest/gtest.h>
@@ -46,14 +46,14 @@ public:
         WRONG_TIME
     };
 
-    std::optional<TrackState> initialize(const Observation& first, const Observation& second, std::any& data) const override
+    std::optional<TrackingResult> initialize(const Observation& first, const Observation& second) const override
     {
-        return enrich(_algorithm.initialize(first, second, data), false, data);
+        return enrich(_algorithm.initialize(first, second), false);
     }
 
-    std::optional<TrackState> update(const ConfirmedTrack& current, const Observation& incoming, std::any& data) const override
+    std::optional<TrackingResult> update(const ConfirmedTrack& current, const Observation& incoming) const override
     {
-        return enrich(_algorithm.update(current, incoming, data), true, data);
+        return enrich(_algorithm.update(current, incoming), true);
     }
 
     std::optional<TrackPrediction> predict(const ConfirmedTrack& current, Time time) const override
@@ -69,10 +69,9 @@ public:
     }
 
 private:
-    std::optional<TrackState> enrich(
-        const std::optional<TrackState>& calculated,
-        bool updating,
-        std::any& data
+    std::optional<TrackingResult> enrich(
+        const std::optional<TrackingResult>& calculated,
+        bool updating
     ) const {
         if (!calculated)
         {
@@ -81,7 +80,7 @@ private:
         const auto acceleration = updating
             ? math::CartesianAcceleration(4_mps2, 5_mps2, 6_mps2)
             : math::CartesianAcceleration(1_mps2, 2_mps2, 3_mps2);
-        data = updating ? 50 : 25;
+        const auto data = updating ? 50 : 25;
         if (fault == Fault::INVALID_DATA)
         {
             throw std::invalid_argument("Invalid strategy data");
@@ -90,16 +89,18 @@ private:
         {
             return std::nullopt;
         }
-        const auto timestamp = calculated->timestamp() + (fault == Fault::WRONG_TIME ? 1ms : 0ms);
-        return TrackState(
-            calculated->sphericalPosition(),
-            calculated->dopplerVelocity(),
-            calculated->power_db(),
+        const auto& [state, algorithmData] = *calculated;
+        const auto timestamp = state.timestamp() + (fault == Fault::WRONG_TIME ? 1ms : 0ms);
+        auto nextState = TrackState(
+            state.sphericalPosition(),
+            state.dopplerVelocity(),
+            state.power_db(),
             timestamp,
-            calculated->position(),
-            calculated->velocity(),
+            state.position(),
+            state.velocity(),
             acceleration
         );
+        return TrackingResult{std::move(nextState), data};
     }
 
     ConstantVelocityAlgorithm _algorithm;

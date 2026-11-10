@@ -1,6 +1,6 @@
 #include "position_uncertainty.hpp"
 
-#include "confirmed_track.hpp"
+#include "domain/confirmed_track.hpp"
 #include "tracking_algorithm.hpp"
 
 #include <stdexcept>

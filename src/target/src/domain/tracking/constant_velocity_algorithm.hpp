@@ -1,6 +1,6 @@
 #pragma once
 
-#include "domain/tracking_algorithm.hpp"
+#include "domain/tracking/tracking_algorithm.hpp"
 
 namespace target
 {
@@ -9,16 +9,14 @@ namespace target
 class ConstantVelocityAlgorithm final : public ITrackingAlgorithm
 {
 public:
-    std::optional<TrackState> initialize(
+    std::optional<TrackingResult> initialize(
         const Observation& first,
-        const Observation& second,
-        std::any& nextAlgorithmState
+        const Observation& second
     ) const override;
 
-    std::optional<TrackState> update(
+    std::optional<TrackingResult> update(
         const ConfirmedTrack& current,
-        const Observation& observation,
-        std::any& nextAlgorithmState
+        const Observation& observation
     ) const override;
 
     std::optional<TrackPrediction> predict(

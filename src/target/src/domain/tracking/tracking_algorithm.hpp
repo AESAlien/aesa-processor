@@ -1,7 +1,7 @@
 #pragma once
 
 #include "domain/track_prediction.hpp"
-#include "domain/track_state.hpp"
+#include "domain/tracking/tracking_result.hpp"
 
 #include <any>
 #include <chrono>
@@ -20,16 +20,14 @@ public:
     virtual ~ITrackingAlgorithm() = default;
 
     // 전략별 데이터는 성공한 초기화나 갱신과 함께 트랙에 저장된다.
-    virtual std::optional<TrackState> initialize(
+    virtual std::optional<TrackingResult> initialize(
         const Observation& first,
-        const Observation& second,
-        std::any& nextAlgorithmState
+        const Observation& second
     ) const = 0;
 
-    virtual std::optional<TrackState> update(
+    virtual std::optional<TrackingResult> update(
         const ConfirmedTrack& current,
-        const Observation& observation,
-        std::any& nextAlgorithmState
+        const Observation& observation
     ) const = 0;
 
     virtual std::optional<TrackPrediction> predict(

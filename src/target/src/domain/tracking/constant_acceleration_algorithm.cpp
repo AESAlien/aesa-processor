@@ -27,7 +27,7 @@ constexpr std::size_t VELOCITY_OFFSET = 3;
 constexpr std::size_t ACCELERATION_OFFSET = 6;
 constexpr auto STATE_DIMENSION = TrackState::STATE_DIMENSION;
 
-math::Vector stateVector(const TrackState& state)
+math::Vector stateVectorFrom(const TrackState& state)
 {
     return math::Vector({
         state.position().x.m(),
@@ -42,7 +42,7 @@ math::Vector stateVector(const TrackState& state)
     });
 }
 
-math::Vector measurementVector(const Observation& observation)
+math::Vector measurementVectorFrom(const Observation& observation)
 {
     const auto position = observation.sphericalPosition().toCartesian();
     return math::Vector({position.x.m(), position.y.m(), position.z.m()});
@@ -134,7 +134,7 @@ math::SquareMatrix initialStateCovariance(
     return covariance;
 }
 
-math::SquareMatrix positionCovariance(const math::SquareMatrix& covariance)
+math::SquareMatrix positionCovarianceFrom(const math::SquareMatrix& covariance)
 {
     auto position = math::SquareMatrix(POSITION_DIMENSION);
     for (std::size_t row = 0; row < POSITION_DIMENSION; ++row)
@@ -173,7 +173,7 @@ std::optional<math::SquareMatrix> symmetrizeCovariance(math::SquareMatrix covari
 
 struct PredictedState
 {
-    math::Vector values;
+    math::Vector stateVector;
     math::SquareMatrix covariance;
 };
 
@@ -230,27 +230,27 @@ std::optional<PredictedState> predictState(
         transition(axis, axis + ACCELERATION_OFFSET) = halfSquaredSeconds;
         transition(axis + VELOCITY_OFFSET, axis + ACCELERATION_OFFSET) = seconds;
     }
-    auto values = transition * stateVector(state);
+    auto stateVector = transition * stateVectorFrom(state);
     // 기존 오차를 F로 전파한 뒤 이 구간의 공정 잡음 Q를 더해 P^- = F P F^T + Q를 구한다.
     auto covariance = symmetrizeCovariance(
         transition * *errorCovariance * math::transpose(transition)
         + processNoiseCovariance(seconds, processAccelerationStandardDeviation)
     );
-    if (!values.isFinite() || !covariance)
+    if (!stateVector.isFinite() || !covariance)
     {
         return std::nullopt;
     }
-    return PredictedState{std::move(values), std::move(*covariance)};
+    return PredictedState{std::move(stateVector), std::move(*covariance)};
 }
 
-std::optional<math::CartesianPosition> calculatedPosition(const math::Vector& values)
+std::optional<math::CartesianPosition> positionFrom(const math::Vector& stateVector)
 {
     try
     {
         const auto position = math::CartesianPosition(
-            math::Length::fromMeters(values[0]),
-            math::Length::fromMeters(values[1]),
-            math::Length::fromMeters(values[2])
+            math::Length::fromMeters(stateVector[0]),
+            math::Length::fromMeters(stateVector[1]),
+            math::Length::fromMeters(stateVector[2])
         );
         if (position.distance() == 0_m)
         {
@@ -264,14 +264,14 @@ std::optional<math::CartesianPosition> calculatedPosition(const math::Vector& va
     }
 }
 
-std::optional<math::CartesianVelocity> calculatedVelocity(const math::Vector& values)
+std::optional<math::CartesianVelocity> velocityFrom(const math::Vector& stateVector)
 {
     try
     {
         const auto velocity = math::CartesianVelocity(
-            math::LinearVelocity::fromMetersPerSecond(values[3]),
-            math::LinearVelocity::fromMetersPerSecond(values[4]),
-            math::LinearVelocity::fromMetersPerSecond(values[5])
+            math::LinearVelocity::fromMetersPerSecond(stateVector[3]),
+            math::LinearVelocity::fromMetersPerSecond(stateVector[4]),
+            math::LinearVelocity::fromMetersPerSecond(stateVector[5])
         );
         static_cast<void>(velocity.speed());
         return velocity;
@@ -282,12 +282,12 @@ std::optional<math::CartesianVelocity> calculatedVelocity(const math::Vector& va
     }
 }
 
-math::CartesianAcceleration calculatedAcceleration(const math::Vector& values)
+math::CartesianAcceleration accelerationFrom(const math::Vector& stateVector)
 {
     return math::CartesianAcceleration(
-        math::LinearAcceleration::fromMetersPerSecondSquared(values[ACCELERATION_OFFSET]),
-        math::LinearAcceleration::fromMetersPerSecondSquared(values[ACCELERATION_OFFSET + 1]),
-        math::LinearAcceleration::fromMetersPerSecondSquared(values[ACCELERATION_OFFSET + 2])
+        math::LinearAcceleration::fromMetersPerSecondSquared(stateVector[ACCELERATION_OFFSET]),
+        math::LinearAcceleration::fromMetersPerSecondSquared(stateVector[ACCELERATION_OFFSET + 1]),
+        math::LinearAcceleration::fromMetersPerSecondSquared(stateVector[ACCELERATION_OFFSET + 2])
     );
 }
 
@@ -326,10 +326,9 @@ const math::SquareMatrix* ConstantAccelerationAlgorithm::stateCovariance(const s
     return covariance ? covariance->get() : nullptr;
 }
 
-std::optional<TrackState> ConstantAccelerationAlgorithm::initialize(
+std::optional<TrackingResult> ConstantAccelerationAlgorithm::initialize(
     const Observation& first,
-    const Observation& second,
-    std::any& nextAlgorithmState
+    const Observation& second
 ) const {
     const auto firstTime = first.observationTime();
     const auto secondTime = second.observationTime();
@@ -364,14 +363,14 @@ std::optional<TrackState> ConstantAccelerationAlgorithm::initialize(
         position,
         *velocity
     );
+    std::any nextAlgorithmState;
     storeCovariance(nextAlgorithmState, std::move(initialCovariance));
-    return state;
+    return TrackingResult{std::move(state), std::move(nextAlgorithmState)};
 }
 
-std::optional<TrackState> ConstantAccelerationAlgorithm::update(
+std::optional<TrackingResult> ConstantAccelerationAlgorithm::update(
     const ConfirmedTrack& current,
-    const Observation& observation,
-    std::any& nextAlgorithmState
+    const Observation& observation
 ) const {
     const auto& state = *current.state();
     const auto time = observation.observationTime();
@@ -391,14 +390,14 @@ std::optional<TrackState> ConstantAccelerationAlgorithm::update(
         return std::nullopt;
     }
 
-    const auto measurement = measurementVector(observation);
+    const auto measurement = measurementVectorFrom(observation);
     const auto measurementMapping = measurementMatrix();
     const auto sigma = _measurementConfig.standardDeviation().m();
     const auto measurementNoise = math::SquareMatrix::identity(POSITION_DIMENSION) * (sigma * sigma);
     const auto crossCovariance = predicted->covariance.asMatrix() * math::transpose(measurementMapping);
     // 잔차 공분산 S = H P^- H^T + R에서 첫 항은 예측 공분산의 3×3 위치 블록이다.
     auto innovationCovariance = symmetrizeCovariance(
-        positionCovariance(predicted->covariance) + measurementNoise
+        positionCovarianceFrom(predicted->covariance) + measurementNoise
     );
     if (!innovationCovariance)
     {
@@ -407,8 +406,8 @@ std::optional<TrackState> ConstantAccelerationAlgorithm::update(
 
     const auto gain = kalmanGain(crossCovariance, *innovationCovariance);
     // 실제 관측 z와 예측 관측 H x^-의 차이에 K를 곱해 위치, 속도, 가속도를 함께 보정한다.
-    const auto residual = measurement - measurementMapping * predicted->values;
-    const auto values = predicted->values + gain * residual;
+    const auto residual = measurement - measurementMapping * predicted->stateVector;
+    const auto stateVector = predicted->stateVector + gain * residual;
     // 조지프 형태는 전파된 상태 오차와 관측 잡음의 기여를 따로 계산해 반올림 오차에 더 안정적이다.
     const auto remaining = math::SquareMatrix::identity(STATE_DIMENSION).asMatrix()
         - gain * measurementMapping;
@@ -418,12 +417,12 @@ std::optional<TrackState> ConstantAccelerationAlgorithm::update(
             + gain * measurementNoise.asMatrix() * math::transpose(gain)
         )
     );
-    if (!values.isFinite() || !covariance)
+    if (!stateVector.isFinite() || !covariance)
     {
         return std::nullopt;
     }
-    const auto position = calculatedPosition(values);
-    const auto velocity = calculatedVelocity(values);
+    const auto position = positionFrom(stateVector);
+    const auto velocity = velocityFrom(stateVector);
     if (!position || !velocity)
     {
         return std::nullopt;
@@ -435,10 +434,11 @@ std::optional<TrackState> ConstantAccelerationAlgorithm::update(
         time,
         *position,
         *velocity,
-        calculatedAcceleration(values)
+        accelerationFrom(stateVector)
     );
+    std::any nextAlgorithmState;
     storeCovariance(nextAlgorithmState, std::move(*covariance));
-    return nextState;
+    return TrackingResult{std::move(nextState), std::move(nextAlgorithmState)};
 }
 
 std::optional<TrackPrediction> ConstantAccelerationAlgorithm::predict(
@@ -465,7 +465,7 @@ std::optional<math::SquareMatrix> ConstantAccelerationAlgorithm::observedPositio
     {
         return std::nullopt;
     }
-    return positionCovariance(*covariance);
+    return positionCovarianceFrom(*covariance);
 }
 
 std::optional<TrackPrediction> ConstantAccelerationAlgorithm::predictPosition(
@@ -483,7 +483,7 @@ std::optional<TrackPrediction> ConstantAccelerationAlgorithm::predictPosition(
     {
         return std::nullopt;
     }
-    const auto position = calculatedPosition(predicted->values);
+    const auto position = positionFrom(predicted->stateVector);
     if (!position)
     {
         return std::nullopt;
@@ -491,7 +491,7 @@ std::optional<TrackPrediction> ConstantAccelerationAlgorithm::predictPosition(
     auto prediction = TrackPrediction(time, position->toSpherical());
     if (covariance)
     {
-        *covariance = positionCovariance(predicted->covariance);
+        *covariance = positionCovarianceFrom(predicted->covariance);
     }
     return prediction;
 }

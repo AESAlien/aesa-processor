@@ -1,7 +1,7 @@
 #pragma once
 
-#include "domain/tracking_algorithm.hpp"
-#include "domain/position_uncertainty.hpp"
+#include "domain/tracking/tracking_algorithm.hpp"
+#include "domain/tracking/position_uncertainty.hpp"
 
 #include <target/config/measurement_config.hpp>
 #include <target/config/tracking_config.hpp>
@@ -20,16 +20,14 @@ class ConstantAccelerationAlgorithm final : public ITrackingAlgorithm, public IP
 public:
     ConstantAccelerationAlgorithm(TrackingConfig config, MeasurementConfig measurementConfig);
 
-    std::optional<TrackState> initialize(
+    std::optional<TrackingResult> initialize(
         const Observation& first,
-        const Observation& second,
-        std::any& nextAlgorithmState
+        const Observation& second
     ) const override;
 
-    std::optional<TrackState> update(
+    std::optional<TrackingResult> update(
         const ConfirmedTrack& current,
-        const Observation& observation,
-        std::any& nextAlgorithmState
+        const Observation& observation
     ) const override;
 
     std::optional<TrackPrediction> predict(

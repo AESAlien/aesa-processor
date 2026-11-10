@@ -1,7 +1,7 @@
 #include "nds_algorithm.hpp"
 
 #include "nds_calculation.hpp"
-#include "domain/position_uncertainty.hpp"
+#include "domain/tracking/position_uncertainty.hpp"
 
 #include <stdexcept>
 #include <utility>
@@ -34,39 +34,41 @@ NdsAlgorithm::NdsAlgorithm(const MeasurementConfig& measurement)
 {
 }
 
-bool NdsAlgorithm::prepareMeasurements()
+AssociationCalculation NdsAlgorithm::prepareMeasurements() const
 {
-    _calculation.reset();
-    if (_measurementDifferenceCovariance)
+    if (!_measurementDifferenceCovariance)
     {
-        _calculation = NdsCalculation::from(*_measurementDifferenceCovariance);
+        return nullptr;
     }
-    return _calculation.has_value();
+    auto calculation = NdsCalculation::from(*_measurementDifferenceCovariance);
+    return calculation ? std::make_unique<const NdsCalculation>(std::move(*calculation)) : nullptr;
 }
 
-std::optional<TrackPrediction> NdsAlgorithm::predictAndPrepare(
+std::optional<AssociationPrediction> NdsAlgorithm::predictAndPrepare(
     const ConfirmedTrack& track,
     std::chrono::milliseconds time
-) {
-    // 준비에 실패한 경우 이전 트랙의 공분산으로 점수를 계산하지 않도록 먼저 비운다.
-    _calculation.reset();
+) const {
     std::optional<math::SquareMatrix> covariance;
     auto prediction = IPositionUncertainty::predict(track, time, covariance);
-    if (!prediction || !prepareCovariance(covariance))
+    if (!prediction)
     {
         return std::nullopt;
     }
-    return prediction;
+    auto calculation = prepareCovariance(covariance);
+    if (!calculation)
+    {
+        return std::nullopt;
+    }
+    return AssociationPrediction{std::move(*prediction), std::move(calculation)};
 }
 
-bool NdsAlgorithm::prepareFromLastObservation(const ConfirmedTrack& track)
+AssociationCalculation NdsAlgorithm::prepareFromLastObservation(const ConfirmedTrack& track) const
 {
-    _calculation.reset();
-    // 마지막 관측보다 오래된 관측과 비교할 때는 저장된 추정 위치의 공분산을 기준으로 쓴다.
+    // 마지막 관측보다 오래된 관측에는 저장된 추정 위치의 공분산을 사용한다.
     return prepareCovariance(IPositionUncertainty::atLastObservation(track));
 }
 
-bool NdsAlgorithm::prepareCovariance(const std::optional<math::SquareMatrix>& covariance)
+AssociationCalculation NdsAlgorithm::prepareCovariance(const std::optional<math::SquareMatrix>& covariance) const
 {
     if (!covariance)
     {
@@ -75,32 +77,18 @@ bool NdsAlgorithm::prepareCovariance(const std::optional<math::SquareMatrix>& co
     }
     if (!_measurementCovariance)
     {
-        return false;
+        return nullptr;
     }
     try
     {
         // 기준 위치 오차와 새 관측 잡음이 독립이면 잔차 공분산은 Ppos + R이다.
-        // 같은 기준에 대한 여러 후보의 점수 계산에 이 분해를 재사용한다.
-        _calculation = NdsCalculation::from(*covariance + *_measurementCovariance);
-        return _calculation.has_value();
+        auto calculation = NdsCalculation::from(*covariance + *_measurementCovariance);
+        return calculation ? std::make_unique<const NdsCalculation>(std::move(*calculation)) : nullptr;
     }
     catch (const std::invalid_argument&)
     {
-        return false;
+        return nullptr;
     }
-}
-
-std::optional<double> NdsAlgorithm::calculate(const math::Vector& residual) const
-{
-    return _calculation ? _calculation->calculate(residual) : std::nullopt;
-}
-
-std::optional<double> NdsAlgorithm::calculate(
-    const math::SphericalPosition& observation,
-    const math::SphericalPosition& reference,
-    std::optional<math::Distance> maximumTravel
-) const {
-    return _calculation ? _calculation->calculate(observation, reference, maximumTravel) : std::nullopt;
 }
 
 } // namespace target

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "domain/detection_result.hpp"
-#include "domain/factory/track_factory.hpp"
+#include "domain/track_factory.hpp"
 
 #include <beam/dto/request_beam_command.hpp>
 #include <target/config/track_management_config.hpp>

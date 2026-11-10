@@ -1,14 +1,29 @@
 #include "detection_handler.hpp"
 
 #include "repository/track_repository.hpp"
-#include "domain/selector/tentative_selector.hpp"
-#include "domain/selector/track_selector.hpp"
+#include "domain/association/tentative_selector.hpp"
+#include "domain/association/track_selector.hpp"
 
 #include <stdexcept>
 #include <utility>
 
 namespace target
 {
+
+namespace
+{
+
+beam::RequestBeamCommand trackingCommandFrom(std::uint32_t requestId, const TrackPrediction& prediction)
+{
+    return beam::RequestBeamCommand(
+        beam::RequestBeamType::TRACKING,
+        prediction.timestamp(),
+        requestId,
+        prediction.sphericalPosition().direction
+    );
+}
+
+} // namespace
 
 DetectionHandler::DetectionHandler(
     TrackManagementConfig config,
@@ -112,12 +127,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
         return std::nullopt;
     }
 
-    return beam::RequestBeamCommand(
-        beam::RequestBeamType::TRACKING,
-        prediction->timestamp(),
-        result.requestId,
-        prediction->sphericalPosition().direction
-    );
+    return trackingCommandFrom(result.requestId, *prediction);
 }
 
 std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
@@ -163,12 +173,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
         return std::nullopt;
     }
 
-    return beam::RequestBeamCommand(
-        beam::RequestBeamType::TRACKING,
-        prediction->timestamp(),
-        result.requestId,
-        prediction->sphericalPosition().direction
-    );
+    return trackingCommandFrom(result.requestId, *prediction);
 }
 
 } // namespace target

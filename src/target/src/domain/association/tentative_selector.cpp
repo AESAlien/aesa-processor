@@ -10,7 +10,7 @@ namespace target
 
 TentativeSelector::TentativeSelector(
     AssociationConfig config,
-    std::unique_ptr<IAssociationAlgorithm> algorithm
+    std::unique_ptr<const IAssociationAlgorithm> algorithm
 ) : _config(std::move(config)),
     _algorithm(std::move(algorithm))
 {
@@ -53,6 +53,7 @@ std::optional<Observation> TentativeSelector::selectNewCandidate(
 }
 
 std::optional<double> TentativeSelector::positionScore(
+    const IAssociationCalculation& calculation,
     const Observation& observation,
     const math::SphericalPosition& referencePosition,
     std::chrono::milliseconds referenceTime,
@@ -66,7 +67,7 @@ std::optional<double> TentativeSelector::positionScore(
             const auto elapsed = std::chrono::abs(observation.observationTime() - referenceTime);
             maximumTravel = math::Distance(_config.maxAssociationSpeed().asLinearVelocity() * elapsed);
         }
-        const auto score = _algorithm->calculate(observation.sphericalPosition(), referencePosition, maximumTravel);
+        const auto score = calculation.calculate(observation.sphericalPosition(), referencePosition, maximumTravel);
         return score && *score <= _config.positionNdsThreshold() ? score : std::nullopt;
     }
     catch (const std::invalid_argument&)
@@ -79,12 +80,14 @@ std::optional<double> TentativeSelector::matchingPositionScore(
     const Observation& observation,
     const TentativeTrack& other
 ) const {
-    if (!_algorithm->prepareMeasurements())
+    const auto calculation = _algorithm->prepareMeasurements();
+    if (!calculation)
     {
         return std::nullopt;
     }
     const auto& first = other.observation();
     return positionScore(
+        *calculation,
         observation,
         first.sphericalPosition(),
         first.observationTime(),
@@ -105,16 +108,19 @@ std::optional<double> TentativeSelector::matchingPositionScore(
         {
             return std::nullopt;
         }
+        const auto& [state, calculation] = *prediction;
         return positionScore(
+            *calculation,
             observation,
-            prediction->sphericalPosition(),
+            state.sphericalPosition(),
             referenceTime,
             false
         );
     }
 
-    return _algorithm->prepareFromLastObservation(other)
-        ? positionScore(observation, other.sphericalPosition(), referenceTime, true)
+    const auto calculation = _algorithm->prepareFromLastObservation(other);
+    return calculation
+        ? positionScore(*calculation, observation, other.sphericalPosition(), referenceTime, true)
         : std::nullopt;
 }
 

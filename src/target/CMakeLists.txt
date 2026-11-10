@@ -7,23 +7,23 @@ add_library(target STATIC
     src/controller/target_controller.cpp
     src/service/detection_handler.cpp
     src/service/track_reporter.cpp
-    src/domain/algorithm/nds_calculation.cpp
-    src/domain/algorithm/nds_algorithm.cpp
-    src/domain/algorithm/constant_velocity_algorithm.cpp
-    src/domain/algorithm/constant_acceleration_algorithm.cpp
-    src/domain/selector/tentative_selector.cpp
-    src/domain/selector/track_selector.cpp
+    src/domain/association/nds_calculation.cpp
+    src/domain/association/nds_algorithm.cpp
+    src/domain/tracking/constant_velocity_algorithm.cpp
+    src/domain/tracking/constant_acceleration_algorithm.cpp
+    src/domain/association/tentative_selector.cpp
+    src/domain/association/track_selector.cpp
     src/domain/detection_result.cpp
     src/domain/observation.cpp
     src/domain/tentative_track.cpp
     src/domain/confirmed_track.cpp
     src/domain/factory/observation_factory.cpp
     src/domain/factory/detection_result_factory.cpp
-    src/domain/factory/track_factory.cpp
+    src/domain/track_factory.cpp
     src/dto/factory/track_event_factory.cpp
     src/domain/track_prediction.cpp
     src/domain/track_state.cpp
-    src/domain/position_uncertainty.cpp
+    src/domain/tracking/position_uncertainty.cpp
     src/repository/track_repository.cpp
 )
 

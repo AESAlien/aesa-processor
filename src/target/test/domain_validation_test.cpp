@@ -1,8 +1,8 @@
-#include "domain/algorithm/nds_algorithm.hpp"
+#include "domain/association/nds_algorithm.hpp"
 #include "association_selection_helpers.hpp"
-#include "domain/algorithm/constant_velocity_algorithm.hpp"
+#include "domain/tracking/constant_velocity_algorithm.hpp"
 #include "domain/tentative_track.hpp"
-#include "domain/factory/track_factory.hpp"
+#include "domain/track_factory.hpp"
 #include "repository/track_repository.hpp"
 
 #include <target/config/target_config.hpp>
@@ -97,15 +97,15 @@ public:
         NO_RESULT
     };
 
-    std::optional<TrackState> initialize(const Observation& first, const Observation& second, std::any& data) const override
+    std::optional<TrackingResult> initialize(const Observation& first, const Observation& second) const override
     {
         ++_initializationCount;
-        return alter(_algorithm.initialize(first, second, data));
+        return alter(_algorithm.initialize(first, second));
     }
 
-    std::optional<TrackState> update(const ConfirmedTrack& current, const Observation& incoming, std::any& data) const override
+    std::optional<TrackingResult> update(const ConfirmedTrack& current, const Observation& incoming) const override
     {
-        return alter(_algorithm.update(current, incoming, data));
+        return alter(_algorithm.update(current, incoming));
     }
 
     std::optional<TrackPrediction> predict(const ConfirmedTrack& current, Time time) const override
@@ -133,7 +133,7 @@ public:
     }
 
 private:
-    std::optional<TrackState> alter(std::optional<TrackState> calculated) const
+    std::optional<TrackingResult> alter(std::optional<TrackingResult> calculated) const
     {
         if (fault == Fault::NO_RESULT)
         {
@@ -141,12 +141,12 @@ private:
         }
         if (fault == Fault::INVALID_STATE)
         {
-            return state(100ms, std::numeric_limits<float>::quiet_NaN());
+            return TrackingResult{state(100ms, std::numeric_limits<float>::quiet_NaN()), {}};
         }
         if (fault == Fault::WRONG_TIME && calculated)
         {
-            const auto previous = *calculated;
-            calculated.emplace(
+            const auto previous = calculated->state;
+            calculated->state = TrackState(
                 previous.sphericalPosition(),
                 previous.dopplerVelocity(),
                 previous.power_db(),
@@ -259,8 +259,8 @@ TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingThe
     const auto initialized = tentative.initialize(observation(200ms, 1010_m));
     ASSERT_TRUE(initialized);
     EXPECT_EQ(algorithm->initializationCount(), 1u);
-    EXPECT_EQ(initialized->timestamp(), 200ms);
-    EXPECT_EQ(initialized->sphericalPosition().radius, 1010_m);
+    EXPECT_EQ(initialized->state.timestamp(), 200ms);
+    EXPECT_EQ(initialized->state.sphericalPosition().radius, 1010_m);
 
     const auto track = tentative.confirm(observation(200ms, 1010_m));
     ASSERT_TRUE(track);

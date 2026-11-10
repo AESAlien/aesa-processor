@@ -1,9 +1,9 @@
-#include "domain/algorithm/nds_algorithm.hpp"
+#include "domain/association/nds_algorithm.hpp"
 #include "association_selection_helpers.hpp"
-#include "domain/algorithm/constant_velocity_algorithm.hpp"
-#include "domain/factory/track_factory.hpp"
+#include "domain/tracking/constant_velocity_algorithm.hpp"
+#include "domain/track_factory.hpp"
 #include "repository/track_repository.hpp"
-#include "domain/selector/track_selector.hpp"
+#include "domain/association/track_selector.hpp"
 
 #include <target/config/target_config.hpp>
 #include <target/controller/target_controller.hpp>
@@ -53,36 +53,11 @@ struct PreparationCounts
     bool failPrediction = false;
 };
 
-class InjectedAssociationAlgorithm final : public IAssociationAlgorithm
+class InjectedCalculation final : public IAssociationCalculation
 {
 public:
-    explicit InjectedAssociationAlgorithm(std::shared_ptr<PreparationCounts> counts) : _counts(std::move(counts))
+    explicit InjectedCalculation(std::shared_ptr<PreparationCounts> counts) : _counts(std::move(counts))
     {
-    }
-
-    bool prepareMeasurements() override
-    {
-        ++_counts->measurements;
-        return _ready = true;
-    }
-
-    std::optional<TrackPrediction> predictAndPrepare(const ConfirmedTrack& track, Time time) override
-    {
-        auto prediction = track.predict(time);
-        if (!prediction)
-        {
-            _ready = false;
-            return std::nullopt;
-        }
-        ++_counts->predictions;
-        _ready = !_counts->failPrediction;
-        return _ready ? prediction : std::nullopt;
-    }
-
-    bool prepareFromLastObservation(const ConfirmedTrack&) override
-    {
-        ++_counts->states;
-        return _ready = true;
     }
 
     std::optional<double> calculate(
@@ -91,7 +66,7 @@ public:
         std::optional<math::Distance>
     ) const override {
         ++_counts->evaluations;
-        return _ready ? std::optional<double>(observation.radius.m() == 1020.0 ? 1.0 : 100.0) : std::nullopt;
+        return observation.radius.m() == 1020.0 ? 1.0 : 100.0;
     }
 
     std::optional<double> calculate(const math::Vector&) const override
@@ -101,7 +76,44 @@ public:
 
 private:
     const std::shared_ptr<PreparationCounts> _counts;
-    bool _ready = false;
+};
+
+class InjectedAssociationAlgorithm final : public IAssociationAlgorithm
+{
+public:
+    explicit InjectedAssociationAlgorithm(std::shared_ptr<PreparationCounts> counts) : _counts(std::move(counts))
+    {
+    }
+
+    AssociationCalculation prepareMeasurements() const override
+    {
+        ++_counts->measurements;
+        return std::make_unique<InjectedCalculation>(_counts);
+    }
+
+    std::optional<AssociationPrediction> predictAndPrepare(const ConfirmedTrack& track, Time time) const override
+    {
+        auto prediction = track.predict(time);
+        if (!prediction)
+        {
+            return std::nullopt;
+        }
+        ++_counts->predictions;
+        if (_counts->failPrediction)
+        {
+            return std::nullopt;
+        }
+        return AssociationPrediction{std::move(*prediction), std::make_unique<InjectedCalculation>(_counts)};
+    }
+
+    AssociationCalculation prepareFromLastObservation(const ConfirmedTrack&) const override
+    {
+        ++_counts->states;
+        return std::make_unique<InjectedCalculation>(_counts);
+    }
+
+private:
+    const std::shared_ptr<PreparationCounts> _counts;
 };
 
 DetectionEvent result(
@@ -121,14 +133,14 @@ DetectionEvent result(
 class NoPredictionAlgorithm final : public ITrackingAlgorithm
 {
 public:
-    std::optional<TrackState> initialize(const Observation& first, const Observation& second, std::any& data) const override
+    std::optional<TrackingResult> initialize(const Observation& first, const Observation& second) const override
     {
-        return _algorithm.initialize(first, second, data);
+        return _algorithm.initialize(first, second);
     }
 
-    std::optional<TrackState> update(const ConfirmedTrack& current, const Observation& incoming, std::any& data) const override
+    std::optional<TrackingResult> update(const ConfirmedTrack& current, const Observation& incoming) const override
     {
-        return _algorithm.update(current, incoming, data);
+        return _algorithm.update(current, incoming);
     }
 
     std::optional<TrackPrediction> predict(const ConfirmedTrack&, Time) const override
@@ -147,20 +159,18 @@ public:
     {
     }
 
-    std::optional<TrackState> initialize(
+    std::optional<TrackingResult> initialize(
         const Observation& first,
-        const Observation& second,
-        std::any& data
+        const Observation& second
     ) const override {
-        return _algorithm.initialize(first, second, data);
+        return _algorithm.initialize(first, second);
     }
 
-    std::optional<TrackState> update(
+    std::optional<TrackingResult> update(
         const ConfirmedTrack& current,
-        const Observation& incoming,
-        std::any& data
+        const Observation& incoming
     ) const override {
-        return _algorithm.update(current, incoming, data);
+        return _algorithm.update(current, incoming);
     }
 
     std::optional<TrackPrediction> predict(const ConfirmedTrack& current, Time time) const override

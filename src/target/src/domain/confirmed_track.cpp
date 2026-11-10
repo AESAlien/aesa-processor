@@ -1,6 +1,6 @@
 #include "confirmed_track.hpp"
 
-#include "domain/tracking_algorithm.hpp"
+#include "domain/tracking/tracking_algorithm.hpp"
 
 #include <limits>
 #include <stdexcept>
@@ -105,19 +105,19 @@ bool ConfirmedTrack::update(const Observation& observation)
         return false;
     }
 
-    std::any nextAlgorithmState;
-    auto state = _trackingAlgorithm->update(*this, observation, nextAlgorithmState);
-    if (!state)
+    auto result = _trackingAlgorithm->update(*this, observation);
+    if (!result)
     {
         return false;
     }
-    if (state->timestamp() != time)
+    auto& [state, nextAlgorithmState] = *result;
+    if (state.timestamp() != time)
     {
         throw std::invalid_argument("Tracking state must use the observation time");
     }
 
     // 메모리 할당에 실패해도 기존 추적 상태와 처리 이력을 보존한다.
-    auto nextState = std::make_shared<const TrackState>(std::move(*state));
+    auto nextState = std::make_shared<const TrackState>(std::move(state));
     _state = std::move(nextState);
     _algorithmState = std::move(nextAlgorithmState);
     _lastResultTime = time;

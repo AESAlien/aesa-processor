@@ -1,6 +1,6 @@
 #pragma once
 
-#include "track_prediction.hpp"
+#include "domain/track_prediction.hpp"
 
 #include <math/linear_algebra/square_matrix.hpp>
 

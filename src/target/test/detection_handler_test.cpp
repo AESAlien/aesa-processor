@@ -1,11 +1,11 @@
-#include "domain/algorithm/nds_algorithm.hpp"
-#include "domain/algorithm/constant_velocity_algorithm.hpp"
+#include "domain/association/nds_algorithm.hpp"
+#include "domain/tracking/constant_velocity_algorithm.hpp"
 #include "domain/factory/detection_result_factory.hpp"
-#include "domain/factory/track_factory.hpp"
+#include "domain/track_factory.hpp"
 #include "repository/track_repository.hpp"
 #include "service/detection_handler.hpp"
-#include "domain/selector/tentative_selector.hpp"
-#include "domain/selector/track_selector.hpp"
+#include "domain/association/tentative_selector.hpp"
+#include "domain/association/track_selector.hpp"
 
 #include <gtest/gtest.h>
 

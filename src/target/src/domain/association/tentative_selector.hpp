@@ -2,7 +2,7 @@
 
 #include "domain/observation.hpp"
 #include "domain/track.hpp"
-#include "domain/association_algorithm.hpp"
+#include "domain/association/association_algorithm.hpp"
 
 #include <target/config/association_config.hpp>
 
@@ -17,13 +17,12 @@ namespace target
 class TentativeTrack;
 class ConfirmedTrack;
 
-// 연관 점수 계산에 쓰는 준비 상태를 공유하므로 한 인스턴스에 대한 호출은 겹치면 안 된다.
 class TentativeSelector
 {
 public:
     TentativeSelector(
         AssociationConfig config,
-        std::unique_ptr<IAssociationAlgorithm> algorithm
+        std::unique_ptr<const IAssociationAlgorithm> algorithm
     );
 
     std::optional<Observation> selectNewCandidate(
@@ -35,6 +34,7 @@ private:
     std::optional<double> matchingPositionScore(const Observation& observation, const TentativeTrack& other) const;
     std::optional<double> matchingPositionScore(const Observation& observation, const ConfirmedTrack& other) const;
     std::optional<double> positionScore(
+        const IAssociationCalculation& calculation,
         const Observation& observation,
         const math::SphericalPosition& referencePosition,
         std::chrono::milliseconds referenceTime,
@@ -42,7 +42,7 @@ private:
     ) const;
 
     const AssociationConfig _config;
-    const std::unique_ptr<IAssociationAlgorithm> _algorithm;
+    const std::unique_ptr<const IAssociationAlgorithm> _algorithm;
 };
 
 } // namespace target
