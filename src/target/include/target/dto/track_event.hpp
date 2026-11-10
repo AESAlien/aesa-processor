@@ -6,6 +6,7 @@
 #include <math/quantity/angle.hpp>
 #include <math/bounded/circular_angle.hpp>
 #include <math/bounded/distance.hpp>
+#include <math/bounded/speed.hpp>
 #include <math/bounded/tilt_angle.hpp>
 #include <math/quantity/length.hpp>
 #include <math/quantity/linear_velocity.hpp>
@@ -27,10 +28,10 @@ struct TrackEvent
     math::TiltAngle latitude;
     math::CircularAngle longitude;
     math::Length altitude;
-    math::LinearVelocity velocity;
+    math::Speed speed;
     math::CircularAngle heading;
     math::TiltAngle flightPathAngle;
-    // Elapsed time since the shared start at 0 ms.
+    // 공통 시작 시점(0 ms)부터의 경과 시간이다.
     std::chrono::milliseconds timestamp;
 
     enum class TrackStatus
@@ -50,7 +51,7 @@ struct TrackEvent
         math::TiltAngle latitude,
         math::CircularAngle longitude,
         math::Length altitude,
-        math::LinearVelocity velocity,
+        math::Speed speed,
         math::CircularAngle heading,
         math::TiltAngle flightPathAngle,
         std::chrono::milliseconds timestamp
@@ -64,7 +65,7 @@ struct TrackEvent
         latitude(latitude),
         longitude(longitude),
         altitude(altitude),
-        velocity(velocity),
+        speed(speed),
         heading(heading),
         flightPathAngle(flightPathAngle),
         timestamp(timestamp)
@@ -154,9 +155,9 @@ struct TrackEvent
             return *this;
         }
 
-        Builder& velocity(math::LinearVelocity value)
+        Builder& speed(math::Speed value)
         {
-            _velocity = value;
+            _speed = value;
             return *this;
         }
 
@@ -201,7 +202,7 @@ struct TrackEvent
                 _latitude.value(),
                 _longitude.value(),
                 _altitude.value(),
-                _velocity.value(),
+                _speed.value(),
                 _heading.value(),
                 _flightPathAngle.value(),
                 _timestamp.value()
@@ -219,7 +220,7 @@ struct TrackEvent
         std::optional<math::TiltAngle> _latitude;
         std::optional<math::CircularAngle> _longitude;
         std::optional<math::Length> _altitude;
-        std::optional<math::LinearVelocity> _velocity;
+        std::optional<math::Speed> _speed;
         std::optional<math::CircularAngle> _heading;
         std::optional<math::TiltAngle> _flightPathAngle;
         std::optional<std::chrono::milliseconds> _timestamp;

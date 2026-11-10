@@ -27,10 +27,10 @@ const math::LinearAcceleration& TrackingConfig::processAccelerationStandardDevia
 
 void TrackingConfig::validate() const
 {
-    const double initialSigma = _initialAccelerationStandardDeviation.mps2();
-    const double initialVariance = initialSigma * initialSigma;
-    const double processSigma = _processAccelerationStandardDeviation.mps2();
-    const double processVariance = processSigma * processSigma;
+    const auto initialSigma = _initialAccelerationStandardDeviation.mps2();
+    const auto initialVariance = initialSigma * initialSigma;
+    const auto processSigma = _processAccelerationStandardDeviation.mps2();
+    const auto processVariance = processSigma * processSigma;
     if (initialSigma <= 0.0 || !std::isfinite(initialVariance) || initialVariance <= 0.0 ||
         processSigma < 0.0 || !std::isfinite(processVariance) ||
         (processSigma > 0.0 && processVariance == 0.0))

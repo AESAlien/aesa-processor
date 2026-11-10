@@ -38,8 +38,7 @@ DetectionEvent result(BeamType type, std::uint32_t id, Time time, bool detected 
 
 void addCandidates(TargetController& controller, std::uint32_t count)
 {
-    // Register all equally timed searches before confirmations, avoiding any
-    // motion allowance against a newer Tracking observation during test setup.
+    // 이후 시각의 확정 관측을 기준으로 이동 허용 거리가 적용되지 않도록 탐색 결과를 먼저 등록한다.
     for (std::uint32_t id = 1; id <= count; ++id)
     {
         const auto request = controller.handleDetection(result(BeamType::SEARCH, id, 0ms));
@@ -52,7 +51,7 @@ void addCandidates(TargetController& controller, std::uint32_t count)
 
 void confirm(TargetController& controller, std::uint32_t first, std::uint32_t last)
 {
-    for (std::uint32_t id = first; id <= last; ++id)
+    for (auto id = first; id <= last; ++id)
     {
         const auto request = controller.handleDetection(result(BeamType::CONFIRMATION, id, 100ms));
         ASSERT_TRUE(request) << "Confirmation " << id;
@@ -81,7 +80,7 @@ void expectReportedIds(
 
 void expire(TargetController& controller, std::uint32_t id, Time firstMiss)
 {
-    for (int miss = 0; miss < 3; ++miss)
+    for (auto miss = 0; miss < 3; ++miss)
     {
         const auto time = firstMiss + Time(1000 * miss);
         const auto request = controller.handleDetection(result(BeamType::TRACKING, id, time, false));
@@ -100,7 +99,7 @@ void expire(TargetController& controller, std::uint32_t id, Time firstMiss)
 
 TEST(TrackReportingLimitTest, HandlesZeroNinetyNineOneHundredAndOneHundredOneTrackingTargets)
 {
-    TargetController controller(
+    auto controller = TargetController(
         TargetConfig(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
@@ -109,8 +108,7 @@ TEST(TrackReportingLimitTest, HandlesZeroNinetyNineOneHundredAndOneHundredOneTra
         )
     );
     addCandidates(controller, 103);
-    // The first and last repository entries stay Tentative and never consume
-    // a reporting slot. There are initially zero Tracking entries.
+    // 처음과 마지막 트랙을 잠정 상태로 남겨 보고 한도에 포함되는지 확인한다.
     expectReportedIds(controller, 0, 2);
     confirm(controller, 2, 100);
     expectReportedIds(controller, 99, 2);
@@ -118,13 +116,13 @@ TEST(TrackReportingLimitTest, HandlesZeroNinetyNineOneHundredAndOneHundredOneTra
     expectReportedIds(controller, 100, 2);
     confirm(controller, 102, 102);
     expectReportedIds(controller, 100, 2);
-    // Reading neither consumes entries nor rotates which hundred are reported.
+    // 연속 조회해도 같은 트랙을 같은 순서로 보고해야 한다.
     expectReportedIds(controller, 100, 2);
 }
 
 TEST(TrackReportingLimitTest, UnreportedTargetCanUpdateAndExpireWithoutAffectingTheFirstHundred)
 {
-    TargetController controller(
+    auto controller = TargetController(
         TargetConfig(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
@@ -145,15 +143,14 @@ TEST(TrackReportingLimitTest, UnreportedTargetCanUpdateAndExpireWithoutAffecting
     expectReportedIds(controller, 100, 1);
     EXPECT_FALSE(controller.handleDetection(result(BeamType::TRACKING, 101, 5100ms)));
 
-    // Removing one visible target leaves 99: the hidden target was actually
-    // removed after three misses rather than merely omitted from reporting.
+    // 보고 중인 트랙 하나를 만료시켜도 보고 수가 99개라면, 101번 트랙은 저장소에서도 제거된 것이다.
     expire(controller, 1, 1100ms);
     expectReportedIds(controller, 99, 2);
 }
 
 TEST(TrackReportingLimitTest, RevealsTheNextStoredTrackingTargetWhenAReportedTargetExpires)
 {
-    TargetController controller(
+    auto controller = TargetController(
         TargetConfig(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
@@ -171,15 +168,14 @@ TEST(TrackReportingLimitTest, RevealsTheNextStoredTrackingTargetWhenAReportedTar
 
 TEST(TrackReportingLimitTest, UsesInjectedLimitWithoutLimitingTentativeOrHiddenTrackingTargets)
 {
-    const TargetConfig config(
+    const auto config = TargetConfig(
         AssociationConfig(1000_mps, 30_mps, 11.345),
         MeasurementConfig(7_m),
         TrackingConfig(10_mps2, 0_mps2),
         TrackManagementConfig(100ms, 1000ms, 3, 2)
     );
-    TargetController controller(config);
+    auto controller = TargetController(config);
     addCandidates(controller, 5);
-    // ID 1 stays Tentative; IDs 2..5 all become Tracking despite the reporting limit.
     confirm(controller, 2, 5);
     expectReportedIds(controller, 2, 2);
     expectReportedIds(controller, 2, 2);
@@ -196,9 +192,9 @@ TEST(TrackReportingLimitTest, UsesInjectedLimitWithoutLimitingTentativeOrHiddenT
 TEST(TrackReportingLimitTest, ValidatesConfiguredCountAgainstTheMessageMaximum)
 {
     EXPECT_EQ(TrackManagementConfig::MAXIMUM_REPORTED_TRACK_COUNT, 100u);
-    for (std::size_t count : {std::size_t(1), std::size_t(100)})
+    for (auto count : {std::size_t(1), std::size_t(100)})
     {
-        const TargetConfig config(
+        const auto config = TargetConfig(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
@@ -206,7 +202,7 @@ TEST(TrackReportingLimitTest, ValidatesConfiguredCountAgainstTheMessageMaximum)
         );
         EXPECT_EQ(config.trackManagement.maxReportedTrackCount(), count);
     }
-    for (std::size_t count : {std::size_t(0), std::size_t(101), std::numeric_limits<std::size_t>::max()})
+    for (auto count : {std::size_t(0), std::size_t(101), std::numeric_limits<std::size_t>::max()})
     {
         EXPECT_THROW(
             TargetConfig(

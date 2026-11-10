@@ -1,15 +1,15 @@
 #include <target/controller/target_controller.hpp>
 #include <target/dto/log/detection_event_logger.hpp>
 
-#include "domain/algorithm/constant_acceleration_algorithm.hpp"
-#include "domain/algorithm/nds_algorithm.hpp"
+#include "domain/tracking/constant_acceleration_algorithm.hpp"
+#include "domain/association/nds_algorithm.hpp"
 #include "domain/factory/detection_result_factory.hpp"
-#include "domain/factory/track_factory.hpp"
-#include "dto/factory/track_event_factory.hpp"
+#include "domain/track_factory.hpp"
 #include "repository/track_repository.hpp"
 #include "service/detection_handler.hpp"
-#include "domain/selector/tentative_selector.hpp"
-#include "domain/selector/track_selector.hpp"
+#include "service/track_reporter.hpp"
+#include "domain/association/tentative_selector.hpp"
+#include "domain/association/track_selector.hpp"
 
 #include <utility>
 
@@ -19,40 +19,44 @@ namespace target
 TargetController::TargetController(
     const TargetConfig& config,
     std::shared_ptr<DetectionEventLogger> detectionLogger
-) : _config(std::make_shared<const TrackManagementConfig>(config.trackManagement)),
-    _trackFactory(
-        std::make_shared<TrackFactory>(
-            std::make_shared<ConstantAccelerationAlgorithm>(config.tracking, config.measurement)
-        )
-    ),
-    _trackRepository(std::make_shared<TrackRepository>()),
-    _tentativeSelector(
-        std::make_shared<TentativeSelector>(
-            config.association,
-            std::make_unique<NdsAlgorithm>(config.measurement)
-        )
-    ),
-    _trackSelector(
-        std::make_shared<TrackSelector>(
-            config.association,
-            std::make_unique<NdsAlgorithm>(config.measurement)
-        )
-    ),
-    _detectionHandler(
-        std::make_shared<DetectionHandler>(
-            *_config,
-            *_trackRepository,
-            *_trackFactory,
-            *_tentativeSelector,
-            *_trackSelector
-        )
-    ),
-    _detectionLogger(std::move(detectionLogger))
+) : _detectionLogger(std::move(detectionLogger))
 {
+    const auto repository = std::make_shared<TrackRepository>();
+
+    auto trackingAlgorithm = std::make_shared<ConstantAccelerationAlgorithm>(
+        config.tracking,
+        config.measurement
+    );
+    auto trackFactory = TrackFactory(std::move(trackingAlgorithm));
+
+    auto tentativeAssociationAlgorithm = std::make_unique<NdsAlgorithm>(config.measurement);
+    auto tentativeSelector = std::make_unique<TentativeSelector>(
+        config.association,
+        std::move(tentativeAssociationAlgorithm)
+    );
+
+    auto trackAssociationAlgorithm = std::make_unique<NdsAlgorithm>(config.measurement);
+    auto trackSelector = std::make_unique<TrackSelector>(
+        config.association,
+        std::move(trackAssociationAlgorithm)
+    );
+
+    _detectionHandler = std::make_shared<DetectionHandler>(
+        config.trackManagement,
+        repository,
+        std::move(trackFactory),
+        std::move(tentativeSelector),
+        std::move(trackSelector)
+    );
+    _trackReporter = std::make_shared<const TrackReporter>(
+        repository,
+        config.trackManagement.maxReportedTrackCount()
+    );
 }
 
 std::optional<beam::RequestBeamCommand> TargetController::handleDetection(DetectionEvent detection)
 {
+    // 검증에 실패한 탐지 이벤트도 남기기 위해 먼저 기록한다.
     if (_detectionLogger)
     {
         _detectionLogger->log(detection);
@@ -63,19 +67,7 @@ std::optional<beam::RequestBeamCommand> TargetController::handleDetection(Detect
 
 std::vector<TrackEvent> TargetController::nextTrackEvents() const
 {
-    std::vector<TrackEvent> events;
-    for (const auto& target : _trackRepository->targets())
-    {
-        if (const auto* track = std::get_if<ConfirmedTrack>(&target))
-        {
-            events.push_back(TrackEventFactory::from(*track));
-            if (events.size() == _config->maxReportedTrackCount())
-            {
-                break;
-            }
-        }
-    }
-    return events;
+    return _trackReporter->nextTrackEvents();
 }
 
 } // namespace target

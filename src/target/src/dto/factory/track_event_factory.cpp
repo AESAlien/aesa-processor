@@ -9,14 +9,14 @@
 namespace target
 {
 
-TrackEvent TrackEventFactory::from(const ConfirmedTrack& track)
+TrackEvent TrackEventFactory::from(const ConfirmedTrack& confirmedTrack)
 {
-    if (track.id() > std::numeric_limits<std::uint16_t>::max())
+    if (confirmedTrack.id() > std::numeric_limits<std::uint16_t>::max())
     {
         throw std::overflow_error("Target ID cannot be represented by TrackEvent");
     }
 
-    const auto& state = *track.state();
+    const auto& state = *confirmedTrack.state();
     using namespace math::literals;
 
     const auto& position = state.position();
@@ -24,32 +24,32 @@ TrackEvent TrackEventFactory::from(const ConfirmedTrack& track)
     const auto horizontalRange = position.horizontalDistance();
     const auto horizontalSpeed = velocity.horizontalSpeed();
     const auto speed = velocity.speed();
-    const math::CircularAngle heading(
+    const auto heading = math::CircularAngle(
         horizontalSpeed.isPositive()
             ? math::atan2(velocity.x, velocity.y)
             : 0_deg
     );
-    const math::TiltAngle flightPathAngle(
+    const auto flightPathAngle = math::TiltAngle(
         speed.isPositive()
-            ? math::atan2(velocity.z, horizontalSpeed)
+            ? math::atan2(velocity.z, horizontalSpeed.asLinearVelocity())
             : 0_deg
     );
-    return TrackEvent(
-        static_cast<std::uint16_t>(track.id()),
-        TrackEvent::TrackStatus::TRACKING,
-        track.slantRange(),
-        horizontalRange,
-        track.azimuth(),
-        track.elevation(),
-        track.dopplerVelocity(),
-        math::TiltAngle(0_deg),
-        math::CircularAngle(0_deg),
-        position.z,
-        speed,
-        heading,
-        flightPathAngle,
-        track.lastObservationTime()
-    );
+    return TrackEvent::Builder()
+        .id(static_cast<std::uint16_t>(confirmedTrack.id()))
+        .state(TrackEvent::TrackStatus::TRACKING)
+        .slantRange(confirmedTrack.slantRange())
+        .groundRange(horizontalRange)
+        .azimuth(confirmedTrack.azimuth())
+        .elevation(confirmedTrack.elevation())
+        .dopplerVelocity(confirmedTrack.dopplerVelocity())
+        .latitude(0_deg)
+        .longitude(0_deg)
+        .altitude(position.z)
+        .speed(speed)
+        .heading(heading)
+        .flightPathAngle(flightPathAngle)
+        .timestamp(confirmedTrack.lastObservationTime())
+        .build();
 }
 
 } // namespace target

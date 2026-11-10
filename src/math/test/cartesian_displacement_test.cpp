@@ -116,7 +116,7 @@ TEST(CartesianDisplacementTest, SubtractsIdenticalPositionsToZero)
     const auto displacement = point - point;
 
     EXPECT_EQ(displacement.distance(), 0_m);
-    EXPECT_EQ((displacement / std::chrono::seconds{1}).speed(), 0_mps);
+    EXPECT_EQ((displacement / std::chrono::seconds{1}).speed(), math::Speed(0_mps));
 }
 
 // 계산 결과와 수치적 안정성을 검증한다.
@@ -128,7 +128,7 @@ TEST(CartesianDisplacementTest, DividesDisplacementByElapsedTime)
     EXPECT_EQ(velocity.x, 6_mps);
     EXPECT_EQ(velocity.y, -8_mps);
     EXPECT_EQ(velocity.z, 24_mps);
-    EXPECT_EQ(velocity.speed(), 26_mps);
+    EXPECT_EQ(velocity.speed(), math::Speed(26_mps));
 }
 
 // 계산 결과와 수치적 안정성을 검증한다.

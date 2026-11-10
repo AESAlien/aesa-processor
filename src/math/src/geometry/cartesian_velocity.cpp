@@ -22,14 +22,14 @@ CartesianDisplacement CartesianVelocity::operator*(std::chrono::duration<double>
         z * elapsed);
 }
 
-LinearVelocity CartesianVelocity::horizontalSpeed() const
+Speed CartesianVelocity::horizontalSpeed() const
 {
-    return LinearVelocity::fromMetersPerSecond(std::hypot(x.mps(), y.mps()));
+    return Speed::fromMetersPerSecond(std::hypot(x.mps(), y.mps()));
 }
 
-LinearVelocity CartesianVelocity::speed() const
+Speed CartesianVelocity::speed() const
 {
-    return LinearVelocity::fromMetersPerSecond(std::hypot(x.mps(), y.mps(), z.mps()));
+    return Speed::fromMetersPerSecond(std::hypot(x.mps(), y.mps(), z.mps()));
 }
 
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <math/bounded/speed.hpp>
 #include <math/quantity/linear_velocity.hpp>
 
 #include <optional>
@@ -40,18 +41,24 @@ public:
     };
 
     AssociationConfig(
+        math::Speed maxAssociationSpeed,
+        math::Speed maxInitialDopplerDifference,
+        double positionNdsThreshold
+    );
+
+    AssociationConfig(
         math::LinearVelocity maxAssociationSpeed,
         math::LinearVelocity maxInitialDopplerDifference,
         double positionNdsThreshold
     );
 
-    const math::LinearVelocity& maxAssociationSpeed() const noexcept;
-    const math::LinearVelocity& maxInitialDopplerDifference() const noexcept;
+    const math::Speed& maxAssociationSpeed() const noexcept;
+    const math::Speed& maxInitialDopplerDifference() const noexcept;
     double positionNdsThreshold() const noexcept;
 
 private:
-    math::LinearVelocity _maxAssociationSpeed;
-    math::LinearVelocity _maxInitialDopplerDifference;
+    math::Speed _maxAssociationSpeed;
+    math::Speed _maxInitialDopplerDifference;
     double _positionNdsThreshold;
     void validate() const;
 };

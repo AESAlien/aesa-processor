@@ -2,11 +2,11 @@
 
 #include "observation.hpp"
 #include "confirmed_track.hpp"
+#include "domain/tracking/tracking_result.hpp"
 
 namespace target
 {
 
-// Confirmation creates a ConfirmedTrack without mutating this first observation.
 class TentativeTrack
 {
 public:
@@ -20,7 +20,7 @@ public:
     const Observation& observation() const;
     std::chrono::milliseconds lastResultTime() const;
 
-    std::optional<TrackState> initialize(const Observation& observation) const;
+    std::optional<TrackingResult> initialize(const Observation& observation) const;
     std::optional<ConfirmedTrack> confirm(const Observation& observation) const;
 
 private:

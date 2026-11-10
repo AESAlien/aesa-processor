@@ -20,9 +20,9 @@ const math::Length& MeasurementConfig::standardDeviation() const noexcept
 
 void MeasurementConfig::validate() const
 {
-    const double sigma = _standardDeviation.m();
-    const double variance = sigma * sigma;
-    const double differenceVariance = 2.0 * variance;
+    const auto sigma = _standardDeviation.m();
+    const auto variance = sigma * sigma;
+    const auto differenceVariance = 2.0 * variance;
     if (sigma <= 0.0 || !std::isfinite(variance) || variance <= 0.0 ||
         !std::isfinite(differenceVariance))
     {

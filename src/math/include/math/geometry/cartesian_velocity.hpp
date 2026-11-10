@@ -1,5 +1,6 @@
 #pragma once
 
+#include "math/bounded/speed.hpp"
 #include "math/quantity/linear_velocity.hpp"
 
 #include <chrono>
@@ -13,8 +14,8 @@ struct CartesianVelocity
 {
     CartesianVelocity(LinearVelocity x, LinearVelocity y, LinearVelocity z) noexcept;
 
-    LinearVelocity horizontalSpeed() const;
-    LinearVelocity speed() const;
+    Speed horizontalSpeed() const;
+    Speed speed() const;
     CartesianDisplacement operator*(std::chrono::duration<double> elapsed) const;
 
     LinearVelocity x;

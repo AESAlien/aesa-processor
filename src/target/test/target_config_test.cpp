@@ -1,6 +1,6 @@
-#include "domain/algorithm/constant_acceleration_algorithm.hpp"
-#include "domain/selector/track_selector.hpp"
-#include "domain/selector/tentative_selector.hpp"
+#include "domain/tracking/constant_acceleration_algorithm.hpp"
+#include "domain/association/track_selector.hpp"
+#include "domain/association/tentative_selector.hpp"
 
 #include <target/config/target_config.hpp>
 #include <target/controller/target_controller.hpp>
@@ -90,7 +90,7 @@ TEST(AssociationConfigTest, BuilderRequiresEveryValue)
 TEST(MeasurementConfigTest, BuilderRequiresStandardDeviationAndRejectsUnusableVariance)
 {
     EXPECT_THROW(MeasurementConfig::Builder().build(), std::logic_error);
-    for (double sigma : {0.0, -1.0, 1e-300, 1.2e-162, 1e308})
+    for (auto sigma : {0.0, -1.0, 1e-300, 1.2e-162, 1e308})
     {
         SCOPED_TRACE(sigma);
         EXPECT_THROW(
@@ -194,7 +194,7 @@ TEST(TargetConfigTest, BuildersAcceptExplicitZeroValuesAndFeedTheController)
                 .build()
         )
         .build();
-    TargetController controller(config);
+    auto controller = TargetController(config);
     const auto confirmation = controller.handleDetection(detection(beam::BeamType::SEARCH, 0, 0ms, 1000_m));
     ASSERT_TRUE(confirmation);
     const auto tracking = controller.handleDetection(
@@ -213,13 +213,13 @@ TEST(TargetConfigTest, BuildersAcceptExplicitZeroValuesAndFeedTheController)
 
 TEST(TargetConfigTest, ControllerKeepsSnapshotsWhenComponentsAreReplaced)
 {
-    TargetConfig config(
+    auto config = TargetConfig(
         AssociationConfig(1000_mps, 30_mps, 11.345),
         MeasurementConfig(7_m),
         TrackingConfig(10_mps2, 0_mps2),
         TrackManagementConfig(100ms, 1000ms, 3, 100)
     );
-    TargetController controller(config);
+    auto controller = TargetController(config);
     config.association = AssociationConfig(0_mps, 0_mps, 0.0);
     config.measurement = MeasurementConfig(1_m);
     config.tracking = TrackingConfig(1_mps2, 100_mps2);

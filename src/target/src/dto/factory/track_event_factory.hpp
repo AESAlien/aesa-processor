@@ -10,7 +10,7 @@ class ConfirmedTrack;
 class TrackEventFactory
 {
 public:
-    static TrackEvent from(const ConfirmedTrack& track);
+    static TrackEvent from(const ConfirmedTrack& confirmedTrack);
 };
 
 } // namespace target
