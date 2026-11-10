@@ -1,4 +1,4 @@
-#include <network/message_decoder/message_decoder.hpp>
+#include <message/message_decoder.hpp>
 
 #include <protocol/ST_OperatorMsg.hpp>
 #include <protocol/ST_PlotMsg.hpp>
@@ -26,13 +26,13 @@ template <typename Value>
 Value readValue(
     const std::vector<uint8_t>& bytes,
     std::size_t offset = 0
-)
-{
+) {
     Value value{};
     std::memcpy(
         &value,
         bytes.data() + offset,
-        sizeof(value));
+        sizeof(value)
+    );
     return value;
 }
 
@@ -71,8 +71,7 @@ bool isFinite(const protocol::ST_Plot& plot)
 
 std::optional<beam::BeamType> decodeBeamType(
     uint8_t beamType
-)
-{
+) {
     switch (static_cast<beam::BeamType>(beamType))
     {
     case beam::BeamType::SEARCH:
@@ -86,14 +85,14 @@ std::optional<beam::BeamType> decodeBeamType(
 
 target::DetectionEvent::Plot decodePlot(
     const protocol::ST_Plot& plot
-)
-{
+) {
     return target::DetectionEvent::Plot::Builder()
         .slantRange(math::Distance::fromKilometers(plot.slantR_km))
         .azimuth(math::Angle::fromDegrees(plot.azi_deg))
         .elevation(math::Angle::fromDegrees(plot.elv_deg))
         .dopplerVelocity(
-            math::LinearVelocity::fromMetersPerSecond(plot.doppler_mps))
+            math::LinearVelocity::fromMetersPerSecond(plot.doppler_mps)
+        )
         .power_db(plot.pwr_DB)
         .build();
 }
@@ -102,8 +101,7 @@ target::DetectionEvent::Plot decodePlot(
 
 DecodeResult MessageDecoder::decode(
     const MessageFrame& frame
-) const
-{
+) const {
     if (frame.bytes.size() != frame.header.block_size)
     {
         return failed(DecodingError::INVALID_MESSAGE_SIZE);
@@ -118,19 +116,19 @@ DecodeResult MessageDecoder::decode(
 
     switch (static_cast<protocol::MessageId>(frame.header.message_Id))
     {
-    case protocol::MessageId::OperatorControl:
+    case protocol::MessageId::OPERATOR_CONTROL:
         return decodeOperatorControl(frame);
 
-    case protocol::MessageId::RadarAttitudeFromSimulator:
+    case protocol::MessageId::RADAR_ATTITUDE_FROM_SIMULATOR:
         return decodeRadarAttitude(frame);
 
-    case protocol::MessageId::PlotInformation:
+    case protocol::MessageId::PLOT_INFORMATION:
         return decodePlotInformation(frame);
 
-    case protocol::MessageId::TrackInformation:
-    case protocol::MessageId::RadarAttitudeToConsole:
-    case protocol::MessageId::TrackDeletion:
-    case protocol::MessageId::BeamTransmit:
+    case protocol::MessageId::TRACK_INFORMATION:
+    case protocol::MessageId::RADAR_ATTITUDE_TO_CONSOLE:
+    case protocol::MessageId::TRACK_DELETION:
+    case protocol::MessageId::BEAM_TRANSMIT:
         return failed(DecodingError::UNSUPPORTED_MESSAGE_ID);
     }
 
@@ -139,8 +137,7 @@ DecodeResult MessageDecoder::decode(
 
 DecodeResult MessageDecoder::decodeOperatorControl(
     const MessageFrame& frame
-) const
-{
+) const {
     if (frame.bytes.size() != sizeof(protocol::ST_OperatorMsg))
     {
         return failed(DecodingError::INVALID_MESSAGE_SIZE);
@@ -169,8 +166,7 @@ DecodeResult MessageDecoder::decodeOperatorControl(
 
 DecodeResult MessageDecoder::decodeRadarAttitude(
     const MessageFrame& frame
-) const
-{
+) const {
     if (frame.bytes.size() != sizeof(protocol::ST_RadarAttMsg))
     {
         return failed(DecodingError::INVALID_MESSAGE_SIZE);
@@ -192,13 +188,13 @@ DecodeResult MessageDecoder::decodeRadarAttitude(
             .roll(math::Angle::fromDegrees(message.roll_deg))
             .pitch(math::TiltAngle::fromDegrees(message.pitch_deg))
             .yaw(math::Angle::fromDegrees(message.yaw_deg))
-            .build());
+            .build()
+    );
 }
 
 DecodeResult MessageDecoder::decodePlotInformation(
     const MessageFrame& frame
-) const
-{
+) const {
     if (frame.bytes.size() < PLOT_DATA_OFFSET)
     {
         return failed(DecodingError::INVALID_MESSAGE_SIZE);
@@ -207,12 +203,14 @@ DecodeResult MessageDecoder::decodePlotInformation(
     const protocol::ST_BeamTx beamCommand =
         readValue<protocol::ST_BeamTx>(
             frame.bytes,
-            offsetof(protocol::ST_PlotMsg, beam_cmd));
+            offsetof(protocol::ST_PlotMsg, beam_cmd)
+        );
 
     const protocol::ST_PlotHeader plotHeader =
         readValue<protocol::ST_PlotHeader>(
             frame.bytes,
-            offsetof(protocol::ST_PlotMsg, plotHd));
+            offsetof(protocol::ST_PlotMsg, plotHd)
+        );
 
     const std::size_t plotCount = plotHeader.number;
     if (plotCount > MAXIMUM_PLOT_COUNT)
@@ -242,7 +240,8 @@ DecodeResult MessageDecoder::decodePlotInformation(
         const protocol::ST_Plot plot =
             readValue<protocol::ST_Plot>(
                 frame.bytes,
-                PLOT_DATA_OFFSET + index * sizeof(protocol::ST_Plot));
+                PLOT_DATA_OFFSET + index * sizeof(protocol::ST_Plot)
+            );
 
         if (!isFinite(plot) || plot.slantR_km < 0.0)
         {
@@ -257,9 +256,11 @@ DecodeResult MessageDecoder::decodePlotInformation(
             .beamType(*beamType)
             .requestId(beamCommand.beamID)
             .transmitTime(
-                std::chrono::milliseconds(beamCommand.timestamp))
+                std::chrono::milliseconds(beamCommand.timestamp)
+            )
             .plots(std::move(plots))
-            .build());
+            .build()
+    );
 }
 
 } // namespace comm

@@ -10,7 +10,7 @@ class CommError : public std::runtime_error
 {
 public:
     explicit CommError(const std::string& message)
-        : std::runtime_error(message)
+      : std::runtime_error(message)
     {
     }
 };

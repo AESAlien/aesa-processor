@@ -51,9 +51,9 @@ void printEndpoint(
 {
     std::cout
         << label
-        << endpoint.address()
+        << endpoint.getAddress()
         << ':'
-        << endpoint.port()
+        << endpoint.getPort()
         << '\n';
 }
 
@@ -308,9 +308,12 @@ int main()
                 "Five worker threads started; beam tick = 10 ms");
 
             std::cout
-                << "[START] Five worker threads running\n"
-                << "[BEAM PERIOD] 10 ms\n";
-
+                << "[START] 5 worker threads running; beam tick = 10ms\n"
+                << "[SERVER] "
+                << config.commConfig.server().getAddress()
+                << ':'
+                << config.commConfig.server().getPort()
+                << '\n';
             printEndpoint(
                 "[SERVER] ",
                 config.commConfig.server());
