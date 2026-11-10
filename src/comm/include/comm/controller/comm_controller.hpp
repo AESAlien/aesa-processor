@@ -1,5 +1,6 @@
 #pragma once
 
+#include <beam/dto/set_attitude_command.hpp>
 #include <beam/dto/transmit_beam_command.hpp>
 #include <comm/config/comm_config.hpp>
 #include <comm/dto/incoming_dto.hpp>
@@ -38,6 +39,11 @@ public:
 
     void sendTrackEvents(
         const std::vector<target::TrackEvent>& trackEvents
+    );
+
+    // 모의기에서 받은 레이더 자세를 전시기에 전달한다.
+    void sendRadarAttitude(
+        const beam::SetAttitudeCommand& command
     );
 
     // void requestStop() noexcept;

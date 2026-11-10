@@ -40,6 +40,8 @@ void CommWorker::runReceive()
             if (auto* attitude =
                     std::get_if<beam::SetAttitudeCommand>(&message))
             {
+                // 모의기의 자세 정보는 빔 처리를 기다리지 않고 전시기에 바로 전달한다.
+                _commChannel.write(*attitude);
                 _beamChannel.write(std::move(*attitude));
             }
             else if (auto* state =
@@ -95,6 +97,13 @@ void CommWorker::runSendConsole()
     {
         tryWorkerAction("CommSendConsole", [&]
         {
+            if (const auto* attitude =
+                    std::get_if<beam::SetAttitudeCommand>(&*event))
+            {
+                _controller.sendRadarAttitude(*attitude);
+                return;
+            }
+
             const auto& tracks =
                 std::get<std::vector<target::TrackEvent>>(*event);
 

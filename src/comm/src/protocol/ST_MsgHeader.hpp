@@ -9,13 +9,13 @@ constexpr uint8_t MESSAGE_VERSION = 1;
 
 enum class MessageId : uint16_t
 {
-    OperatorControl = 0xCA01,
-    TrackInformation = 0xAC01,
-    RadarAttitudeToConsole = 0xAC02,
-    TrackDeletion = 0xAC03,
-    BeamTransmit = 0xAB01,
-    PlotInformation = 0xBA01,
-    RadarAttitudeFromSimulator = 0xBA02,
+    OPERATOR_CONTROL = 0xCA01,
+    TRACK_INFORMATION = 0xAC01,
+    RADAR_ATTITUDE_TO_CONSOLE = 0xAC02,
+    TRACK_DELETION = 0xAC03,
+    BEAM_TRANSMIT = 0xAB01,
+    PLOT_INFORMATION = 0xBA01,
+    RADAR_ATTITUDE_FROM_SIMULATOR = 0xBA02,
 };
 
 #pragma pack(push, 1)

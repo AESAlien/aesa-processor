@@ -1,4 +1,4 @@
-#include <network/message_framer/message_framer.hpp>
+#include <message/message_framer.hpp>
 
 #include <cstring>
 #include <stdexcept>
@@ -7,8 +7,8 @@
 namespace comm
 {
 
-MessageFramer::MessageFramer(std::size_t maximumFrameSize) :
-    _maximumFrameSize(maximumFrameSize)
+MessageFramer::MessageFramer(std::size_t maximumFrameSize)
+  : _maximumFrameSize(maximumFrameSize)
 {
     validate();
     _buffer.reserve(_maximumFrameSize);
@@ -19,15 +19,15 @@ void MessageFramer::validate() const
     if (_maximumFrameSize < sizeof(protocol::ST_MsgHeader))
     {
         throw std::invalid_argument(
-            "Maximum frame size must be at least the header size");
+            "Maximum frame size must be at least the header size"
+        );
     }
 }
 
-FrameResult MessageFramer::append(
+std::vector<MessageFrame> MessageFramer::append(
     const std::vector<uint8_t>& bytes
-)
-{
-    FrameResult result;
+) {
+    std::vector<MessageFrame> frames;
 
     _buffer.insert(
         _buffer.end(),
@@ -39,12 +39,7 @@ FrameResult MessageFramer::append(
     {
         const protocol::ST_MsgHeader header = peekHeader();
 
-        const FramingError validationError = validateHeader(header);
-        if (validationError != FramingError::NONE)
-        {
-            result.error = validationError;
-            return result;
-        }
+        validateHeader(header);
 
         const std::size_t frameSize = getFrameSize(header);
 
@@ -53,14 +48,16 @@ FrameResult MessageFramer::append(
             break;
         }
 
-        result.frames.push_back(
+        frames.push_back(
             extractFrame(
                 header,
-                frameSize));
+                frameSize
+            )
+        );
     }
 
     compactBuffer();
-    return result;
+    return frames;
 }
 
 void MessageFramer::reset()
@@ -76,18 +73,18 @@ protocol::ST_MsgHeader MessageFramer::peekHeader() const
     std::memcpy(
         &header,
         _buffer.data() + _readOffset,
-        sizeof(header));
+        sizeof(header)
+    );
 
     return header;
 }
 
-FramingError MessageFramer::validateHeader(
+void MessageFramer::validateHeader(
     const protocol::ST_MsgHeader& header
-) const
-{
+) const {
     if (!isKnownMessageId(header.message_Id))
     {
-        return FramingError::UNKNOWN_MESSAGE_ID;
+        throw FramingError("unknown-message-id");
     }
 
     const std::size_t frameSize = getFrameSize(header);
@@ -95,25 +92,22 @@ FramingError MessageFramer::validateHeader(
     if (frameSize < sizeof(protocol::ST_MsgHeader) ||
         frameSize > _maximumFrameSize)
     {
-        return FramingError::INVALID_FRAME_SIZE;
+        throw FramingError("invalid-frame-size");
     }
-
-    return FramingError::NONE;
 }
 
 bool MessageFramer::isKnownMessageId(
     uint16_t messageId
-) const
-{
+) const {
     switch (static_cast<protocol::MessageId>(messageId))
     {
-    case protocol::MessageId::OperatorControl:
-    case protocol::MessageId::TrackInformation:
-    case protocol::MessageId::RadarAttitudeToConsole:
-    case protocol::MessageId::TrackDeletion:
-    case protocol::MessageId::BeamTransmit:
-    case protocol::MessageId::PlotInformation:
-    case protocol::MessageId::RadarAttitudeFromSimulator:
+    case protocol::MessageId::OPERATOR_CONTROL:
+    case protocol::MessageId::TRACK_INFORMATION:
+    case protocol::MessageId::RADAR_ATTITUDE_TO_CONSOLE:
+    case protocol::MessageId::TRACK_DELETION:
+    case protocol::MessageId::BEAM_TRANSMIT:
+    case protocol::MessageId::PLOT_INFORMATION:
+    case protocol::MessageId::RADAR_ATTITUDE_FROM_SIMULATOR:
         return true;
     }
 
@@ -122,16 +116,14 @@ bool MessageFramer::isKnownMessageId(
 
 std::size_t MessageFramer::getFrameSize(
     const protocol::ST_MsgHeader& header
-) const
-{
+) const {
     return static_cast<std::size_t>(header.block_size);
 }
 
 MessageFrame MessageFramer::extractFrame(
     const protocol::ST_MsgHeader& header,
     std::size_t frameSize
-)
-{
+) {
     MessageFrame frame;
     frame.header = header;
 
@@ -173,7 +165,8 @@ void MessageFramer::compactBuffer()
         _buffer.erase(
             _buffer.begin(),
             _buffer.begin() +
-                static_cast<std::ptrdiff_t>(_readOffset));
+                static_cast<std::ptrdiff_t>(_readOffset)
+        );
 
         _readOffset = 0;
     }

@@ -5,13 +5,15 @@
 | 채널 | 같은 큐에 저장하는 DTO | 워커 |
 | --- | --- | --- |
 | BeamChannel | SetOperationStateCommand, SetAttitudeCommand, BeamRequest | BeamWorker |
-| CommChannel | BeamCommand, vector<TrackEvent> | CommWorker |
+| CommChannel | BeamCommand, vector<TrackEvent>, SetAttitudeCommand | CommWorker |
 | TargetChannel | DetectionEvent | TargetWorker |
 
 각 채널의 이벤트는 std::variant로 정의합니다. 워커는 std::visit으로 DTO에 맞는
 Handler::process 오버로드를 호출합니다. 각 채널 안에서는 입력 순서가 유지되며,
 채널 사이에는 전역 처리 순서가 없습니다. 세 워커는 병렬로 실행됩니다.
 단일 TrackEvent를 CommChannel에 쓰면 한 원소의 목록으로 묶어 같은 큐에 넣습니다.
+모의기에서 받은 SetAttitudeCommand는 BeamChannel과 함께 CommChannel에도 넣어,
+전시기 송신 워커가 빔 처리와 별개로 바로 전시기에 전달합니다.
 독립 자세 채널과 워커는 Beam에 통합했습니다.
 
 ## 생산자와 소비자
@@ -25,7 +27,7 @@ write로 메시지를 넣는 코드가 생산자이며 read로 꺼내는 워커�
 실제 모듈 연결은 각 Handler 구현에서 다음 메소드를 호출하도록 구성합니다.
 
 - BeamHandler: setOperationState, setAttitude, requestBeam
-- CommHandler: sendBeamCommand, sendTrackEvents
+- CommHandler: sendBeamCommand, sendTrackEvents, sendRadarAttitude
 - TargetHandler: handleDetection
 
 실제 네트워크 수신 루프는 생산자 역할로 BeamChannel과 TargetChannel에 입력을 전달합니다.
