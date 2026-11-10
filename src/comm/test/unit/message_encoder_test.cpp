@@ -41,7 +41,7 @@ target::TrackEvent makeTrackEvent(
 ) {
     return target::TrackEvent(
         42,
-        target::TrackEvent::TrackState::TRACKING,
+        target::TrackEvent::TrackStatus::TRACKING,
         math::Distance::fromKilometers(slantRangeKilometers),
         math::Distance(10.25_km),
         math::CircularAngle(15.5_deg),
@@ -267,7 +267,7 @@ TEST(MessageEncoderTest, EncodesTrackEventsUsingActualMessageSize)
     EXPECT_EQ(
         track.type,
         static_cast<uint8_t>(
-            target::TrackEvent::TrackState::TRACKING
+            target::TrackEvent::TrackStatus::TRACKING
         )
     );
     EXPECT_EQ(track.memFlag, 0);

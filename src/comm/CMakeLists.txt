@@ -29,7 +29,7 @@ target_link_libraries(comm PUBLIC
     beam
     target
 )
-target_link_libraries(comm PRIVATE native_socket)
+target_link_libraries(comm PRIVATE native_socket Threads::Threads)
 
 if(BUILD_TESTING)
     add_executable(comm_main test/comm_main.cpp)
@@ -107,7 +107,6 @@ if(BUILD_TESTING)
         comm
         GTest::gtest_main
     )
-    target_link_libraries(comm PUBLIC radar_logging)
     gtest_discover_tests(comm_message_encoder_test)
 
     add_executable(comm_message_framer_test test/unit/message_framer_test.cpp)
