@@ -149,8 +149,8 @@ def run_dump(binary, scenario, att):
 
 
 def first_cycle_ms(ticks):
-    """탐색 1번 빔이 처음 나간 틱부터 다시 1번이 나간 틱까지의 시간(ms). 한 바퀴가 없으면 None."""
-    starts = [tk["t"] for tk in ticks if tk["type"] == "SEARCH" and tk["beam_id"] == 1]
+    """탐색 0번 빔이 처음 나간 틱부터 다시 0번이 나간 틱까지의 시간(ms). 한 바퀴가 없으면 None."""
+    starts = [tk["t"] for tk in ticks if tk["type"] == "SEARCH" and tk["beam_id"] == 0]
     return starts[1] - starts[0] if len(starts) >= 2 else None
 
 
@@ -167,12 +167,12 @@ def verify(scenario, data):
 
     searches = [tk for tk in ticks if tk["type"] == "SEARCH"]
     for previous, current in zip(searches, searches[1:]):
-        if current["beam_id"] != previous["beam_id"] % BEAM_COUNT + 1:
+        if current["beam_id"] != (previous["beam_id"] + 1) % BEAM_COUNT:
             failures.append(f"search beam order broken at {current['t']}ms "
                             f"({previous['beam_id']} -> {current['beam_id']})")
             break
-    if searches and searches[0]["beam_id"] != 1:
-        failures.append("first search beam is not beam 1")
+    if searches and searches[0]["beam_id"] != 0:
+        failures.append("first search beam is not beam 0")
 
     for tk in ticks:
         if tk["status"] != "READY" and tk["type"] != "NONE":
@@ -245,7 +245,7 @@ def draw_rules(ax):
     lines = [
         "읽는 방법",
         f"1. 빔은 10ms마다 1개씩 나갑니다.  아래 그림의 한 칸이 10ms입니다.",
-        "2. 확인/추적 요청이 있으면 탐색 빔보다 먼저 보냅니다.  요청이 없을 때만 탐색 빔(1번 → 189번 순서)을 보냅니다.",
+        "2. 확인/추적 요청이 있으면 탐색 빔보다 먼저 보냅니다.  요청이 없을 때만 탐색 빔(0번 → 188번 순서)을 보냅니다.",
         "3. 요청은 폐기되지 않습니다.  한꺼번에 몰리면 시각 순서대로 한 칸씩 보내고, 밀린 요청은 그만큼 늦게 나갑니다.",
         "4. 같은 시각에 들어온 요청은 확인 빔이 먼저, 종류가 같으면 먼저 들어온 요청이 먼저 나갑니다.",
     ]
@@ -528,11 +528,11 @@ def draw_tiles(ax, data):
     longest_wait = max((r["sent"] - r["ts"] for r in requests if r["sent"] >= 0), default=0)
     hold = 0
     if cycle:
-        t_start = next(tk["t"] for tk in ticks if tk["type"] == "SEARCH" and tk["beam_id"] == 1)
+        t_start = next(tk["t"] for tk in ticks if tk["type"] == "SEARCH" and tk["beam_id"] == 0)
         hold = sum(1 for tk in ticks if tk["type"] == "TRACKING" and t_start <= tk["t"] < t_start + cycle)
     tiles = [
         (f"{cycle}ms" if cycle else "해당 없음",
-         f"탐색 한 바퀴(1번 → 189번)에\n걸린 시간  (추적이 없으면 {ideal}ms)"),
+         f"탐색 한 바퀴(0번 → 188번)에\n걸린 시간  (추적이 없으면 {ideal}ms)"),
         (f"+{(cycle / ideal - 1) * 100:.0f}%" if cycle else "해당 없음",
          f"추적 빔 {hold}개가 먼저 나가서\n탐색이 {hold * TICK_MS}ms 멈춤" if cycle else ""),
         (f"{sent} / {len(requests)}", "나간 추적 요청 수\n(전체 요청 중)"),
@@ -546,7 +546,7 @@ def draw_tiles(ax, data):
 
 def draw_cycle(ax, data):
     ticks = data["ticks"]
-    style_axis(ax, "탐색 빔 번호가 시간에 따라 올라가는 모습  (1번에서 189번까지가 한 바퀴)")
+    style_axis(ax, "탐색 빔 번호가 시간에 따라 올라가는 모습  (0번에서 188번까지가 한 바퀴)")
     ax.set_xlabel("시간 (ms)", color=C_MUTED, fontsize=10)
     ax.set_ylabel("탐색 빔 번호", color=C_MUTED, fontsize=10)
 
@@ -555,7 +555,7 @@ def draw_cycle(ax, data):
 
     # 요청이 없을 때의 이상적인 진행: 틱마다 한 칸씩
     t_ideal = np.arange(t_first, ticks[-1]["t"] + 1, TICK_MS)
-    ideal = (t_ideal - t_first) // TICK_MS % BEAM_COUNT + 1
+    ideal = (t_ideal - t_first) // TICK_MS % BEAM_COUNT
     ideal_plot = ideal.astype(float)
     ideal_plot[np.where(np.diff(ideal) < 0)[0] + 1] = np.nan
     ax.plot(t_ideal, ideal_plot, color=C_MUTED, linewidth=1.3, linestyle=(0, (4, 3)), zorder=2)
@@ -572,9 +572,9 @@ def draw_cycle(ax, data):
     ax.scatter(hold, [-14] * len(hold), s=34, marker="^", color=C_TRACK, edgecolor=C_SURFACE, linewidth=0.6,
                zorder=4)
 
-    # 189번에 도착하는 시각의 차이
+    # 마지막 빔(188번)에 도착하는 시각의 차이
     t_ideal_end = t_first + (BEAM_COUNT - 1) * TICK_MS
-    t_real_end = next((tk["t"] for tk in searches if tk["beam_id"] == BEAM_COUNT), None)
+    t_real_end = next((tk["t"] for tk in searches if tk["beam_id"] == BEAM_COUNT - 1), None)
     if t_real_end is not None:
         ax.annotate("", xy=(t_real_end, BEAM_COUNT + 6), xytext=(t_ideal_end, BEAM_COUNT + 6),
                     arrowprops=dict(arrowstyle="<->", color=C_TEXT, linewidth=1.3), zorder=5)

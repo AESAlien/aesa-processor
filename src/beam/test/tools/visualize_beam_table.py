@@ -13,7 +13,7 @@
   (2) 가운데 3D  : ENU 공간에서 본 방향. 파란 점선 = 안테나 기준 탐색 영역을 자세 0 으로 둔 윤곽,
                    주황 점선 = 같은 영역을 자세만큼 돌린 실제 윤곽, 주황 점 = SearchGrid 의 ENU 방향,
                    회색 선 = 대표 빔의 "안테나 값 -> ENU 값" 이동 (별 = 안테나 정면)
-  (3) 오른쪽 표  : 대표 빔(ID 1, 21, 95, 169, 189)의 "안테나 (방위각, 고각) -> ENU (방위각, 고각)".
+  (3) 오른쪽 표  : 대표 빔(ID 0, 20, 94, 168, 188)의 "안테나 (방위각, 고각) -> ENU (방위각, 고각)".
                    ENU 각도가 SearchGrid 에 저장되어 빔 명령으로 나간다.
                    표 아래에 C++ 가 계산한 회전 행렬 R 을 같이 표시한다.
                    (ENU 각도 = R x 안테나 방향)
@@ -65,8 +65,8 @@ EL_START, EL_STEP = 3.0, 4.4
 
 BEAM_HALF_DEG = 3.0   # 탐색 빔 폭 6도의 절반 (그리드 중심 -> 영역 가장자리)
 
-# 변환 결과를 표/그림에 강조해서 보여줄 대표 빔 (1부터 시작하는 beamID): 네 모서리와 중심
-LANDMARK_IDS = [1, 21, 95, 169, 189]
+# 변환 결과를 표/그림에 강조해서 보여줄 대표 빔 (0부터 시작하는 beamID): 네 모서리와 중심
+LANDMARK_IDS = [0, 20, 94, 168, 188]
 
 # ----- 색: 범주 슬롯 1(파랑 = 안테나 기준 값)/2(주황 = ENU 값), 텍스트는 중립색 ---------
 C_GRIDV = "#2a78d6"
@@ -180,7 +180,7 @@ def draw_values_panel(ax, att, az_g, el_g, az_e, el_e, rt_err):
 
     # 대표 빔: 안테나 값(속 빈 파란 원) -> ENU 값(주황 점) 이동
     for bid in LANDMARK_IDS:
-        i = bid - 1
+        i = bid
         ax.annotate("", xy=(az_e[i], el_e[i]), xytext=(az_g[i], el_g[i]),
                     arrowprops=dict(arrowstyle="->", color=C_MUTED, linewidth=0.8,
                                     alpha=0.7, shrinkA=3, shrinkB=3), zorder=3)
@@ -194,7 +194,7 @@ def draw_values_panel(ax, att, az_g, el_g, az_e, el_e, rt_err):
     ax.scatter(bore_az, bore_el, s=110, marker="*", color=C_TEXT, edgecolor=C_SURFACE,
                linewidth=0.8, zorder=6)
     for bid in LANDMARK_IDS:
-        i = bid - 1
+        i = bid
         ax.annotate(str(bid), (az_e[i], el_e[i]), xytext=(7, 5), textcoords="offset points",
                     fontsize=8, color=C_TEXT, zorder=7)
 
@@ -253,7 +253,7 @@ def draw_axes_panel(ax, att, az_g, el_g, az_e, el_e):
 
     # 대표 빔: 안테나 값 -> ENU 값
     for bid in LANDMARK_IDS:
-        i = bid - 1
+        i = bid
         f = to_vec(az_g[i], el_g[i])
         a = v[:, i]
         ax.plot([f[0], a[0]], [f[1], a[1]], [f[2], a[2]], color=C_MUTED, linewidth=0.8, alpha=0.8)
@@ -285,7 +285,7 @@ def draw_table_panel(ax, att, az_g, el_g, az_e, el_e, R):
 
     rows = []
     for bid in LANDMARK_IDS:
-        i = bid - 1
+        i = bid
         rows.append([str(bid),
                      f"({az_g[i]:6.1f}, {el_g[i]:5.1f})",
                      "->",
@@ -363,7 +363,7 @@ def main():
         R_cpp = run_matrix(args.binary, *att)
 
         assert len(ids) == AZ_COUNT * EL_COUNT, f"expected 189 beams, got {len(ids)}"
-        assert list(ids) == list(range(1, 190)), "beamID must be 1..189"
+        assert list(ids) == list(range(0, 189)), "beamID must be 0..188"
 
         # C++ 결과(ENU 각도)를 다시 안테나 기준으로 되돌려 원래 그리드와 비교
         az_back, el_back = enu_to_ant(az, el, att)

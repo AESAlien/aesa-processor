@@ -117,7 +117,7 @@ TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
     // Then: 컨트롤러는 운용 시작과 자세 수신 후 탐색 명령을 반환한다.
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
-    EXPECT_EQ(command->beamId, 1u);
+    EXPECT_EQ(command->beamId, 0u);
     EXPECT_EQ(command->commandCount, 1u);
 }
 
@@ -242,7 +242,7 @@ TEST(BeamControllerTest, InvalidRequestIsNotQueued)
     // Then: 거부된 요청 대신 첫 탐색 빔을 송신한다.
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
-    EXPECT_EQ(command->beamId, 1u);
+    EXPECT_EQ(command->beamId, 0u);
 }
 
 // 컨트롤러는 운용 종료 시 송신을 멈추고 재시작 시 처음부터 송신한다.
@@ -269,7 +269,7 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
 
     // Then: 첫 탐색 빔과 첫 명령 수부터 다시 시작한다.
     ASSERT_TRUE(restarted.has_value());
-    EXPECT_EQ(restarted->beamId, 1u);
+    EXPECT_EQ(restarted->beamId, 0u);
     EXPECT_EQ(restarted->commandCount, 1u);
 }
 
@@ -290,8 +290,8 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
-    // 빔이 3개뿐이므로 ID가 1, 2, 3, 1 순서로 순환한다.
-    const uint32_t expectedIds[] = {1, 2, 3, 1};
+    // 빔이 3개뿐이므로 ID가 0, 1, 2, 0 순서로 순환한다.
+    const uint32_t expectedIds[] = {0, 1, 2, 0};
     for (std::size_t index = 0; index < 4; ++index)
     {
         const auto command = controller.nextBeamCommand(std::chrono::milliseconds(10 * index));
@@ -409,13 +409,13 @@ TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
     // Then: 첫 탐색 명령을 반환한다.
-    ASSERT_EQ(controller.nextBeamCommand(0ms)->beamId, 1u);
+    ASSERT_EQ(controller.nextBeamCommand(0ms)->beamId, 0u);
 
     // When: 이미 준비된 상태에서 잘못된 자세를 전달한다.
     EXPECT_THROW(controller.setAttitude(makeSetAttitudeCommand(0_deg, 70_deg, 0_deg)), std::invalid_argument);
 
     // Then: 예외 이후에도 기존 송신 상태는 유지된다.
-    EXPECT_EQ(controller.nextBeamCommand(10ms)->beamId, 2u);
+    EXPECT_EQ(controller.nextBeamCommand(10ms)->beamId, 1u);
 }
 
 // 컨트롤러는 꺼진 상태에서도 유효하지 않은 자세의 예외를 전달한다.
@@ -485,8 +485,8 @@ TEST(BeamControllerTest, MovedControllerKeepsInjectedConfigAndState)
     // Then: 컨트롤러 이동은 주입된 설정과 송신 진행 상태를 유지한다.
     ASSERT_TRUE(next.has_value());
     ASSERT_TRUE(wrapped.has_value());
-    EXPECT_EQ(next->beamId, 2u);
-    EXPECT_EQ(wrapped->beamId, 1u);
+    EXPECT_EQ(next->beamId, 1u);
+    EXPECT_EQ(wrapped->beamId, 0u);
 }
 
 // 컨트롤러는 요청 접수 시 준비 전과 접수 성공 및 영역 밖 상태를 반환한다.

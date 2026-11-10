@@ -9,6 +9,7 @@ namespace beam
 
 struct SearchBeam
 {
+    // 격자 순서의 빔 번호. 0부터 시작한다(낮은 고각의 왼쪽 방위각이 0).
     uint32_t beamId;
     // ENU 기준 빔 지향 방향. 생성 시점에 범위가 검증된다.
     math::SphericalDirection direction_enu;
