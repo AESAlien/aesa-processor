@@ -3,7 +3,7 @@
 #include "attitude/ant_enu_transform.hpp"
 #include "attitude/radar_attitude.hpp"
 #include "scheduler/attitude_frame.hpp"
-#include "scheduler/beam_request_factory.hpp"
+#include "request/factory/beam_request_factory.hpp"
 #include "scheduler/beam_scheduler.hpp"
 
 namespace beam

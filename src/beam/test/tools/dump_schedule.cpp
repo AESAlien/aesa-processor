@@ -10,7 +10,7 @@
 // 시나리오 정의와 실행은 schedule_scenario.hpp 를 scheduler_scenario_test 와 함께 쓴다.
 // visualize_schedule.py 가 이 프로그램을 실행해서 결과를 그린다.
 
-#include "schedule_scenario.hpp"
+#include "scenario/schedule_scenario.hpp"
 
 #include <cstdio>
 #include <cstdlib>

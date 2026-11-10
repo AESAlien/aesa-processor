@@ -1,8 +1,8 @@
 #pragma once
 
 #include "scheduler/attitude_frame.hpp"
-#include "scheduler/beam_request.hpp"
-#include "scheduler/request_queue.hpp"
+#include "request/beam_request.hpp"
+#include "request/request_queue.hpp"
 
 #include <beam/domain/operation_state.hpp>
 #include <beam/dto/request_beam_result.hpp>

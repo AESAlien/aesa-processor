@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scheduler/beam_request.hpp"
+#include "request/beam_request.hpp"
 
 #include <chrono>
 #include <map>

@@ -33,8 +33,8 @@ beam_schedule_dump 가 BeamScheduler 를 시나리오로 실행해 틱(10ms)마�
 
 사용 예 (aesa-processor 루트에서 빌드한 뒤):
   cmake --build build --target beam_schedule_dump
-  python3 src/beam/test/visualize_schedule.py --binary build/src/beam/beam_schedule_dump --verify
-  python3 src/beam/test/visualize_schedule.py --binary build/src/beam/beam_schedule_dump \
+  python3 src/beam/test/tools/visualize_schedule.py --binary build/src/beam/beam_schedule_dump --verify
+  python3 src/beam/test/tools/visualize_schedule.py --binary build/src/beam/beam_schedule_dump \
           --scenario mixed --att 10,20,30 --map --out-dir /tmp/schedule_images
 """
 
@@ -102,7 +102,7 @@ def setup_font():
 
 def default_out_dir():
     """aesa-processor 와 같은 위치의 document/testImage/<오늘 날짜>."""
-    repo_root = Path(__file__).resolve().parents[3]  # .../aesa-processor/src/beam/test/<이 파일>
+    repo_root = Path(__file__).resolve().parents[4]  # .../aesa-processor/src/beam/test/tools/<이 파일>
     return repo_root.parent / "document" / "testImage" / datetime.date.today().isoformat()
 
 
