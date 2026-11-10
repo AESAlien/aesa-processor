@@ -1,6 +1,7 @@
 #include <message/message_encoder.hpp>
 
 #include <protocol/ST_BeamTxMsg.hpp>
+#include <protocol/ST_RadarAttMsg.hpp>
 #include <protocol/ST_TrkMsg.hpp>
 
 #include <chrono>
@@ -219,6 +220,24 @@ EncodeResult encodeTrackEvents(
     }
 
     return encoded(std::move(bytes));
+}
+
+EncodeResult encodeRadarAttitude(
+    const beam::SetAttitudeCommand& command
+) {
+    protocol::ST_RadarAttMsg message{};
+    message.msgHeader = makeHeader(
+        protocol::MessageId::RADAR_ATTITUDE_TO_CONSOLE,
+        sizeof(message)
+    );
+    message.radar_lat_deg = command.latitude.deg();
+    message.radar_lon_deg = command.longitude.deg();
+    message.radar_alt_km =  command.altitude.km();
+    message.roll_deg =      command.roll.deg();
+    message.pitch_deg =     command.pitch.deg();
+    message.yaw_deg =       command.yaw.deg();
+
+    return encoded(toBytes(message));
 }
 
 } // namespace comm

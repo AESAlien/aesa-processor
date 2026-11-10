@@ -1,5 +1,6 @@
 #pragma once
 
+#include <beam/dto/set_attitude_command.hpp>
 #include <beam/dto/transmit_beam_command.hpp>
 #include <target/dto/track_event.hpp>
 
@@ -29,6 +30,11 @@ EncodeResult encodeBeamCommand(
 
 EncodeResult encodeTrackEvents(
     const std::vector<target::TrackEvent>& trackEvents
+);
+
+// 모의기에서 받은 레이더 자세를 전시기용 자세 메시지로 인코딩한다.
+EncodeResult encodeRadarAttitude(
+    const beam::SetAttitudeCommand& command
 );
 
 } // namespace comm

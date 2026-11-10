@@ -1,4 +1,5 @@
 #include <comm/config/comm_endpoint.hpp>
+#include <comm/controller/comm_controller.hpp>
 #include <comm/error/comm_error.hpp>
 #include <network/network_manager.hpp>
 #include <network/peer_connection.hpp>
@@ -8,6 +9,8 @@
 #include <network/tcp_server.hpp>
 #include <socket/listen_socket.hpp>
 #include <socket/connected_socket.hpp>
+
+#include <protocol/ST_RadarAttMsg.hpp>
 
 #include <native_socket/native_socket_test_support.hpp>
 
@@ -24,6 +27,7 @@
 #include <thread>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace
@@ -308,6 +312,68 @@ TEST(NetworkManagerTest, RejectsUnknownPeerWithoutReplacingKnownConnection)
     ASSERT_EQ(console.waitReadable(), 1);
     ASSERT_EQ(console.receiveByte(received), 1);
     EXPECT_EQ(received, 0x51);
+}
+
+// 모의기에서 받은 자세 정보를 전시기용 자세 메시지로 전시기에 보낸다.
+TEST(CommControllerTest, SendsSimulatorAttitudeToConsole)
+{
+    TestSocket apiLifetime;
+    NativePeer console;
+    NativePeer simulator;
+    ASSERT_EQ(console.bind(), 0);
+    ASSERT_EQ(simulator.bind(), 0);
+    const uint16_t port = availablePort();
+    comm::CommController controller(makeConfig(port, console, simulator));
+    controller.openServer();
+    ASSERT_EQ(console.connect(port), 0);
+    ASSERT_EQ(simulator.connect(port), 0);
+
+    comm::protocol::ST_RadarAttMsg received{};
+    received.msgHeader.message_Id =
+        static_cast<uint16_t>(comm::protocol::MessageId::RADAR_ATTITUDE_FROM_SIMULATOR);
+    received.msgHeader.block_size = sizeof(received);
+    received.radar_lat_deg = 37.5;
+    received.radar_lon_deg = 127.25;
+    received.radar_alt_km = 1.25;
+    received.roll_deg = -12.5;
+    received.pitch_deg = 6.25;
+    received.yaw_deg = 45.5;
+    std::vector<uint8_t> bytes(sizeof(received));
+    std::memcpy(bytes.data(), &received, sizeof(received));
+    for (uint8_t byte : bytes)
+    {
+        ASSERT_EQ(simulator.sendByte(byte), 1);
+    }
+
+    // receiveData()는 두 연결을 수락한 뒤 자세 메시지를 반환한다.
+    const std::optional<comm::IncomingDto> incoming = controller.receiveData();
+    ASSERT_TRUE(incoming);
+    const auto* attitude = std::get_if<beam::SetAttitudeCommand>(&*incoming);
+    ASSERT_NE(attitude, nullptr);
+    controller.sendRadarAttitude(*attitude);
+
+    std::vector<uint8_t> sent(sizeof(comm::protocol::ST_RadarAttMsg));
+    std::size_t offset = 0;
+    while (offset < sent.size())
+    {
+        ASSERT_EQ(console.waitReadable(), 1);
+        const int size = console.receiveBytes(sent.data() + offset, sent.size() - offset);
+        ASSERT_GT(size, 0);
+        offset += static_cast<std::size_t>(size);
+    }
+    comm::protocol::ST_RadarAttMsg forwarded{};
+    std::memcpy(&forwarded, sent.data(), sizeof(forwarded));
+    EXPECT_EQ(
+        forwarded.msgHeader.message_Id,
+        static_cast<uint16_t>(comm::protocol::MessageId::RADAR_ATTITUDE_TO_CONSOLE)
+    );
+    EXPECT_EQ(forwarded.msgHeader.block_size, sizeof(forwarded));
+    EXPECT_DOUBLE_EQ(forwarded.radar_lat_deg, 37.5);
+    EXPECT_DOUBLE_EQ(forwarded.radar_lon_deg, 127.25);
+    EXPECT_DOUBLE_EQ(forwarded.radar_alt_km, 1.25);
+    EXPECT_DOUBLE_EQ(forwarded.roll_deg, -12.5);
+    EXPECT_DOUBLE_EQ(forwarded.pitch_deg, 6.25);
+    EXPECT_DOUBLE_EQ(forwarded.yaw_deg, 45.5);
 }
 
 TEST(PeerConnectionTest, DisconnectedSendPreservesValidationAndNoOpBehavior)
