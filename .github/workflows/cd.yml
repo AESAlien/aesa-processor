@@ -98,8 +98,19 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
+          verify_release_commit() {
+            local release_sha
+            release_sha=$(gh api "repos/$GH_REPO/commits/refs/tags/$RELEASE_TAG" --jq '.sha')
+            if [[ "$release_sha" != "$GITHUB_SHA" ]]; then
+              echo "Release tag $RELEASE_TAG must point to $GITHUB_SHA; found $release_sha." >&2
+              exit 1
+            fi
+          }
+
           cd dist
           sha256sum --check ./*.sha256
+          verify_release_commit
           gh release create "$RELEASE_TAG" ./*.tar.gz ./*.sha256 \
             --verify-tag --title "$RELEASE_TAG" --generate-notes --draft
+          verify_release_commit
           gh release edit "$RELEASE_TAG" --draft=false
