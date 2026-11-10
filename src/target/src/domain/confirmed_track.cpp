@@ -1,6 +1,6 @@
 #include "confirmed_track.hpp"
 
-#include "domain/tracking_algorithm.hpp"
+#include "domain/tracking/tracking_algorithm.hpp"
 
 #include <limits>
 #include <stdexcept>
@@ -13,11 +13,13 @@ ConfirmedTrack::ConfirmedTrack(
     std::uint32_t id,
     std::chrono::milliseconds initialTime,
     TrackState state,
-    std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm
+    std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm,
+    std::any algorithmState
 ) : _id(id),
     _initialTime(initialTime),
     _lastResultTime(state.timestamp()),
     _state(std::make_shared<const TrackState>(std::move(state))),
+    _algorithmState(std::move(algorithmState)),
     _trackingAlgorithm(std::move(trackingAlgorithm))
 {
     if (_id == 0 || !_trackingAlgorithm)
@@ -85,38 +87,39 @@ std::uint32_t ConfirmedTrack::consecutiveMissCount() const
     return _consecutiveMissCount;
 }
 
-const std::shared_ptr<const TrackState>& ConfirmedTrack::state() const
+const std::shared_ptr<const TrackState>& ConfirmedTrack::state() const noexcept
 {
     return _state;
 }
 
+const std::any& ITrackingAlgorithm::algorithmState(const ConfirmedTrack& current) noexcept
+{
+    return current._algorithmState;
+}
+
 bool ConfirmedTrack::update(const Observation& observation)
 {
-    const auto time = observation.lastObservationTime();
+    const auto time = observation.observationTime();
     if (time <= _lastResultTime || time <= _state->timestamp())
     {
         return false;
     }
 
-    return applyTrackingState(_trackingAlgorithm->update(*this, observation), time);
-}
-
-bool ConfirmedTrack::applyTrackingState(
-    std::optional<TrackState> state,
-    std::chrono::milliseconds time
-) {
-    if (!state)
+    auto result = _trackingAlgorithm->update(*this, observation);
+    if (!result)
     {
         return false;
     }
-    if (state->timestamp() != time)
+    auto& [state, nextAlgorithmState] = *result;
+    if (state.timestamp() != time)
     {
         throw std::invalid_argument("Tracking state must use the observation time");
     }
 
-    // Finish allocations before replacing the previous immutable state.
-    auto nextState = std::make_shared<const TrackState>(std::move(*state));
+    // 메모리 할당에 실패해도 기존 추적 상태와 처리 이력을 보존한다.
+    auto nextState = std::make_shared<const TrackState>(std::move(state));
     _state = std::move(nextState);
+    _algorithmState = std::move(nextAlgorithmState);
     _lastResultTime = time;
     _consecutiveMissCount = 0;
     return true;
@@ -136,19 +139,20 @@ bool ConfirmedTrack::recordTrackingMiss(std::chrono::milliseconds time)
     return true;
 }
 
-std::optional<TargetPrediction> ConfirmedTrack::predict(std::chrono::milliseconds time) const
+std::optional<TrackPrediction> ConfirmedTrack::predict(std::chrono::milliseconds time) const
 {
-    if (time < _state->timestamp())
+    if (time < lastObservationTime())
     {
         return std::nullopt;
     }
+    return validatePrediction(_trackingAlgorithm->predict(*this, time), time);
+}
 
-    const auto prediction = _trackingAlgorithm->predict(*this, time);
-    if (!prediction)
-    {
-        return std::nullopt;
-    }
-    if (prediction->timestamp() != time)
+std::optional<TrackPrediction> ConfirmedTrack::validatePrediction(
+    std::optional<TrackPrediction> prediction,
+    std::chrono::milliseconds time
+) {
+    if (prediction && prediction->timestamp() != time)
     {
         throw std::invalid_argument("Prediction must use the requested time");
     }

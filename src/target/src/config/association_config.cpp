@@ -6,11 +6,9 @@
 namespace target
 {
 
-using namespace math::literals;
-
 AssociationConfig::AssociationConfig(
-    math::LinearVelocity maxAssociationSpeed,
-    math::LinearVelocity maxInitialDopplerDifference,
+    math::Speed maxAssociationSpeed,
+    math::Speed maxInitialDopplerDifference,
     double positionNdsThreshold
 ) : _maxAssociationSpeed(maxAssociationSpeed),
     _maxInitialDopplerDifference(maxInitialDopplerDifference),
@@ -19,12 +17,24 @@ AssociationConfig::AssociationConfig(
     validate();
 }
 
-const math::LinearVelocity& AssociationConfig::maxAssociationSpeed() const noexcept
+AssociationConfig::AssociationConfig(
+    math::LinearVelocity maxAssociationSpeed,
+    math::LinearVelocity maxInitialDopplerDifference,
+    double positionNdsThreshold
+) : AssociationConfig(
+        math::Speed(maxAssociationSpeed),
+        math::Speed(maxInitialDopplerDifference),
+        positionNdsThreshold
+    )
+{
+}
+
+const math::Speed& AssociationConfig::maxAssociationSpeed() const noexcept
 {
     return _maxAssociationSpeed;
 }
 
-const math::LinearVelocity& AssociationConfig::maxInitialDopplerDifference() const noexcept
+const math::Speed& AssociationConfig::maxInitialDopplerDifference() const noexcept
 {
     return _maxInitialDopplerDifference;
 }
@@ -36,10 +46,8 @@ double AssociationConfig::positionNdsThreshold() const noexcept
 
 void AssociationConfig::validate() const
 {
-    if (_maxAssociationSpeed.isNegative() ||
-        _maxInitialDopplerDifference.isNegative() ||
-        !std::isfinite(_positionNdsThreshold) || _positionNdsThreshold < 0.0
-    ) {
+    if (!std::isfinite(_positionNdsThreshold) || _positionNdsThreshold < 0.0)
+    {
         throw std::invalid_argument("Invalid association configuration");
     }
 }

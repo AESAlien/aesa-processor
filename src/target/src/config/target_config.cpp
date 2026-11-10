@@ -6,7 +6,6 @@
 namespace target
 {
 
-// Each component validates its own values at construction.
 TargetConfig::TargetConfig(
     AssociationConfig association,
     MeasurementConfig measurement,

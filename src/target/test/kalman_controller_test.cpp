@@ -86,7 +86,7 @@ math::CartesianPosition consolePosition(const TrackEvent& event)
 
 math::CartesianPosition trajectory(double seconds)
 {
-    // True antenna-frame motion: p0=(3000,10000,1000), v0=(80,-40,10), a=(6,3,-2).
+    // 안테나 좌표계의 기준 궤적이다. p0 = (3000, 10000, 1000), v0 = (80, -40, 10), a = (6, 3, -2).
     return math::CartesianPosition(
         3000_m + 80_m * seconds + 3_m * seconds * seconds,
         10000_m - 40_m * seconds + 1.5_m * seconds * seconds,
@@ -96,7 +96,7 @@ math::CartesianPosition trajectory(double seconds)
 
 TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInsteadOfTheRawPlot)
 {
-    TargetController controller(
+    auto controller = TargetController(
         TargetConfig(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
@@ -127,16 +127,16 @@ TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInst
     ASSERT_EQ(events.size(), 1u);
     EXPECT_EQ(events[0].id, tracking->requestId);
     EXPECT_EQ(events[0].timestamp, 1100ms);
-    const double filteredRange = events[0].slantRange.m();
+    const auto filteredRange = events[0].slantRange.m();
     EXPECT_GT(filteredRange, 1000.0);
     EXPECT_LT(filteredRange, 1099.99);
-    EXPECT_GT(events[0].velocity.mps(), 0.0);
+    EXPECT_GT(events[0].speed.mps(), 0.0);
     EXPECT_NEAR(consolePosition(events[0]).y.m(), filteredRange, 1e-9);
 }
 
 TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAndIgnoresExtraPlots)
 {
-    TargetController controller(
+    auto controller = TargetController(
         TargetConfig(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
@@ -146,8 +146,8 @@ TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAnd
     );
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
-    // Both 50 m and 200 m residuals fit the uncertain two-point forecast.
-    // A fixed 98 I covariance would reject both, so this also checks propagation into association.
+    // 고정 공분산 98 I로는 잔차 50 m와 200 m가 모두 탈락한다.
+    // 두 관측으로 초기화한 예측 공분산을 연관 판단에 쓰면 둘 다 통과한다.
     const auto next = controller.handleDetection(
         result(
             BeamType::TRACKING,
@@ -179,7 +179,7 @@ TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAnd
 
 TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsForecastingDuringMisses)
 {
-    TargetController controller(
+    auto controller = TargetController(
         TargetConfig(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
@@ -189,19 +189,18 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
     );
     const auto tracking = beginTracking(controller, trajectory(0.0), trajectory(0.1));
     ASSERT_TRUE(tracking);
-    const std::array<std::array<double, 3>, 12> noiseMultipliers{
+    const auto noiseMultipliers = std::array<std::array<double, 3>, 12>{
         {{{1.0, -0.5, 0.7}}, {{-0.8, 0.9, -1.0}}, {{0.5, -1.0, 0.4}}, {{-1.0, 0.3, -0.6}}, {{0.7, 0.6, 1.0}}, {{-0.4, -0.8, -0.3}}, {{0.9, 0.2, -0.9}}, {{-0.6, 0.8, 0.5}}, {{0.2, -0.7, -0.4}}, {{-0.7, 0.4, 0.8}}, {{0.4, -0.2, -0.7}}, {{-0.3, 0.7, 0.2}}}
     };
-    double measuredSquaredError = 0.0;
-    double filteredSquaredError = 0.0;
-    Time observationTime = 100ms;
+    auto measuredSquaredError = 0.0;
+    auto filteredSquaredError = 0.0;
+    auto observationTime = 100ms;
     for (const auto& noise : noiseMultipliers)
     {
         observationTime += 1000ms;
-        const double seconds = std::chrono::duration<double>(observationTime).count();
+        const auto seconds = std::chrono::duration<double>(observationTime).count();
         const auto truth = trajectory(seconds);
-        // Fixed Cartesian errors scaled by the configured 7 m per-axis measurement noise.
-        const math::CartesianDisplacement measurementError(
+        const auto measurementError = math::CartesianDisplacement(
             7_m * noise[0],
             7_m * noise[1],
             7_m * noise[2]
@@ -221,8 +220,8 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
         const auto events = controller.nextTrackEvents();
         ASSERT_EQ(events.size(), 1u);
         EXPECT_EQ(events[0].timestamp, observationTime);
-        const double measuredError = (measured - truth).distance().m();
-        const double filteredError = (consolePosition(events[0]) - truth).distance().m();
+        const auto measuredError = (measured - truth).distance().m();
+        const auto filteredError = (consolePosition(events[0]) - truth).distance().m();
         measuredSquaredError += measuredError * measuredError;
         filteredSquaredError += filteredError * filteredError;
     }
@@ -230,14 +229,14 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
     const auto finalEvents = controller.nextTrackEvents();
     ASSERT_EQ(finalEvents.size(), 1u);
     EXPECT_LT((consolePosition(finalEvents[0]) - trajectory(12.1)).distance().m(), 7.0);
-    const double trueSpeed = std::hypot(
+    const auto trueSpeed = std::hypot(
         80.0 + 6.0 * 12.1,
         -40.0 + 3.0 * 12.1,
         10.0 - 2.0 * 12.1
     );
-    EXPECT_NEAR(finalEvents[0].velocity.mps(), trueSpeed, 3.0);
+    EXPECT_NEAR(finalEvents[0].speed.mps(), trueSpeed, 3.0);
 
-    for (int miss = 1; miss <= 3; ++miss)
+    for (auto miss = 1; miss <= 3; ++miss)
     {
         const auto resultTime = observationTime + std::chrono::milliseconds(1000 * miss);
         const auto retry = controller.handleDetection(
@@ -271,16 +270,16 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
 
 TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAndSuccessResetsMisses)
 {
-    for (double accelerationSigma : {1.0, 100.0})
+    for (auto accelerationSigma : {1.0, 100.0})
     {
         SCOPED_TRACE(accelerationSigma);
-        const TargetConfig config(
+        const auto config = TargetConfig(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(math::LinearAcceleration::fromMetersPerSecondSquared(accelerationSigma), 0_mps2),
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         );
-        TargetController controller(config);
+        auto controller = TargetController(config);
         const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
         ASSERT_TRUE(tracking);
         ASSERT_TRUE(
@@ -303,8 +302,8 @@ TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAn
                 )
             )
         );
-        // After 3 s, a 1400 m residual has NDS about 21.5 for sigma_a=1,
-        // but 6.4 for sigma_a=100; only the latter passes the shared 99% gate.
+        // 3초 뒤 1400 m 잔차의 NDS는 sigma_a가 1일 때 약 21.5, 100일 때 약 6.4다.
+        // 같은 99% 임계값에서 sigma_a가 100인 경우만 통과한다.
         const auto recovered = controller.handleDetection(
             result(
                 BeamType::TRACKING,
@@ -313,7 +312,7 @@ TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAn
                 {radial(2400_m)}
             )
         );
-        const bool broadPrior = accelerationSigma > 1.0;
+        const auto broadPrior = accelerationSigma > 1.0;
         EXPECT_EQ(recovered.has_value(), broadPrior);
         if (!broadPrior)
         {
