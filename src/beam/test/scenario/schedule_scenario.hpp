@@ -11,7 +11,7 @@
 
 #include "scheduler/beam_scheduler.hpp"
 #include "scheduler/attitude_frame.hpp"
-#include "scheduler/beam_request_factory.hpp"
+#include "request/beam_request_factory.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
 

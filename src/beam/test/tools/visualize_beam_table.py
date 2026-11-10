@@ -36,8 +36,8 @@ numpy 계산은 C++ 결과를 검증하기 위한 독립 구현이다.
 
 사용 예 (aesa-processor 루트에서 빌드한 뒤):
   cmake --build build --target beam_table_dump
-  python3 src/beam/test/visualize_beam_table.py --binary build/src/beam/beam_table_dump
-  python3 src/beam/test/visualize_beam_table.py --binary build/src/beam/beam_table_dump \
+  python3 src/beam/test/tools/visualize_beam_table.py --binary build/src/beam/beam_table_dump
+  python3 src/beam/test/tools/visualize_beam_table.py --binary build/src/beam/beam_table_dump \
           --att 0,0,13.02429 --att 10,20,30 --verify --out beam_table.png
 """
 
@@ -315,7 +315,7 @@ def draw_table_panel(ax, att, az_g, el_g, az_e, el_e, R):
 
 def default_out_dir():
     """aesa-processor 와 같은 위치의 document/testImage/<오늘 날짜>."""
-    repo_root = Path(__file__).resolve().parents[3]  # .../aesa-processor/src/beam/test/<이 파일>
+    repo_root = Path(__file__).resolve().parents[4]  # .../aesa-processor/src/beam/test/tools/<이 파일>
     return repo_root.parent / "document" / "testImage" / datetime.date.today().isoformat()
 
 

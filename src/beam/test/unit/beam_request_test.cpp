@@ -1,4 +1,4 @@
-#include "scheduler/beam_request.hpp"
+#include "request/beam_request.hpp"
 
 #include <gtest/gtest.h>
 
