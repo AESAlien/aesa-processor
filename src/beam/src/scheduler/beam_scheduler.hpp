@@ -3,11 +3,11 @@
 #include "scheduler/attitude_frame.hpp"
 #include "request/beam_request.hpp"
 #include "request/request_queue.hpp"
+#include "scheduler/set_attitude_status.hpp"
+#include "scheduler/set_operation_state_status.hpp"
 
 #include <beam/domain/operation_state.hpp>
 #include <beam/dto/request_beam_result.hpp>
-#include <beam/dto/set_attitude_status.hpp>
-#include <beam/dto/set_operation_state_status.hpp>
 #include <beam/dto/transmit_beam_command.hpp>
 
 #include <chrono>
