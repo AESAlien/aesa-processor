@@ -1,13 +1,13 @@
 #include <comm/config/comm_endpoint.hpp>
 #include <comm/error/comm_error.hpp>
-#include <network/network_manager/network_manager.hpp>
-#include <network/peer_connection/peer_connection.hpp>
-#include <network/session/session.hpp>
-#include <network/socket_selector/socket_selector.hpp>
-#include <network/socket/socket.hpp>
-#include <network/tcp_server/tcp_server.hpp>
-#include <network/listen_socket/listen_socket.hpp>
-#include <network/connected_socket/connected_socket.hpp>
+#include <network/network_manager.hpp>
+#include <network/peer_connection.hpp>
+#include <network/session.hpp>
+#include <socket/socket_selector.hpp>
+#include <socket/socket.hpp>
+#include <network/tcp_server.hpp>
+#include <socket/listen_socket.hpp>
+#include <socket/connected_socket.hpp>
 
 #include <native_socket/native_socket_test_support.hpp>
 

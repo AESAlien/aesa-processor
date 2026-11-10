@@ -1,22 +1,22 @@
-add_subdirectory(src/network/native_socket)
+add_subdirectory(src/socket)
 
 add_library(comm STATIC
     src/config/comm_config.cpp
     src/config/comm_endpoint.cpp
     src/controller/comm_controller.cpp
     src/controller/comm_error_handler.cpp
-    src/network/message_decoder/message_decoder.cpp
-    src/network/message_encoder/message_encoder.cpp
-    src/network/message_framer/message_framer.cpp
-    src/network/network_manager/network_manager.cpp
-    src/network/peer_connection/peer_connection.cpp
-    src/network/session/session.cpp
-    src/network/socket_error/socket_error.cpp
-    src/network/socket_selector/socket_selector.cpp
-    src/network/socket/socket.cpp
-    src/network/listen_socket/listen_socket.cpp
-    src/network/connected_socket/connected_socket.cpp
-    src/network/tcp_server/tcp_server.cpp
+    src/message/message_decoder.cpp
+    src/message/message_encoder.cpp
+    src/message/message_framer.cpp
+    src/network/network_manager.cpp
+    src/network/peer_connection.cpp
+    src/network/session.cpp
+    src/socket/socket_error.cpp
+    src/socket/socket_selector.cpp
+    src/socket/socket.cpp
+    src/socket/listen_socket.cpp
+    src/socket/connected_socket.cpp
+    src/network/tcp_server.cpp
 )
 target_include_directories(comm
     PUBLIC

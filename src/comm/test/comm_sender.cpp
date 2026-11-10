@@ -1,5 +1,5 @@
 #include <comm/config/comm_endpoint.hpp>
-#include <network/native_socket/native_socket.hpp>
+#include <socket/native_socket.hpp>
 #include <protocol/ST_MsgHeader.hpp>
 
 #include <chrono>

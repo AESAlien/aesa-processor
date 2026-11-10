@@ -1,6 +1,6 @@
 #pragma once
 
-#include <network/native_socket/native_socket.hpp>
+#include <socket/native_socket.hpp>
 
 #include <cstddef>
 #include <cstdint>

@@ -1,4 +1,4 @@
-#include <network/message_framer/message_framer.hpp>
+#include <message/message_framer.hpp>
 
 #include <gtest/gtest.h>
 

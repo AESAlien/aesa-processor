@@ -1,7 +1,7 @@
 #pragma once
 
-#include <network/message_decoder/message_decoder.hpp>
-#include <network/message_encoder/message_encoder.hpp>
+#include <message/message_decoder.hpp>
+#include <message/message_encoder.hpp>
 #include <string_view>
 
 namespace comm
