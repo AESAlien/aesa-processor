@@ -4,7 +4,9 @@
 #include <beam/dto/request_beam_command.hpp>
 #include <beam/dto/request_beam_result.hpp>
 #include <beam/dto/set_attitude_command.hpp>
+#include <beam/dto/set_attitude_status.hpp>
 #include <beam/dto/set_operation_state_command.hpp>
+#include <beam/dto/set_operation_state_status.hpp>
 #include <beam/dto/transmit_beam_command.hpp>
 
 #include <chrono>
@@ -29,12 +31,18 @@ public:
     BeamController(BeamController&&) noexcept;
     BeamController& operator=(BeamController&&) noexcept;
 
-    void setOperationState(SetOperationStateCommand command);
+    // 운용 상태를 바꾸고 처리 결과를 반환한다.
+    // - CHANGED: 상태가 바뀌었다. OFF에서 ON으로 바뀌면 요청 큐와 자세정보를 포함한 모든 상태가 초기화된다.
+    // - UNCHANGED: 현재와 같은 상태여서 아무것도 바꾸지 않았다.
+    SetOperationStateStatus setOperationState(SetOperationStateCommand command);
 
     // 자세정보가 잘못되면(roll/yaw 범위 밖, 짐벌락) 운용 상태와 관계없이 std::invalid_argument를 던지며, 이때 상태는 변하지 않는다.
     // 위도·경도·고도는 쓰지 않으므로 검사하지 않는다.
-    // 올바른 자세정보는 ON이고 아직 자세정보를 받지 않았을 때만 반영되고(탐색 격자와 추적 영역 판정에 쓰인다), 그 외에는 무시된다.
-    void setAttitude(SetAttitudeCommand command);
+    // 올바른 자세정보의 처리 결과를 반환한다. 반영된 자세정보는 탐색 격자와 추적 영역 판정에 쓰인다.
+    // - IGNORED_NOT_ON: ON이 아니어서 무시했다.
+    // - IGNORED_ALREADY_SET: 이미 자세정보를 받은 상태여서 무시했다.
+    // - APPLIED: 반영했다.
+    SetAttitudeStatus setAttitude(SetAttitudeCommand command);
 
     // 요청 값이 잘못되면(알 수 없는 종류, 음수 transmitTime, requestId 0) 운용 상태와 관계없이 std::invalid_argument를 던진다.
     // 생성자에 주입한 요청 빔 설정(빔 폭)은 BeamRequestFactory가 요청을 만들 때 반영된다.

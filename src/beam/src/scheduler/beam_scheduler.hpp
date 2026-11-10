@@ -6,6 +6,8 @@
 
 #include <beam/domain/operation_state.hpp>
 #include <beam/dto/request_beam_result.hpp>
+#include <beam/dto/set_attitude_status.hpp>
+#include <beam/dto/set_operation_state_status.hpp>
 #include <beam/dto/transmit_beam_command.hpp>
 
 #include <chrono>
@@ -32,10 +34,16 @@ namespace beam
 class BeamScheduler
 {
 public:
-    void setOperationState(OperationState state);
+    // 운용 상태를 바꾸고 처리 상태를 반환한다.
+    // - CHANGED: 상태가 바뀌었다. OFF에서 ON으로 바뀌면 모든 상태를 초기화한다.
+    // - UNCHANGED: 현재와 같은 상태여서 아무것도 하지 않았다.
+    SetOperationStateStatus setOperationState(OperationState state);
 
     // ON이고 AttitudeFrame이 아직 없을 때만 받아들이고, 그 외에는 무시한다.
-    void setAttitudeFrame(AttitudeFrame attitudeFrame);
+    // - IGNORED_NOT_ON: ON이 아니어서 무시했다.
+    // - IGNORED_ALREADY_SET: 이미 AttitudeFrame이 있어서 무시했다.
+    // - APPLIED: 받아들였다.
+    SetAttitudeStatus setAttitudeFrame(AttitudeFrame attitudeFrame);
 
     // 요청 값의 검증은 BeamRequest 생성 시 끝나 있다. 요청의 방향은 ENU 기준으로 간주한다.
     // - 준비 상태(ON이고 AttitudeFrame이 있음)가 아니면 큐에 넣지 않고 NOT_READY를 반환한다.

@@ -22,19 +22,19 @@ BeamController::BeamController(BeamController&&) noexcept = default;
 
 BeamController& BeamController::operator=(BeamController&&) noexcept = default;
 
-void BeamController::setOperationState(SetOperationStateCommand command)
+SetOperationStateStatus BeamController::setOperationState(SetOperationStateCommand command)
 {
-    _scheduler->setOperationState(command.powerState);
+    return _scheduler->setOperationState(command.powerState);
 }
 
-void BeamController::setAttitude(SetAttitudeCommand command)
+SetAttitudeStatus BeamController::setAttitude(SetAttitudeCommand command)
 {
     // 잘못된 자세정보이면 RadarAttitude 생성자(roll/yaw 범위)나 AntEnuTransform 생성자(짐벌락)가 std::invalid_argument를 던진다.
     // 검증과 AttitudeFrame(탐색 격자·요청 빔 영역 판정) 생성은 운용 상태와 관계없이 하고, 받아들일지는 BeamScheduler가 정한다.
     // 예외가 나면 BeamScheduler는 그대로다.
     // 위도·경도·고도는 빔 모듈에서 쓰지 않으므로 넘기지 않는다.
     const AntEnuTransform transform(RadarAttitude(command.roll, command.pitch, command.yaw), _config.attitude);
-    _scheduler->setAttitudeFrame(AttitudeFrame(transform, _config.searchGrid, _config.requestCoverage));
+    return _scheduler->setAttitudeFrame(AttitudeFrame(transform, _config.searchGrid, _config.requestCoverage));
 }
 
 RequestBeamResult BeamController::requestBeam(RequestBeamCommand command)
