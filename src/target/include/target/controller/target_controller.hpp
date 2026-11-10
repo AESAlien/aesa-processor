@@ -15,13 +15,17 @@ namespace target
 class TrackRepository;
 class TrackFactory;
 class DetectionHandler;
+class DetectionEventLogger;
 class TentativeSelector;
 class TrackSelector;
 
 class TargetController
 {
 public:
-    explicit TargetController(const TargetConfig& config);
+    explicit TargetController(
+        const TargetConfig& config,
+        std::shared_ptr<DetectionEventLogger> detectionLogger = {}
+    );
 
     std::optional<beam::RequestBeamCommand> handleDetection(DetectionEvent detection);
     std::vector<TrackEvent> nextTrackEvents() const;
@@ -34,6 +38,7 @@ private:
     std::shared_ptr<const TentativeSelector> _tentativeSelector;
     std::shared_ptr<const TrackSelector> _trackSelector;
     std::shared_ptr<DetectionHandler> _detectionHandler;
+    std::shared_ptr<DetectionEventLogger> _detectionLogger;
 };
 
 } // namespace target

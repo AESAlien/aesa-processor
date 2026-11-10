@@ -18,7 +18,7 @@ struct DetectionResultBase
     const std::chrono::milliseconds transmitTime;
     const std::vector<Observation> observations;
 
-    virtual ~DetectionResultBase() = default;
+    ~DetectionResultBase() = default;
 
 protected:
     DetectionResultBase(

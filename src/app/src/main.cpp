@@ -2,7 +2,8 @@
 #include <app/channel/comm_channel.hpp>
 #include <app/channel/target_channel.hpp>
 
-#include <app/log/logger.hpp>
+#include <app/log/csv_log_manager.hpp>
+#include <app/log/message_log_manager.hpp>
 
 #include <app/worker/beam_worker.hpp>
 #include <app/worker/comm_worker.hpp>
@@ -15,6 +16,7 @@
 #include <spdlog/spdlog.h>
 
 #include "config_loader.hpp"
+#include "log/logger/detection_event_csv_logger.hpp"
 
 #include <array>
 #include <chrono>
@@ -32,8 +34,8 @@ namespace
 
 constexpr std::chrono::milliseconds BEAM_PERIOD{10};
 
-constexpr char LOG_PATH[] = "logs/radar.log";
-constexpr char ERROR_LOG_PATH[] = "logs/error.log";
+constexpr char LOG_PATH[] = "logs/adp.log";
+constexpr char DETECTION_LOG_PATH[] = "logs/adp_detection.csv";
 
 volatile std::sig_atomic_t stopRequested = 0;
 
@@ -49,50 +51,40 @@ void printEndpoint(
 {
     std::cout
         << label
-        << endpoint.address()
+        << endpoint.getAddress()
         << ':'
-        << endpoint.port()
+        << endpoint.getPort()
         << '\n';
 }
 
-[[noreturn]] void exitAfterLogging(
-    logging::LogManager& logs,
-    int status) noexcept
+class SpdlogRuntime
 {
-    try
+public:
+    SpdlogRuntime()
     {
-        logs.shutdown();
-    }
-    catch (const std::exception& error)
-    {
-        // 로거 종료 처리에 실패하면 콘솔로 출력한다.
-        std::fprintf(
-            stderr,
-            "[main] %s\n",
-            error.what());
-
-        status = EXIT_FAILURE;
-    }
-    catch (...)
-    {
-        std::fprintf(
-            stderr,
-            "[main] Logging shutdown failed\n");
-
-        status = EXIT_FAILURE;
+        // 레지스트리가 로그 관리자보다 나중에 소멸하도록 먼저 생성한다.
+        spdlog::default_logger();
     }
 
-    // 현재는 통신 수신 대기를 취소하는 기능이 없으므로,
-    // 로그 정리 후 프로세스를 종료한다.
-    std::_Exit(status);
-}
+    ~SpdlogRuntime() noexcept
+    {
+        // 로그 관리자 소멸 후 전역 자원을 한 번만 정리한다.
+        try
+        {
+            spdlog::shutdown();
+        }
+        catch (...)
+        {
+            std::fprintf(stderr, "[main] Logging shutdown failed\n");
+        }
+    }
+};
 
 template <typename Action>
 void runWorker(
-    logging::LogManager& logs,
     const char* name,
-    Action action)
-{
+    Action action
+) {
     std::shared_ptr<spdlog::logger> logger;
 
     try
@@ -150,39 +142,39 @@ void runWorker(
 
     // 일반적인 모듈 예외는 각 워커 내부에서 처리한다.
     // 여기까지 도달한 경우는 워커 자체가 종료된 상황이다.
-    exitAfterLogging(logs, EXIT_FAILURE);
+    std::exit(EXIT_FAILURE);
 }
 
 } // namespace
 
 int main()
 {
-    // 공용 로그 자원을 관리하는 객체는 main에서 하나만 생성한다.
-    logging::LogManager logs;
-
     std::array<std::thread, 5> threads;
 
     std::shared_ptr<spdlog::logger> mainLogger;
 
     try
     {
-        // 1. 공용 로그 큐, 기록 스레드와 출력 파일을 준비한다.
-        logs.initialize(
+        // 1. 생성 시 로그 큐, 기록 스레드와 출력 파일을 준비한다.
+        // std::exit()에서도 소멸자가 실행되도록 프로그램 수명으로 유지한다.
+        // 선언의 역순으로 CSV, 메시지, 전역 spdlog 자원을 정리한다.
+        static SpdlogRuntime spdlogRuntime;
+        static app::MessageLogManager messageLogManager(
             LOG_PATH,
-            ERROR_LOG_PATH,
-            4096);
-
-        // 초기화 이후 조기에 종료돼도 로그 위치를 확인할 수 있도록
-        // 설정 파일 로드 전에 안내하고 즉시 출력 버퍼를 비운다.
-        std::cout
-            << "[LOG FILE] " << LOG_PATH << '\n'
-            << "[ERROR LOG FILE] " << ERROR_LOG_PATH << '\n'
-            << std::flush;
+            4096
+        );
+        static app::CsvLogManager csvLogManager(4096);
 
         // 2. main 스레드용 로거를 등록한다.
-        logs.addLogger("main");
-
+        messageLogManager.addLogger("main");
         mainLogger = spdlog::get("main");
+
+        const auto detectionCsvPath = csvLogManager.addTimestampedLogger(
+            app::DetectionEventCsvLogger::LOGGER_NAME,
+            DETECTION_LOG_PATH,
+            app::DetectionEventCsvLogger::header()
+        );
+        std::cout << "[DETECTION CSV FILE] " << detectionCsvPath.string() << '\n' << std::flush;
 
         // 3. 업무 워커별 로거를 등록한다.
         // 기본 설정은 INFO 이상 기록, 큐 포화 시 새 로그 버리기다.
@@ -195,7 +187,7 @@ int main()
                  "CommSendConsole"
              })
         {
-            logs.addLogger(name);
+            messageLogManager.addLogger(name);
         }
 
         mainLogger->info(
@@ -224,7 +216,9 @@ int main()
             config.beamConfig);
 
         target::TargetController targetController(
-            config.targetConfig);
+            config.targetConfig,
+            std::make_shared<app::DetectionEventCsvLogger>()
+        );
 
         comm::CommController commController(
             config.commConfig);
@@ -272,7 +266,7 @@ int main()
             // 9. 각 워커를 별도 스레드에서 실행한다.
             threads[0] = std::thread([&]
             {
-                runWorker(logs, "BeamWorker", [&]
+                runWorker("BeamWorker", [&]
                 {
                     beamWorker.run();
                 });
@@ -280,7 +274,7 @@ int main()
 
             threads[1] = std::thread([&]
             {
-                runWorker(logs, "TargetWorker", [&]
+                runWorker("TargetWorker", [&]
                 {
                     targetWorker.run();
                 });
@@ -288,7 +282,7 @@ int main()
 
             threads[2] = std::thread([&]
             {
-                runWorker(logs, "CommReceive", [&]
+                runWorker("CommReceive", [&]
                 {
                     receiveWorker.runReceive();
                 });
@@ -296,7 +290,7 @@ int main()
 
             threads[3] = std::thread([&]
             {
-                runWorker(logs, "CommSendSimulator", [&]
+                runWorker("CommSendSimulator", [&]
                 {
                     simulatorSendWorker.runSendSimulator();
                 });
@@ -304,7 +298,7 @@ int main()
 
             threads[4] = std::thread([&]
             {
-                runWorker(logs, "CommSendConsole", [&]
+                runWorker("CommSendConsole", [&]
                 {
                     consoleSendWorker.runSendConsole();
                 });
@@ -314,9 +308,12 @@ int main()
                 "Five worker threads started; beam tick = 10 ms");
 
             std::cout
-                << "[START] Five worker threads running\n"
-                << "[BEAM PERIOD] 10 ms\n";
-
+                << "[START] 5 worker threads running; beam tick = 10ms\n"
+                << "[SERVER] "
+                << config.commConfig.server().getAddress()
+                << ':'
+                << config.commConfig.server().getPort()
+                << '\n';
             printEndpoint(
                 "[SERVER] ",
                 config.commConfig.server());
@@ -373,7 +370,7 @@ int main()
             mainLogger->info(
                 "Shutdown requested");
 
-            exitAfterLogging(logs, EXIT_SUCCESS);
+            std::exit(EXIT_SUCCESS);
         }
         catch (const std::exception& error)
         {
@@ -381,14 +378,14 @@ int main()
                 "{}",
                 error.what());
 
-            exitAfterLogging(logs, EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         }
         catch (...)
         {
             mainLogger->error(
                 "Unknown thread or timer failure");
 
-            exitAfterLogging(logs, EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         }
     }
     catch (const std::exception& error)
@@ -423,5 +420,5 @@ int main()
         }
     }
 
-    exitAfterLogging(logs, EXIT_FAILURE);
+    std::exit(EXIT_FAILURE);
 }
