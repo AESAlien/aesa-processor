@@ -45,11 +45,12 @@ void write(
 }
 
 void writeAttitude(
+    spdlog::level::level_enum level,
     const char* event,
     const beam::SetAttitudeCommand& command
 ) noexcept {
     write(
-        spdlog::level::info,
+        level,
         "Attitude {}: roll={}, pitch={}, yaw={}",
         event,
         command.roll.deg(),
@@ -66,17 +67,19 @@ void BeamEventMessageLogger::logOperationStateChanged(beam::OperationState state
 
 void BeamEventMessageLogger::logAttitudeApplied(const beam::SetAttitudeCommand& command) noexcept
 {
-    writeAttitude("applied", command);
+    writeAttitude(spdlog::level::info, "applied", command);
 }
 
 void BeamEventMessageLogger::logAttitudeIgnoredWhileOff(const beam::SetAttitudeCommand& command) noexcept
 {
-    writeAttitude("ignored (operation state is OFF)", command);
+    // ON 전에 받은 자세정보는 버려지므로, ON 이후 자세정보가 다시 오지 않으면 탐색 빔이 나가지 않는다.
+    writeAttitude(spdlog::level::warn, "ignored (operation state is OFF)", command);
 }
 
 void BeamEventMessageLogger::logAttitudeIgnoredAlreadySet(const beam::SetAttitudeCommand& command) noexcept
 {
-    writeAttitude("ignored (already set)", command);
+    // 운용 중 다시 받은 자세정보는 반영되지 않고 기존 자세정보를 계속 쓴다.
+    writeAttitude(spdlog::level::warn, "ignored (already set)", command);
 }
 
 void BeamEventMessageLogger::logRequestBeamRejected(const beam::RequestBeamResult& result) noexcept

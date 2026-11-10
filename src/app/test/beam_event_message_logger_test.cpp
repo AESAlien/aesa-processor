@@ -78,20 +78,19 @@ TEST_F(BeamEventMessageLoggerTest, LogsOperationStateChangeAsInfo)
     EXPECT_EQ(_messages[1].text, "Operation state changed: OFF");
 }
 
-// 자세정보의 반영과 무시는 이유와 자세값을 담아 info로 기록한다.
-TEST_F(BeamEventMessageLoggerTest, LogsAttitudeEventsAsInfo)
+// 자세정보 반영은 info, 무시는 warn으로 이유와 자세값을 담아 기록한다.
+TEST_F(BeamEventMessageLoggerTest, LogsAttitudeAppliedAsInfoAndIgnoredAsWarn)
 {
     // When: 반영, 무시(OFF), 무시(이미 받음)를 기록한다.
     _beamLogger.logAttitudeApplied(attitude());
     _beamLogger.logAttitudeIgnoredWhileOff(attitude());
     _beamLogger.logAttitudeIgnoredAlreadySet(attitude());
 
-    // Then: 모두 info이며 경우별 문구와 자세값을 담는다.
+    // Then: 반영만 info이고 무시 두 경우는 warn이며, 경우별 문구와 자세값을 담는다.
     ASSERT_EQ(_messages.size(), 3u);
-    for (const auto& message : _messages)
-    {
-        EXPECT_EQ(message.level, spdlog::level::info);
-    }
+    EXPECT_EQ(_messages[0].level, spdlog::level::info);
+    EXPECT_EQ(_messages[1].level, spdlog::level::warn);
+    EXPECT_EQ(_messages[2].level, spdlog::level::warn);
     EXPECT_EQ(_messages[0].text, "Attitude applied: roll=1.5, pitch=-2.5, yaw=30");
     EXPECT_EQ(_messages[1].text, "Attitude ignored (operation state is OFF): roll=1.5, pitch=-2.5, yaw=30");
     EXPECT_EQ(_messages[2].text, "Attitude ignored (already set): roll=1.5, pitch=-2.5, yaw=30");

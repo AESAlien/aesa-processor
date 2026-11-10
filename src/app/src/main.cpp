@@ -177,8 +177,13 @@ int main()
         );
         std::cout << "[DETECTION CSV FILE] " << detectionCsvPath.string() << '\n' << std::flush;
 
-        // 빔 처리 이벤트(운용 상태 변경, 자세정보 반영·무시, 요청 거부)는 메시지 로그에 기록한다.
-        messageLogManager.addLogger(app::BeamEventMessageLogger::LOGGER_NAME);
+        // 빔 처리 이벤트(운용 상태 변경, 자세정보 반영·무시, 요청 거부)는 메시지 로그에 기록하고 콘솔에도 출력한다.
+        messageLogManager.addLogger(
+            app::BeamEventMessageLogger::LOGGER_NAME,
+            spdlog::level::info,
+            spdlog::async_overflow_policy::discard_new,
+            spdlog::level::info
+        );
 
         // 3. 업무 워커별 로거를 등록한다.
         // 기본 설정은 INFO 이상 기록, 큐 포화 시 새 로그 버리기다.
