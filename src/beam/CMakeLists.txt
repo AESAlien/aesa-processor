@@ -6,7 +6,7 @@ add_library(beam STATIC
     src/search/search_grid.cpp
 
     src/request/beam_request.cpp
-    src/request/beam_request_factory.cpp
+    src/request/factory/beam_request_factory.cpp
     src/request/request_coverage.cpp
     src/request/request_queue.cpp
 
