@@ -1,6 +1,7 @@
 #pragma once
 
 #include <app/queue/message_queue.hpp>
+#include <beam/dto/set_attitude_command.hpp>
 #include <beam/dto/transmit_beam_command.hpp>
 #include <target/dto/track_event.hpp>
 
@@ -10,9 +11,11 @@
 
 namespace app
 {
+// TransmitBeamCommand는 모의기 큐에, 나머지는 전시기 큐에 넣는다.
 using CommEvent = std::variant<
     beam::TransmitBeamCommand,
-    std::vector<target::TrackEvent>>;
+    std::vector<target::TrackEvent>,
+    beam::SetAttitudeCommand>;
 
 class CommChannel final
 {

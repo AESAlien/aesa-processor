@@ -71,6 +71,16 @@ public:
         _networkManager.sendToOperatorConsole(*result.bytes);
     }
 
+    void sendRadarAttitude(const beam::SetAttitudeCommand& command)
+    {
+        const EncodeResult result = encodeRadarAttitude(command);
+        if (!result.bytes)
+        {
+            controller_error::throwEncodingFailure("operator-console", result.error);
+        }
+        _networkManager.sendToOperatorConsole(*result.bytes);
+    }
+
 private:
     // 오류가 발생한 프레임 이전에 디코딩한 메시지는 대기열에 유지한다.
     void decodeFrames(const ReceivedFrames& received)
@@ -123,6 +133,12 @@ void CommController::sendTrackEvents(
     const std::vector<target::TrackEvent>& trackEvents
 ) {
     _impl->sendTrackEvents(trackEvents);
+}
+
+void CommController::sendRadarAttitude(
+    const beam::SetAttitudeCommand& command
+) {
+    _impl->sendRadarAttitude(command);
 }
 
 } // namespace comm

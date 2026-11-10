@@ -1,6 +1,7 @@
 #include <message/message_encoder.hpp>
 
 #include <protocol/ST_BeamTxMsg.hpp>
+#include <protocol/ST_RadarAttMsg.hpp>
 #include <protocol/ST_TrkMsg.hpp>
 
 #include <gtest/gtest.h>
@@ -55,6 +56,18 @@ target::TrackEvent makeTrackEvent(
         math::TiltAngle(-2.25_deg),
         timestamp
     );
+}
+
+beam::SetAttitudeCommand makeAttitudeCommand(double longitudeDegrees = 127.25)
+{
+    return beam::SetAttitudeCommand::Builder()
+        .latitude(37.5_deg)
+        .longitude(math::Angle::fromDegrees(longitudeDegrees))
+        .altitude(1250.0_m)
+        .roll(-12.5_deg)
+        .pitch(6.25_deg)
+        .yaw(45.5_deg)
+        .build();
 }
 
 template <typename Value>
@@ -145,6 +158,53 @@ TEST(MessageEncoderTest, EncodesBeamCommand)
     {
         EXPECT_EQ(padding, 0);
     }
+}
+
+// 레이더 자세를 전시기용 자세 메시지로 변환하고 고도는 킬로미터로 보낸다.
+TEST(MessageEncoderTest, EncodesRadarAttitudeForConsole)
+{
+    // 준비: 축마다 다른 각도와 1250미터 고도를 가진 자세 명령을 준비한다.
+    const auto command = makeAttitudeCommand();
+
+    // 실행: 자세 명령을 바이트 배열로 인코딩한다.
+    const comm::EncodeResult result = comm::encodeRadarAttitude(command);
+
+    // 검증: 전시기용 메시지 ID와 크기를 갖고 각 축이 뒤바뀌지 않는다.
+    ASSERT_EQ(result.error, comm::EncodingError::NONE);
+    ASSERT_TRUE(result.bytes.has_value());
+    ASSERT_EQ(result.bytes->size(), sizeof(comm::protocol::ST_RadarAttMsg));
+
+    const comm::protocol::ST_RadarAttMsg message =
+        readValue<comm::protocol::ST_RadarAttMsg>(*result.bytes);
+
+    EXPECT_EQ(
+        message.msgHeader.message_Id,
+        static_cast<uint16_t>(comm::protocol::MessageId::RADAR_ATTITUDE_TO_CONSOLE)
+    );
+    EXPECT_EQ(message.msgHeader.block_size, sizeof(message));
+    EXPECT_DOUBLE_EQ(message.radar_lat_deg, 37.5);
+    EXPECT_DOUBLE_EQ(message.radar_lon_deg, 127.25);
+    EXPECT_DOUBLE_EQ(message.radar_alt_km, 1.25);
+    EXPECT_DOUBLE_EQ(message.roll_deg, -12.5);
+    EXPECT_DOUBLE_EQ(message.pitch_deg, 6.25);
+    EXPECT_DOUBLE_EQ(message.yaw_deg, 45.5);
+}
+
+// 음수 경도는 방위각과 같이 0도 이상 360도 미만의 값으로 전송한다.
+TEST(MessageEncoderTest, EncodesNegativeLongitudeAsZeroToThreeSixtyOnWire)
+{
+    // 준비: 서경 122.5도에 해당하는 자세 명령을 준비한다.
+    const auto command = makeAttitudeCommand(-122.5);
+
+    // 실행: 자세 명령을 바이트 배열로 인코딩한다.
+    const comm::EncodeResult result = comm::encodeRadarAttitude(command);
+
+    // 검증: 경도는 같은 방향인 237.5도로 전송한다.
+    ASSERT_TRUE(result.bytes.has_value());
+    EXPECT_DOUBLE_EQ(
+        readValue<comm::protocol::ST_RadarAttMsg>(*result.bytes).radar_lon_deg,
+        237.5
+    );
 }
 
 // 음수 방위각은 0도 이상 360도 미만의 값으로 전송한다.
