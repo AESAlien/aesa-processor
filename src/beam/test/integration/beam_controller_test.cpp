@@ -616,3 +616,41 @@ TEST(BeamControllerTest, RequestBeamResultCarriesRequestIdForEveryStatus)
     EXPECT_EQ(outOfCoverage.status, beam::RequestBeamStatus::OUT_OF_COVERAGE);
     EXPECT_EQ(outOfCoverage.requestId, third.requestId);
 }
+
+// 컨트롤러는 운용 상태 변경 결과를 그대로 반환한다.
+TEST(BeamControllerTest, SetOperationStateReturnsStatus)
+{
+    // Given: 꺼진 컨트롤러를 준비한다.
+    auto controller = makeDefaultController();
+    const auto on = beam::SetOperationStateCommand(beam::OperationState::ON);
+    const auto off = beam::SetOperationStateCommand(beam::OperationState::OFF);
+
+    // When: ON, ON, OFF를 차례로 전달한다.
+    const auto turnedOn = controller.setOperationState(on);
+    const auto onAgain = controller.setOperationState(on);
+    const auto turnedOff = controller.setOperationState(off);
+
+    // Then: 상태가 바뀐 경우만 CHANGED를 반환한다.
+    EXPECT_EQ(turnedOn, beam::SetOperationStateStatus::CHANGED);
+    EXPECT_EQ(onAgain, beam::SetOperationStateStatus::UNCHANGED);
+    EXPECT_EQ(turnedOff, beam::SetOperationStateStatus::CHANGED);
+}
+
+// 컨트롤러는 자세정보의 반영 결과를 경우별로 반환한다.
+TEST(BeamControllerTest, SetAttitudeReturnsStatusForEachCase)
+{
+    // Given: 꺼진 컨트롤러와 유효한 자세정보를 준비한다.
+    auto controller = makeDefaultController();
+    const auto attitude = makeSetAttitudeCommand(0_deg, 0_deg, 0_deg);
+
+    // When: OFF 상태, ON 후 첫 번째, ON 후 두 번째에 자세정보를 전달한다.
+    const auto whileOff = controller.setAttitude(attitude);
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    const auto first = controller.setAttitude(attitude);
+    const auto second = controller.setAttitude(attitude);
+
+    // Then: 각각 IGNORED_NOT_ON, APPLIED, IGNORED_ALREADY_SET을 반환한다.
+    EXPECT_EQ(whileOff, beam::SetAttitudeStatus::IGNORED_NOT_ON);
+    EXPECT_EQ(first, beam::SetAttitudeStatus::APPLIED);
+    EXPECT_EQ(second, beam::SetAttitudeStatus::IGNORED_ALREADY_SET);
+}

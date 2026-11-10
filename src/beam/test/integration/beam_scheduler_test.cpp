@@ -714,3 +714,67 @@ TEST(BeamSchedulerTest, RequestBeamWidthFollowsEachRequest)
     EXPECT_EQ(tracking->beamWidth.azimuth, 4_deg);
     EXPECT_EQ(tracking->beamWidth.elevation, 5_deg);
 }
+
+// 스케줄러는 운용 상태가 바뀔 때만 CHANGED를 반환한다.
+TEST(BeamSchedulerTest, SetOperationStateReturnsChangedOnlyWhenStateChanges)
+{
+    // Given: 초기 상태(OFF)의 스케줄러를 준비한다.
+    beam::BeamScheduler scheduler;
+
+    // When: 같은 상태와 다른 상태를 번갈아 전달한다.
+    const auto offWhileOff = scheduler.setOperationState(beam::OperationState::OFF);
+    const auto onWhileOff = scheduler.setOperationState(beam::OperationState::ON);
+    const auto onWhileOn = scheduler.setOperationState(beam::OperationState::ON);
+    const auto offWhileOn = scheduler.setOperationState(beam::OperationState::OFF);
+
+    // Then: 상태가 바뀐 경우만 CHANGED, 같은 상태는 UNCHANGED를 반환한다.
+    EXPECT_EQ(offWhileOff, beam::SetOperationStateStatus::UNCHANGED);
+    EXPECT_EQ(onWhileOff, beam::SetOperationStateStatus::CHANGED);
+    EXPECT_EQ(onWhileOn, beam::SetOperationStateStatus::UNCHANGED);
+    EXPECT_EQ(offWhileOn, beam::SetOperationStateStatus::CHANGED);
+}
+
+// 스케줄러는 OFF 상태에서 받은 자세 프레임에 IGNORED_NOT_ON을 반환한다.
+TEST(BeamSchedulerTest, SetAttitudeFrameReturnsIgnoredNotOnWhileOff)
+{
+    // Given: 초기 상태(OFF)의 스케줄러를 준비한다.
+    beam::BeamScheduler scheduler;
+
+    // When: OFF 상태에서 자세 프레임을 전달한다.
+    const auto status = scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
+
+    // Then: ON이 아니어서 무시했다는 결과를 반환한다.
+    EXPECT_EQ(status, beam::SetAttitudeStatus::IGNORED_NOT_ON);
+}
+
+// 스케줄러는 ON 이후 첫 자세 프레임만 반영하고, 이후 프레임에는 IGNORED_ALREADY_SET을 반환한다.
+TEST(BeamSchedulerTest, SetAttitudeFrameReturnsAppliedOnlyForFirstFrameAfterOn)
+{
+    // Given: ON 상태의 스케줄러를 준비한다.
+    beam::BeamScheduler scheduler;
+    scheduler.setOperationState(beam::OperationState::ON);
+
+    // When: 자세 프레임을 두 번 전달한다.
+    const auto first = scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
+    const auto second = scheduler.setAttitudeFrame(makeAttitudeFrame(0_deg, 0_deg, 30_deg));
+
+    // Then: 첫 프레임은 반영하고 두 번째 프레임은 이미 받은 상태여서 무시한다.
+    EXPECT_EQ(first, beam::SetAttitudeStatus::APPLIED);
+    EXPECT_EQ(second, beam::SetAttitudeStatus::IGNORED_ALREADY_SET);
+}
+
+// 스케줄러는 OFF 후 다시 ON하면 자세 프레임을 다시 반영한다.
+TEST(BeamSchedulerTest, SetAttitudeFrameReturnsAppliedAgainAfterRestart)
+{
+    // Given: 자세 프레임까지 받은 준비 상태의 스케줄러를 준비한다.
+    beam::BeamScheduler scheduler;
+    makeReady(scheduler);
+
+    // When: OFF 후 다시 ON하고 자세 프레임을 전달한다.
+    scheduler.setOperationState(beam::OperationState::OFF);
+    scheduler.setOperationState(beam::OperationState::ON);
+    const auto status = scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
+
+    // Then: ON 때 상태가 초기화되므로 자세 프레임을 다시 반영한다.
+    EXPECT_EQ(status, beam::SetAttitudeStatus::APPLIED);
+}

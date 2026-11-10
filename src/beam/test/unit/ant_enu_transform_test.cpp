@@ -4,6 +4,7 @@
 
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <math/trigonometry.hpp>
 
 using namespace math::literals;
@@ -30,6 +31,23 @@ beam::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::A
         makeRadarAttitude(roll, pitch, yaw),
         validConfigBuilder().build()
     );
+}
+
+// 함수가 던진 std::invalid_argument의 메시지를 반환한다. 예외가 없으면 실패로 기록하고 빈 문자열을 반환한다.
+template <typename Function>
+std::string invalidArgumentMessage(Function&& function)
+{
+    try
+    {
+        function();
+    }
+    catch (const std::invalid_argument& error)
+    {
+        return error.what();
+    }
+
+    ADD_FAILURE() << "std::invalid_argument was not thrown";
+    return {};
 }
 
 } // namespace
@@ -158,4 +176,20 @@ TEST(AntEnuTransformTest, AntToEnuAndBackRestoresAngles)
             EXPECT_EQ(directionRestored_ant.elevation, elevation_ant);
         }
     }
+}
+
+// 짐벌락 오류 메시지는 입력된 피치와 설정된 피치 한계를 포함한다.
+TEST(AntEnuTransformTest, GimbalLockMessageIncludesPitchAndLimit)
+{
+    // Given: 피치 한계 60도 설정과 이를 넘는 자세를 준비한다.
+    const auto config = validConfigBuilder().maxAbsPitch(60_deg).build();
+    const auto attitude = makeRadarAttitude(0_deg, 70_deg, 0_deg);
+
+    // When: 좌표 변환 생성을 시도한다.
+    const auto message = invalidArgumentMessage([&] { beam::AntEnuTransform(attitude, config); });
+
+    // Then: 메시지에 원인과 피치, 피치 한계가 함께 담긴다.
+    EXPECT_NE(message.find("gimbal lock"), std::string::npos) << message;
+    EXPECT_NE(message.find("pitch=70"), std::string::npos) << message;
+    EXPECT_NE(message.find("maxAbsPitch=60"), std::string::npos) << message;
 }

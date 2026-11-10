@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <string>
 
 using namespace std::chrono_literals;
 using namespace math::literals;
@@ -16,6 +17,23 @@ namespace
 math::SphericalDirection makeDirection()
 {
     return math::SphericalDirection(12.5_deg, 20.5_deg);
+}
+
+// 함수가 던진 std::invalid_argument의 메시지를 반환한다. 예외가 없으면 실패로 기록하고 빈 문자열을 반환한다.
+template <typename Function>
+std::string invalidArgumentMessage(Function&& function)
+{
+    try
+    {
+        function();
+    }
+    catch (const std::invalid_argument& error)
+    {
+        return error.what();
+    }
+
+    ADD_FAILURE() << "std::invalid_argument was not thrown";
+    return {};
 }
 
 } // namespace
@@ -93,4 +111,26 @@ TEST(BeamRequestTest, RejectsZeroRequestId)
 
     // Then: 빔 요청은 요청 ID 0을 거부한다.
     EXPECT_THROW(construct(), std::invalid_argument);
+}
+
+// 빔 요청의 검증 오류 메시지는 송신 시각과 요청 ID를 포함한다.
+TEST(BeamRequestTest, ValidationMessageIncludesInputValues)
+{
+    // Given: 송신 시각이 음수인 입력과 요청 ID가 0인 입력을 준비한다.
+    const auto width = beam::BeamWidth(3_deg, 3_deg);
+    const auto direction = makeDirection();
+
+    // When: 각 입력으로 빔 요청 생성을 시도한다.
+    const auto negativeTimeMessage = invalidArgumentMessage([&] {
+        beam::BeamRequest(beam::BeamType::TRACKING, width, 0, -10ms, 3, direction);
+    });
+    const auto zeroIdMessage = invalidArgumentMessage([&] {
+        beam::BeamRequest(beam::BeamType::TRACKING, width, 0, 120ms, 0, direction);
+    });
+
+    // Then: 메시지에 원인과 입력값이 함께 담긴다.
+    EXPECT_NE(negativeTimeMessage.find("transmit time must not be negative"), std::string::npos) << negativeTimeMessage;
+    EXPECT_NE(negativeTimeMessage.find("transmitTime=-10ms, requestId=3"), std::string::npos) << negativeTimeMessage;
+    EXPECT_NE(zeroIdMessage.find("request id must not be 0"), std::string::npos) << zeroIdMessage;
+    EXPECT_NE(zeroIdMessage.find("transmitTime=120ms"), std::string::npos) << zeroIdMessage;
 }
