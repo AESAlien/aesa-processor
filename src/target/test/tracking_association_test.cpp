@@ -773,6 +773,18 @@ TEST(TrackingAssociationControllerTest, NearestSuccessResetsMissesAndPreservesOt
     EXPECT_EQ(events[1].slantRange, 2000_m);
     EXPECT_EQ(events[1].timestamp, 300ms);
 
+    // 두 번째 트랙도 예정된 추적 결과를 받아 응답 없는 트랙으로 삭제되지 않게 한다.
+    ASSERT_TRUE(
+        controller.handleDetection(
+            result(
+                BeamType::TRACKING,
+                secondConfirmation->requestId,
+                1300ms,
+                {2000_m}
+            )
+        )
+    );
+
     ASSERT_TRUE(
         controller.handleDetection(
             result(
@@ -806,9 +818,9 @@ TEST(TrackingAssociationControllerTest, NearestSuccessResetsMissesAndPreservesOt
     const auto remaining = controller.nextTrackEvents();
     ASSERT_EQ(remaining.size(), 1u);
     EXPECT_EQ(remaining[0].id, secondConfirmation->requestId);
-    EXPECT_EQ(remaining[0].timestamp, 300ms);
+    EXPECT_EQ(remaining[0].timestamp, 1300ms);
 
-    // 남은 트랙은 4.9초간 관측되지 않아 예측 불확실성과 연관 허용 범위가 커진다.
+    // 남은 트랙은 3.9초간 관측되지 않아 예측 불확실성과 연관 허용 범위가 커진다.
     const auto next = controller.handleDetection(result(BeamType::SEARCH, 1, 5200ms, {10000_m}));
     ASSERT_TRUE(next);
     EXPECT_EQ(next->requestId, 3u);
