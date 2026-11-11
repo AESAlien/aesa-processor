@@ -42,7 +42,7 @@ target_include_directories(app PRIVATE
 )
 
 set_target_properties(app PROPERTIES
-    OUTPUT_NAME radar_worker_test
+    OUTPUT_NAME adp
 )
 
 target_link_libraries(app PRIVATE
