@@ -1,5 +1,6 @@
 #include "attitude/radar_attitude.hpp"
 
+#include <sstream>
 #include <stdexcept>
 
 namespace beam
@@ -37,12 +38,18 @@ void RadarAttitude::validate(math::Angle roll, math::Angle yaw)
 
     if (roll < -180_deg || roll > 180_deg)
     {
-        throw std::invalid_argument("RadarAttitude: roll must be in [-180, 180] degrees");
+        std::ostringstream message;
+        message << "RadarAttitude: roll must be in [-180, 180] degrees"
+                << ": roll=" << roll.deg();
+        throw std::invalid_argument(message.str());
     }
 
     if (yaw < -360_deg || yaw > 360_deg)
     {
-        throw std::invalid_argument("RadarAttitude: yaw must be in [-360, 360] degrees");
+        std::ostringstream message;
+        message << "RadarAttitude: yaw must be in [-360, 360] degrees"
+                << ": yaw=" << yaw.deg();
+        throw std::invalid_argument(message.str());
     }
 }
 

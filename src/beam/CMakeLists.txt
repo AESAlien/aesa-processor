@@ -3,12 +3,14 @@ add_library(beam STATIC
 
     src/domain/beam_width.cpp
 
+    src/search/search_grid.cpp
+
+    src/request/beam_request.cpp
+    src/request/factory/beam_request_factory.cpp
+    src/request/request_coverage.cpp
+    src/request/request_queue.cpp
+
     src/scheduler/attitude_frame.cpp
-    src/scheduler/beam_request.cpp
-    src/scheduler/beam_request_factory.cpp
-    src/scheduler/request_coverage.cpp
-    src/scheduler/search_grid.cpp
-    src/scheduler/request_queue.cpp
     src/scheduler/beam_scheduler.cpp
 
     src/attitude/ant_enu_transform.cpp
@@ -142,7 +144,7 @@ if(BUILD_TESTING)
     gtest_discover_tests(beam_controller_test)
 
     add_executable(beam_scheduler_scenario_test
-        test/beam_scheduler_scenario_test.cpp
+        test/scenario/beam_scheduler_scenario_test.cpp
     )
     target_include_directories(beam_scheduler_scenario_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -155,7 +157,7 @@ if(BUILD_TESTING)
 
     # SearchGrid 값을 출력하는 시각화용 도구
     add_executable(beam_table_dump
-        test/dump_beam_table.cpp
+        test/tools/dump_beam_table.cpp
     )
     target_include_directories(beam_table_dump PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -164,10 +166,11 @@ if(BUILD_TESTING)
 
     # 빔 스케줄을 출력하는 시각화용 도구
     add_executable(beam_schedule_dump
-        test/dump_schedule.cpp
+        test/tools/dump_schedule.cpp
     )
     target_include_directories(beam_schedule_dump PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test"
     )
     target_link_libraries(beam_schedule_dump PRIVATE beam)
 endif()

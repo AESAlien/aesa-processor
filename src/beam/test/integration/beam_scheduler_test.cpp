@@ -201,7 +201,7 @@ TEST(BeamSchedulerTest, ReturnsSearchBeamsInGridOrderWhenNoRequests)
         // Then: 요청이 없는 스케줄러는 격자 순서로 탐색 빔을 송신한다.
         ASSERT_TRUE(command.has_value()) << "index=" << index;
         EXPECT_EQ(command->beamType, beam::BeamType::SEARCH) << "index=" << index;
-        EXPECT_EQ(command->beamId, static_cast<std::uint32_t>(index + 1)) << "index=" << index;
+        EXPECT_EQ(command->beamId, static_cast<std::uint32_t>(index)) << "index=" << index;
         EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(index))) << "index=" << index;
         EXPECT_EQ(command->direction_ant.elevation, gridElevation(index)) << "index=" << index;
         EXPECT_EQ(command->beamWidth.azimuth, 6_deg);
@@ -229,7 +229,7 @@ TEST(BeamSchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
     const auto wrapped = scheduler.next(std::chrono::milliseconds(10 * beamCount));
 
     ASSERT_TRUE(wrapped.has_value());
-    EXPECT_EQ(wrapped->beamId, 1u);
+    EXPECT_EQ(wrapped->beamId, 0u);
 }
 
 // 탐색 명령의 송신 시각은 해당 틱의 현재 시각이다.
@@ -354,7 +354,7 @@ TEST(BeamSchedulerTest, RequestBeamDoesNotAdvanceSearchCursor)
     EXPECT_EQ(request->beamType, beam::BeamType::CONFIRMATION);
     ASSERT_TRUE(search.has_value());
     EXPECT_EQ(search->beamType, beam::BeamType::SEARCH);
-    EXPECT_EQ(search->beamId, 3u);
+    EXPECT_EQ(search->beamId, 2u);
 }
 
 // 지연된 요청 명령의 송신 시각은 현재 틱의 시각이다.
@@ -393,7 +393,7 @@ TEST(BeamSchedulerTest, VeryOldRequestIsStillSentAsRequestBeam)
     EXPECT_EQ(request->transmitTime, 10000ms);
     ASSERT_TRUE(search.has_value());
     EXPECT_EQ(search->beamType, beam::BeamType::SEARCH);
-    EXPECT_EQ(search->beamId, 1u);
+    EXPECT_EQ(search->beamId, 0u);
 }
 
 // 스케줄러는 몰린 요청을 차례로 송신하고 탐색을 이어간다.
@@ -424,7 +424,7 @@ TEST(BeamSchedulerTest, CrowdedTicksFollowDesignedScenario)
     ASSERT_TRUE(at1040.has_value());
     ASSERT_TRUE(at1050.has_value());
     EXPECT_EQ(at1000->beamType, beam::BeamType::SEARCH);
-    EXPECT_EQ(at1000->beamId, 1u);
+    EXPECT_EQ(at1000->beamId, 0u);
 
     EXPECT_EQ(at1010->beamType, beam::BeamType::TRACKING);
     EXPECT_TRUE(at1010->direction_ant.azimuth.isEquivalentTo(1_deg));
@@ -440,7 +440,7 @@ TEST(BeamSchedulerTest, CrowdedTicksFollowDesignedScenario)
     EXPECT_TRUE(at1040->direction_ant.azimuth.isEquivalentTo(4_deg));
 
     EXPECT_EQ(at1050->beamType, beam::BeamType::SEARCH);
-    EXPECT_EQ(at1050->beamId, 2u);
+    EXPECT_EQ(at1050->beamId, 1u);
 }
 
 // 송신 명령 수는 빔 종류와 관계없이 1부터 연속 증가한다.
@@ -576,7 +576,7 @@ TEST(BeamSchedulerTest, RequestOutsideCoverageIsNotQueued)
     EXPECT_EQ(status2, beam::RequestBeamStatus::OUT_OF_COVERAGE);
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
-    EXPECT_EQ(command->beamId, 1u);
+    EXPECT_EQ(command->beamId, 0u);
 }
 
 // 스케줄러는 받은 자세 프레임의 영역 판정으로 요청을 접수한다.
@@ -646,7 +646,7 @@ TEST(BeamSchedulerTest, TurningOnAgainAfterOffResetsEverything)
     EXPECT_FALSE(beforeAttitude.has_value());
     ASSERT_TRUE(first.has_value());
     EXPECT_EQ(first->beamType, beam::BeamType::SEARCH);
-    EXPECT_EQ(first->beamId, 1u);
+    EXPECT_EQ(first->beamId, 0u);
     EXPECT_EQ(first->commandCount, 1u);
     EXPECT_TRUE(first->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0)));
 }
@@ -666,7 +666,7 @@ TEST(BeamSchedulerTest, TurningOnWhileAlreadyOnKeepsState)
 
     // Then: 켜진 상태에서 다시 켜도 탐색 순서와 명령 수는 유지된다.
     ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamId, 2u);
+    EXPECT_EQ(command->beamId, 1u);
     EXPECT_EQ(command->commandCount, 2u);
 }
 
@@ -713,4 +713,68 @@ TEST(BeamSchedulerTest, RequestBeamWidthFollowsEachRequest)
     EXPECT_EQ(tracking->beamType, beam::BeamType::TRACKING);
     EXPECT_EQ(tracking->beamWidth.azimuth, 4_deg);
     EXPECT_EQ(tracking->beamWidth.elevation, 5_deg);
+}
+
+// 스케줄러는 운용 상태가 바뀔 때만 CHANGED를 반환한다.
+TEST(BeamSchedulerTest, SetOperationStateReturnsChangedOnlyWhenStateChanges)
+{
+    // Given: 초기 상태(OFF)의 스케줄러를 준비한다.
+    beam::BeamScheduler scheduler;
+
+    // When: 같은 상태와 다른 상태를 번갈아 전달한다.
+    const auto offWhileOff = scheduler.setOperationState(beam::OperationState::OFF);
+    const auto onWhileOff = scheduler.setOperationState(beam::OperationState::ON);
+    const auto onWhileOn = scheduler.setOperationState(beam::OperationState::ON);
+    const auto offWhileOn = scheduler.setOperationState(beam::OperationState::OFF);
+
+    // Then: 상태가 바뀐 경우만 CHANGED, 같은 상태는 UNCHANGED를 반환한다.
+    EXPECT_EQ(offWhileOff, beam::SetOperationStateStatus::UNCHANGED);
+    EXPECT_EQ(onWhileOff, beam::SetOperationStateStatus::CHANGED);
+    EXPECT_EQ(onWhileOn, beam::SetOperationStateStatus::UNCHANGED);
+    EXPECT_EQ(offWhileOn, beam::SetOperationStateStatus::CHANGED);
+}
+
+// 스케줄러는 OFF 상태에서 받은 자세 프레임에 IGNORED_NOT_ON을 반환한다.
+TEST(BeamSchedulerTest, SetAttitudeFrameReturnsIgnoredNotOnWhileOff)
+{
+    // Given: 초기 상태(OFF)의 스케줄러를 준비한다.
+    beam::BeamScheduler scheduler;
+
+    // When: OFF 상태에서 자세 프레임을 전달한다.
+    const auto status = scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
+
+    // Then: ON이 아니어서 무시했다는 결과를 반환한다.
+    EXPECT_EQ(status, beam::SetAttitudeStatus::IGNORED_NOT_ON);
+}
+
+// 스케줄러는 ON 이후 첫 자세 프레임만 반영하고, 이후 프레임에는 IGNORED_ALREADY_SET을 반환한다.
+TEST(BeamSchedulerTest, SetAttitudeFrameReturnsAppliedOnlyForFirstFrameAfterOn)
+{
+    // Given: ON 상태의 스케줄러를 준비한다.
+    beam::BeamScheduler scheduler;
+    scheduler.setOperationState(beam::OperationState::ON);
+
+    // When: 자세 프레임을 두 번 전달한다.
+    const auto first = scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
+    const auto second = scheduler.setAttitudeFrame(makeAttitudeFrame(0_deg, 0_deg, 30_deg));
+
+    // Then: 첫 프레임은 반영하고 두 번째 프레임은 이미 받은 상태여서 무시한다.
+    EXPECT_EQ(first, beam::SetAttitudeStatus::APPLIED);
+    EXPECT_EQ(second, beam::SetAttitudeStatus::IGNORED_ALREADY_SET);
+}
+
+// 스케줄러는 OFF 후 다시 ON하면 자세 프레임을 다시 반영한다.
+TEST(BeamSchedulerTest, SetAttitudeFrameReturnsAppliedAgainAfterRestart)
+{
+    // Given: 자세 프레임까지 받은 준비 상태의 스케줄러를 준비한다.
+    beam::BeamScheduler scheduler;
+    makeReady(scheduler);
+
+    // When: OFF 후 다시 ON하고 자세 프레임을 전달한다.
+    scheduler.setOperationState(beam::OperationState::OFF);
+    scheduler.setOperationState(beam::OperationState::ON);
+    const auto status = scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
+
+    // Then: ON 때 상태가 초기화되므로 자세 프레임을 다시 반영한다.
+    EXPECT_EQ(status, beam::SetAttitudeStatus::APPLIED);
 }

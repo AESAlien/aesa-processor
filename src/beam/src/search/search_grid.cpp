@@ -1,4 +1,4 @@
-#include "scheduler/search_grid.hpp"
+#include "search/search_grid.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
 
@@ -20,7 +20,7 @@ SearchGrid::SearchGrid(const AntEnuTransform& transform, const SearchGridConfig&
                 config.elevationAt(e)));
 
             _beams.push_back(SearchBeam{
-                static_cast<uint32_t>(_beams.size() + 1),
+                static_cast<uint32_t>(_beams.size()),
                 direction_enu,
                 config.beamWidth()});
         }

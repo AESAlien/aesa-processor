@@ -11,6 +11,7 @@ add_library(app_runtime STATIC
     src/config/config_value_reader.cpp
     src/config/env_file_reader.cpp
 
+    src/log/logger/beam_event_message_logger.cpp
     src/log/logger/detection_event_csv_logger.cpp
 
     src/worker/beam_worker.cpp
@@ -72,6 +73,7 @@ if(BUILD_TESTING)
     gtest_discover_tests(app_config_test)
 
     add_executable(app_log_manager_test
+        test/beam_event_message_logger_test.cpp
         test/detection_event_csv_test.cpp
         test/log_manager_test.cpp
     )

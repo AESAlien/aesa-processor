@@ -1,4 +1,4 @@
-#include "scheduler/search_grid.hpp"
+#include "search/search_grid.hpp"
 
 #include "attitude/ant_enu_transform.hpp"
 #include <gtest/gtest.h>
@@ -86,13 +86,13 @@ TEST(SearchGridTest, DefaultGridWrapsAfterExpectedBeamCount)
     const auto afterWrapped = grid.nextBeam();
 
     // Then: 마지막 빔의 ID는 189이고 다음 빔은 ID 1, 2 순서로 이어진다.
-    EXPECT_EQ(beams.back().beamId, 189u);
-    EXPECT_EQ(wrapped.beamId, 1u);
-    EXPECT_EQ(afterWrapped.beamId, 2u);
+    EXPECT_EQ(beams.back().beamId, 188u);
+    EXPECT_EQ(wrapped.beamId, 0u);
+    EXPECT_EQ(afterWrapped.beamId, 1u);
 }
 
-// 격자의 빔 ID는 1부터 연속으로 증가한다.
-TEST(SearchGridTest, BeamIdsAreSequentialFromOne)
+// 격자의 빔 ID는 0부터 연속으로 증가한다.
+TEST(SearchGridTest, BeamIdsAreSequentialFromZero)
 {
     // Given: 격자의 자세 변환을 준비한다.
     const auto beamsTransform = makeTransform(10_deg, 20_deg, 30_deg);
@@ -103,8 +103,8 @@ TEST(SearchGridTest, BeamIdsAreSequentialFromOne)
     for (std::size_t beamIndex = 0; beamIndex < beams.size(); ++beamIndex)
     {
 
-        // Then: 격자의 빔 ID는 1부터 연속으로 증가한다.
-        EXPECT_EQ(beams[beamIndex].beamId, static_cast<uint32_t>(beamIndex + 1));
+        // Then: 격자의 빔 ID는 0부터 연속으로 증가한다.
+        EXPECT_EQ(beams[beamIndex].beamId, static_cast<uint32_t>(beamIndex));
     }
 }
 
@@ -220,7 +220,7 @@ TEST(SearchGridTest, ScenarioAttitudeMatchesReferenceBeamAngles)
     // Given: 격자의 자세 변환을 준비한다.
     // 멘토 코드(DPMS_SIM) 로그의 탐색 빔 각도와 비교한다. 시나리오 자세는 roll 0, pitch 0, yaw 13.02429도이다.
     // 로그 값: BeamID 0 = 331.024292도, 10 = 13.024290도, 20 = 55.024288도 (고각 3도), 188 = 55.024288도 (고각 38.2도)
-    // 멘토 BeamID는 0부터, 우리 beamId는 1부터 시작하므로 인덱스가 같은 빔끼리 비교한다.
+    // 멘토 BeamID와 우리 beamId는 모두 0부터 시작하므로 번호가 같은 빔끼리 비교한다.
     const auto beamsTransform = makeTransform(0_deg, 0_deg, 13.02429_deg);
 
     // When: 주어진 자세와 기본 설정으로 격자를 생성해 빔을 꺼낸다.
@@ -253,10 +253,10 @@ TEST(SearchGridTest, CustomGridChangesBeamCountAndIds)
     {
 
         // Then: 사용자 격자는 설정한 빔 개수만큼 ID를 순환한다.
-        EXPECT_EQ(grid.nextBeam().beamId, static_cast<uint32_t>(beamIndex + 1));
+        EXPECT_EQ(grid.nextBeam().beamId, static_cast<uint32_t>(beamIndex));
     }
     // 빔이 6개뿐이므로 7번째는 처음으로 돌아온다.
-    EXPECT_EQ(grid.nextBeam().beamId, 1u);
+    EXPECT_EQ(grid.nextBeam().beamId, 0u);
 }
 
 // 사용자 격자는 설정한 시작각과 간격 및 빔 폭을 반영한다.
@@ -311,8 +311,8 @@ TEST(SearchGridTest, LargeStepWithSingleBeamPerAxisIsAccepted)
     auto grid = beam::SearchGrid(makeTransform(0_deg, 0_deg, 0_deg), config);
 
     // Then: 단일 빔 격자는 큰 각도 간격을 사용하지 않고 같은 빔을 순환한다.
-    EXPECT_EQ(grid.nextBeam().beamId, 1u);
-    EXPECT_EQ(grid.nextBeam().beamId, 1u);
+    EXPECT_EQ(grid.nextBeam().beamId, 0u);
+    EXPECT_EQ(grid.nextBeam().beamId, 0u);
 }
 
 // 단일 빔 격자는 매번 같은 빔을 반환한다.
@@ -331,9 +331,9 @@ TEST(SearchGridTest, SingleBeamGridReturnsTheSameBeamEveryTime)
     const auto third = grid.nextBeam();
 
     // Then: 단일 빔 격자는 매번 같은 빔을 반환한다.
-    EXPECT_EQ(first.beamId, 1u);
-    EXPECT_EQ(second.beamId, 1u);
-    EXPECT_EQ(third.beamId, 1u);
+    EXPECT_EQ(first.beamId, 0u);
+    EXPECT_EQ(second.beamId, 0u);
+    EXPECT_EQ(third.beamId, 0u);
 }
 
 // 복사한 격자의 탐색 커서는 원본과 독립적으로 움직인다.
@@ -350,7 +350,7 @@ TEST(SearchGridTest, CopiedGridKeepsItsOwnCursor)
     const auto copiedSecond = copied.nextBeam();
 
     // Then: 복사본의 커서는 원본의 진행에 영향을 받지 않는다.
-    EXPECT_EQ(originalSecond.beamId, 2u);
-    EXPECT_EQ(originalThird.beamId, 3u);
-    EXPECT_EQ(copiedSecond.beamId, 2u);
+    EXPECT_EQ(originalSecond.beamId, 1u);
+    EXPECT_EQ(originalThird.beamId, 2u);
+    EXPECT_EQ(copiedSecond.beamId, 1u);
 }

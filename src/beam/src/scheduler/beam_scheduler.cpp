@@ -37,11 +37,11 @@ TransmitBeamCommand makeRequestCommand(
 }
 } // namespace
 
-void BeamScheduler::setOperationState(OperationState state)
+SetOperationStateStatus BeamScheduler::setOperationState(OperationState state)
 {
     if (state == _operationState)
     {
-        return;
+        return SetOperationStateStatus::UNCHANGED;
     }
 
     if (state == OperationState::ON)
@@ -49,16 +49,23 @@ void BeamScheduler::setOperationState(OperationState state)
         reset();
     }
     _operationState = state;
+    return SetOperationStateStatus::CHANGED;
 }
 
-void BeamScheduler::setAttitudeFrame(AttitudeFrame attitudeFrame)
+SetAttitudeStatus BeamScheduler::setAttitudeFrame(AttitudeFrame attitudeFrame)
 {
-    if (_operationState != OperationState::ON || _attitudeFrame.has_value())
+    if (_operationState != OperationState::ON)
     {
-        return;
+        return SetAttitudeStatus::IGNORED_NOT_ON;
+    }
+
+    if (_attitudeFrame.has_value())
+    {
+        return SetAttitudeStatus::IGNORED_ALREADY_SET;
     }
 
     _attitudeFrame.emplace(std::move(attitudeFrame));
+    return SetAttitudeStatus::APPLIED;
 }
 
 RequestBeamStatus BeamScheduler::addRequest(const BeamRequest& request)

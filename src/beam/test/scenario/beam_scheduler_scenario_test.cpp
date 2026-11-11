@@ -69,7 +69,7 @@ std::vector<std::uint32_t> searchBeamIds(const Result& result)
     return ids;
 }
 
-// 설계 규칙: 틱마다 빔은 하나, 명령 카운트는 1부터 연속, 탐색 번호는 1~189를 빠짐없이 순환한다.
+// 설계 규칙: 틱마다 빔은 하나, 명령 카운트는 1부터 연속, 탐색 번호는 0~188를 빠짐없이 순환한다.
 void expectCommonRules(const Result& result)
 {
     const auto commands = sentCommands(result);
@@ -81,7 +81,7 @@ void expectCommonRules(const Result& result)
     const auto ids = searchBeamIds(result);
     for (std::size_t index = 0; index < ids.size(); ++index)
     {
-        EXPECT_EQ(ids[index], index % BEAM_COUNT + 1) << "search beam #" << index;
+        EXPECT_EQ(ids[index], index % BEAM_COUNT) << "search beam #" << index;
     }
 
     for (const TickRecord& tick : result.ticks)
@@ -139,7 +139,7 @@ TEST(BeamSchedulerScenarioTest, MixedSendsNothingUntilReady)
     const TickRecord& firstReady = tickAt(result, 40);
     ASSERT_TRUE(firstReady.command.has_value());
     EXPECT_EQ(firstReady.command->beamType, beam::BeamType::SEARCH);
-    EXPECT_EQ(firstReady.command->beamId, 1u);
+    EXPECT_EQ(firstReady.command->beamId, 0u);
     EXPECT_EQ(firstReady.command->commandCount, 1u);
 }
 
@@ -206,12 +206,12 @@ TEST(BeamSchedulerScenarioTest, MixedSearchSweepContinuesWithoutSkippingAfterInt
 {
     const Result result = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitudeFrame());
 
-    // 37개 빔 중 요청 빔이 10개이므로 탐색 빔은 27개이고, 번호는 1부터 건너뛰지 않고 이어진다.
+    // 37개 빔 중 요청 빔이 10개이므로 탐색 빔은 27개이고, 번호는 0부터 건너뛰지 않고 이어진다.
     const auto ids = searchBeamIds(result);
     ASSERT_EQ(ids.size(), 27u);
     for (std::size_t index = 0; index < ids.size(); ++index)
     {
-        EXPECT_EQ(ids[index], index + 1);
+        EXPECT_EQ(ids[index], index);
     }
 }
 
@@ -242,7 +242,7 @@ TEST(BeamSchedulerScenarioTest, TracksFirstSearchSweepIsLongerByTheNumberOfReque
     for (const TickRecord& tick : result.ticks)
     {
         if (tick.command.has_value() && tick.command->beamType == beam::BeamType::SEARCH &&
-            tick.command->beamId == 1)
+            tick.command->beamId == 0)
         {
             sweepStartTicks.push_back(tick.tick_ms);
         }
@@ -276,7 +276,7 @@ TEST(BeamSchedulerScenarioTest, TracksFirstSweepVisitsEverySearchBeamExactlyOnce
     auto firstSweep = std::vector<std::uint32_t>(ids.begin(), ids.begin() + BEAM_COUNT);
     for (std::size_t index = 0; index < BEAM_COUNT; ++index)
     {
-        EXPECT_EQ(firstSweep[index], index + 1);
+        EXPECT_EQ(firstSweep[index], index);
     }
 }
 

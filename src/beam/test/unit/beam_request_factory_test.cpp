@@ -1,9 +1,10 @@
-#include "scheduler/beam_request_factory.hpp"
+#include "request/factory/beam_request_factory.hpp"
 
 #include <gtest/gtest.h>
 
 #include <chrono>
 #include <stdexcept>
+#include <string>
 
 using namespace std::chrono_literals;
 using namespace math::literals;
@@ -27,6 +28,23 @@ beam::BeamRequestFactory makeFactory()
         .build();
 
     return beam::BeamRequestFactory(config);
+}
+
+// 함수가 던진 std::invalid_argument의 메시지를 반환한다. 예외가 없으면 실패로 기록하고 빈 문자열을 반환한다.
+template <typename Function>
+std::string invalidArgumentMessage(Function&& function)
+{
+    try
+    {
+        function();
+    }
+    catch (const std::invalid_argument& error)
+    {
+        return error.what();
+    }
+
+    ADD_FAILURE() << "std::invalid_argument was not thrown";
+    return {};
 }
 
 } // namespace
@@ -100,4 +118,19 @@ TEST(BeamRequestFactoryTest, RejectsInvalidCommand)
     EXPECT_THROW(from(zeroType), std::invalid_argument);
     EXPECT_THROW(from(unknownType), std::invalid_argument);
     EXPECT_THROW(from(searchType), std::invalid_argument);
+}
+
+// 알 수 없는 빔 종류 오류 메시지는 빔 종류의 정수값과 요청 ID를 포함한다.
+TEST(BeamRequestFactoryTest, UnknownTypeMessageIncludesTypeValueAndRequestId)
+{
+    // Given: 정의되지 않은 빔 종류(9)의 명령을 준비한다.
+    const auto factory = makeFactory();
+    const auto command = beam::RequestBeamCommand(static_cast<beam::RequestBeamType>(9), 0ms, 3, makeDirection());
+
+    // When: 요청 생성을 시도한다.
+    const auto message = invalidArgumentMessage([&] { factory.from(command); });
+
+    // Then: 메시지에 원인과 빔 종류의 정수값(문자가 아닌 숫자), 요청 ID가 담긴다.
+    EXPECT_NE(message.find("unknown request beam type"), std::string::npos) << message;
+    EXPECT_NE(message.find("beamType=9, requestId=3"), std::string::npos) << message;
 }
