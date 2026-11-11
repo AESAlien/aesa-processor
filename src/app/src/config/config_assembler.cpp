@@ -188,13 +188,18 @@ comm::CommConfig ConfigAssembler::createCommConfig()
     const std::uint16_t SCENARIO_SIMULATOR_PORT =
         _reader.requireUnsigned<std::uint16_t>(
             "COMM_SCENARIO_SIMULATOR_PORT");
+    const std::string& MONITOR_ADDRESS =
+        _reader.requireString("COMM_MONITOR_ADDRESS");
+    const std::uint16_t MONITOR_PORT =
+        _reader.requireUnsigned<std::uint16_t>("COMM_MONITOR_PORT");
 
     return comm::CommConfig(
         comm::CommEndpoint(SERVER_ADDRESS, SERVER_PORT),
         comm::CommEndpoint(
             OPERATOR_CONSOLE_ADDRESS, OPERATOR_CONSOLE_PORT),
         comm::CommEndpoint(
-            SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT));
+            SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT),
+        comm::CommEndpoint(MONITOR_ADDRESS, MONITOR_PORT));
 }
 
 } // namespace app

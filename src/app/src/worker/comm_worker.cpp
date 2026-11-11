@@ -111,4 +111,17 @@ void CommWorker::runSendConsole()
         });
     }
 }
+void CommWorker::runSendMonitor()
+{
+    while (auto event = _commChannel.readMonitor())
+    {
+        tryWorkerAction("CommSendMonitor", [&]
+        {
+            std::visit([this](const auto& message)
+            {
+                _controller.sendToMonitor(message);
+            }, *event);
+        });
+    }
+}
 } // namespace app

@@ -129,6 +129,7 @@ DecodeResult MessageDecoder::decode(
     case protocol::MessageId::RADAR_ATTITUDE_TO_CONSOLE:
     case protocol::MessageId::TRACK_DELETION:
     case protocol::MessageId::BEAM_TRANSMIT:
+    case protocol::MessageId::MONITOR_STATUS:
         return failed(DecodingError::UNSUPPORTED_MESSAGE_ID);
     }
 

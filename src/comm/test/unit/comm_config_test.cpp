@@ -134,31 +134,45 @@ TEST(CommEndpointTest, RejectsInvalidAddressAndIncompleteEndpoint)
     );
 }
 
-// 서버와 서로 다른 두 피어의 엔드포인트로 통신 설정을 생성할 수 있다.
-TEST(CommConfigTest, AcceptsServerAndBothPeers)
+// 서버와 서로 다른 세 피어의 엔드포인트로 통신 설정을 생성할 수 있다.
+TEST(CommConfigTest, AcceptsServerAndAllPeers)
 {
-    // 준비: 서버와 운용 콘솔 및 시나리오 시뮬레이터의 엔드포인트를 준비한다.
+    // 준비: 서버와 운용 콘솔, 시나리오 시뮬레이터, 모니터의 엔드포인트를 준비한다.
     const comm::CommEndpoint server("127.0.0.1", 3200);
     const comm::CommEndpoint operatorConsole("127.0.0.2", 3100);
     const comm::CommEndpoint scenarioSimulator("127.0.0.3", 3300);
+    const comm::CommEndpoint monitor("127.0.0.4", 3400);
 
-    // 실행: 준비한 엔드포인트들로 통신 설정 생성을 시도한다.
-    const auto construct = [&] { return comm::CommConfig(server, operatorConsole, scenarioSimulator); };
+    // 실행: 준비한 엔드포인트들로 통신 설정을 생성한다.
+    const comm::CommConfig config(server, operatorConsole, scenarioSimulator, monitor);
 
-    // 검증: 서로 다른 두 피어를 가진 설정은 정상 생성된다.
-    EXPECT_NO_THROW(construct());
+    // 검증: 접근자로 각 피어의 엔드포인트를 조회할 수 있다.
+    EXPECT_EQ(config.operatorConsole(), operatorConsole);
+    EXPECT_EQ(config.scenarioSimulator(), scenarioSimulator);
+    EXPECT_EQ(config.monitor(), monitor);
 }
 
-// 운용 콘솔과 시나리오 시뮬레이터의 엔드포인트가 같으면 설정을 거부한다.
+// 두 피어의 엔드포인트가 같으면 설정을 거부한다.
 TEST(CommConfigTest, RejectsInvalidEndpointRelationships)
 {
-    // 준비: 두 피어가 공유하는 주소와 포트를 준비한다.
+    // 준비: 서버와 서로 다른 세 피어 및 피어들이 공유할 엔드포인트를 준비한다.
     const comm::CommEndpoint server("127.0.0.1", 3200);
-    const comm::CommEndpoint sharedPeer("127.0.0.2", 3100);
+    const comm::CommEndpoint operatorConsole("127.0.0.2", 3100);
+    const comm::CommEndpoint scenarioSimulator("127.0.0.3", 3300);
+    const comm::CommEndpoint monitor("127.0.0.4", 3400);
+    const comm::CommEndpoint sharedPeer("127.0.0.5", 3500);
 
-    // 실행: 두 피어에 같은 엔드포인트를 지정해 설정 생성을 시도한다.
-    const auto construct = [&] { return comm::CommConfig(server, sharedPeer, sharedPeer); };
+    // 실행: 두 피어씩 같은 엔드포인트를 지정해 설정 생성을 시도한다.
+    const auto construct = [&](
+        const comm::CommEndpoint& console,
+        const comm::CommEndpoint& simulator,
+        const comm::CommEndpoint& monitorPeer
+    ) {
+        return comm::CommConfig(server, console, simulator, monitorPeer);
+    };
 
-    // 검증: 두 피어를 구분할 수 없는 설정은 거부한다.
-    EXPECT_THROW(construct(), std::invalid_argument);
+    // 검증: 어떤 두 피어든 구분할 수 없는 설정은 거부한다.
+    EXPECT_THROW(construct(sharedPeer, sharedPeer, monitor), std::invalid_argument);
+    EXPECT_THROW(construct(sharedPeer, scenarioSimulator, sharedPeer), std::invalid_argument);
+    EXPECT_THROW(construct(operatorConsole, sharedPeer, sharedPeer), std::invalid_argument);
 }

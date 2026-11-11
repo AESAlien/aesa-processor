@@ -12,7 +12,8 @@ namespace comm
 NetworkManager::NetworkManager(CommConfig configuration)
   : _serverEndpoint(configuration.server()),
     _operatorConsole("operator-console", configuration.operatorConsole()),
-    _scenarioSimulator("scenario-simulator", configuration.scenarioSimulator())
+    _scenarioSimulator("scenario-simulator", configuration.scenarioSimulator()),
+    _monitor("monitor", configuration.monitor())
 {
 }
 
@@ -81,9 +82,26 @@ void NetworkManager::sendToScenarioSimulator(
     _scenarioSimulator.send(data, timeout);
 }
 
+void NetworkManager::sendToMonitor(
+    const std::vector<uint8_t>& data,
+    std::chrono::milliseconds timeout
+) {
+    _monitor.send(data, timeout);
+}
+
+bool NetworkManager::isOperatorConsoleConnected() const
+{
+    return _operatorConsole.isConnected();
+}
+
+bool NetworkManager::isScenarioSimulatorConnected() const
+{
+    return _scenarioSimulator.isConnected();
+}
+
 std::array<PeerConnection*, NetworkManager::PEER_COUNT> NetworkManager::peers() noexcept
 {
-    return {&_operatorConsole, &_scenarioSimulator};
+    return {&_operatorConsole, &_scenarioSimulator, &_monitor};
 }
 
 void NetworkManager::assignToPeer(const std::shared_ptr<Session>& session)

@@ -1,6 +1,7 @@
 #include <message/message_encoder.hpp>
 
 #include <protocol/ST_BeamTxMsg.hpp>
+#include <protocol/ST_MonitorStatusMsg.hpp>
 #include <protocol/ST_RadarAttMsg.hpp>
 #include <protocol/ST_TrkMsg.hpp>
 
@@ -468,4 +469,50 @@ TEST(MessageEncoderTest, RejectsValueOutsideFloatRange)
         comm::EncodingError::TYPE_CONVERSION_ERROR
     );
     EXPECT_FALSE(trackResult.bytes.has_value());
+}
+
+// 모니터 상태는 처리부 시각, 속도, 상대 연결 상태를 고정 크기 메시지로 인코딩한다.
+TEST(MessageEncoderTest, EncodesMonitorStatus)
+{
+    // 준비: 정지 상태와 일부 상대만 연결된 상태를 준비한다.
+    comm::MonitorStatus status;
+    status.request.processorTime = 42310ms;
+    status.request.timeScale = 0.1;
+    status.request.paused = true;
+    status.operatorConsoleConnected = true;
+    status.scenarioSimulatorConnected = false;
+
+    // 실행: 모니터 상태를 인코딩한다.
+    const comm::EncodeResult result = comm::encodeMonitorStatus(status);
+
+    // 검증: 헤더와 각 필드가 프로토콜 형식으로 인코딩된다.
+    ASSERT_TRUE(result.bytes.has_value());
+    ASSERT_EQ(result.bytes->size(), sizeof(comm::protocol::ST_MonitorStatusMsg));
+    comm::protocol::ST_MonitorStatusMsg message{};
+    std::memcpy(&message, result.bytes->data(), sizeof(message));
+    EXPECT_EQ(
+        message.msgHeader.message_Id,
+        static_cast<uint16_t>(comm::protocol::MessageId::MONITOR_STATUS)
+    );
+    EXPECT_EQ(message.msgHeader.block_size, sizeof(message));
+    EXPECT_EQ(message.processorTime_ms, 42310U);
+    EXPECT_FLOAT_EQ(message.timeScale, 0.1F);
+    EXPECT_EQ(message.paused, 1);
+    EXPECT_EQ(message.operatorConsoleConnected, 1);
+    EXPECT_EQ(message.scenarioSimulatorConnected, 0);
+}
+
+// 프로토콜 범위를 벗어난 처리부 시각은 인코딩하지 않는다.
+TEST(MessageEncoderTest, RejectsMonitorStatusOutsideProtocolRange)
+{
+    // 준비: 음수 처리부 시각을 가진 상태를 준비한다.
+    comm::MonitorStatus status;
+    status.request.processorTime = -1ms;
+
+    // 실행: 모니터 상태를 인코딩한다.
+    const comm::EncodeResult result = comm::encodeMonitorStatus(status);
+
+    // 검증: 타입 변환 오류를 반환하고 바이트 배열은 반환하지 않는다.
+    EXPECT_EQ(result.error, comm::EncodingError::TYPE_CONVERSION_ERROR);
+    EXPECT_FALSE(result.bytes.has_value());
 }

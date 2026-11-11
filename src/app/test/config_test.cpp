@@ -114,7 +114,9 @@ std::string validConfigText()
         "COMM_OPERATOR_CONSOLE_ADDRESS=127.0.0.2\n"
         "COMM_OPERATOR_CONSOLE_PORT=43201\n"
         "COMM_SCENARIO_SIMULATOR_ADDRESS=127.0.0.3\n"
-        "COMM_SCENARIO_SIMULATOR_PORT=43202\n";
+        "COMM_SCENARIO_SIMULATOR_PORT=43202\n"
+        "COMM_MONITOR_ADDRESS=127.0.0.4\n"
+        "COMM_MONITOR_PORT=43203\n";
 }
 
 std::string replaceValue(
@@ -209,6 +211,8 @@ TEST(AppConfigTest, LoadsEveryConfigurationValue)
     EXPECT_EQ(config.commConfig.operatorConsole().getPort(), 43201);
     EXPECT_EQ(config.commConfig.scenarioSimulator().getAddress(), "127.0.0.3");
     EXPECT_EQ(config.commConfig.scenarioSimulator().getPort(), 43202);
+    EXPECT_EQ(config.commConfig.monitor().getAddress(), "127.0.0.4");
+    EXPECT_EQ(config.commConfig.monitor().getPort(), 43203);
 }
 
 TEST(AppConfigTest, RejectsDisabledCommunicationPeer)
@@ -430,6 +434,19 @@ TEST(AppConfigTest, InvalidCommunicationEndpointsThrow)
     const TemporaryEnvFile duplicatePeerFile(duplicatePeer);
     EXPECT_THROW(
         loadConfig(duplicatePeerFile.path()),
+        std::invalid_argument);
+
+    std::string duplicateMonitor = replaceValue(
+        validConfigText(),
+        "COMM_MONITOR_ADDRESS",
+        "127.0.0.2");
+    duplicateMonitor = replaceValue(
+        duplicateMonitor,
+        "COMM_MONITOR_PORT",
+        "43201");
+    const TemporaryEnvFile duplicateMonitorFile(duplicateMonitor);
+    EXPECT_THROW(
+        loadConfig(duplicateMonitorFile.path()),
         std::invalid_argument);
 }
 

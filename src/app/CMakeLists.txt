@@ -88,4 +88,15 @@ if(BUILD_TESTING)
     )
 
     gtest_discover_tests(app_log_manager_test)
+
+    add_executable(app_comm_channel_test
+        test/comm_channel_test.cpp
+    )
+
+    target_link_libraries(app_comm_channel_test PRIVATE
+        app_runtime
+        GTest::gtest_main
+    )
+
+    gtest_discover_tests(app_comm_channel_test)
 endif()
