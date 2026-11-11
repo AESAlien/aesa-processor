@@ -175,5 +175,52 @@ TEST_F(DetectionHandlerTest, PreexistingTargetsDoNotCollideWithNewRegistrations)
     EXPECT_EQ(_repository->tracks().size(), 2u);
 }
 
+TEST_F(DetectionHandlerTest, RemovesConfirmedTrackWhoseTrackingResultNeverArrives)
+{
+    // 준비: 1100ms에 송신할 추적 빔의 결과가 오지 않은 확정 트랙을 만든다.
+    const auto confirmation = _handler.handle(result(BeamType::SEARCH, 5, 0ms));
+    ASSERT_TRUE(confirmation);
+    const auto id = confirmation->requestId;
+    ASSERT_TRUE(_handler.handle(result(BeamType::CONFIRMATION, id, 100ms)));
+
+    // 실행: 응답 대기 한도(추적 주기 x 연속 미탐 한도)까지는 같은 위치의 탐지를 받는다.
+    const auto beforeTimeout = _handler.handle(result(BeamType::SEARCH, 6, 4100ms));
+
+    // 검증: 한도 안에서는 기존 트랙과 연관되어 새 트랙을 만들지 않는다.
+    EXPECT_FALSE(beforeTimeout);
+    EXPECT_NE(_repository->findConfirmedTrack(id), nullptr);
+
+    // 실행: 한도를 넘긴 뒤 같은 위치의 탐지를 받는다.
+    const auto afterTimeout = _handler.handle(result(BeamType::SEARCH, 6, 4110ms));
+
+    // 검증: 응답 없는 트랙을 삭제하고 같은 위치에서 새 트랙의 확인 빔을 요청한다.
+    EXPECT_EQ(_repository->findConfirmedTrack(id), nullptr);
+    ASSERT_TRUE(afterTimeout);
+    EXPECT_EQ(afterTimeout->beamType, beam::RequestBeamType::CONFIRMATION);
+    EXPECT_GT(afterTimeout->requestId, id);
+    EXPECT_EQ(_repository->tracks().size(), 1u);
+}
+
+TEST_F(DetectionHandlerTest, RemovesTentativeTrackWhoseConfirmationResultNeverArrives)
+{
+    // 준비: 100ms에 송신할 확인 빔의 결과가 오지 않은 잠정 트랙을 만든다.
+    const auto confirmation = _handler.handle(result(BeamType::SEARCH, 5, 0ms));
+    ASSERT_TRUE(confirmation);
+    const auto id = confirmation->requestId;
+
+    // 실행: 응답 대기 한도 직전과 직후에 같은 위치의 탐지를 받는다.
+    const auto beforeTimeout = _handler.handle(result(BeamType::SEARCH, 6, 3100ms));
+    const bool keptBeforeTimeout = _repository->findTentativeTrack(id) != nullptr;
+    const auto afterTimeout = _handler.handle(result(BeamType::SEARCH, 7, 3110ms));
+
+    // 검증: 한도 전에는 잠정 트랙을 유지하고, 한도 후에는 삭제한 뒤 새 확인 빔을 요청한다.
+    EXPECT_FALSE(beforeTimeout);
+    EXPECT_TRUE(keptBeforeTimeout);
+    EXPECT_EQ(_repository->findTentativeTrack(id), nullptr);
+    ASSERT_TRUE(afterTimeout);
+    EXPECT_EQ(afterTimeout->beamType, beam::RequestBeamType::CONFIRMATION);
+    EXPECT_GT(afterTimeout->requestId, id);
+}
+
 } // namespace
 } // namespace target

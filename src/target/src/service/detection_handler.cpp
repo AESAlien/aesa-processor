@@ -6,6 +6,7 @@
 
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 namespace target
 {
@@ -47,6 +48,16 @@ DetectionHandler::~DetectionHandler() = default;
 
 std::optional<beam::RequestBeamCommand> DetectionHandler::handle(const DetectionResult& result)
 {
+    const auto currentTime = std::visit(
+        [](const auto& value)
+        {
+            return value.transmitTime;
+        },
+        result
+    );
+    // 응답을 받지 못한 트랙이 새 탐지와 연관되어 새 트랙 생성을 막지 않도록 먼저 정리한다.
+    removeUnansweredTracks(currentTime);
+
     return std::visit(
         [this](const auto& value)
         {
@@ -174,6 +185,42 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     }
 
     return trackingCommandFrom(result.requestId, *prediction);
+}
+
+void DetectionHandler::removeUnansweredTracks(std::chrono::milliseconds currentTime)
+{
+    // 빔 결과가 오지 않으면 다음 빔도 요청되지 않으므로 트랙이 스스로 갱신되거나 만료될 수 없다.
+    // 연속 미탐으로 만료되는 시간과 같은 한도를 기다린 뒤 삭제한다.
+    const auto responseTimeout = _config.trackingInterval() * _config.maxConsecutiveTrackingMisses();
+
+    std::vector<std::uint32_t> unansweredIds;
+    for (const auto& track : _trackRepository->tracks())
+    {
+        if (currentTime > expectedResultTime(track) + responseTimeout)
+        {
+            unansweredIds.push_back(std::visit(
+                [](const auto& value)
+                {
+                    return value.id();
+                },
+                track
+            ));
+        }
+    }
+
+    for (const auto id : unansweredIds)
+    {
+        _trackRepository->remove(id);
+    }
+}
+
+std::chrono::milliseconds DetectionHandler::expectedResultTime(const Track& track) const
+{
+    if (const auto* tentativeTrack = std::get_if<TentativeTrack>(&track))
+    {
+        return tentativeTrack->lastResultTime() + _config.confirmationDelay();
+    }
+    return std::get<ConfirmedTrack>(track).lastResultTime() + _config.trackingInterval();
 }
 
 } // namespace target
