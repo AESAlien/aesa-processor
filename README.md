@@ -33,3 +33,8 @@ system    // 레이더 데이터 처리부
 ```sh
 cp .env.example .env
 ```
+
+## 통신 패킷 분석
+
+Wireshark에서 AESA TCP 메시지를 분석하려면
+[Lua 디섹터 설치 및 사용 안내](tools/wireshark/README.md)를 참고합니다.
