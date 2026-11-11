@@ -16,6 +16,7 @@
 #include <spdlog/spdlog.h>
 
 #include "config_loader.hpp"
+#include "log/logger/beam_event_message_logger.hpp"
 #include "log/logger/detection_event_csv_logger.hpp"
 
 #include <array>
@@ -33,6 +34,9 @@ namespace
 {
 
 constexpr std::chrono::milliseconds BEAM_PERIOD{10};
+
+// 모니터에 처리부 상태를 보내는 주기
+constexpr std::chrono::milliseconds MONITOR_STATUS_PERIOD{100};
 
 constexpr char LOG_PATH[] = "logs/adp.log";
 constexpr char DETECTION_LOG_PATH[] = "logs/adp_detection.csv";
@@ -149,7 +153,7 @@ void runWorker(
 
 int main()
 {
-    std::array<std::thread, 5> threads;
+    std::array<std::thread, 6> threads;
 
     std::shared_ptr<spdlog::logger> mainLogger;
 
@@ -176,6 +180,14 @@ int main()
         );
         std::cout << "[DETECTION CSV FILE] " << detectionCsvPath.string() << '\n' << std::flush;
 
+        // 빔 처리 이벤트(운용 상태 변경, 자세정보 반영·무시, 요청 거부)는 메시지 로그에 기록하고 콘솔에도 출력한다.
+        messageLogManager.addLogger(
+            app::BeamEventMessageLogger::LOGGER_NAME,
+            spdlog::level::info,
+            spdlog::async_overflow_policy::discard_new,
+            spdlog::level::info
+        );
+
         // 3. 업무 워커별 로거를 등록한다.
         // 기본 설정은 INFO 이상 기록, 큐 포화 시 새 로그 버리기다.
         for (const char* name :
@@ -184,7 +196,8 @@ int main()
                  "TargetWorker",
                  "CommReceive",
                  "CommSendSimulator",
-                 "CommSendConsole"
+                 "CommSendConsole",
+                 "CommSendMonitor"
              })
         {
             messageLogManager.addLogger(name);
@@ -213,7 +226,8 @@ int main()
 
         // 7. 실제 컨트롤러를 생성한다.
         beam::BeamController beamController(
-            config.beamConfig);
+            config.beamConfig,
+            std::make_shared<app::BeamEventMessageLogger>());
 
         target::TargetController targetController(
             config.targetConfig,
@@ -229,7 +243,7 @@ int main()
         mainLogger->info(
             "Communication server opened");
 
-        // 8. 업무 워커 5개를 생성한다.
+        // 8. 업무 워커 6개를 생성한다.
         app::BeamWorker beamWorker(
             beamChannel,
             commChannel,
@@ -254,6 +268,12 @@ int main()
             commController);
 
         app::CommWorker consoleSendWorker(
+            commChannel,
+            beamChannel,
+            targetChannel,
+            commController);
+
+        app::CommWorker monitorSendWorker(
             commChannel,
             beamChannel,
             targetChannel,
@@ -304,11 +324,19 @@ int main()
                 });
             });
 
+            threads[5] = std::thread([&]
+            {
+                runWorker("CommSendMonitor", [&]
+                {
+                    monitorSendWorker.runSendMonitor();
+                });
+            });
+
             mainLogger->info(
-                "Five worker threads started; beam tick = 10 ms");
+                "Six worker threads started; beam tick = 10 ms");
 
             std::cout
-                << "[START] 5 worker threads running; beam tick = 10ms\n"
+                << "[START] 6 worker threads running; beam tick = 10ms\n"
                 << "[SERVER] "
                 << config.commConfig.server().getAddress()
                 << ':'
@@ -326,6 +354,10 @@ int main()
                 "[SIMULATOR SOURCE] ",
                 config.commConfig.scenarioSimulator());
 
+            printEndpoint(
+                "[MONITOR SOURCE] ",
+                config.commConfig.monitor());
+
             std::cout
                 << "Send ON, then attitude, then detection messages.\n"
                 << "Press Ctrl+C to drain logs and exit."
@@ -336,6 +368,7 @@ int main()
                 std::chrono::steady_clock::now();
 
             auto nextTick = started;
+            auto nextMonitorStatus = started;
 
             while (!stopRequested)
             {
@@ -356,6 +389,15 @@ int main()
 
                 beamChannel.write(
                     app::NextBeamCommandEvent{currentTime});
+
+                if (now >= nextMonitorStatus)
+                {
+                    // 슬로모션을 지원하기 전에는 처리부 시각이 실제 시간과 같이 흐른다.
+                    comm::MonitorStatusRequest status;
+                    status.processorTime = currentTime;
+                    commChannel.write(status);
+                    nextMonitorStatus = now + MONITOR_STATUS_PERIOD;
+                }
 
                 nextTick += BEAM_PERIOD;
 

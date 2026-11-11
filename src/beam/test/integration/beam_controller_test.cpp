@@ -1,10 +1,14 @@
 #include <beam/controller/beam_controller.hpp>
+#include <beam/dto/log/beam_event_logger.hpp>
 
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <memory>
 #include <stdexcept>
+#include <string>
 #include <utility>
+#include <vector>
 
 using namespace std::chrono_literals;
 using namespace math::literals;
@@ -88,6 +92,40 @@ beam::BeamController makeDefaultController()
     return beam::BeamController(validBeamConfigBuilder().build());
 }
 
+// 컨트롤러가 호출한 기록 이벤트를 호출 순서대로 모은다.
+class SpyBeamEventLogger final : public beam::BeamEventLogger
+{
+public:
+    void logOperationStateChanged(beam::OperationState state) noexcept override
+    {
+        events.emplace_back(state == beam::OperationState::ON ? "STATE_ON" : "STATE_OFF");
+    }
+
+    void logAttitudeApplied(const beam::SetAttitudeCommand&) noexcept override
+    {
+        events.emplace_back("ATTITUDE_APPLIED");
+    }
+
+    void logAttitudeIgnoredWhileOff(const beam::SetAttitudeCommand&) noexcept override
+    {
+        events.emplace_back("ATTITUDE_IGNORED_WHILE_OFF");
+    }
+
+    void logAttitudeIgnoredAlreadySet(const beam::SetAttitudeCommand&) noexcept override
+    {
+        events.emplace_back("ATTITUDE_IGNORED_ALREADY_SET");
+    }
+
+    void logRequestBeamRejected(const beam::RequestBeamResult& result) noexcept override
+    {
+        events.emplace_back("REQUEST_REJECTED");
+        rejectedResults.push_back(result);
+    }
+
+    std::vector<std::string> events;
+    std::vector<beam::RequestBeamResult> rejectedResults;
+};
+
 } // namespace
 
 // 컨트롤러는 운용 시작 전 송신 명령을 반환하지 않는다.
@@ -117,7 +155,7 @@ TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
     // Then: 컨트롤러는 운용 시작과 자세 수신 후 탐색 명령을 반환한다.
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
-    EXPECT_EQ(command->beamId, 1u);
+    EXPECT_EQ(command->beamId, 0u);
     EXPECT_EQ(command->commandCount, 1u);
 }
 
@@ -242,7 +280,7 @@ TEST(BeamControllerTest, InvalidRequestIsNotQueued)
     // Then: 거부된 요청 대신 첫 탐색 빔을 송신한다.
     ASSERT_TRUE(command.has_value());
     EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
-    EXPECT_EQ(command->beamId, 1u);
+    EXPECT_EQ(command->beamId, 0u);
 }
 
 // 컨트롤러는 운용 종료 시 송신을 멈추고 재시작 시 처음부터 송신한다.
@@ -269,7 +307,7 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
 
     // Then: 첫 탐색 빔과 첫 명령 수부터 다시 시작한다.
     ASSERT_TRUE(restarted.has_value());
-    EXPECT_EQ(restarted->beamId, 1u);
+    EXPECT_EQ(restarted->beamId, 0u);
     EXPECT_EQ(restarted->commandCount, 1u);
 }
 
@@ -290,8 +328,8 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
-    // 빔이 3개뿐이므로 ID가 1, 2, 3, 1 순서로 순환한다.
-    const uint32_t expectedIds[] = {1, 2, 3, 1};
+    // 빔이 3개뿐이므로 ID가 0, 1, 2, 0 순서로 순환한다.
+    const uint32_t expectedIds[] = {0, 1, 2, 0};
     for (std::size_t index = 0; index < 4; ++index)
     {
         const auto command = controller.nextBeamCommand(std::chrono::milliseconds(10 * index));
@@ -409,13 +447,13 @@ TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
     controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
 
     // Then: 첫 탐색 명령을 반환한다.
-    ASSERT_EQ(controller.nextBeamCommand(0ms)->beamId, 1u);
+    ASSERT_EQ(controller.nextBeamCommand(0ms)->beamId, 0u);
 
     // When: 이미 준비된 상태에서 잘못된 자세를 전달한다.
     EXPECT_THROW(controller.setAttitude(makeSetAttitudeCommand(0_deg, 70_deg, 0_deg)), std::invalid_argument);
 
     // Then: 예외 이후에도 기존 송신 상태는 유지된다.
-    EXPECT_EQ(controller.nextBeamCommand(10ms)->beamId, 2u);
+    EXPECT_EQ(controller.nextBeamCommand(10ms)->beamId, 1u);
 }
 
 // 컨트롤러는 꺼진 상태에서도 유효하지 않은 자세의 예외를 전달한다.
@@ -485,8 +523,8 @@ TEST(BeamControllerTest, MovedControllerKeepsInjectedConfigAndState)
     // Then: 컨트롤러 이동은 주입된 설정과 송신 진행 상태를 유지한다.
     ASSERT_TRUE(next.has_value());
     ASSERT_TRUE(wrapped.has_value());
-    EXPECT_EQ(next->beamId, 2u);
-    EXPECT_EQ(wrapped->beamId, 1u);
+    EXPECT_EQ(next->beamId, 1u);
+    EXPECT_EQ(wrapped->beamId, 0u);
 }
 
 // 컨트롤러는 요청 접수 시 준비 전과 접수 성공 및 영역 밖 상태를 반환한다.
@@ -615,4 +653,89 @@ TEST(BeamControllerTest, RequestBeamResultCarriesRequestIdForEveryStatus)
     EXPECT_EQ(accepted.requestId, second.requestId);
     EXPECT_EQ(outOfCoverage.status, beam::RequestBeamStatus::OUT_OF_COVERAGE);
     EXPECT_EQ(outOfCoverage.requestId, third.requestId);
+}
+
+// 컨트롤러는 운용 상태가 바뀐 경우만 기록한다.
+TEST(BeamControllerTest, LogsOnlyChangedOperationState)
+{
+    // Given: 기록기를 주입한 꺼진 컨트롤러를 준비한다.
+    const auto logger = std::make_shared<SpyBeamEventLogger>();
+    beam::BeamController controller(validBeamConfigBuilder().build(), logger);
+    const auto on = beam::SetOperationStateCommand(beam::OperationState::ON);
+    const auto off = beam::SetOperationStateCommand(beam::OperationState::OFF);
+
+    // When: OFF, ON, ON, OFF를 차례로 전달한다.
+    controller.setOperationState(off);
+    controller.setOperationState(on);
+    controller.setOperationState(on);
+    controller.setOperationState(off);
+
+    // Then: 같은 상태의 중복 수신은 기록하지 않는다.
+    const std::vector<std::string> expected = {"STATE_ON", "STATE_OFF"};
+    EXPECT_EQ(logger->events, expected);
+}
+
+// 컨트롤러는 자세정보의 반영과 무시를 이유별로 기록한다.
+TEST(BeamControllerTest, LogsAttitudeAppliedAndIgnoredForEachCase)
+{
+    // Given: 기록기를 주입한 꺼진 컨트롤러와 유효한 자세정보를 준비한다.
+    const auto logger = std::make_shared<SpyBeamEventLogger>();
+    beam::BeamController controller(validBeamConfigBuilder().build(), logger);
+    const auto attitude = makeSetAttitudeCommand(0_deg, 0_deg, 0_deg);
+
+    // When: OFF 상태, ON 후 첫 번째, ON 후 두 번째에 자세정보를 전달한다.
+    controller.setAttitude(attitude);
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(attitude);
+    controller.setAttitude(attitude);
+
+    // Then: 무시(OFF), 상태 변경, 반영, 무시(이미 받음) 순서로 기록한다.
+    const std::vector<std::string> expected = {
+        "ATTITUDE_IGNORED_WHILE_OFF",
+        "STATE_ON",
+        "ATTITUDE_APPLIED",
+        "ATTITUDE_IGNORED_ALREADY_SET"
+    };
+    EXPECT_EQ(logger->events, expected);
+}
+
+// 컨트롤러는 잘못된 자세정보로 예외가 나면 기록하지 않는다.
+TEST(BeamControllerTest, DoesNotLogInvalidAttitude)
+{
+    // Given: 기록기를 주입한 켜진 컨트롤러를 준비한다.
+    const auto logger = std::make_shared<SpyBeamEventLogger>();
+    beam::BeamController controller(validBeamConfigBuilder().build(), logger);
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    logger->events.clear();
+
+    // When: 짐벌락에 가까운 자세정보를 전달한다.
+    EXPECT_THROW(controller.setAttitude(makeSetAttitudeCommand(0_deg, 89_deg, 0_deg)), std::invalid_argument);
+
+    // Then: 아무것도 기록하지 않는다.
+    EXPECT_TRUE(logger->events.empty());
+}
+
+// 컨트롤러는 버려진 요청만 결과와 함께 기록한다.
+TEST(BeamControllerTest, LogsOnlyRejectedRequests)
+{
+    // Given: 기록기를 주입한 컨트롤러와 각 접수 상태를 만들 요청들을 준비한다.
+    const auto logger = std::make_shared<SpyBeamEventLogger>();
+    beam::BeamController controller(validBeamConfigBuilder().build(), logger);
+    const auto notReady = makeRequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 120ms, 11, 7.5_deg, 15.5_deg);
+    const auto accepted = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 1000ms, 12, 7.5_deg, 15.5_deg);
+    const auto outOfCoverage = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 2000ms, 13, 90_deg, 15.5_deg);
+
+    // When: 준비 전과 준비 후에 영역 안팎의 요청을 접수한다.
+    controller.requestBeam(notReady);
+    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
+    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.requestBeam(accepted);
+    controller.requestBeam(outOfCoverage);
+
+    // Then: 수락된 요청은 기록하지 않고, 버려진 요청은 상태와 요청 ID를 기록한다.
+    ASSERT_EQ(logger->rejectedResults.size(), 2u);
+    EXPECT_EQ(logger->rejectedResults[0].status, beam::RequestBeamStatus::NOT_READY);
+    EXPECT_EQ(logger->rejectedResults[0].requestId, notReady.requestId);
+    EXPECT_EQ(logger->rejectedResults[1].status, beam::RequestBeamStatus::OUT_OF_COVERAGE);
+    EXPECT_EQ(logger->rejectedResults[1].requestId, outOfCoverage.requestId);
 }

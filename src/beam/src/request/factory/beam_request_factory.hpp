@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scheduler/beam_request.hpp"
+#include "request/beam_request.hpp"
 
 #include <beam/config/request_beam_config.hpp>
 #include <beam/dto/request_beam_command.hpp>

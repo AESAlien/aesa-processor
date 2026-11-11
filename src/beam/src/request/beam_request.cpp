@@ -1,5 +1,6 @@
-#include "scheduler/beam_request.hpp"
+#include "request/beam_request.hpp"
 
+#include <sstream>
 #include <stdexcept>
 
 namespace beam
@@ -56,12 +57,19 @@ void BeamRequest::validate() const
 {
     if (_transmitTime.count() < 0)
     {
-        throw std::invalid_argument("BeamRequest: transmit time must not be negative");
+        std::ostringstream message;
+        message << "BeamRequest: transmit time must not be negative"
+                << ": transmitTime=" << _transmitTime.count() << "ms"
+                << ", requestId=" << _requestId;
+        throw std::invalid_argument(message.str());
     }
 
     if (_requestId == 0)
     {
-        throw std::invalid_argument("BeamRequest: request id must not be 0");
+        std::ostringstream message;
+        message << "BeamRequest: request id must not be 0"
+                << ": transmitTime=" << _transmitTime.count() << "ms";
+        throw std::invalid_argument(message.str());
     }
 }
 

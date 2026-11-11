@@ -79,6 +79,11 @@ std::vector<MessageFrame> PeerConnection::receive()
     }
 }
 
+bool PeerConnection::isConnected() const
+{
+    return getSession() != nullptr;
+}
+
 std::shared_ptr<Session> PeerConnection::getSession() const
 {
     std::lock_guard<std::mutex> lock(_mutex);

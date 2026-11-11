@@ -17,6 +17,8 @@ constexpr char OPERATOR_CONSOLE_ADDRESS[] = "127.0.0.10";
 constexpr uint16_t OPERATOR_CONSOLE_PORT = 3100;
 constexpr char SCENARIO_SIMULATOR_ADDRESS[] = "127.0.0.100";
 constexpr uint16_t SCENARIO_SIMULATOR_PORT = 3300;
+constexpr char MONITOR_ADDRESS[] = "127.0.0.30";
+constexpr uint16_t MONITOR_PORT = 3400;
 constexpr std::chrono::milliseconds RETRY_DELAY{100};
 
 const char* operationStateName(beam::OperationState state)
@@ -56,7 +58,8 @@ comm::CommConfig makeConfiguration()
     {
         {SERVER_ADDRESS, SERVER_PORT},
         {OPERATOR_CONSOLE_ADDRESS, OPERATOR_CONSOLE_PORT},
-        {SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT}
+        {SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT},
+        {MONITOR_ADDRESS, MONITOR_PORT}
     };
 }
 
@@ -77,6 +80,11 @@ void printConfiguration()
         << SCENARIO_SIMULATOR_ADDRESS
         << ':'
         << SCENARIO_SIMULATOR_PORT
+        << '\n'
+        << "monitor="
+        << MONITOR_ADDRESS
+        << ':'
+        << MONITOR_PORT
         << '\n'
         << "Press Ctrl+C to stop."
         << '\n';

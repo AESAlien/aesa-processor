@@ -24,6 +24,8 @@ public:
 
     void runSendConsole();
 
+    void runSendMonitor();
+
 private:
     CommChannel& _commChannel;
     BeamChannel& _beamChannel;

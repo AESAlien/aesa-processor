@@ -19,6 +19,9 @@ system    // 레이더 데이터 처리부
 ├─ beam     // 빔 모듈
 ├─ comm     // 통신 모듈
 └─ target   // 타겟 모듈
+
+tools
+└─ monitor  // 데이터 처리부 상태 모니터 프로그램 (Python)
 ```
 
 - **외부 시스템과 통신 방식**: TCP/IP

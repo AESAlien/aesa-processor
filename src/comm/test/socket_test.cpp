@@ -10,6 +10,8 @@
 #include <socket/listen_socket.hpp>
 #include <socket/connected_socket.hpp>
 
+#include <protocol/ST_BeamTxMsg.hpp>
+#include <protocol/ST_MonitorStatusMsg.hpp>
 #include <protocol/ST_RadarAttMsg.hpp>
 
 #include <native_socket/native_socket_test_support.hpp>
@@ -140,16 +142,57 @@ comm::ConnectedSocket connectPeer(NativePeer& client)
     return std::move(*accepted);
 }
 
+// 모니터를 사용하지 않는 테스트에서 어떤 연결과도 일치하지 않는 모니터 엔드포인트
+const comm::CommEndpoint UNUSED_MONITOR("127.0.0.2", 1);
+
 comm::CommConfig makeConfig(
     uint16_t serverPort,
     const NativePeer& operatorConsole,
-    const NativePeer& scenarioSimulator
+    const NativePeer& scenarioSimulator,
+    const comm::CommEndpoint& monitor = UNUSED_MONITOR
 ) {
     return comm::CommConfig(
         comm::CommEndpoint("127.0.0.1", serverPort),
         comm::CommEndpoint("127.0.0.1", operatorConsole.localPort()),
-        comm::CommEndpoint("127.0.0.1", scenarioSimulator.localPort())
+        comm::CommEndpoint("127.0.0.1", scenarioSimulator.localPort()),
+        monitor
     );
+}
+
+comm::CommConfig makeConfig(
+    uint16_t serverPort,
+    const NativePeer& operatorConsole,
+    const NativePeer& scenarioSimulator,
+    const NativePeer& monitor
+) {
+    return makeConfig(
+        serverPort,
+        operatorConsole,
+        scenarioSimulator,
+        comm::CommEndpoint("127.0.0.1", monitor.localPort())
+    );
+}
+
+// 상대가 보낸 바이트를 지정한 길이만큼 모두 읽는다.
+std::vector<uint8_t> receiveExactly(const NativePeer& peer, std::size_t size)
+{
+    std::vector<uint8_t> bytes(size);
+    std::size_t offset = 0;
+    while (offset < bytes.size())
+    {
+        if (peer.waitReadable() != 1)
+        {
+            break;
+        }
+        const int received = peer.receiveBytes(bytes.data() + offset, bytes.size() - offset);
+        if (received <= 0)
+        {
+            break;
+        }
+        offset += static_cast<std::size_t>(received);
+    }
+    bytes.resize(offset);
+    return bytes;
 }
 
 // 대기 중인 연결 수락과 종료를 처리한다. 리셋된 연결의 세션은 종료된다.
@@ -181,7 +224,8 @@ TEST(NetworkManagerTest, OwnsConnectionsAndRoutesDestinationSpecificSends)
         comm::NetworkManager manager(comm::CommConfig(
             comm::CommEndpoint("127.0.0.1", port),
             comm::CommEndpoint("127.0.0.1", console.localPort()),
-            comm::CommEndpoint("127.0.0.1", simulator.localPort())
+            comm::CommEndpoint("127.0.0.1", simulator.localPort()),
+            UNUSED_MONITOR
         ));
         EXPECT_THROW(manager.poll(std::chrono::milliseconds{0}), comm::ReceiveError);
         EXPECT_NO_THROW(manager.sendToOperatorConsole({0x01}));
@@ -374,6 +418,164 @@ TEST(CommControllerTest, SendsSimulatorAttitudeToConsole)
     EXPECT_DOUBLE_EQ(forwarded.roll_deg, -12.5);
     EXPECT_DOUBLE_EQ(forwarded.pitch_deg, 6.25);
     EXPECT_DOUBLE_EQ(forwarded.yaw_deg, 45.5);
+}
+
+// 모니터 송신은 모니터 연결에만 전달하고, 모니터가 없으면 무시한다.
+TEST(NetworkManagerTest, RoutesMonitorSendsOnlyToMonitor)
+{
+    // 준비: 세 상대의 엔드포인트로 관리자를 만들고 모니터 연결 전 송신을 시도한다.
+    TestSocket apiLifetime;
+    NativePeer console;
+    NativePeer simulator;
+    NativePeer monitor;
+    ASSERT_EQ(console.bind(), 0);
+    ASSERT_EQ(simulator.bind(), 0);
+    ASSERT_EQ(monitor.bind(), 0);
+    const uint16_t port = availablePort();
+    comm::NetworkManager manager(makeConfig(port, console, simulator, monitor));
+    manager.start();
+    EXPECT_NO_THROW(manager.sendToMonitor({0x10}, SOCKET_WAIT_TIMEOUT));
+
+    ASSERT_EQ(console.connect(port), 0);
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+    ASSERT_EQ(monitor.connect(port), 0);
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+
+    // 실행: 모니터와 운용 콘솔에 서로 다른 바이트를 보낸다.
+    manager.sendToMonitor({0x61}, SOCKET_WAIT_TIMEOUT);
+    manager.sendToOperatorConsole({0x31}, SOCKET_WAIT_TIMEOUT);
+
+    // 검증: 각 상대는 자신에게 보낸 바이트만 받는다. 연결 전 송신은 전달되지 않는다.
+    EXPECT_EQ(receiveExactly(monitor, 1), (std::vector<uint8_t>{0x61}));
+    EXPECT_EQ(receiveExactly(console, 1), (std::vector<uint8_t>{0x31}));
+}
+
+// 상대의 연결 여부는 연결 수락과 종료 감지에 따라 바뀐다.
+TEST(NetworkManagerTest, ReportsPeerConnectionState)
+{
+    // 준비: 아직 아무 상대도 연결하지 않은 관리자를 준비한다.
+    TestSocket apiLifetime;
+    NativePeer console;
+    NativePeer simulator;
+    ASSERT_EQ(console.bind(), 0);
+    ASSERT_EQ(simulator.bind(), 0);
+    const uint16_t port = availablePort();
+    comm::NetworkManager manager(makeConfig(port, console, simulator));
+    manager.start();
+    EXPECT_FALSE(manager.isOperatorConsoleConnected());
+    EXPECT_FALSE(manager.isScenarioSimulatorConnected());
+
+    // 실행: 두 상대를 연결한 뒤 운용 콘솔만 연결을 끊는다.
+    ASSERT_EQ(console.connect(port), 0);
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+    ASSERT_EQ(simulator.connect(port), 0);
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+    const bool consoleConnectedBeforeClose = manager.isOperatorConsoleConnected();
+    console.close();
+    pollFor(manager, SOCKET_WAIT_TIMEOUT);
+
+    // 검증: 연결된 동안에는 true이고, 종료를 감지한 상대만 false가 된다.
+    EXPECT_TRUE(consoleConnectedBeforeClose);
+    EXPECT_FALSE(manager.isOperatorConsoleConnected());
+    EXPECT_TRUE(manager.isScenarioSimulatorConnected());
+}
+
+// 모니터에는 다른 상대에 보내는 것과 같은 형식의 메시지를 전달한다.
+TEST(CommControllerTest, SendsMessageCopiesToMonitor)
+{
+    // 준비: 세 상대가 연결하고, 모의기가 자세 메시지를 보낸다.
+    TestSocket apiLifetime;
+    NativePeer console;
+    NativePeer simulator;
+    NativePeer monitor;
+    ASSERT_EQ(console.bind(), 0);
+    ASSERT_EQ(simulator.bind(), 0);
+    ASSERT_EQ(monitor.bind(), 0);
+    const uint16_t port = availablePort();
+    comm::CommController controller(makeConfig(port, console, simulator, monitor));
+    controller.openServer();
+    // 대기 중인 연결은 들어온 순서로 수락한다. 모의기를 마지막에 연결해야
+    // 자세 메시지를 수신하기 전에 모니터 연결이 수락된다.
+    ASSERT_EQ(monitor.connect(port), 0);
+    ASSERT_EQ(console.connect(port), 0);
+    ASSERT_EQ(simulator.connect(port), 0);
+
+    comm::protocol::ST_RadarAttMsg attitudeMessage{};
+    attitudeMessage.msgHeader.message_Id =
+        static_cast<uint16_t>(comm::protocol::MessageId::RADAR_ATTITUDE_FROM_SIMULATOR);
+    attitudeMessage.msgHeader.block_size = sizeof(attitudeMessage);
+    attitudeMessage.yaw_deg = 45.5;
+    std::vector<uint8_t> attitudeBytes(sizeof(attitudeMessage));
+    std::memcpy(attitudeBytes.data(), &attitudeMessage, sizeof(attitudeMessage));
+    for (uint8_t byte : attitudeBytes)
+    {
+        ASSERT_EQ(simulator.sendByte(byte), 1);
+    }
+
+    // receiveData()는 세 연결을 수락한 뒤 자세 메시지를 반환한다.
+    const std::optional<comm::IncomingDto> incoming = controller.receiveData();
+    ASSERT_TRUE(incoming);
+    const auto* attitude = std::get_if<beam::SetAttitudeCommand>(&*incoming);
+    ASSERT_NE(attitude, nullptr);
+
+    const beam::TransmitBeamCommand beamCommand(
+        beam::BeamType::TRACKING,
+        std::chrono::milliseconds{1234},
+        21,
+        7,
+        math::SphericalDirection(
+            math::Angle::fromDegrees(10.5),
+            math::Angle::fromDegrees(-4.5)
+        ),
+        beam::BeamWidth(math::Angle::fromDegrees(3.0), math::Angle::fromDegrees(3.0))
+    );
+
+    // 실행: 빔 명령과 자세를 모니터에 보낸다.
+    controller.sendToMonitor(beamCommand);
+    controller.sendToMonitor(*attitude);
+
+    // 검증: 모니터는 빔 송신 메시지와 전시기용 자세 메시지를 차례로 받는다.
+    const std::vector<uint8_t> beamBytes =
+        receiveExactly(monitor, sizeof(comm::protocol::ST_BeamTxMsg));
+    ASSERT_EQ(beamBytes.size(), sizeof(comm::protocol::ST_BeamTxMsg));
+    comm::protocol::ST_BeamTxMsg forwardedBeam{};
+    std::memcpy(&forwardedBeam, beamBytes.data(), sizeof(forwardedBeam));
+    EXPECT_EQ(
+        forwardedBeam.msgHeader.message_Id,
+        static_cast<uint16_t>(comm::protocol::MessageId::BEAM_TRANSMIT)
+    );
+    EXPECT_EQ(forwardedBeam.beam_cmd.beamID, 21U);
+    EXPECT_EQ(forwardedBeam.beam_cmd.timestamp, 1234U);
+
+    const std::vector<uint8_t> forwardedAttitudeBytes =
+        receiveExactly(monitor, sizeof(comm::protocol::ST_RadarAttMsg));
+    ASSERT_EQ(forwardedAttitudeBytes.size(), sizeof(comm::protocol::ST_RadarAttMsg));
+    comm::protocol::ST_RadarAttMsg forwardedAttitude{};
+    std::memcpy(&forwardedAttitude, forwardedAttitudeBytes.data(), sizeof(forwardedAttitude));
+    EXPECT_EQ(
+        forwardedAttitude.msgHeader.message_Id,
+        static_cast<uint16_t>(comm::protocol::MessageId::RADAR_ATTITUDE_TO_CONSOLE)
+    );
+    EXPECT_DOUBLE_EQ(forwardedAttitude.yaw_deg, 45.5);
+
+    // 실행: 처리부 상태를 모니터에 보낸다.
+    comm::MonitorStatusRequest status;
+    status.processorTime = std::chrono::milliseconds{42310};
+    controller.sendToMonitor(status);
+
+    // 검증: 상태 메시지에 요청 값과 송신 시점의 상대 연결 상태가 담긴다.
+    const std::vector<uint8_t> statusBytes =
+        receiveExactly(monitor, sizeof(comm::protocol::ST_MonitorStatusMsg));
+    ASSERT_EQ(statusBytes.size(), sizeof(comm::protocol::ST_MonitorStatusMsg));
+    comm::protocol::ST_MonitorStatusMsg forwardedStatus{};
+    std::memcpy(&forwardedStatus, statusBytes.data(), sizeof(forwardedStatus));
+    EXPECT_EQ(
+        forwardedStatus.msgHeader.message_Id,
+        static_cast<uint16_t>(comm::protocol::MessageId::MONITOR_STATUS)
+    );
+    EXPECT_EQ(forwardedStatus.processorTime_ms, 42310U);
+    EXPECT_EQ(forwardedStatus.operatorConsoleConnected, 1);
+    EXPECT_EQ(forwardedStatus.scenarioSimulatorConnected, 1);
 }
 
 TEST(PeerConnectionTest, DisconnectedSendPreservesValidationAndNoOpBehavior)

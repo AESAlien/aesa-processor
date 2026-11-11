@@ -190,6 +190,7 @@ TEST(MessageDecoderTest, RejectsUnsupportedAndUnknownMessageIds)
              comm::protocol::MessageId::RADAR_ATTITUDE_TO_CONSOLE,
              comm::protocol::MessageId::TRACK_DELETION,
              comm::protocol::MessageId::BEAM_TRANSMIT,
+             comm::protocol::MessageId::MONITOR_STATUS,
              static_cast<comm::protocol::MessageId>(0xFFFF)})
     {
         SCOPED_TRACE(static_cast<uint16_t>(messageId));

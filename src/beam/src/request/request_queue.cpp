@@ -1,4 +1,4 @@
-#include "scheduler/request_queue.hpp"
+#include "request/request_queue.hpp"
 
 namespace beam
 {

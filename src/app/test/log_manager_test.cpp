@@ -176,6 +176,35 @@ TEST_F(LogManagerTest, MessageDestructionDrainsAllLevelsToOneFile)
     EXPECT_EQ(spdlog::get("message"), nullptr);
 }
 
+TEST_F(LogManagerTest, MessageConsoleOutputIsOffByDefaultAndFilteredPerLogger)
+{
+    initializeMessages();
+    _messageLogs->addLogger(
+        "console_message",
+        spdlog::level::info,
+        spdlog::async_overflow_policy::block,
+        spdlog::level::warn
+    );
+
+    testing::internal::CaptureStdout();
+    spdlog::get("message")->warn("file only warning");
+    spdlog::get("console_message")->info("file only info");
+    spdlog::get("console_message")->warn("console warning");
+    _messageLogs.reset();
+    const auto console = testing::internal::GetCapturedStdout();
+
+    // 콘솔 레벨을 준 로거의 그 레벨 이상 메시지만 콘솔에 나온다.
+    EXPECT_EQ(console.find("file only"), std::string::npos);
+    EXPECT_NE(console.find("[console_message] [warning] console warning"), std::string::npos);
+
+    // 파일에는 콘솔 설정과 관계없이 모두 기록된다.
+    const auto messages = lines(_messageLogPath);
+    ASSERT_EQ(messages.size(), 3u);
+    EXPECT_NE(messages[0].find("file only warning"), std::string::npos);
+    EXPECT_NE(messages[1].find("file only info"), std::string::npos);
+    EXPECT_NE(messages[2].find("console warning"), std::string::npos);
+}
+
 TEST_F(LogManagerTest, MessageNamesFilesByStartTimeAndKeepsRunsSeparate)
 {
     {

@@ -16,6 +16,7 @@ enum class MessageId : uint16_t
     BEAM_TRANSMIT = 0xAB01,
     PLOT_INFORMATION = 0xBA01,
     RADAR_ATTITUDE_FROM_SIMULATOR = 0xBA02,
+    MONITOR_STATUS = 0xAD01,
 };
 
 #pragma pack(push, 1)

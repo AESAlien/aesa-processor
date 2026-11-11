@@ -1,6 +1,7 @@
 #include <message/message_encoder.hpp>
 
 #include <protocol/ST_BeamTxMsg.hpp>
+#include <protocol/ST_MonitorStatusMsg.hpp>
 #include <protocol/ST_RadarAttMsg.hpp>
 #include <protocol/ST_TrkMsg.hpp>
 
@@ -238,6 +239,30 @@ EncodeResult encodeRadarAttitude(
     message.yaw_deg =       command.yaw.deg();
 
     return encoded(toBytes(message));
+}
+
+EncodeResult encodeMonitorStatus(
+    const MonitorStatus& status
+) {
+    try
+    {
+        protocol::ST_MonitorStatusMsg message{};
+        message.msgHeader = makeHeader(
+            protocol::MessageId::MONITOR_STATUS,
+            sizeof(message)
+        );
+        message.processorTime_ms =  convertTimestamp(status.request.processorTime);
+        message.timeScale =         convertFloat(status.request.timeScale);
+        message.paused =            status.request.paused ? 1 : 0;
+        message.operatorConsoleConnected =      status.operatorConsoleConnected ? 1 : 0;
+        message.scenarioSimulatorConnected =    status.scenarioSimulatorConnected ? 1 : 0;
+
+        return encoded(toBytes(message));
+    }
+    catch (const std::out_of_range&)
+    {
+        return failed(EncodingError::TYPE_CONVERSION_ERROR);
+    }
 }
 
 } // namespace comm

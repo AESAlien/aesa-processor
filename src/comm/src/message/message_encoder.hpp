@@ -1,5 +1,7 @@
 #pragma once
 
+#include <message/dto/monitor_status.hpp>
+
 #include <beam/dto/set_attitude_command.hpp>
 #include <beam/dto/transmit_beam_command.hpp>
 #include <target/dto/track_event.hpp>
@@ -35,6 +37,11 @@ EncodeResult encodeTrackEvents(
 // 모의기에서 받은 레이더 자세를 전시기용 자세 메시지로 인코딩한다.
 EncodeResult encodeRadarAttitude(
     const beam::SetAttitudeCommand& command
+);
+
+// 데이터 처리부 상태를 모니터 상태 메시지로 인코딩한다.
+EncodeResult encodeMonitorStatus(
+    const MonitorStatus& status
 );
 
 } // namespace comm

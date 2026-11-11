@@ -3,8 +3,31 @@
 #include <gtest/gtest.h>
 
 #include <stdexcept>
+#include <string>
 
 using namespace math::literals;
+
+namespace
+{
+
+// 함수가 던진 std::invalid_argument의 메시지를 반환한다. 예외가 없으면 실패로 기록하고 빈 문자열을 반환한다.
+template <typename Function>
+std::string invalidArgumentMessage(Function&& function)
+{
+    try
+    {
+        function();
+    }
+    catch (const std::invalid_argument& error)
+    {
+        return error.what();
+    }
+
+    ADD_FAILURE() << "std::invalid_argument was not thrown";
+    return {};
+}
+
+} // namespace
 
 // 자세 객체는 전달받은 롤과 피치 및 요를 보관한다.
 TEST(RadarAttitudeTest, StoresGivenValues)
@@ -86,4 +109,21 @@ TEST(RadarAttitudeTest, AcceptsBoundaryAnglesIncludingEndpoints)
     // Then: 자세 객체는 롤과 요의 양 끝 경계를 허용한다.
     EXPECT_NO_THROW(construct(upperRoll, upperYaw));
     EXPECT_NO_THROW(construct(lowerRoll, lowerYaw));
+}
+
+// 자세 객체의 범위 오류 메시지는 입력된 롤과 요 값을 포함한다.
+TEST(RadarAttitudeTest, OutOfRangeMessageIncludesInputValue)
+{
+    // Given: 롤과 요가 각각 범위를 벗어난 입력을 준비한다.
+    const auto pitch = math::TiltAngle(0_deg);
+
+    // When: 각 입력으로 자세 객체 생성을 시도한다.
+    const auto rollMessage = invalidArgumentMessage([&] { beam::RadarAttitude(200_deg, pitch, 0_deg); });
+    const auto yawMessage = invalidArgumentMessage([&] { beam::RadarAttitude(0_deg, pitch, -400_deg); });
+
+    // Then: 메시지에 원인과 입력값이 함께 담긴다.
+    EXPECT_NE(rollMessage.find("roll must be in"), std::string::npos) << rollMessage;
+    EXPECT_NE(rollMessage.find("roll=200"), std::string::npos) << rollMessage;
+    EXPECT_NE(yawMessage.find("yaw must be in"), std::string::npos) << yawMessage;
+    EXPECT_NE(yawMessage.find("yaw=-400"), std::string::npos) << yawMessage;
 }

@@ -48,9 +48,17 @@ public:
         const std::vector<uint8_t>& data,
         std::chrono::milliseconds timeout = std::chrono::milliseconds{1000}
     );
+    void sendToMonitor(
+        const std::vector<uint8_t>& data,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds{1000}
+    );
+
+    // 상대의 현재 연결 여부를 반환한다. 송신 스레드에서도 호출할 수 있다.
+    bool isOperatorConsoleConnected() const;
+    bool isScenarioSimulatorConnected() const;
 
 private:
-    static constexpr std::size_t PEER_COUNT = 2;
+    static constexpr std::size_t PEER_COUNT = 3;
 
     std::array<PeerConnection*, PEER_COUNT> peers() noexcept;
 
@@ -63,6 +71,7 @@ private:
     CommEndpoint _serverEndpoint;
     PeerConnection _operatorConsole;
     PeerConnection _scenarioSimulator;
+    PeerConnection _monitor;
     std::unique_ptr<TcpServer> _server;
 };
 
