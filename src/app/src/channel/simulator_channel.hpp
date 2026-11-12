@@ -1,6 +1,6 @@
 #pragma once
 
-#include <app/queue/message_queue.hpp>
+#include "queue/message_queue.hpp"
 #include <beam/dto/transmit_beam_command.hpp>
 
 #include <optional>

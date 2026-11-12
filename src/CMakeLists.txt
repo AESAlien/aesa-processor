@@ -44,22 +44,6 @@ target_include_directories(magic_enum SYSTEM INTERFACE
     "${PROJECT_SOURCE_DIR}/third_party/magic_enum/include"
 )
 
-add_library(radar_logging STATIC
-    app/src/log/log_manager.cpp
-    app/src/log/message_log_manager.cpp
-    app/src/log/csv_log_manager.cpp
-    app/src/log/support/timestamped_log_path.cpp
-)
-
-target_include_directories(radar_logging PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/app/include"
-)
-
-target_link_libraries(radar_logging PUBLIC
-    spdlog::spdlog
-    Threads::Threads
-)
-
 add_subdirectory(math)
 add_subdirectory(beam)
 add_subdirectory(target)

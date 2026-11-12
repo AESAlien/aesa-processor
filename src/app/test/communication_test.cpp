@@ -1,8 +1,8 @@
-#include <app/channel/console_channel.hpp>
-#include <app/channel/simulator_channel.hpp>
-#include <app/worker/comm_receive_worker.hpp>
-#include <app/worker/console_send_worker.hpp>
-#include <app/worker/simulator_send_worker.hpp>
+#include "channel/console_channel.hpp"
+#include "channel/simulator_channel.hpp"
+#include "worker/comm_receive_worker.hpp"
+#include "worker/console_send_worker.hpp"
+#include "worker/simulator_send_worker.hpp"
 
 #include <gtest/gtest.h>
 

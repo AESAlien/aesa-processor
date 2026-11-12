@@ -1,16 +1,16 @@
-#include <app/channel/beam_channel.hpp>
-#include <app/channel/simulator_channel.hpp>
-#include <app/channel/console_channel.hpp>
-#include <app/channel/target_channel.hpp>
+#include "channel/beam_channel.hpp"
+#include "channel/simulator_channel.hpp"
+#include "channel/console_channel.hpp"
+#include "channel/target_channel.hpp"
 
-#include <app/log/csv_log_manager.hpp>
-#include <app/log/message_log_manager.hpp>
+#include "log/csv_log_manager.hpp"
+#include "log/message_log_manager.hpp"
 
-#include <app/worker/beam_worker.hpp>
-#include <app/worker/comm_receive_worker.hpp>
-#include <app/worker/simulator_send_worker.hpp>
-#include <app/worker/console_send_worker.hpp>
-#include <app/worker/target_worker.hpp>
+#include "worker/beam_worker.hpp"
+#include "worker/comm_receive_worker.hpp"
+#include "worker/simulator_send_worker.hpp"
+#include "worker/console_send_worker.hpp"
+#include "worker/target_worker.hpp"
 
 #include <beam/controller/beam_controller.hpp>
 #include <comm/controller/comm_controller.hpp>

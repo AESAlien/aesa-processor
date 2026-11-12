@@ -12,6 +12,11 @@ add_library(app_runtime STATIC
     src/config/config_value_reader.cpp
     src/config/env_file_reader.cpp
 
+    src/log/log_manager.cpp
+    src/log/message_log_manager.cpp
+    src/log/csv_log_manager.cpp
+    src/log/support/timestamped_log_path.cpp
+
     src/log/logger/beam_event_message_logger.cpp
     src/log/logger/detection_event_csv_logger.cpp
 
@@ -23,22 +28,28 @@ add_library(app_runtime STATIC
     src/worker/worker_error.cpp
 )
 
-target_include_directories(app_runtime PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/include"
-)
+# 앱 내부 구현과 테스트에만 필요한 경로와 의존성을 지정한다.
+function(configure_app_internal target_name)
+    target_include_directories(${target_name} PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_link_libraries(${target_name} PRIVATE
+        spdlog::spdlog
+        beam
+        target
+        comm
+        Threads::Threads
+        magic_enum::magic_enum
+    )
+endfunction()
 
-target_link_libraries(app_runtime PUBLIC
-    radar_logging
-    beam
-    target
-    comm
-    Threads::Threads
-    PRIVATE magic_enum::magic_enum
-)
+configure_app_internal(app_runtime)
 
 add_executable(app
     src/main.cpp
 )
+
+configure_app_internal(app)
 
 target_include_directories(app PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src/config"
@@ -59,12 +70,16 @@ if(BUILD_TESTING)
     add_executable(app_communication_test
         test/communication_test.cpp
     )
+    configure_app_internal(app_communication_test)
+
     target_link_libraries(app_communication_test PRIVATE app_runtime GTest::gtest_main)
     gtest_discover_tests(app_communication_test PROPERTIES TIMEOUT 10)
 
     add_executable(app_config_test
         test/config_test.cpp
     )
+
+    configure_app_internal(app_config_test)
 
     target_link_libraries(app_config_test PRIVATE
         app_runtime
@@ -90,6 +105,8 @@ if(BUILD_TESTING)
     target_include_directories(app_log_manager_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src/log"
     )
+
+    configure_app_internal(app_log_manager_test)
 
     target_link_libraries(app_log_manager_test PRIVATE
         app_runtime

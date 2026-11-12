@@ -1,6 +1,6 @@
 #pragma once
 
-#include <app/queue/message_queue.hpp>
+#include "queue/message_queue.hpp"
 #include <beam/dto/set_attitude_command.hpp>
 #include <target/dto/track_event.hpp>
 

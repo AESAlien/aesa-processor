@@ -1,6 +1,6 @@
 #pragma once
 
-#include <app/channel/console_channel.hpp>
+#include "channel/console_channel.hpp"
 
 #include <functional>
 

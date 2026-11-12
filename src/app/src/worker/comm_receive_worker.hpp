@@ -1,8 +1,8 @@
 #pragma once
 
-#include <app/channel/beam_channel.hpp>
-#include <app/channel/target_channel.hpp>
-#include <app/channel/console_channel.hpp>
+#include "channel/beam_channel.hpp"
+#include "channel/target_channel.hpp"
+#include "channel/console_channel.hpp"
 #include <comm/dto/incoming_dto.hpp>
 
 #include <functional>
