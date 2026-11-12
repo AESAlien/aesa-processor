@@ -1,6 +1,8 @@
 #include <message/message_encoder.hpp>
 
 #include <protocol/ST_BeamTxMsg.hpp>
+#include <protocol/ST_MonitorStatusMsg.hpp>
+#include <protocol/ST_PlotMsg.hpp>
 #include <protocol/ST_RadarAttMsg.hpp>
 #include <protocol/ST_TrkMsg.hpp>
 
@@ -23,6 +25,12 @@ constexpr std::size_t MAXIMUM_TRACK_COUNT =
 
 constexpr std::size_t TRACK_DATA_OFFSET =
     sizeof(protocol::ST_MsgHeader) + sizeof(protocol::ST_TrkHeader);
+
+constexpr std::size_t MAXIMUM_PLOT_COUNT =
+    std::extent<decltype(protocol::ST_PlotMsg::plot)>::value;
+
+constexpr std::size_t PLOT_DATA_OFFSET =
+    offsetof(protocol::ST_PlotMsg, plot);
 
 EncodeResult encoded(std::vector<uint8_t> bytes)
 {
@@ -125,6 +133,19 @@ protocol::ST_Trk encodeTrack(
     encodedTrack.timeStamp =    convertTimestamp(event.timestamp);
 
     return encodedTrack;
+}
+
+protocol::ST_Plot encodePlot(
+    const target::DetectionEvent::Plot& plot
+) {
+    protocol::ST_Plot encodedPlot{};
+    encodedPlot.slantR_km =     convertFloat(plot.slantRange.km());
+    encodedPlot.azi_deg =       convertFloat(plot.azimuth.deg());
+    encodedPlot.elv_deg =       convertFloat(plot.elevation.deg());
+    encodedPlot.doppler_mps =   convertFloat(plot.dopplerVelocity.mps());
+    encodedPlot.pwr_DB =        plot.power_db;
+
+    return encodedPlot;
 }
 
 // TCP 전송을 위해 프로토콜 메시지를 직렬화한다.
@@ -238,6 +259,64 @@ EncodeResult encodeRadarAttitude(
     message.yaw_deg =       command.yaw.deg();
 
     return encoded(toBytes(message));
+}
+
+EncodeResult encodeDetectionEvent(
+    const target::DetectionEvent& detectionEvent
+) {
+    if (detectionEvent.plots.size() > MAXIMUM_PLOT_COUNT)
+    {
+        return failed(EncodingError::TOO_MANY_PLOTS);
+    }
+
+    protocol::ST_PlotMsg message{};
+    const std::size_t blockSize =
+        PLOT_DATA_OFFSET + detectionEvent.plots.size() * sizeof(protocol::ST_Plot);
+    try
+    {
+        message.beam_cmd.beamType = static_cast<uint8_t>(detectionEvent.beamType);
+        message.beam_cmd.timestamp = convertTimestamp(detectionEvent.transmitTime);
+        message.beam_cmd.beamID = detectionEvent.requestId;
+        for (std::size_t index = 0; index < detectionEvent.plots.size(); ++index)
+        {
+            message.plot[index] = encodePlot(detectionEvent.plots[index]);
+        }
+    }
+    catch (const std::out_of_range&)
+    {
+        return failed(EncodingError::TYPE_CONVERSION_ERROR);
+    }
+    message.msgHeader = makeHeader(protocol::MessageId::PLOT_INFORMATION, blockSize);
+    message.plotHd.number = static_cast<uint16_t>(detectionEvent.plots.size());
+
+    // 실제 플롯 수만큼만 보내도록 고정 크기 구조체의 앞부분만 직렬화한다.
+    std::vector<uint8_t> bytes = toBytes(message);
+    bytes.resize(blockSize);
+    return encoded(std::move(bytes));
+}
+
+EncodeResult encodeMonitorStatus(
+    const MonitorStatus& status
+) {
+    try
+    {
+        protocol::ST_MonitorStatusMsg message{};
+        message.msgHeader = makeHeader(
+            protocol::MessageId::MONITOR_STATUS,
+            sizeof(message)
+        );
+        message.processorTime_ms =  convertTimestamp(status.request.processorTime);
+        message.timeScale =         convertFloat(status.request.timeScale);
+        message.paused =            status.request.paused ? 1 : 0;
+        message.operatorConsoleConnected =      status.operatorConsoleConnected ? 1 : 0;
+        message.scenarioSimulatorConnected =    status.scenarioSimulatorConnected ? 1 : 0;
+
+        return encoded(toBytes(message));
+    }
+    catch (const std::out_of_range&)
+    {
+        return failed(EncodingError::TYPE_CONVERSION_ERROR);
+    }
 }
 
 } // namespace comm

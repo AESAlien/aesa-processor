@@ -1,6 +1,8 @@
 #include <message/message_encoder.hpp>
 
 #include <protocol/ST_BeamTxMsg.hpp>
+#include <protocol/ST_MonitorStatusMsg.hpp>
+#include <protocol/ST_PlotMsg.hpp>
 #include <protocol/ST_RadarAttMsg.hpp>
 #include <protocol/ST_TrkMsg.hpp>
 
@@ -68,6 +70,22 @@ beam::SetAttitudeCommand makeAttitudeCommand(double longitudeDegrees = 127.25)
         .pitch(6.25_deg)
         .yaw(45.5_deg)
         .build();
+}
+
+target::DetectionEvent makeDetectionEvent(std::size_t plotCount)
+{
+    std::vector<target::DetectionEvent::Plot> plots;
+    for (std::size_t index = 0; index < plotCount; ++index)
+    {
+        plots.push_back(target::DetectionEvent::Plot::Builder()
+            .slantRange(math::Distance::fromKilometers(12.5 + static_cast<double>(index)))
+            .azimuth(-15.5_deg)
+            .elevation(6.25_deg)
+            .dopplerVelocity(-120.5_mps)
+            .power_db(80.0F)
+            .build());
+    }
+    return target::DetectionEvent(beam::BeamType::TRACKING, 42, 5678ms, std::move(plots));
 }
 
 template <typename Value>
@@ -468,4 +486,117 @@ TEST(MessageEncoderTest, RejectsValueOutsideFloatRange)
         comm::EncodingError::TYPE_CONVERSION_ERROR
     );
     EXPECT_FALSE(trackResult.bytes.has_value());
+}
+
+// 모니터 상태는 처리부 시각, 속도, 상대 연결 상태를 고정 크기 메시지로 인코딩한다.
+TEST(MessageEncoderTest, EncodesMonitorStatus)
+{
+    // 준비: 정지 상태와 일부 상대만 연결된 상태를 준비한다.
+    comm::MonitorStatus status;
+    status.request.processorTime = 42310ms;
+    status.request.timeScale = 0.1;
+    status.request.paused = true;
+    status.operatorConsoleConnected = true;
+    status.scenarioSimulatorConnected = false;
+
+    // 실행: 모니터 상태를 인코딩한다.
+    const comm::EncodeResult result = comm::encodeMonitorStatus(status);
+
+    // 검증: 헤더와 각 필드가 프로토콜 형식으로 인코딩된다.
+    ASSERT_TRUE(result.bytes.has_value());
+    ASSERT_EQ(result.bytes->size(), sizeof(comm::protocol::ST_MonitorStatusMsg));
+    comm::protocol::ST_MonitorStatusMsg message{};
+    std::memcpy(&message, result.bytes->data(), sizeof(message));
+    EXPECT_EQ(
+        message.msgHeader.message_Id,
+        static_cast<uint16_t>(comm::protocol::MessageId::MONITOR_STATUS)
+    );
+    EXPECT_EQ(message.msgHeader.block_size, sizeof(message));
+    EXPECT_EQ(message.processorTime_ms, 42310U);
+    EXPECT_FLOAT_EQ(message.timeScale, 0.1F);
+    EXPECT_EQ(message.paused, 1);
+    EXPECT_EQ(message.operatorConsoleConnected, 1);
+    EXPECT_EQ(message.scenarioSimulatorConnected, 0);
+}
+
+// 프로토콜 범위를 벗어난 처리부 시각은 인코딩하지 않는다.
+TEST(MessageEncoderTest, RejectsMonitorStatusOutsideProtocolRange)
+{
+    // 준비: 음수 처리부 시각을 가진 상태를 준비한다.
+    comm::MonitorStatus status;
+    status.request.processorTime = -1ms;
+
+    // 실행: 모니터 상태를 인코딩한다.
+    const comm::EncodeResult result = comm::encodeMonitorStatus(status);
+
+    // 검증: 타입 변환 오류를 반환하고 바이트 배열은 반환하지 않는다.
+    EXPECT_EQ(result.error, comm::EncodingError::TYPE_CONVERSION_ERROR);
+    EXPECT_FALSE(result.bytes.has_value());
+}
+
+// 탐지 결과를 실제 플롯 수만큼의 탐지 정보 메시지로 변환하고 빔 명령은 종류, 시각, ID만 채운다.
+TEST(MessageEncoderTest, EncodesDetectionEventUsingActualPlotCount)
+{
+    // 준비: 플롯 두 개가 있는 추적 빔 탐지 결과를 준비한다.
+    const target::DetectionEvent event = makeDetectionEvent(2);
+
+    // 실행: 탐지 결과를 인코딩한다.
+    const comm::EncodeResult result = comm::encodeDetectionEvent(event);
+
+    // 검증: 크기는 헤더, 빔 명령, 플롯 헤더와 플롯 두 개의 합이다.
+    ASSERT_EQ(result.error, comm::EncodingError::NONE);
+    ASSERT_TRUE(result.bytes.has_value());
+    const std::size_t expectedSize =
+        offsetof(comm::protocol::ST_PlotMsg, plot) + 2 * sizeof(comm::protocol::ST_Plot);
+    ASSERT_EQ(result.bytes->size(), expectedSize);
+
+    const auto header = readValue<comm::protocol::ST_MsgHeader>(*result.bytes);
+    EXPECT_EQ(header.message_Id, static_cast<uint16_t>(comm::protocol::MessageId::PLOT_INFORMATION));
+    EXPECT_EQ(header.block_size, expectedSize);
+
+    const auto beam = readValue<comm::protocol::ST_BeamTx>(*result.bytes, sizeof(comm::protocol::ST_MsgHeader));
+    EXPECT_EQ(beam.beamType, static_cast<uint8_t>(beam::BeamType::TRACKING));
+    EXPECT_EQ(beam.timestamp, 5678u);
+    EXPECT_EQ(beam.beamID, 42u);
+    EXPECT_EQ(beam.commandCount, 0u);
+    EXPECT_FLOAT_EQ(beam.beam_az_deg, 0.0F);
+
+    const auto plotHeader = readValue<comm::protocol::ST_PlotHeader>(
+        *result.bytes,
+        offsetof(comm::protocol::ST_PlotMsg, plotHd)
+    );
+    EXPECT_EQ(plotHeader.number, 2);
+
+    const auto secondPlot = readValue<comm::protocol::ST_Plot>(
+        *result.bytes,
+        offsetof(comm::protocol::ST_PlotMsg, plot) + sizeof(comm::protocol::ST_Plot)
+    );
+    EXPECT_EQ(secondPlot.ID, 0u);
+    EXPECT_FLOAT_EQ(secondPlot.slantR_km, 13.5F);
+    EXPECT_FLOAT_EQ(secondPlot.azi_deg, 344.5F);
+    EXPECT_FLOAT_EQ(secondPlot.elv_deg, 6.25F);
+    EXPECT_FLOAT_EQ(secondPlot.doppler_mps, -120.5F);
+    EXPECT_FLOAT_EQ(secondPlot.pwr_DB, 80.0F);
+}
+
+// 탐지 결과에 플롯이 없어도 플롯 수가 0인 메시지를 만든다.
+TEST(MessageEncoderTest, EncodesDetectionEventWithoutPlots)
+{
+    // 실행: 플롯이 없는 탐지 결과를 인코딩한다.
+    const comm::EncodeResult result = comm::encodeDetectionEvent(makeDetectionEvent(0));
+
+    // 검증: 플롯 헤더까지만 보낸다.
+    ASSERT_TRUE(result.bytes.has_value());
+    EXPECT_EQ(result.bytes->size(), offsetof(comm::protocol::ST_PlotMsg, plot));
+}
+
+// 프로토콜 상한인 100개를 넘는 플롯은 인코딩하지 않는다.
+TEST(MessageEncoderTest, RejectsMoreThanOneHundredPlots)
+{
+    // 실행: 플롯 101개인 탐지 결과를 인코딩한다.
+    const comm::EncodeResult result = comm::encodeDetectionEvent(makeDetectionEvent(101));
+
+    // 검증: 플롯 수 초과 오류를 반환한다.
+    EXPECT_EQ(result.error, comm::EncodingError::TOO_MANY_PLOTS);
+    EXPECT_FALSE(result.bytes.has_value());
 }

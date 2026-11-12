@@ -4,7 +4,9 @@
 #include <beam/dto/transmit_beam_command.hpp>
 #include <comm/config/comm_config.hpp>
 #include <comm/dto/incoming_dto.hpp>
+#include <comm/dto/monitor_status_request.hpp>
 #include <comm/error/comm_error.hpp>
+#include <target/dto/detection_event.hpp>
 #include <target/dto/track_event.hpp>
 
 #include <memory>
@@ -45,6 +47,16 @@ public:
     void sendRadarAttitude(
         const beam::SetAttitudeCommand& command
     );
+
+    // 다른 상대에 보낸 것과 같은 메시지를 모니터에 전달한다.
+    // 모니터가 연결되어 있지 않으면 무시한다.
+    void sendToMonitor(const beam::TransmitBeamCommand& command);
+    void sendToMonitor(const std::vector<target::TrackEvent>& trackEvents);
+    void sendToMonitor(const beam::SetAttitudeCommand& command);
+    // 모의기에서 받은 탐지 결과를 탐지 정보 메시지(0xBA01)로 보낸다.
+    void sendToMonitor(const target::DetectionEvent& detectionEvent);
+    // 요청 값에 현재 상대 연결 상태를 더해 모니터 상태 메시지를 보낸다.
+    void sendToMonitor(const MonitorStatusRequest& request);
 
     // void requestStop() noexcept;
     // void closeServer() noexcept;

@@ -54,6 +54,8 @@ void CommWorker::runReceive()
                 auto& detection =
                     std::get<target::DetectionEvent>(message);
 
+                // 모니터가 예측 방향과 실제 탐지를 비교할 수 있도록 복사본을 보낸다.
+                _commChannel.write(detection);
                 _targetChannel.write(std::move(detection));
             }
 
@@ -108,6 +110,19 @@ void CommWorker::runSendConsole()
                 std::get<std::vector<target::TrackEvent>>(*event);
 
             _controller.sendTrackEvents(tracks);
+        });
+    }
+}
+void CommWorker::runSendMonitor()
+{
+    while (auto event = _commChannel.readMonitor())
+    {
+        tryWorkerAction("CommSendMonitor", [&]
+        {
+            std::visit([this](const auto& message)
+            {
+                _controller.sendToMonitor(message);
+            }, *event);
         });
     }
 }

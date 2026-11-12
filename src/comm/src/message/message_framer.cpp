@@ -108,6 +108,7 @@ bool MessageFramer::isKnownMessageId(
     case protocol::MessageId::BEAM_TRANSMIT:
     case protocol::MessageId::PLOT_INFORMATION:
     case protocol::MessageId::RADAR_ATTITUDE_FROM_SIMULATOR:
+    case protocol::MessageId::MONITOR_STATUS:
         return true;
     }
 

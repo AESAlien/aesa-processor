@@ -44,6 +44,9 @@ public:
     // ReceiveError를 던질 수 있다. 수신 스레드에서만 호출한다.
     std::vector<MessageFrame> receive();
 
+    // 현재 세션이 있으면 true를 반환한다. 어느 스레드에서든 호출할 수 있다.
+    bool isConnected() const;
+
     // 현재 세션을 반환한다. 연결이 끊긴 상태이면 nullptr를 반환한다.
     std::shared_ptr<Session> getSession() const;
 

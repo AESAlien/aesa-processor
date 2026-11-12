@@ -91,6 +91,9 @@ const char* encodingErrorName(EncodingError error)
     case EncodingError::TOO_MANY_TRACKS:
         return "too-many-tracks";
 
+    case EncodingError::TOO_MANY_PLOTS:
+        return "too-many-plots";
+
     case EncodingError::TYPE_CONVERSION_ERROR:
         return "type-conversion-error";
     }
