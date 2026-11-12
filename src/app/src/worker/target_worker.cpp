@@ -8,11 +8,11 @@ namespace app
 TargetWorker::TargetWorker(
     TargetChannel& targetChannel,
     BeamChannel& beamChannel,
-    CommChannel& commChannel,
+    ConsoleChannel& consoleChannel,
     target::TargetController& controller)
     : _targetChannel(targetChannel),
       _beamChannel(beamChannel),
-      _commChannel(commChannel),
+      _consoleChannel(consoleChannel),
       _controller(controller)
 {
 }
@@ -34,7 +34,7 @@ void TargetWorker::run()
             auto tracks = _controller.nextTrackEvents();
 
             // 마지막 표적이 삭제된 경우도 빈 목록으로 콘솔에 전달한다.
-            _commChannel.write(std::move(tracks));
+            _consoleChannel.write(std::move(tracks));
         });
     }
 }

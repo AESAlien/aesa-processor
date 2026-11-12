@@ -9,10 +9,10 @@ namespace app
 
 BeamWorker::BeamWorker(
     BeamChannel& beamChannel,
-    CommChannel& commChannel,
+    SimulatorChannel& simulatorChannel,
     beam::BeamController& controller)
     : _beamChannel(beamChannel),
-      _commChannel(commChannel),
+      _simulatorChannel(simulatorChannel),
       _controller(controller)
 {
 }
@@ -48,7 +48,7 @@ void BeamWorker::run()
 
                 if (command)
                 {
-                    _commChannel.write(std::move(*command));
+                    _simulatorChannel.write(std::move(*command));
                 }
             }
         });

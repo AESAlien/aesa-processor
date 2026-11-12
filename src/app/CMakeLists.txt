@@ -2,7 +2,8 @@ find_package(Threads REQUIRED)
 
 add_library(app_runtime STATIC
     src/channel/beam_channel.cpp
-    src/channel/comm_channel.cpp
+    src/channel/simulator_channel.cpp
+    src/channel/console_channel.cpp
     src/channel/target_channel.cpp
 
     src/config/config.cpp
@@ -15,7 +16,9 @@ add_library(app_runtime STATIC
     src/log/logger/detection_event_csv_logger.cpp
 
     src/worker/beam_worker.cpp
-    src/worker/comm_worker.cpp
+    src/worker/comm_receive_worker.cpp
+    src/worker/simulator_send_worker.cpp
+    src/worker/console_send_worker.cpp
     src/worker/target_worker.cpp
     src/worker/worker_error.cpp
 )
@@ -52,6 +55,12 @@ target_link_libraries(app PRIVATE
 if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     include(GoogleTest)
+
+    add_executable(app_communication_test
+        test/communication_test.cpp
+    )
+    target_link_libraries(app_communication_test PRIVATE app_runtime GTest::gtest_main)
+    gtest_discover_tests(app_communication_test PROPERTIES TIMEOUT 10)
 
     add_executable(app_config_test
         test/config_test.cpp

@@ -1,12 +1,15 @@
 #include <app/channel/beam_channel.hpp>
-#include <app/channel/comm_channel.hpp>
+#include <app/channel/simulator_channel.hpp>
+#include <app/channel/console_channel.hpp>
 #include <app/channel/target_channel.hpp>
 
 #include <app/log/csv_log_manager.hpp>
 #include <app/log/message_log_manager.hpp>
 
 #include <app/worker/beam_worker.hpp>
-#include <app/worker/comm_worker.hpp>
+#include <app/worker/comm_receive_worker.hpp>
+#include <app/worker/simulator_send_worker.hpp>
+#include <app/worker/console_send_worker.hpp>
 #include <app/worker/target_worker.hpp>
 
 #include <beam/controller/beam_controller.hpp>
@@ -29,6 +32,7 @@
 #include <memory>
 #include <stdexcept>
 #include <thread>
+#include <vector>
 
 namespace
 {
@@ -218,7 +222,8 @@ int main()
         // 6. 채널을 생성한다.
         app::BeamChannel beamChannel;
         app::TargetChannel targetChannel;
-        app::CommChannel commChannel;
+        app::SimulatorChannel simulatorChannel;
+        app::ConsoleChannel consoleChannel;
 
         // 7. 실제 컨트롤러를 생성한다.
         beam::BeamController beamController(
@@ -242,32 +247,38 @@ int main()
         // 8. 업무 워커 5개를 생성한다.
         app::BeamWorker beamWorker(
             beamChannel,
-            commChannel,
+            simulatorChannel,
             beamController);
 
         app::TargetWorker targetWorker(
             targetChannel,
             beamChannel,
-            commChannel,
+            consoleChannel,
             targetController);
 
-        app::CommWorker receiveWorker(
-            commChannel,
+        app::CommReceiveWorker receiveWorker(
             beamChannel,
             targetChannel,
-            commController);
+            consoleChannel,
+            [&] { return commController.receiveData(); });
 
-        app::CommWorker simulatorSendWorker(
-            commChannel,
-            beamChannel,
-            targetChannel,
-            commController);
+        app::SimulatorSendWorker simulatorSendWorker(
+            simulatorChannel,
+            [&](const beam::TransmitBeamCommand& command)
+            {
+                commController.sendBeamCommand(command);
+            });
 
-        app::CommWorker consoleSendWorker(
-            commChannel,
-            beamChannel,
-            targetChannel,
-            commController);
+        app::ConsoleSendWorker consoleSendWorker(
+            consoleChannel,
+            [&](const beam::SetAttitudeCommand& command)
+            {
+                commController.sendRadarAttitude(command);
+            },
+            [&](const std::vector<target::TrackEvent>& tracks)
+            {
+                commController.sendTrackEvents(tracks);
+            });
 
         // 스레드 시작 이후의 실패는 이 범위에서 처리한다.
         // 워커가 참조하는 채널과 컨트롤러가 먼저 소멸하지 않게 한다.
@@ -294,7 +305,7 @@ int main()
             {
                 runWorker("CommReceive", [&]
                 {
-                    receiveWorker.runReceive();
+                    receiveWorker.run();
                 });
             });
 
@@ -302,7 +313,7 @@ int main()
             {
                 runWorker("CommSendSimulator", [&]
                 {
-                    simulatorSendWorker.runSendSimulator();
+                    simulatorSendWorker.run();
                 });
             });
 
@@ -310,7 +321,7 @@ int main()
             {
                 runWorker("CommSendConsole", [&]
                 {
-                    consoleSendWorker.runSendConsole();
+                    consoleSendWorker.run();
                 });
             });
 
