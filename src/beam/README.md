@@ -1,6 +1,6 @@
 # 빔 스케줄링(`beam`) 모듈
 
-## 데이터 플로우
+## 입출력 인터페이스
 
 ```mermaid
 flowchart TB
@@ -10,18 +10,36 @@ flowchart TB
     SimulatorSendWorker[모의기 송신<br/>스레드]
 
     subgraph BeamController
-        RadarAttitude
-        AttitudeFrame
-        BeamRequestFactory
-        BeamScheduler
+        setOperationState["setOperationState()"]
+        setAttitude["setAttitude()"]
+        requestBeam["requestBeam()"]
+        nextBeamCommand["nextBeamCommand()"]
     end
 
-    CommReceiveWorker -->|운용 설정 명령| BeamScheduler
-    CommReceiveWorker -->|자세 설정 명령| RadarAttitude -->|RadarAttitude| AttitudeFrame
-    TargetWorker -->|빔 요청 명령| BeamRequestFactory
-    BeamRequestFactory -->|BeamRequest| BeamScheduler
-    TickWorker -->|10ms 틱| BeamScheduler
-    BeamScheduler -->|빔 송신 명령| SimulatorSendWorker
+    CommReceiveWorker -->|운용 설정 명령| setOperationState
+    CommReceiveWorker -->|자세 설정 명령| setAttitude
+    TargetWorker -->|빔 요청 명령| requestBeam
+    TickWorker -->|10ms 틱| nextBeamCommand
+    nextBeamCommand -->|빔 송신 명령| SimulatorSendWorker
+```
+
+## 클래스 다이어그램
+
+```mermaid
+classDiagram
+    direction TB
+
+    BeamController *-- BeamScheduler
+    AntEnuTransform ..> RadarAttitude : 회전 행렬 계산
+
+    BeamScheduler *-- "0..1" AttitudeFrame
+    BeamScheduler *-- RequestQueue
+    AttitudeFrame *-- SearchGrid
+    AttitudeFrame *-- RequestCoverage
+    SearchGrid *-- "0..*" SearchBeam
+    SearchGrid ..> AntEnuTransform : 탐색 빔 방향 변환
+    RequestCoverage *-- AntEnuTransform
+    RequestQueue *-- "0..*" BeamRequest
 ```
 
 ## 환경 설정

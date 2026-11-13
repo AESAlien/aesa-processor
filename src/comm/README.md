@@ -17,13 +17,13 @@ classDiagram
     CommController *-- MessageDecoder
     NetworkManager *-- "0..1" TcpServer
     NetworkManager *-- "2" PeerConnection
-    PeerConnection o-- "0..1" Session
-    TcpServer ..> Session : 생성
+    PeerConnection o-- "0..1" Session : 공유 소유
     TcpServer *-- ListenSocket
+    TcpServer ..> Session : 생성
     Session *-- ConnectedSocket
     Session *-- MessageFramer
-    ListenSocket --|> Socket
-    ConnectedSocket --|> Socket
+    Socket <|-- ListenSocket
+    Socket <|-- ConnectedSocket
     Socket ..> NativeSocket : 호출
 ```
 

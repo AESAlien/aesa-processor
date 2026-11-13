@@ -1,6 +1,6 @@
 # 타겟 추적(`target`) 모듈
 
-## 데이터 플로우
+## 입출력 인터페이스
 
 ```mermaid
 flowchart TB
@@ -10,16 +10,57 @@ flowchart TB
     ConsoleSendWorker[전시기 송신<br/>스레드]
 
     subgraph TargetController
-        DetectionResultFactory
-        DetectionHandler
-        TrackReporter
+        handleDetection["handleDetection()"]
+        nextTrackEvents["nextTrackEvents()"]
     end
 
-    CommReceiveWorker -->|빔 탐지 결과| DetectionResultFactory
-    DetectionResultFactory -->|DetectionResult| DetectionHandler
-    DetectionHandler -->|빔 요청 명령| BeamWorker
-    TickWorker -->|10ms 틱| TrackReporter
-    TrackReporter -->|타겟 추적 결과| ConsoleSendWorker
+    CommReceiveWorker -->|빔 탐지 결과| handleDetection
+    handleDetection -->|빔 요청 명령| BeamWorker
+    TickWorker -->|10ms 틱| nextTrackEvents
+    nextTrackEvents -->|타겟 추적 결과| ConsoleSendWorker
+```
+
+## 클래스 다이어그램
+
+```mermaid
+classDiagram
+    direction TB
+
+    TargetController *-- DetectionHandler
+    TargetController *-- TrackReporter
+    DetectionHandler *-- TentativeSelector
+    DetectionHandler *-- TrackSelector
+    TentativeSelector *-- IAssociationAlgorithm
+    TrackSelector *-- IAssociationAlgorithm
+    IAssociationAlgorithm <|-- NdsAlgorithm
+```
+
+```mermaid
+classDiagram
+    direction TB
+
+    DetectionResult *-- "0..*" Observation
+    TentativeTrack *-- Observation
+    ConfirmedTrack o-- TrackState : 공유 소유
+    ConfirmedTrack <.. TentativeTrack  : 생성
+
+    TentativeTrack o-- ITrackingAlgorithm : 공유 소유
+    ConfirmedTrack o-- ITrackingAlgorithm : 공유 소유
+
+    IPositionUncertainty <|-- ConstantAccelerationAlgorithm
+    ITrackingAlgorithm <|-- ConstantAccelerationAlgorithm
+    ITrackingAlgorithm <|-- ConstantVelocityAlgorithm
+
+    
+```
+
+```mermaid
+classDiagram
+    direction TB
+    
+    DetectionResultBase <|-- SearchDetectionResult
+    DetectionResultBase <|-- ConfirmationDetectionResult
+    DetectionResultBase <|-- TrackingDetectionResult
 ```
 
 ## 환경 설정
