@@ -141,7 +141,8 @@ TEST(TrackReportingLimitTest, UnreportedTargetCanUpdateAndExpireWithoutAffecting
     expectReportedIds(controller, 100, 1);
     expire(controller, 101, 2100ms);
     expectReportedIds(controller, 100, 1);
-    EXPECT_FALSE(controller.handleDetection(result(BeamType::TRACKING, 101, 5100ms)));
+    // 다른 트랙들이 1100ms 추적 결과의 응답 대기 한도(4100ms)를 넘지 않는 시각으로 확인한다.
+    EXPECT_FALSE(controller.handleDetection(result(BeamType::TRACKING, 101, 4100ms)));
 
     // 보고 중인 트랙 하나를 만료시켜도 보고 수가 99개라면, 101번 트랙은 저장소에서도 제거된 것이다.
     expire(controller, 1, 1100ms);
