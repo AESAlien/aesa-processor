@@ -1,79 +1,53 @@
 #include "worker/comm_receive_worker.hpp"
-#include "worker/worker_error.hpp"
 
-#include <chrono>
-#include <exception>
-#include <thread>
 #include <utility>
 #include <variant>
 
 namespace app
 {
 CommReceiveWorker::CommReceiveWorker(
-    BeamChannel& beamChannel,
-    TargetChannel& targetChannel,
-    ConsoleChannel& consoleChannel,
-    ReceiveData receiveData
-) : _beamChannel(beamChannel),
-    _targetChannel(targetChannel),
-    _consoleChannel(consoleChannel),
-    _receiveData(std::move(receiveData))
+    comm::CommController& controller,
+    MessageQueue<BeamInput>& beamQueue,
+    MessageQueue<TargetInput>& targetQueue,
+    MessageQueue<ConsoleInput>& consoleQueue,
+    std::shared_ptr<spdlog::logger> logger
+) : Worker(std::move(logger)),
+    _controller(controller),
+    _beamQueue(beamQueue),
+    _targetQueue(targetQueue),
+    _consoleQueue(consoleQueue)
 {
 }
 
-void CommReceiveWorker::run()
+std::optional<comm::IncomingDto> CommReceiveWorker::readInput()
 {
-    while (true)
+    return _controller.receiveData();
+}
+
+std::optional<comm::IncomingDto> CommReceiveWorker::process(
+    std::optional<comm::IncomingDto> input
+) {
+    return input;
+}
+
+void CommReceiveWorker::writeOutput(std::optional<comm::IncomingDto> output)
+{
+    if (!output)
     {
-        try
-        {
-            auto incoming = _receiveData();
-
-            if (!incoming)
-            {
-                return;
-            }
-
-            auto& message = *incoming;
-
-            if (auto* attitude =
-                    std::get_if<beam::SetAttitudeCommand>(&message))
-            {
-                // 모의기의 자세 정보는 빔 처리를 기다리지 않고 전시기에 바로 전달한다.
-                _consoleChannel.write(*attitude);
-                _beamChannel.write(std::move(*attitude));
-            }
-            else if (auto* state =
-                         std::get_if<beam::SetOperationStateCommand>(&message))
-            {
-                _beamChannel.write(std::move(*state));
-            }
-            else
-            {
-                auto& detection =
-                    std::get<target::DetectionEvent>(message);
-
-                _targetChannel.write(std::move(detection));
-            }
-
-            continue;
-        }
-        catch (const std::exception& error)
-        {
-            reportWorkerError(
-                "CommReceive",
-                error.what());
-        }
-        catch (...)
-        {
-            reportWorkerError(
-                "CommReceive",
-                "Unknown exception");
-        }
-
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(100));
+        return;
+    }
+    if (auto* attitude = std::get_if<beam::SetAttitudeCommand>(&*output))
+    {
+        _consoleQueue.write(*attitude);
+        _beamQueue.write(*attitude);
+    }
+    else if (auto* state = std::get_if<beam::SetOperationStateCommand>(&*output))
+    {
+        _beamQueue.write(std::move(*state));
+    }
+    else if (auto* detection = std::get_if<target::DetectionEvent>(&*output))
+    {
+        _targetQueue.write(std::move(*detection));
     }
 }
-
 } // namespace app

@@ -1,5 +1,4 @@
 #include "worker/console_send_worker.hpp"
-#include "worker/worker_error.hpp"
 
 #include <utility>
 #include <variant>
@@ -7,33 +6,30 @@
 namespace app
 {
 ConsoleSendWorker::ConsoleSendWorker(
-    ConsoleChannel& consoleChannel,
-    SendRadarAttitude sendRadarAttitude,
-    SendTrackEvents sendTrackEvents
-) : _consoleChannel(consoleChannel),
-    _sendRadarAttitude(std::move(sendRadarAttitude)),
-    _sendTrackEvents(std::move(sendTrackEvents))
+    comm::CommController& controller,
+    MessageQueue<ConsoleInput>& consoleQueue,
+    std::shared_ptr<spdlog::logger> logger
+) : Worker(std::move(logger)),
+    _controller(controller),
+    _consoleQueue(consoleQueue)
 {
 }
 
-void ConsoleSendWorker::run()
+ConsoleInput ConsoleSendWorker::readInput()
 {
-    while (auto event = _consoleChannel.read())
+    return _consoleQueue.read();
+}
+
+std::monostate ConsoleSendWorker::process(ConsoleInput input)
+{
+    if (const auto* attitude = std::get_if<beam::SetAttitudeCommand>(&input))
     {
-        tryWorkerAction("CommSendConsole", [&]
-        {
-            if (const auto* attitude =
-                    std::get_if<beam::SetAttitudeCommand>(&*event))
-            {
-                _sendRadarAttitude(*attitude);
-                return;
-            }
-
-            const auto& tracks =
-                std::get<std::vector<target::TrackEvent>>(*event);
-
-            _sendTrackEvents(tracks);
-        });
+        _controller.sendRadarAttitude(*attitude);
     }
+    else if (const auto* events = std::get_if<std::vector<target::TrackEvent>>(&input))
+    {
+        _controller.sendTrackEvents(*events);
+    }
+    return {};
 }
 } // namespace app

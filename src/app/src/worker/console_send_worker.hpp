@@ -1,28 +1,28 @@
 #pragma once
 
-#include "channel/console_channel.hpp"
+#include "worker/worker.hpp"
 
-#include <functional>
+#include "dto/console_input.hpp"
+#include "queue/message_queue.hpp"
+#include <comm/controller/comm_controller.hpp>
+#include <variant>
 
 namespace app
 {
-class ConsoleSendWorker
+class ConsoleSendWorker final : public Worker<ConsoleInput, std::monostate>
 {
 public:
-    using SendRadarAttitude = std::function<void(const beam::SetAttitudeCommand&)>;
-    using SendTrackEvents = std::function<void(const std::vector<target::TrackEvent>&)>;
-
     ConsoleSendWorker(
-        ConsoleChannel& consoleChannel,
-        SendRadarAttitude sendRadarAttitude,
-        SendTrackEvents sendTrackEvents
+        comm::CommController& controller,
+        MessageQueue<ConsoleInput>& consoleQueue,
+        std::shared_ptr<spdlog::logger> logger
     );
 
-    void run();
-
 private:
-    ConsoleChannel& _consoleChannel;
-    SendRadarAttitude _sendRadarAttitude;
-    SendTrackEvents _sendTrackEvents;
+    ConsoleInput readInput() override;
+    std::monostate process(ConsoleInput input) override;
+
+    comm::CommController& _controller;
+    MessageQueue<ConsoleInput>& _consoleQueue;
 };
 } // namespace app

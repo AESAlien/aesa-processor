@@ -1,25 +1,28 @@
 #pragma once
 
-#include "channel/simulator_channel.hpp"
+#include "worker/worker.hpp"
 
-#include <functional>
+#include "dto/simulator_input.hpp"
+#include "queue/message_queue.hpp"
+#include <comm/controller/comm_controller.hpp>
+#include <variant>
 
 namespace app
 {
-class SimulatorSendWorker
+class SimulatorSendWorker final : public Worker<SimulatorInput, std::monostate>
 {
 public:
-    using SendBeamCommand = std::function<void(const beam::TransmitBeamCommand&)>;
-
     SimulatorSendWorker(
-        SimulatorChannel& simulatorChannel,
-        SendBeamCommand sendBeamCommand
+        comm::CommController& controller,
+        MessageQueue<SimulatorInput>& simulatorQueue,
+        std::shared_ptr<spdlog::logger> logger
     );
 
-    void run();
-
 private:
-    SimulatorChannel& _simulatorChannel;
-    SendBeamCommand _sendBeamCommand;
+    SimulatorInput readInput() override;
+    std::monostate process(SimulatorInput input) override;
+
+    comm::CommController& _controller;
+    MessageQueue<SimulatorInput>& _simulatorQueue;
 };
 } // namespace app

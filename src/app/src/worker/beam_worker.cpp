@@ -1,58 +1,53 @@
 #include "worker/beam_worker.hpp"
-#include "worker/worker_error.hpp"
 
 #include <utility>
 #include <variant>
 
 namespace app
 {
-
 BeamWorker::BeamWorker(
-    BeamChannel& beamChannel,
-    SimulatorChannel& simulatorChannel,
-    beam::BeamController& controller)
-    : _beamChannel(beamChannel),
-      _simulatorChannel(simulatorChannel),
-      _controller(controller)
+    beam::BeamController& controller,
+    MessageQueue<BeamInput>& beamQueue,
+    MessageQueue<SimulatorInput>& simulatorQueue,
+    std::shared_ptr<spdlog::logger> logger
+) : Worker(std::move(logger)),
+    _controller(controller),
+    _beamQueue(beamQueue),
+    _simulatorQueue(simulatorQueue)
 {
 }
 
-void BeamWorker::run()
+BeamInput BeamWorker::readInput()
 {
-    while (auto event = _beamChannel.read())
+    return _beamQueue.read();
+}
+
+std::optional<SimulatorInput> BeamWorker::process(BeamInput input)
+{
+    if (auto* command = std::get_if<beam::RequestBeamCommand>(&input))
     {
-        tryWorkerAction("BeamWorker", [&]
-        {
-            auto& message = *event;
+        _controller.requestBeam(*command);
+    }
+    else if (auto* command = std::get_if<beam::SetOperationStateCommand>(&input))
+    {
+        _controller.setOperationState(*command);
+    }
+    else if (auto* command = std::get_if<beam::SetAttitudeCommand>(&input))
+    {
+        _controller.setAttitude(*command);
+    }
+    else if (auto* tick = std::get_if<TickEvent>(&input))
+    {
+        return _controller.nextBeamCommand(tick->currentTime);
+    }
+    return std::nullopt;
+}
 
-            if (auto* request =
-                    std::get_if<beam::RequestBeamCommand>(&message))
-            {
-                _controller.requestBeam(*request);
-            }
-            else if (auto* state =
-                         std::get_if<beam::SetOperationStateCommand>(&message))
-            {
-                _controller.setOperationState(*state);
-            }
-            else if (auto* attitude =
-                         std::get_if<beam::SetAttitudeCommand>(&message))
-            {
-                _controller.setAttitude(*attitude);
-            }
-            else if (auto* tick =
-                         std::get_if<NextBeamCommandEvent>(&message))
-            {
-                auto command =
-                    _controller.nextBeamCommand(tick->currentTime);
-
-                if (command)
-                {
-                    _simulatorChannel.write(std::move(*command));
-                }
-            }
-        });
+void BeamWorker::writeOutput(std::optional<SimulatorInput> output)
+{
+    if (output)
+    {
+        _simulatorQueue.write(std::move(*output));
     }
 }
-
 } // namespace app

@@ -1,7 +1,8 @@
-#include "channel/beam_channel.hpp"
-#include "channel/simulator_channel.hpp"
-#include "channel/console_channel.hpp"
-#include "channel/target_channel.hpp"
+#include "dto/beam_input.hpp"
+#include "queue/message_queue.hpp"
+#include "dto/target_input.hpp"
+#include "dto/console_input.hpp"
+#include "dto/simulator_input.hpp"
 
 #include "log/csv_log_manager.hpp"
 #include "log/message_log_manager.hpp"
@@ -11,6 +12,7 @@
 #include "worker/simulator_send_worker.hpp"
 #include "worker/console_send_worker.hpp"
 #include "worker/target_worker.hpp"
+#include "worker/tick_worker.hpp"
 
 #include <beam/controller/beam_controller.hpp>
 #include <comm/controller/comm_controller.hpp>
@@ -28,16 +30,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
-#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <thread>
-#include <vector>
 
 namespace
 {
-
-constexpr std::chrono::milliseconds BEAM_PERIOD{10};
 
 constexpr char LOG_PATH[] = "logs/adp.log";
 constexpr char DETECTION_LOG_PATH[] = "logs/adp_detection.csv";
@@ -50,395 +48,197 @@ void requestStop(int) noexcept
     stopRequested = 1;
 }
 
-void printEndpoint(
-    const char* label,
-    const comm::CommEndpoint& endpoint)
+void registerShutdownSignalHandlers()
 {
-    std::cout
-        << label
-        << endpoint.getAddress()
-        << ':'
-        << endpoint.getPort()
-        << '\n';
+    if (std::signal(SIGINT, requestStop) == SIG_ERR ||
+        std::signal(SIGTERM, requestStop) == SIG_ERR)
+    {
+        throw std::runtime_error("Cannot install shutdown signal handler");
+    }
 }
 
-class SpdlogRuntime
+void waitForShutdownRequest()
 {
-public:
-    SpdlogRuntime()
+    while (!stopRequested)
     {
-        // 레지스트리가 로그 관리자보다 나중에 소멸하도록 먼저 생성한다.
-        spdlog::default_logger();
+        std::this_thread::sleep_for(std::chrono::milliseconds{10});
     }
+}
 
-    ~SpdlogRuntime() noexcept
-    {
-        // 로그 관리자 소멸 후 전역 자원을 한 번만 정리한다.
-        try
-        {
-            spdlog::shutdown();
-        }
-        catch (...)
-        {
-            std::fprintf(stderr, "[main] Logging shutdown failed\n");
-        }
-    }
-};
-
-template <typename Action>
-void runWorker(
-    const char* name,
-    Action action
+template <typename WorkerType>
+void startWorker(
+    std::thread& thread,
+    WorkerType& worker
 ) {
-    std::shared_ptr<spdlog::logger> logger;
-
-    try
+    thread = std::thread([&worker]
     {
-        // 등록된 워커 이름으로 로거를 직접 조회한다.
-        logger = spdlog::get(name);
-
-        if (!logger)
-        {
-            throw std::runtime_error(
-                "Worker logger is not registered");
-        }
-
-        logger->info("Worker started");
-
-        // 실제 워커의 실행 함수를 호출한다.
-        action();
-
-        // 상시 실행하는 워커가 반환되면 예상치 못한 종료로 처리한다.
-        logger->error(
-            "Worker returned unexpectedly");
-    }
-    catch (const std::exception& error)
-    {
-        if (logger)
-        {
-            logger->error(
-                "{}",
-                error.what());
-        }
-        else
-        {
-            std::fprintf(
-                stderr,
-                "[%s] %s\n",
-                name,
-                error.what());
-        }
-    }
-    catch (...)
-    {
-        if (logger)
-        {
-            logger->error(
-                "Unknown worker failure");
-        }
-        else
-        {
-            std::fprintf(
-                stderr,
-                "[%s] Unknown worker failure\n",
-                name);
-        }
-    }
-
-    // 일반적인 모듈 예외는 각 워커 내부에서 처리한다.
-    // 여기까지 도달한 경우는 워커 자체가 종료된 상황이다.
-    std::exit(EXIT_FAILURE);
+        worker.run();
+        // 워커가 종료되면 현재 종료 정책에 따라 프로세스를 종료한다.
+        std::exit(EXIT_FAILURE);
+    });
 }
 
 } // namespace
 
 int main()
 {
-    std::array<std::thread, 5> threads;
-
+    std::array<std::thread, 6> threads;
     std::shared_ptr<spdlog::logger> mainLogger;
 
     try
     {
-        // 1. 생성 시 로그 큐, 기록 스레드와 출력 파일을 준비한다.
-        // std::exit()에서도 소멸자가 실행되도록 프로그램 수명으로 유지한다.
-        // 선언의 역순으로 CSV, 메시지, 전역 spdlog 자원을 정리한다.
-        static SpdlogRuntime spdlogRuntime;
-        static app::MessageLogManager messageLogManager(
-            LOG_PATH,
-            4096
-        );
-        static app::CsvLogManager csvLogManager(4096);
+        // 매니저보다 로거 레지스트리를 먼저 생성해 매니저보다 나중에 소멸시킨다.
+        spdlog::default_logger();
+    }
+    catch (...)
+    {
+        std::fprintf(stderr, "[main] Logging initialization failed\n");
+        return EXIT_FAILURE;
+    }
 
-        // 2. main 스레드용 로거를 등록한다.
-        messageLogManager.addLogger("main");
-        mainLogger = spdlog::get("main");
+    static std::unique_ptr<app::MessageLogManager> messageLogManager;
+    static std::unique_ptr<app::CsvLogManager> csvLogManager;
 
-        const auto detectionCsvPath = csvLogManager.addTimestampedLogger(
-            app::DetectionEventCsvLogger::LOGGER_NAME,
-            DETECTION_LOG_PATH,
-            app::DetectionEventCsvLogger::header()
-        );
-        std::cout << "[DETECTION CSV FILE] " << detectionCsvPath.string() << '\n' << std::flush;
+    try
+    {
+        // 1. 로깅 매니저와 main 로거를 초기화한다.
+        messageLogManager = std::make_unique<app::MessageLogManager>(LOG_PATH, 4096);
+        csvLogManager = std::make_unique<app::CsvLogManager>(4096);
+        mainLogger = messageLogManager->addLogger("main");
+    }
+    catch (...)
+    {
+        // 로거 준비 전에는 표준 오류만 사용할 수 있다.
+        std::fprintf(stderr, "[main] Logging initialization failed\n");
+        return EXIT_FAILURE;
+    }
 
-        // 빔 처리 이벤트(운용 상태 변경, 자세정보 반영·무시, 요청 거부)는 메시지 로그에 기록하고 콘솔에도 출력한다.
-        messageLogManager.addLogger(
+    mainLogger->info("[1/12] Logging managers initialized");
+
+    try
+    {
+        // 2. 메시지 로거를 등록한다.
+        const auto tickLogger = messageLogManager->addLogger("tick");
+        const auto beamLogger = messageLogManager->addLogger("beam");
+        const auto targetLogger = messageLogManager->addLogger("target");
+        const auto commLogger = messageLogManager->addLogger("comm");
+
+        // 빔 처리 이벤트는 메시지 로그와 콘솔에 기록한다.
+        messageLogManager->addLogger(
             app::BeamEventMessageLogger::LOGGER_NAME,
             spdlog::level::info,
             spdlog::async_overflow_policy::discard_new,
             spdlog::level::info
         );
+        mainLogger->info("[2/12] Message loggers registered");
 
-        // 3. 업무 워커별 로거를 등록한다.
-        // 기본 설정은 INFO 이상 기록, 큐 포화 시 새 로그 버리기다.
-        for (const char* name :
-             {
-                 "BeamWorker",
-                 "TargetWorker",
-                 "CommReceive",
-                 "CommSendSimulator",
-                 "CommSendConsole"
-             })
-        {
-            messageLogManager.addLogger(name);
-        }
+        // 3. CSV 로거를 등록한다.
+        const auto detectionCsvPath = csvLogManager->addTimestampedLogger(
+            app::DetectionEventCsvLogger::LOGGER_NAME,
+            DETECTION_LOG_PATH,
+            app::DetectionEventCsvLogger::header()
+        );
+        mainLogger->info("[3/12] CSV logger registered: {}", detectionCsvPath.string());
 
-        mainLogger->info(
-            "Application starting");
+        // 4. 종료 시그널을 처리할 핸들러를 등록한다.
+        registerShutdownSignalHandlers();
+        mainLogger->info("[4/12] Shutdown signal handlers installed");
 
-        // 4. 종료 시그널을 등록한다.
-        if (
-            std::signal(SIGINT, requestStop) == SIG_ERR ||
-            std::signal(SIGTERM, requestStop) == SIG_ERR)
-        {
-            throw std::runtime_error(
-                "Cannot install shutdown signal handler");
-        }
+        // 5. 애플리케이션 설정을 읽는다.
+        const app::Config config = app::ConfigLoader::load(".env");
+        mainLogger->info("[5/12] Application configuration loaded");
 
-        // 5. 현재 작업 디렉토리의 설정 파일을 읽는다.
-        const app::Config config =
-            app::ConfigLoader::load(".env");
+        // 6. 워커 간 입력 큐를 생성한다.
+        app::MessageQueue<app::BeamInput> beamQueue;
+        app::MessageQueue<app::TargetInput> targetQueue;
+        app::MessageQueue<app::ConsoleInput> consoleQueue;
+        app::MessageQueue<app::SimulatorInput> simulatorQueue;
+        mainLogger->info("[6/12] Four worker input queues initialized");
 
-        // 6. 채널을 생성한다.
-        app::BeamChannel beamChannel;
-        app::TargetChannel targetChannel;
-        app::SimulatorChannel simulatorChannel;
-        app::ConsoleChannel consoleChannel;
-
-        // 7. 실제 컨트롤러를 생성한다.
+        // 7. 설정과 로거를 주입해 컨트롤러를 생성한다.
         beam::BeamController beamController(
             config.beamConfig,
-            std::make_shared<app::BeamEventMessageLogger>());
-
+            std::make_shared<app::BeamEventMessageLogger>(),
+            beamLogger
+        );
         target::TargetController targetController(
             config.targetConfig,
-            std::make_shared<app::DetectionEventCsvLogger>()
+            std::make_shared<app::DetectionEventCsvLogger>(),
+            targetLogger
         );
-
         comm::CommController commController(
-            config.commConfig);
+            config.commConfig,
+            commLogger
+        );
+        mainLogger->info("[7/12] Controllers initialized");
 
-        // 통신 워커를 실행하기 전에 서버를 연다.
-        commController.openServer();
-
-        mainLogger->info(
-            "Communication server opened");
-
-        // 8. 업무 워커 5개를 생성한다.
+        // 8. 컨트롤러와 입력 큐를 연결하는 워커를 생성한다.
+        app::TickWorker tickWorker(
+            beamQueue,
+            targetQueue,
+            tickLogger
+        );
         app::BeamWorker beamWorker(
-            beamChannel,
-            simulatorChannel,
-            beamController);
-
+            beamController,
+            beamQueue,
+            simulatorQueue,
+            beamLogger
+        );
         app::TargetWorker targetWorker(
-            targetChannel,
-            beamChannel,
-            consoleChannel,
-            targetController);
-
-        app::CommReceiveWorker receiveWorker(
-            beamChannel,
-            targetChannel,
-            consoleChannel,
-            [&] { return commController.receiveData(); });
-
+            targetController,
+            targetQueue,
+            beamQueue,
+            consoleQueue,
+            targetLogger
+        );
+        app::CommReceiveWorker commReceiveWorker(
+            commController,
+            beamQueue,
+            targetQueue,
+            consoleQueue,
+            commLogger
+        );
         app::SimulatorSendWorker simulatorSendWorker(
-            simulatorChannel,
-            [&](const beam::TransmitBeamCommand& command)
-            {
-                commController.sendBeamCommand(command);
-            });
-
+            commController,
+            simulatorQueue,
+            commLogger
+        );
         app::ConsoleSendWorker consoleSendWorker(
-            consoleChannel,
-            [&](const beam::SetAttitudeCommand& command)
-            {
-                commController.sendRadarAttitude(command);
-            },
-            [&](const std::vector<target::TrackEvent>& tracks)
-            {
-                commController.sendTrackEvents(tracks);
-            });
+            commController,
+            consoleQueue,
+            commLogger
+        );
+        mainLogger->info("[8/12] Workers initialized");
 
-        // 스레드 시작 이후의 실패는 이 범위에서 처리한다.
-        // 워커가 참조하는 채널과 컨트롤러가 먼저 소멸하지 않게 한다.
-        try
-        {
-            // 9. 각 워커를 별도 스레드에서 실행한다.
-            threads[0] = std::thread([&]
-            {
-                runWorker("BeamWorker", [&]
-                {
-                    beamWorker.run();
-                });
-            });
+        // 9. 수신 워커를 시작하기 전에 통신 서버를 연다.
+        commController.openServer();
+        mainLogger->info("[9/12] Communication server opened");
 
-            threads[1] = std::thread([&]
-            {
-                runWorker("TargetWorker", [&]
-                {
-                    targetWorker.run();
-                });
-            });
+        // 10. 각 워커를 별도 스레드에서 실행한다.
+        startWorker(threads[0], tickWorker);
+        startWorker(threads[1], beamWorker);
+        startWorker(threads[2], targetWorker);
+        startWorker(threads[3], commReceiveWorker);
+        startWorker(threads[4], simulatorSendWorker);
+        startWorker(threads[5], consoleSendWorker);
+        mainLogger->info("[10/12] All 6 worker threads started");
 
-            threads[2] = std::thread([&]
-            {
-                runWorker("CommReceive", [&]
-                {
-                    receiveWorker.run();
-                });
-            });
+        // 11. 종료 시그널이 들어올 때까지 대기한다.
+        mainLogger->info("[11/12] Application is running; waiting for shutdown signal");
+        waitForShutdownRequest();
 
-            threads[3] = std::thread([&]
-            {
-                runWorker("CommSendSimulator", [&]
-                {
-                    simulatorSendWorker.run();
-                });
-            });
+        // 12. 종료를 기록하고 프로세스를 끝낸다.
+        mainLogger->info("[12/12] Shutdown signal received");
 
-            threads[4] = std::thread([&]
-            {
-                runWorker("CommSendConsole", [&]
-                {
-                    consoleSendWorker.run();
-                });
-            });
-
-            mainLogger->info(
-                "Five worker threads started; beam tick = 10 ms");
-
-            std::cout
-                << "[START] 5 worker threads running; beam tick = 10ms\n"
-                << "[SERVER] "
-                << config.commConfig.server().getAddress()
-                << ':'
-                << config.commConfig.server().getPort()
-                << '\n';
-            printEndpoint(
-                "[SERVER] ",
-                config.commConfig.server());
-
-            printEndpoint(
-                "[CONSOLE SOURCE] ",
-                config.commConfig.operatorConsole());
-
-            printEndpoint(
-                "[SIMULATOR SOURCE] ",
-                config.commConfig.scenarioSimulator());
-
-            std::cout
-                << "Send ON, then attitude, then detection messages.\n"
-                << "Press Ctrl+C to drain logs and exit."
-                << std::endl;
-
-            // 10. main에서 10ms마다 빔 생성 이벤트를 전달한다.
-            const auto started =
-                std::chrono::steady_clock::now();
-
-            auto nextTick = started;
-
-            while (!stopRequested)
-            {
-                std::this_thread::sleep_until(nextTick);
-
-                if (stopRequested)
-                {
-                    break;
-                }
-
-                const auto now =
-                    std::chrono::steady_clock::now();
-
-                const auto currentTime =
-                    std::chrono::duration_cast<
-                        std::chrono::milliseconds>(
-                            now - started);
-
-                beamChannel.write(
-                    app::NextBeamCommandEvent{currentTime});
-
-                nextTick += BEAM_PERIOD;
-
-                if (nextTick <= now)
-                {
-                    // 지연된 과거 이벤트를 한꺼번에 쌓지 않는다.
-                    nextTick = now + BEAM_PERIOD;
-                }
-            }
-
-            // 11. 로그를 정리하고 프로세스를 종료한다.
-            mainLogger->info(
-                "Shutdown requested");
-
-            std::exit(EXIT_SUCCESS);
-        }
-        catch (const std::exception& error)
-        {
-            mainLogger->error(
-                "{}",
-                error.what());
-
-            std::exit(EXIT_FAILURE);
-        }
-        catch (...)
-        {
-            mainLogger->error(
-                "Unknown thread or timer failure");
-
-            std::exit(EXIT_FAILURE);
-        }
+        std::exit(EXIT_SUCCESS);
     }
     catch (const std::exception& error)
     {
-        if (mainLogger)
-        {
-            mainLogger->error(
-                "{}",
-                error.what());
-        }
-        else
-        {
-            // 로거 초기화 전 오류는 콘솔로 출력한다.
-            std::fprintf(
-                stderr,
-                "[main] %s\n",
-                error.what());
-        }
+        mainLogger->error("Application failed: {}", error.what());
     }
     catch (...)
     {
-        if (mainLogger)
-        {
-            mainLogger->error(
-                "Unknown initialization failure");
-        }
-        else
-        {
-            std::fprintf(
-                stderr,
-                "[main] Unknown initialization failure\n");
-        }
+        mainLogger->error("Application failed: unknown error");
     }
 
     std::exit(EXIT_FAILURE);

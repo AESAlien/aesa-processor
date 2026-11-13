@@ -6,6 +6,7 @@
 #include <beam/dto/set_attitude_command.hpp>
 #include <beam/dto/set_operation_state_command.hpp>
 #include <beam/dto/transmit_beam_command.hpp>
+#include <spdlog/logger.h>
 
 #include <chrono>
 #include <memory>
@@ -27,7 +28,8 @@ public:
     // eventLogger가 있으면 처리 이벤트(운용 상태 변경, 자세정보 반영·무시, 요청 거부)를 기록한다. 없으면 기록하지 않는다.
     explicit BeamController(
         const BeamConfig& config,
-        std::shared_ptr<BeamEventLogger> eventLogger = {}
+        std::shared_ptr<BeamEventLogger> eventLogger = {},
+        std::shared_ptr<spdlog::logger> messageLogger = {}
     );
     ~BeamController();
 
@@ -64,6 +66,7 @@ private:
     std::unique_ptr<BeamRequestFactory> _requestFactory;
     // 처리 이벤트를 기록한다. nullptr이면 기록하지 않는다.
     std::shared_ptr<BeamEventLogger> _eventLogger;
+    std::shared_ptr<spdlog::logger> _messageLogger;
 };
 
 } // namespace beam

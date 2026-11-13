@@ -2,34 +2,24 @@
 
 #include <condition_variable>
 #include <mutex>
-#include <optional>
 #include <queue>
 #include <stdexcept>
 #include <utility>
 
 namespace app
 {
-class ChannelClosedError : public std::runtime_error
-{
-public:
-    ChannelClosedError()
-        : std::runtime_error("Cannot write to a closed channel")
-    {
-    }
-};
-
 template <typename T>
 class MessageQueue
 {
 public:
-    void push(T message)
+    void write(T message)
     {
         {
             std::lock_guard<std::mutex> lock(_mutex);
 
             if (_closed)
             {
-                throw ChannelClosedError();
+                throw std::runtime_error("Input is closed");
             }
 
             _queue.push(std::move(message));
@@ -38,7 +28,8 @@ public:
         _condition.notify_one();
     }
 
-    std::optional<T> pop()
+    // 닫힌 큐는 남은 메시지와 관계없이 읽기를 거부한다.
+    T read()
     {
         std::unique_lock<std::mutex> lock(_mutex);
 
@@ -47,9 +38,9 @@ public:
             return _closed || !_queue.empty();
         });
 
-        if (_queue.empty())
+        if (_closed)
         {
-            return std::nullopt;
+            throw std::runtime_error("Input is closed");
         }
 
         T message = std::move(_queue.front());

@@ -22,7 +22,7 @@ protected:
     explicit LogManager(std::size_t queueSize);
 
     // 설정 작업은 공통 등록 절차 안에서만 실행하고 보관하지 않는다.
-    void addLogger(
+    std::shared_ptr<spdlog::logger> addLogger(
         const std::string& name,
         spdlog::level::level_enum level,
         spdlog::async_overflow_policy policy,

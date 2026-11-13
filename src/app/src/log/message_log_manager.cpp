@@ -62,13 +62,13 @@ MessageLogManager::MessageLogManager(
     }
 }
 
-void MessageLogManager::addLogger(
+std::shared_ptr<spdlog::logger> MessageLogManager::addLogger(
     const std::string& name,
     spdlog::level::level_enum level,
     spdlog::async_overflow_policy policy,
     spdlog::level::level_enum consoleLevel
 ) {
-    LogManager::addLogger(
+    return LogManager::addLogger(
         name,
         level,
         policy,

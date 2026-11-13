@@ -1,26 +1,27 @@
 #include "worker/simulator_send_worker.hpp"
-#include "worker/worker_error.hpp"
 
 #include <utility>
 
 namespace app
 {
 SimulatorSendWorker::SimulatorSendWorker(
-    SimulatorChannel& simulatorChannel,
-    SendBeamCommand sendBeamCommand
-) : _simulatorChannel(simulatorChannel),
-    _sendBeamCommand(std::move(sendBeamCommand))
+    comm::CommController& controller,
+    MessageQueue<SimulatorInput>& simulatorQueue,
+    std::shared_ptr<spdlog::logger> logger
+) : Worker(std::move(logger)),
+    _controller(controller),
+    _simulatorQueue(simulatorQueue)
 {
 }
 
-void SimulatorSendWorker::run()
+SimulatorInput SimulatorSendWorker::readInput()
 {
-    while (auto command = _simulatorChannel.read())
-    {
-        tryWorkerAction("CommSendSimulator", [&]
-        {
-            _sendBeamCommand(*command);
-        });
-    }
+    return _simulatorQueue.read();
+}
+
+std::monostate SimulatorSendWorker::process(SimulatorInput input)
+{
+    _controller.sendBeamCommand(input);
+    return {};
 }
 } // namespace app
