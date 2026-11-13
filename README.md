@@ -1,24 +1,32 @@
 # aesa-processor
+
 AESA 추적 레이더 데이터 처리부
 
 ## 기여자
 
 | 이름 | 주요 역할 |
 |---|---|
-| [신성현](https://github.com/sin6708k) | 프로젝트 리더 |
-| [박현준](https://github.com/2chasik) | 타겟 모듈 개발 |
-| [이인성](https://github.com/inseong276-creator) | 통신 모듈 개발 |
-| [장해찬](https://github.com/papperfield) | 오케스트레이션 모듈 개발 |
-| [천영기](https://github.com/YGC20) | 빔 모듈 개발 |
+| [신성현](https://github.com/sin6708k) | • 시스템 내부 구조 설계<br>• 각 모듈 코드 리뷰 및 리팩터링<br>• `math`(기하 및 수치 연산) 모듈 구현 |
+| [박현준](https://github.com/2chasik) | • `target`(타겟 추적) 모듈 구현 |
+| [이인성](https://github.com/inseong10) | • `comm`(TCP 통신) 모듈 구현 |
+| [장해찬](https://github.com/papperfield) | • `app`(실행 제어) 모듈 구현 |
+| [천영기](https://github.com/YGC20) | • `beam`(빔 스케쥴링) 모듈 구현 |
 
-## 시스템 구성
+## 시스템 내부 모듈 구조
 
-```
-system    // 레이더 데이터 처리부
-├─ app      // 오케스트레이션 모듈
-├─ beam     // 빔 모듈
-├─ comm     // 통신 모듈
-└─ target   // 타겟 모듈
+```mermaid
+flowchart BT
+    app[app<br/>실행 제어 모듈]
+    comm[comm<br/>TCP 통신 모듈]
+    target[target<br/>타겟 추적 모듈]
+    beam[beam<br/>빔 스케쥴링 모듈]
+    math[math<br/>기하 및 수치 연산 모듈]
+
+    app --> comm
+    app --> target
+    app --> beam
+    target --> math
+    beam --> math
 ```
 
 - **외부 시스템과 통신 방식**: TCP/IP
