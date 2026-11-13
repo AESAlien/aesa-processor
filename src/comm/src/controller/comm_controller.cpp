@@ -106,8 +106,11 @@ private:
     std::deque<IncomingDto> _pendingMessages;
 };
 
-CommController::CommController(CommConfig configuration)
-  : _impl(std::make_unique<Impl>(std::move(configuration)))
+CommController::CommController(
+    CommConfig configuration,
+    std::shared_ptr<spdlog::logger> messageLogger
+) : _messageLogger(std::move(messageLogger)),
+    _impl(std::make_unique<Impl>(std::move(configuration)))
 {
 }
 

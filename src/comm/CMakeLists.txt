@@ -28,6 +28,7 @@ target_include_directories(comm
 target_link_libraries(comm PUBLIC
     beam
     target
+    spdlog::spdlog
 )
 target_link_libraries(comm PRIVATE native_socket Threads::Threads)
 

@@ -18,8 +18,10 @@ namespace target
 
 TargetController::TargetController(
     const TargetConfig& config,
-    std::shared_ptr<DetectionEventLogger> detectionLogger
-) : _detectionLogger(std::move(detectionLogger))
+    std::shared_ptr<DetectionEventLogger> detectionLogger,
+    std::shared_ptr<spdlog::logger> messageLogger
+) : _detectionLogger(std::move(detectionLogger)),
+    _messageLogger(std::move(messageLogger))
 {
     const auto repository = std::make_shared<TrackRepository>();
 

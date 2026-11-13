@@ -28,7 +28,7 @@ target_include_directories(beam
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
-target_link_libraries(beam PUBLIC math)
+target_link_libraries(beam PUBLIC math spdlog::spdlog)
 
 if(BUILD_TESTING)
     find_package(GTest REQUIRED)

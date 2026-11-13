@@ -14,11 +14,13 @@ namespace beam
 
 BeamController::BeamController(
     const BeamConfig& config,
-    std::shared_ptr<BeamEventLogger> eventLogger
+    std::shared_ptr<BeamEventLogger> eventLogger,
+    std::shared_ptr<spdlog::logger> messageLogger
 ) : _config(config),
     _scheduler(std::make_unique<BeamScheduler>()),
     _requestFactory(std::make_unique<BeamRequestFactory>(config.requestBeam)),
-    _eventLogger(std::move(eventLogger))
+    _eventLogger(std::move(eventLogger)),
+    _messageLogger(std::move(messageLogger))
 {
 }
 

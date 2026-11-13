@@ -1,4 +1,4 @@
-#include <app/log/log_manager.hpp>
+#include "log/log_manager.hpp"
 
 #include <spdlog/details/thread_pool.h>
 #include <spdlog/spdlog.h>
@@ -9,6 +9,9 @@ namespace app
 {
 LogManager::LogManager(std::size_t queueSize)
 {
+    // 레지스트리가 로그 관리자보다 나중에 소멸하도록 먼저 초기화한다.
+    spdlog::default_logger();
+
     if (queueSize == 0)
     {
         throw std::invalid_argument("Logging queue size must be positive");
@@ -21,7 +24,7 @@ LogManager::~LogManager() noexcept
     shutdown();
 }
 
-void LogManager::addLogger(
+std::shared_ptr<spdlog::logger> LogManager::addLogger(
     const std::string& name,
     spdlog::level::level_enum level,
     spdlog::async_overflow_policy policy,
@@ -71,6 +74,8 @@ void LogManager::addLogger(
         _loggers.pop_back();
         throw;
     }
+
+    return logger;
 }
 
 void LogManager::shutdown()
