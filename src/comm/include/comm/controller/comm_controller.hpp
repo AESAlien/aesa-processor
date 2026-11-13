@@ -6,6 +6,7 @@
 #include <comm/dto/incoming_dto.hpp>
 #include <comm/error/comm_error.hpp>
 #include <target/dto/track_event.hpp>
+#include <spdlog/logger.h>
 
 #include <memory>
 #include <optional>
@@ -17,7 +18,10 @@ namespace comm
 class CommController
 {
 public:
-    explicit CommController(CommConfig configuration);
+    explicit CommController(
+        CommConfig configuration,
+        std::shared_ptr<spdlog::logger> messageLogger = {}
+    );
     ~CommController();
 
     CommController(const CommController&) = delete;
@@ -51,6 +55,7 @@ public:
 
 private:
     class Impl;
+    std::shared_ptr<spdlog::logger> _messageLogger;
     std::unique_ptr<Impl> _impl;
 };
 

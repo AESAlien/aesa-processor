@@ -1,41 +1,59 @@
-#include <app/worker/target_worker.hpp>
-#include <app/worker/worker_error.hpp>
+#include "worker/target_worker.hpp"
 
 #include <utility>
+#include <variant>
 
 namespace app
 {
 TargetWorker::TargetWorker(
-    TargetChannel& targetChannel,
-    BeamChannel& beamChannel,
-    CommChannel& commChannel,
-    target::TargetController& controller)
-    : _targetChannel(targetChannel),
-      _beamChannel(beamChannel),
-      _commChannel(commChannel),
-      _controller(controller)
+    target::TargetController& controller,
+    MessageQueue<TargetInput>& targetQueue,
+    MessageQueue<BeamInput>& beamQueue,
+    MessageQueue<ConsoleInput>& consoleQueue,
+    std::shared_ptr<spdlog::logger> logger
+) : Worker(std::move(logger)),
+    _controller(controller),
+    _targetQueue(targetQueue),
+    _beamQueue(beamQueue),
+    _consoleQueue(consoleQueue)
 {
 }
 
-void TargetWorker::run()
+TargetInput TargetWorker::readInput()
 {
-    while (auto detection = _targetChannel.read())
+    return _targetQueue.read();
+}
+
+std::optional<TargetOutput> TargetWorker::process(TargetInput input)
+{
+    if (auto* detection = std::get_if<target::DetectionEvent>(&input))
     {
-        tryWorkerAction("TargetWorker", [&]
+        auto request = _controller.handleDetection(*detection);
+        if (request)
         {
-            auto request =
-                _controller.handleDetection(*detection);
+            return TargetOutput{std::move(*request)};
+        }
+    }
+    else if (std::holds_alternative<TickEvent>(input))
+    {
+        return TargetOutput{_controller.nextTrackEvents()};
+    }
+    return std::nullopt;
+}
 
-            if (request)
-            {
-                _beamChannel.write(std::move(*request));
-            }
-
-            auto tracks = _controller.nextTrackEvents();
-
-            // 마지막 표적이 삭제된 경우도 빈 목록으로 콘솔에 전달한다.
-            _commChannel.write(std::move(tracks));
-        });
+void TargetWorker::writeOutput(std::optional<TargetOutput> output)
+{
+    if (!output)
+    {
+        return;
+    }
+    if (auto* request = std::get_if<beam::RequestBeamCommand>(&*output))
+    {
+        _beamQueue.write(std::move(*request));
+    }
+    else if (auto* events = std::get_if<std::vector<target::TrackEvent>>(&*output))
+    {
+        _consoleQueue.write(std::move(*events));
     }
 }
 } // namespace app
