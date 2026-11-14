@@ -10,6 +10,7 @@
 #include "service/track_reporter.hpp"
 #include "domain/association/tentative_selector.hpp"
 #include "domain/association/track_selector.hpp"
+#include "service/track_expiration_handler.hpp"
 
 #include <utility>
 
@@ -50,6 +51,10 @@ TargetController::TargetController(
         std::move(tentativeSelector),
         std::move(trackSelector)
     );
+    _trackExpirationHandler = std::make_shared<TrackExpirationHandler>(
+        config.trackManagement,
+        repository
+    );
     _trackReporter = std::make_shared<const TrackReporter>(
         repository,
         config.trackManagement.maxReportedTrackCount()
@@ -70,6 +75,19 @@ std::optional<beam::RequestBeamCommand> TargetController::handleDetection(Detect
 std::vector<TrackEvent> TargetController::nextTrackEvents() const
 {
     return _trackReporter->nextTrackEvents();
+}
+
+void TargetController::removeExpiredTracks(std::chrono::milliseconds currentTime)
+{
+    const auto expiredIds = _trackExpirationHandler->removeExpiredTracks(currentTime);
+    if (!_messageLogger)
+    {
+        return;
+    }
+    for (const auto id : expiredIds)
+    {
+        _messageLogger->info("Removed unanswered track: id={}, currentTime={}ms", id, currentTime.count());
+    }
 }
 
 } // namespace target
