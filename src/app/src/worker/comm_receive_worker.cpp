@@ -19,35 +19,34 @@ CommReceiveWorker::CommReceiveWorker(
 {
 }
 
-std::optional<comm::IncomingDto> CommReceiveWorker::readInput()
+std::monostate CommReceiveWorker::readInput()
+{
+    return {};
+}
+
+CommReceiveOutput CommReceiveWorker::process(std::monostate)
 {
     return _controller.receiveData();
 }
 
-std::optional<comm::IncomingDto> CommReceiveWorker::process(
-    std::optional<comm::IncomingDto> input
-) {
-    return input;
-}
-
-void CommReceiveWorker::writeOutput(std::optional<comm::IncomingDto> output)
+void CommReceiveWorker::writeOutput(CommReceiveOutput output)
 {
     if (!output)
     {
         return;
     }
-    if (auto* attitude = std::get_if<beam::SetAttitudeCommand>(&*output))
+    if (auto* command = std::get_if<beam::SetAttitudeCommand>(&*output))
     {
-        _consoleQueue.write(*attitude);
-        _beamQueue.write(*attitude);
+        _consoleQueue.write(*command);
+        _beamQueue.write(*command);
     }
-    else if (auto* state = std::get_if<beam::SetOperationStateCommand>(&*output))
+    else if (auto* command = std::get_if<beam::SetOperationStateCommand>(&*output))
     {
-        _beamQueue.write(std::move(*state));
+        _beamQueue.write(std::move(*command));
     }
-    else if (auto* detection = std::get_if<target::DetectionEvent>(&*output))
+    else if (auto* event = std::get_if<target::DetectionEvent>(&*output))
     {
-        _targetQueue.write(std::move(*detection));
+        _targetQueue.write(std::move(*event));
     }
 }
 } // namespace app

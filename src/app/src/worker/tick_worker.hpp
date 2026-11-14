@@ -11,7 +11,9 @@
 
 namespace app
 {
-class TickWorker final : public Worker<std::monostate, TickEvent>
+using TickOutput = TickEvent;
+
+class TickWorker final : public Worker<std::monostate, TickOutput>
 {
 public:
     TickWorker(
@@ -22,8 +24,8 @@ public:
 
 private:
     std::monostate readInput() override;
-    TickEvent process(std::monostate input) override;
-    void writeOutput(TickEvent output) override;
+    TickOutput process(std::monostate input) override;
+    void writeOutput(TickOutput output) override;
 
     MessageQueue<BeamInput>& _beamQueue;
     MessageQueue<TargetInput>& _targetQueue;

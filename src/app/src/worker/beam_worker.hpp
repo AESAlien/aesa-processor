@@ -10,7 +10,7 @@
 
 namespace app
 {
-using BeamOutput = std::optional<SimulatorInput>;
+using BeamOutput = std::optional<beam::TransmitBeamCommand>;
 
 class BeamWorker final : public Worker<BeamInput, BeamOutput>
 {

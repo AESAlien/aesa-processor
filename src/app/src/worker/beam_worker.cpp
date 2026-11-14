@@ -36,9 +36,9 @@ std::optional<SimulatorInput> BeamWorker::process(BeamInput input)
     {
         _controller.setAttitude(*command);
     }
-    else if (auto* tick = std::get_if<TickEvent>(&input))
+    else if (auto* event = std::get_if<TickEvent>(&input))
     {
-        return _controller.nextBeamCommand(tick->currentTime);
+        return _controller.nextBeamCommand(event->currentTime);
     }
     return std::nullopt;
 }

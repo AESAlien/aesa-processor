@@ -9,10 +9,13 @@
 #include <comm/controller/comm_controller.hpp>
 #include <comm/dto/incoming_dto.hpp>
 #include <optional>
+#include <variant>
 
 namespace app
 {
-class CommReceiveWorker final : public Worker<std::optional<comm::IncomingDto>, std::optional<comm::IncomingDto>>
+using CommReceiveOutput = std::optional<comm::IncomingDto>;
+
+class CommReceiveWorker final : public Worker<std::monostate, CommReceiveOutput>
 {
 public:
     CommReceiveWorker(
@@ -24,9 +27,9 @@ public:
     );
 
 private:
-    std::optional<comm::IncomingDto> readInput() override;
-    std::optional<comm::IncomingDto> process(std::optional<comm::IncomingDto> input) override;
-    void writeOutput(std::optional<comm::IncomingDto> output) override;
+    std::monostate readInput() override;
+    CommReceiveOutput process(std::monostate input) override;
+    void writeOutput(CommReceiveOutput output) override;
 
     comm::CommController& _controller;
     MessageQueue<BeamInput>& _beamQueue;
