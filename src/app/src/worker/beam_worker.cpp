@@ -22,7 +22,7 @@ BeamInput BeamWorker::readInput()
     return _beamQueue.read();
 }
 
-std::optional<SimulatorInput> BeamWorker::process(BeamInput input)
+std::optional<BeamOutput> BeamWorker::process(BeamInput input)
 {
     if (auto* command = std::get_if<beam::RequestBeamCommand>(&input))
     {
@@ -43,11 +43,8 @@ std::optional<SimulatorInput> BeamWorker::process(BeamInput input)
     return std::nullopt;
 }
 
-void BeamWorker::writeOutput(std::optional<SimulatorInput> output)
+void BeamWorker::writeOutput(BeamOutput output)
 {
-    if (output)
-    {
-        _simulatorQueue.write(std::move(*output));
-    }
+    _simulatorQueue.write(std::move(output));
 }
 } // namespace app

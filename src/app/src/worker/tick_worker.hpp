@@ -7,6 +7,7 @@
 #include "dto/tick_event.hpp"
 #include "queue/message_queue.hpp"
 #include <chrono>
+#include <optional>
 #include <variant>
 
 namespace app
@@ -24,7 +25,7 @@ public:
 
 private:
     std::monostate readInput() override;
-    TickOutput process(std::monostate input) override;
+    std::optional<TickOutput> process(std::monostate input) override;
     void writeOutput(TickOutput output) override;
 
     MessageQueue<BeamInput>& _beamQueue;

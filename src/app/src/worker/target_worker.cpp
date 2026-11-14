@@ -24,7 +24,7 @@ TargetInput TargetWorker::readInput()
     return _targetQueue.read();
 }
 
-TargetOutput TargetWorker::process(TargetInput input)
+std::optional<TargetOutput> TargetWorker::process(TargetInput input)
 {
     if (auto* event = std::get_if<target::DetectionEvent>(&input))
     {
@@ -39,12 +39,9 @@ TargetOutput TargetWorker::process(TargetInput input)
 
 void TargetWorker::writeOutput(TargetOutput output)
 {
-    if (auto* command = std::get_if<std::optional<beam::RequestBeamCommand>>(&output))
+    if (auto* command = std::get_if<beam::RequestBeamCommand>(&output))
     {
-        if (*command)
-        {
-            _beamQueue.write(std::move(**command));
-        }
+        _beamQueue.write(std::move(*command));
     }
     else if (auto* event = std::get_if<std::vector<target::TrackEvent>>(&output))
     {

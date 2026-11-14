@@ -24,27 +24,23 @@ std::monostate CommReceiveWorker::readInput()
     return {};
 }
 
-CommReceiveOutput CommReceiveWorker::process(std::monostate)
+std::optional<CommReceiveOutput> CommReceiveWorker::process(std::monostate)
 {
     return _controller.receiveData();
 }
 
 void CommReceiveWorker::writeOutput(CommReceiveOutput output)
 {
-    if (!output)
-    {
-        return;
-    }
-    if (auto* command = std::get_if<beam::SetAttitudeCommand>(&*output))
+    if (auto* command = std::get_if<beam::SetAttitudeCommand>(&output))
     {
         _consoleQueue.write(*command);
         _beamQueue.write(*command);
     }
-    else if (auto* command = std::get_if<beam::SetOperationStateCommand>(&*output))
+    else if (auto* command = std::get_if<beam::SetOperationStateCommand>(&output))
     {
         _beamQueue.write(std::move(*command));
     }
-    else if (auto* event = std::get_if<target::DetectionEvent>(&*output))
+    else if (auto* event = std::get_if<target::DetectionEvent>(&output))
     {
         _targetQueue.write(std::move(*event));
     }

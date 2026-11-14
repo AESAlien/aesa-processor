@@ -13,7 +13,7 @@
 
 namespace app
 {
-using CommReceiveOutput = std::optional<comm::IncomingDto>;
+using CommReceiveOutput = comm::IncomingDto;
 
 class CommReceiveWorker final : public Worker<std::monostate, CommReceiveOutput>
 {
@@ -28,7 +28,7 @@ public:
 
 private:
     std::monostate readInput() override;
-    CommReceiveOutput process(std::monostate input) override;
+    std::optional<CommReceiveOutput> process(std::monostate input) override;
     void writeOutput(CommReceiveOutput output) override;
 
     comm::CommController& _controller;

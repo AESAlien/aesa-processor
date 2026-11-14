@@ -25,7 +25,7 @@ std::monostate TickWorker::readInput()
     return {};
 }
 
-TickOutput TickWorker::process(std::monostate)
+std::optional<TickOutput> TickWorker::process(std::monostate)
 {
     if (!_started)
     {

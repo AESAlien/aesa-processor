@@ -20,7 +20,7 @@ ConsoleInput ConsoleSendWorker::readInput()
     return _consoleQueue.read();
 }
 
-std::monostate ConsoleSendWorker::process(ConsoleInput input)
+std::optional<ConsoleSendOutput> ConsoleSendWorker::process(ConsoleInput input)
 {
     if (const auto* command = std::get_if<beam::SetAttitudeCommand>(&input))
     {
@@ -30,6 +30,6 @@ std::monostate ConsoleSendWorker::process(ConsoleInput input)
     {
         _controller.sendTrackEvents(*event);
     }
-    return {};
+    return std::nullopt;
 }
 } // namespace app

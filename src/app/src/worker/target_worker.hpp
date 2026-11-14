@@ -16,10 +16,9 @@
 namespace app
 {
 using TargetOutput = std::variant<
-    std::optional<beam::RequestBeamCommand>,
+    beam::RequestBeamCommand,
     std::vector<target::TrackEvent>
 >;
-
 class TargetWorker final : public Worker<TargetInput, TargetOutput>
 {
 public:
@@ -33,7 +32,7 @@ public:
 
 private:
     TargetInput readInput() override;
-    TargetOutput process(TargetInput input) override;
+    std::optional<TargetOutput> process(TargetInput input) override;
     void writeOutput(TargetOutput output) override;
 
     target::TargetController& _controller;

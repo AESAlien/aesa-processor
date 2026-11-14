@@ -5,6 +5,7 @@
 #include <chrono>
 #include <exception>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <thread>
 #include <utility>
@@ -26,8 +27,10 @@ public:
             try
             {
                 Input input = readInput();
-                Output output = process(std::move(input));
-                writeOutput(std::move(output));
+                if (auto output = process(std::move(input)))
+                {
+                    writeOutput(std::move(*output));
+                }
                 continue;
             }
             catch (const std::exception& error)
@@ -57,7 +60,7 @@ protected:
     }
 
     virtual Input readInput() = 0;
-    virtual Output process(Input input) = 0;
+    virtual std::optional<Output> process(Input input) = 0;
     virtual void writeOutput(Output output) {}
 
 private:

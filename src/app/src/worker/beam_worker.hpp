@@ -10,7 +10,7 @@
 
 namespace app
 {
-using BeamOutput = std::optional<beam::TransmitBeamCommand>;
+using BeamOutput = beam::TransmitBeamCommand;
 
 class BeamWorker final : public Worker<BeamInput, BeamOutput>
 {
@@ -24,7 +24,7 @@ public:
 
 private:
     BeamInput readInput() override;
-    BeamOutput process(BeamInput input) override;
+    std::optional<BeamOutput> process(BeamInput input) override;
     void writeOutput(BeamOutput output) override;
 
     beam::BeamController& _controller;
