@@ -12,9 +12,7 @@ public:
     static constexpr char LOGGER_NAME[] = "BeamEvent";
 
     void logOperationStateChanged(beam::OperationState state) noexcept override;
-    void logAttitudeApplied(const beam::SetAttitudeCommand& command) noexcept override;
-    void logAttitudeIgnoredWhileOff(const beam::SetAttitudeCommand& command) noexcept override;
-    void logAttitudeIgnoredAlreadySet(const beam::SetAttitudeCommand& command) noexcept override;
+    void logAttitudeApplied() noexcept override;
     void logRequestBeamRejected(const beam::RequestBeamResult& result) noexcept override;
 };
 }

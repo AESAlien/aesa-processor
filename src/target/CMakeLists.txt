@@ -27,7 +27,7 @@ add_library(target STATIC
     src/repository/track_repository.cpp
 )
 
-target_link_libraries(target PUBLIC beam math spdlog::spdlog Threads::Threads)
+target_link_libraries(target PUBLIC beam math pose spdlog::spdlog Threads::Threads)
 target_include_directories(target PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"

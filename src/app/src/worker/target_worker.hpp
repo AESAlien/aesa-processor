@@ -19,8 +19,7 @@ using TargetOutput = std::variant<
     beam::RequestBeamCommand,
     std::vector<target::TrackEvent>
 >;
-
-class TargetWorker final : public Worker<TargetInput, std::optional<TargetOutput>>
+class TargetWorker final : public Worker<TargetInput, TargetOutput>
 {
 public:
     TargetWorker(
@@ -34,7 +33,7 @@ public:
 private:
     TargetInput readInput() override;
     std::optional<TargetOutput> process(TargetInput input) override;
-    void writeOutput(std::optional<TargetOutput> output) override;
+    void writeOutput(TargetOutput output) override;
 
     target::TargetController& _controller;
     MessageQueue<TargetInput>& _targetQueue;

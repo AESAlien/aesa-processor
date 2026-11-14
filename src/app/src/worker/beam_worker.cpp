@@ -22,7 +22,7 @@ BeamInput BeamWorker::readInput()
     return _beamQueue.read();
 }
 
-std::optional<SimulatorInput> BeamWorker::process(BeamInput input)
+std::optional<BeamOutput> BeamWorker::process(BeamInput input)
 {
     if (auto* command = std::get_if<beam::RequestBeamCommand>(&input))
     {
@@ -32,22 +32,19 @@ std::optional<SimulatorInput> BeamWorker::process(BeamInput input)
     {
         _controller.setOperationState(*command);
     }
-    else if (auto* command = std::get_if<beam::SetAttitudeCommand>(&input))
+    else if (auto* command = std::get_if<pose::SetAntEnuTransformCommand>(&input))
     {
-        _controller.setAttitude(*command);
+        _controller.setAntEnuTransform(*command);
     }
-    else if (auto* tick = std::get_if<TickEvent>(&input))
+    else if (auto* event = std::get_if<TickEvent>(&input))
     {
-        return _controller.nextBeamCommand(tick->currentTime);
+        return _controller.nextBeamCommand(event->currentTime);
     }
     return std::nullopt;
 }
 
-void BeamWorker::writeOutput(std::optional<SimulatorInput> output)
+void BeamWorker::writeOutput(BeamOutput output)
 {
-    if (output)
-    {
-        _simulatorQueue.write(std::move(*output));
-    }
+    _simulatorQueue.write(std::move(output));
 }
 } // namespace app

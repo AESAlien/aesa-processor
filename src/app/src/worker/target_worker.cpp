@@ -26,34 +26,30 @@ TargetInput TargetWorker::readInput()
 
 std::optional<TargetOutput> TargetWorker::process(TargetInput input)
 {
-    if (auto* detection = std::get_if<target::DetectionEvent>(&input))
+    if (auto* event = std::get_if<target::DetectionEvent>(&input))
     {
-        auto request = _controller.handleDetection(*detection);
-        if (request)
-        {
-            return TargetOutput{std::move(*request)};
-        }
+        return _controller.handleDetection(*event);
+    }
+    else if (auto* command = std::get_if<pose::SetEnuGeoTransformCommand>(&input))
+    {
+        _controller.setEnuGeoTransform(std::move(*command));
     }
     else if (std::holds_alternative<TickEvent>(input))
     {
-        return TargetOutput{_controller.nextTrackEvents()};
+        return _controller.getTrackEvents();
     }
     return std::nullopt;
 }
 
-void TargetWorker::writeOutput(std::optional<TargetOutput> output)
+void TargetWorker::writeOutput(TargetOutput output)
 {
-    if (!output)
+    if (auto* command = std::get_if<beam::RequestBeamCommand>(&output))
     {
-        return;
+        _beamQueue.write(std::move(*command));
     }
-    if (auto* request = std::get_if<beam::RequestBeamCommand>(&*output))
+    else if (auto* event = std::get_if<std::vector<target::TrackEvent>>(&output))
     {
-        _beamQueue.write(std::move(*request));
-    }
-    else if (auto* events = std::get_if<std::vector<target::TrackEvent>>(&*output))
-    {
-        _consoleQueue.write(std::move(*events));
+        _consoleQueue.write(std::move(*event));
     }
 }
 } // namespace app

@@ -19,6 +19,7 @@ public:
     Config assemble();
 
 private:
+    pose::PoseConfig createPoseConfig();
     beam::BeamConfig createBeamConfig();
     target::TargetConfig createTargetConfig();
     comm::CommConfig createCommConfig();

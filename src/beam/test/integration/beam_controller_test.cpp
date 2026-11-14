@@ -1,4 +1,5 @@
 #include <beam/controller/beam_controller.hpp>
+#include <pose/domain/factory/radar_attitude_factory.hpp>
 #include <beam/dto/log/beam_event_logger.hpp>
 
 #include <gtest/gtest.h>
@@ -16,18 +17,6 @@ using namespace math::literals;
 namespace
 {
 
-beam::SetAttitudeCommand makeSetAttitudeCommand(math::Angle roll, math::Angle pitch, math::Angle yaw)
-{
-    return beam::SetAttitudeCommand::Builder()
-        .latitude(37.0_deg)
-        .longitude(127.0_deg)
-        .altitude(0.1_km)
-        .roll(roll)
-        .pitch(pitch)
-        .yaw(yaw)
-        .build();
-}
-
 beam::RequestBeamCommand makeRequestBeamCommand(
     beam::RequestBeamType beamType,
     std::chrono::milliseconds transmitTime,
@@ -43,12 +32,15 @@ beam::RequestBeamCommand makeRequestBeamCommand(
         .build();
 }
 
-beam::AttitudeConfig::Builder validAttitudeConfigBuilder()
+pose::SetAntEnuTransformCommand makeAntEnuTransformCommand(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    return beam::AttitudeConfig::Builder()
-        .maxAbsPitch(89_deg)
-        .mountAntToBodyRotation(math::SquareMatrix::identity(3))
-        .mountOrthogonalTolerance(math::Tolerance{1e-6, 0.0});
+    const pose::RadarAttitudeFactory factory(pose::RadarAttitudeFactoryConfig(89_deg));
+    return pose::SetAntEnuTransformCommand(
+        pose::AntEnuTransform(
+            factory.create(roll, math::TiltAngle(pitch), yaw),
+            pose::AntEnuTransformConfig(math::SquareMatrix::identity(3))
+        )
+    );
 }
 
 beam::SearchGridConfig::Builder validSearchGridConfigBuilder()
@@ -81,7 +73,6 @@ beam::RequestCoverageConfig::Builder validRequestCoverageConfigBuilder()
 beam::BeamConfig::Builder validBeamConfigBuilder()
 {
     return beam::BeamConfig::Builder()
-        .attitudeConfig(validAttitudeConfigBuilder().build())
         .searchGridConfig(validSearchGridConfigBuilder().build())
         .requestBeamConfig(validRequestBeamConfigBuilder().build())
         .requestCoverageConfig(validRequestCoverageConfigBuilder().build());
@@ -101,19 +92,9 @@ public:
         events.emplace_back(state == beam::OperationState::ON ? "STATE_ON" : "STATE_OFF");
     }
 
-    void logAttitudeApplied(const beam::SetAttitudeCommand&) noexcept override
+    void logAttitudeApplied() noexcept override
     {
         events.emplace_back("ATTITUDE_APPLIED");
-    }
-
-    void logAttitudeIgnoredWhileOff(const beam::SetAttitudeCommand&) noexcept override
-    {
-        events.emplace_back("ATTITUDE_IGNORED_WHILE_OFF");
-    }
-
-    void logAttitudeIgnoredAlreadySet(const beam::SetAttitudeCommand&) noexcept override
-    {
-        events.emplace_back("ATTITUDE_IGNORED_ALREADY_SET");
     }
 
     void logRequestBeamRejected(const beam::RequestBeamResult& result) noexcept override
@@ -147,7 +128,7 @@ TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
     auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
 
     // When: 송신 명령을 요청한다.
     const auto command = controller.nextBeamCommand(0ms);
@@ -194,7 +175,7 @@ TEST(BeamControllerTest, AttitudeCommandChangesSearchDirection)
         controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
 
         // When: 롤과 피치 및 요가 지정된 자세 명령을 전달하고 송신 명령을 꺼낸다.
-        controller.setAttitude(makeSetAttitudeCommand(attitudeCase.roll, attitudeCase.pitch, attitudeCase.yaw));
+        controller.setAntEnuTransform(makeAntEnuTransformCommand(attitudeCase.roll, attitudeCase.pitch, attitudeCase.yaw));
         const auto command = controller.nextBeamCommand(0ms);
 
         // Then: 알려진 축 방향의 회전 결과가 송신 명령에 반영된다.
@@ -210,7 +191,7 @@ TEST(BeamControllerTest, RequestBeamIsDeliveredToBeamScheduler)
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
     auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
 
     // When: 추적 빔을 요청하고 예정 시각의 송신 명령을 꺼낸다.
     controller.requestBeam(makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 100ms, 5, 7.5_deg, 15.5_deg));
@@ -236,7 +217,7 @@ TEST(BeamControllerTest, RequestWhileOffIsIgnored)
     // When: 꺼진 상태에서 요청한 뒤 운용과 자세를 설정한다.
     const auto result = controller.requestBeam(request);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
     const auto command = controller.nextBeamCommand(0ms);
 
     // Then: 준비 전 결과를 반환하고 거부된 요청 대신 탐색 빔을 송신한다.
@@ -265,7 +246,7 @@ TEST(BeamControllerTest, InvalidRequestIsNotQueued)
     // Given: 운용 준비된 컨트롤러와 요청 ID가 잘못된 명령을 준비한다.
     auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 0, 7.5_deg, 15.5_deg);
 
     // When: 잘못된 요청을 접수한다.
@@ -289,7 +270,7 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
     // Given: 탐색 명령을 두 번 송신한 컨트롤러를 준비한다.
     auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
     controller.nextBeamCommand(10ms);
 
@@ -300,9 +281,8 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
     // Then: 운용 종료 뒤에는 송신하지 않는다.
     EXPECT_FALSE(whileOff.has_value());
 
-    // When: 운용을 다시 시작하고 자세를 받아 송신 명령을 요청한다.
+    // When: 운용을 다시 시작하고 송신 명령을 요청한다.
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
     const auto restarted = controller.nextBeamCommand(30ms);
 
     // Then: 첫 탐색 빔과 첫 명령 수부터 다시 시작한다.
@@ -326,7 +306,7 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
 
     // When: 운용과 자세를 설정하고 사용자 격자의 명령을 꺼낸다.
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
 
     // 빔이 3개뿐이므로 ID가 0, 1, 2, 0 순서로 순환한다.
     const uint32_t expectedIds[] = {0, 1, 2, 0};
@@ -352,7 +332,7 @@ TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
         .build();
     auto controller = beam::BeamController(config);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
 
     // When: 추적 빔을 요청하고 송신 명령을 꺼낸다.
     controller.requestBeam(makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 7, 7.5_deg, 15.5_deg));
@@ -377,7 +357,7 @@ TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
         .build();
     auto controller = beam::BeamController(config);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
 
     // When: 확인 빔을 요청하고 송신 명령을 꺼낸다.
     controller.requestBeam(makeRequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 7, 7.5_deg, 15.5_deg));
@@ -388,116 +368,6 @@ TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
     EXPECT_EQ(command->beamType, beam::BeamType::CONFIRMATION);
     EXPECT_EQ(command->beamWidth.azimuth, 5_deg);
     EXPECT_EQ(command->beamWidth.elevation, 5_deg);
-}
-
-// 컨트롤러는 주입된 피치 한계의 검증 결과를 반영한다.
-TEST(BeamControllerTest, InjectedAttitudeConfigIsUsedForGimbalLock)
-{
-    // Given: 사용자 피치 한계를 가진 컨트롤러를 준비한다.
-    const auto config = validBeamConfigBuilder()
-        .attitudeConfig(validAttitudeConfigBuilder()
-            .maxAbsPitch(60_deg)
-            .build())
-        .build();
-    auto controller = beam::BeamController(config);
-    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-
-    // 기본 설정(89도)에서는 통과하는 pitch 70도가 이 설정(60도)에서는 짐벌락이다.
-    const auto invalidAttitude = makeSetAttitudeCommand(0_deg, 70_deg, 0_deg);
-
-    // When: 설정된 피치 한계를 넘는 자세를 전달한다.
-    const auto setInvalidAttitude = [&] { controller.setAttitude(invalidAttitude); };
-
-    // Then: 자세 검증 예외를 전달한다.
-    EXPECT_THROW(setInvalidAttitude(), std::invalid_argument);
-    EXPECT_FALSE(controller.nextBeamCommand(0ms).has_value());
-
-    // When: 유효한 자세를 다시 전달한다.
-    EXPECT_NO_THROW(controller.setAttitude(makeSetAttitudeCommand(0_deg, 50_deg, 0_deg)));
-
-    // Then: 유효한 자세를 받은 뒤에는 송신할 수 있다.
-    EXPECT_TRUE(controller.nextBeamCommand(10ms).has_value());
-}
-
-// 컨트롤러는 운용 상태와 관계없이 자세 검증 예외를 전달한다.
-TEST(BeamControllerTest, GimbalLockThrowsEvenWhileOffOrAfterTableCreated)
-{
-    // Given: 사용자 피치 한계를 가진 컨트롤러를 준비한다.
-    const auto config = validBeamConfigBuilder()
-        .attitudeConfig(validAttitudeConfigBuilder()
-            .maxAbsPitch(60_deg)
-            .build())
-        .build();
-    auto controller = beam::BeamController(config);
-
-    // OFF 상태에서도 설정 기준의 짐벌락 자세는 거부한다. 음의 pitch도 마찬가지다.
-    const auto invalidAttitude = makeSetAttitudeCommand(0_deg, 70_deg, 0_deg);
-
-    // When: 설정된 피치 한계를 넘는 자세를 전달한다.
-    const auto setInvalidAttitude = [&] { controller.setAttitude(invalidAttitude); };
-
-    // Then: 자세 검증 예외를 전달한다.
-    EXPECT_THROW(setInvalidAttitude(), std::invalid_argument);
-    EXPECT_THROW(controller.setAttitude(makeSetAttitudeCommand(0_deg, -70_deg, 0_deg)), std::invalid_argument);
-
-    // 탐색 빔 테이블이 만들어진 뒤에도 마찬가지이며, 기존 상태는 유지된다.
-
-    // When: 운용을 시작하고 정상 자세를 받아 탐색을 진행한다.
-    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
-
-    // Then: 첫 탐색 명령을 반환한다.
-    ASSERT_EQ(controller.nextBeamCommand(0ms)->beamId, 0u);
-
-    // When: 이미 준비된 상태에서 잘못된 자세를 전달한다.
-    EXPECT_THROW(controller.setAttitude(makeSetAttitudeCommand(0_deg, 70_deg, 0_deg)), std::invalid_argument);
-
-    // Then: 예외 이후에도 기존 송신 상태는 유지된다.
-    EXPECT_EQ(controller.nextBeamCommand(10ms)->beamId, 1u);
-}
-
-// 컨트롤러는 꺼진 상태에서도 유효하지 않은 자세의 예외를 전달한다.
-TEST(BeamControllerTest, InvalidAttitudeThrowsEvenWhileOff)
-{
-    // Given: 꺼진 컨트롤러와 잘못된 롤 값을 가진 자세 명령을 준비한다.
-    auto controller = makeDefaultController();
-
-    // roll 181도는 RadarAttitude 생성 단계에서 거부된다. 운용 상태가 OFF여도 마찬가지다.
-    const auto command = beam::SetAttitudeCommand(
-        math::TiltAngle(37_deg), math::CircularAngle(127_deg), 0.1_km,
-        181_deg, math::TiltAngle(0_deg), 0_deg);
-
-    // When: 잘못된 자세 명령을 전달한다.
-    const auto setAttitude = [&] { controller.setAttitude(command); };
-
-    // Then: 컨트롤러는 꺼진 상태에서도 유효하지 않은 자세의 예외를 전달한다.
-    EXPECT_THROW(setAttitude(), std::invalid_argument);
-}
-
-// 컨트롤러의 빔 방향은 자세 명령의 위치 필드에 영향을 받지 않는다.
-TEST(BeamControllerTest, IgnoresLocationFieldsWhenSettingAttitude)
-{
-    // Given: 같은 설정의 컨트롤러 두 개와 서로 다른 위치의 자세 명령을 준비한다.
-    auto first = makeDefaultController();
-    auto second = makeDefaultController();
-    first.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    second.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    const auto defaultLocation = makeSetAttitudeCommand(0_deg, 0_deg, 0_deg);
-    const auto otherLocation = beam::SetAttitudeCommand(
-        math::TiltAngle(-30_deg), math::CircularAngle(-179_deg), 101_km,
-        0_deg, math::TiltAngle(0_deg), 0_deg);
-
-    // When: 같은 자세와 서로 다른 위치를 전달하고 명령을 꺼낸다.
-    first.setAttitude(defaultLocation);
-    second.setAttitude(otherLocation);
-    const auto firstCommand = first.nextBeamCommand(0ms);
-    const auto secondCommand = second.nextBeamCommand(0ms);
-
-    // Then: 위치와 관계없이 같은 탐색 방향을 반환한다.
-    ASSERT_TRUE(firstCommand.has_value());
-    ASSERT_TRUE(secondCommand.has_value());
-    EXPECT_EQ(firstCommand->direction_ant.azimuth, secondCommand->direction_ant.azimuth);
-    EXPECT_EQ(firstCommand->direction_ant.elevation, secondCommand->direction_ant.elevation);
 }
 
 // 컨트롤러 이동은 주입된 설정과 송신 진행 상태를 유지한다.
@@ -512,7 +382,7 @@ TEST(BeamControllerTest, MovedControllerKeepsInjectedConfigAndState)
         .build();
     auto controller = beam::BeamController(config);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
     controller.nextBeamCommand(0ms);
 
     // When: 사용자 설정으로 운용 중인 컨트롤러를 이동하고 다음 명령들을 꺼낸다.
@@ -539,7 +409,7 @@ TEST(BeamControllerTest, RequestBeamReturnsResult)
     const auto whileOff = controller.requestBeam(inside);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
     const auto beforeAttitude = controller.requestBeam(inside);
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
     const auto accepted = controller.requestBeam(inside);
     const auto outOfCoverage = controller.requestBeam(outside);
 
@@ -556,7 +426,7 @@ TEST(BeamControllerTest, RequestOutsideCoverageIsNotTransmitted)
     // Given: 운용 준비된 컨트롤러와 영역 밖 요청을 준비한다.
     auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 5, 0_deg, 61_deg);
 
     // When: 영역 밖 요청을 접수한 뒤 송신 명령을 꺼낸다.
@@ -575,7 +445,7 @@ TEST(BeamControllerTest, CoverageUsesAttitudeOfAttitudeCommand)
     // Given: 검사할 자세와 설정으로 운용 준비된 컨트롤러를 만든다.
     auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 13.02429_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 13.02429_deg));
 
     // ENU 75도는 안테나 기준 약 62도이므로 거부된다.
 
@@ -601,7 +471,7 @@ TEST(BeamControllerTest, InjectedRequestCoverageConfigIsUsed)
         .build();
     auto controller = beam::BeamController(config);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
 
     // 기본 영역(-60~60도)이면 받아들일 7.5도가 이 설정(-5~5도)에서는 거부된다.
 
@@ -620,7 +490,7 @@ TEST(BeamControllerTest, InvalidRequestThrowsBeforeCoverageCheck)
     // Given: 운용 준비된 컨트롤러와 ID가 잘못된 영역 밖 요청을 준비한다.
     auto controller = makeDefaultController();
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 90_deg, 0_deg);
 
     // When: 잘못된 요청을 접수한다.
@@ -642,7 +512,7 @@ TEST(BeamControllerTest, RequestBeamResultCarriesRequestIdForEveryStatus)
     // When: 준비 전과 준비 후에 영역 안팎의 요청을 접수한다.
     const auto notReady = controller.requestBeam(first);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
     const auto accepted = controller.requestBeam(second);
     const auto outOfCoverage = controller.requestBeam(third);
 
@@ -675,44 +545,28 @@ TEST(BeamControllerTest, LogsOnlyChangedOperationState)
     EXPECT_EQ(logger->events, expected);
 }
 
-// 컨트롤러는 자세정보의 반영과 무시를 이유별로 기록한다.
-TEST(BeamControllerTest, LogsAttitudeAppliedAndIgnoredForEachCase)
+// 컨트롤러는 운용 상태에 관계없이 자세 반영을 기록한다.
+TEST(BeamControllerTest, LogsEveryRadarTransformUpdate)
 {
     // Given: 기록기를 주입한 꺼진 컨트롤러와 유효한 자세정보를 준비한다.
     const auto logger = std::make_shared<SpyBeamEventLogger>();
     beam::BeamController controller(validBeamConfigBuilder().build(), logger);
-    const auto attitude = makeSetAttitudeCommand(0_deg, 0_deg, 0_deg);
+    const auto attitude = makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg);
 
     // When: OFF 상태, ON 후 첫 번째, ON 후 두 번째에 자세정보를 전달한다.
-    controller.setAttitude(attitude);
+    controller.setAntEnuTransform(attitude);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(attitude);
-    controller.setAttitude(attitude);
+    controller.setAntEnuTransform(attitude);
+    controller.setAntEnuTransform(attitude);
 
-    // Then: 무시(OFF), 상태 변경, 반영, 무시(이미 받음) 순서로 기록한다.
+    // Then: 운용 상태 변경 전후의 자세 반영을 기록한다.
     const std::vector<std::string> expected = {
-        "ATTITUDE_IGNORED_WHILE_OFF",
+        "ATTITUDE_APPLIED",
         "STATE_ON",
         "ATTITUDE_APPLIED",
-        "ATTITUDE_IGNORED_ALREADY_SET"
+        "ATTITUDE_APPLIED"
     };
     EXPECT_EQ(logger->events, expected);
-}
-
-// 컨트롤러는 잘못된 자세정보로 예외가 나면 기록하지 않는다.
-TEST(BeamControllerTest, DoesNotLogInvalidAttitude)
-{
-    // Given: 기록기를 주입한 켜진 컨트롤러를 준비한다.
-    const auto logger = std::make_shared<SpyBeamEventLogger>();
-    beam::BeamController controller(validBeamConfigBuilder().build(), logger);
-    controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    logger->events.clear();
-
-    // When: 짐벌락에 가까운 자세정보를 전달한다.
-    EXPECT_THROW(controller.setAttitude(makeSetAttitudeCommand(0_deg, 89_deg, 0_deg)), std::invalid_argument);
-
-    // Then: 아무것도 기록하지 않는다.
-    EXPECT_TRUE(logger->events.empty());
 }
 
 // 컨트롤러는 버려진 요청만 결과와 함께 기록한다.
@@ -728,7 +582,7 @@ TEST(BeamControllerTest, LogsOnlyRejectedRequests)
     // When: 준비 전과 준비 후에 영역 안팎의 요청을 접수한다.
     controller.requestBeam(notReady);
     controller.setOperationState(beam::SetOperationStateCommand(beam::OperationState::ON));
-    controller.setAttitude(makeSetAttitudeCommand(0_deg, 0_deg, 0_deg));
+    controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
     controller.requestBeam(accepted);
     controller.requestBeam(outOfCoverage);
 

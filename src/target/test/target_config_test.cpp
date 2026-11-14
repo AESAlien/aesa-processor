@@ -195,6 +195,9 @@ TEST(TargetConfigTest, BuildersAcceptExplicitZeroValuesAndFeedTheController)
         )
         .build();
     auto controller = TargetController(config);
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+    ));
     const auto confirmation = controller.handleDetection(detection(beam::BeamType::SEARCH, 0, 0ms, 1000_m));
     ASSERT_TRUE(confirmation);
     const auto tracking = controller.handleDetection(
@@ -207,8 +210,8 @@ TEST(TargetConfigTest, BuildersAcceptExplicitZeroValuesAndFeedTheController)
     );
     ASSERT_TRUE(tracking);
     EXPECT_EQ(tracking->transmitTime, 1100ms);
-    ASSERT_EQ(controller.nextTrackEvents().size(), 1u);
-    EXPECT_EQ(controller.nextTrackEvents().front().id, confirmation->requestId);
+    ASSERT_EQ(controller.getTrackEvents().size(), 1u);
+    EXPECT_EQ(controller.getTrackEvents().front().id, confirmation->requestId);
 }
 
 TEST(TargetConfigTest, ControllerKeepsSnapshotsWhenComponentsAreReplaced)
@@ -220,6 +223,9 @@ TEST(TargetConfigTest, ControllerKeepsSnapshotsWhenComponentsAreReplaced)
         TrackManagementConfig(100ms, 1000ms, 3, 100)
     );
     auto controller = TargetController(config);
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+    ));
     config.association = AssociationConfig(0_mps, 0_mps, 0.0);
     config.measurement = MeasurementConfig(1_m);
     config.tracking = TrackingConfig(1_mps2, 100_mps2);
@@ -248,7 +254,7 @@ TEST(TargetConfigTest, ControllerKeepsSnapshotsWhenComponentsAreReplaced)
     );
     ASSERT_TRUE(retry);
     EXPECT_EQ(retry->transmitTime, 2100ms);
-    EXPECT_EQ(controller.nextTrackEvents().size(), 1u);
+    EXPECT_EQ(controller.getTrackEvents().size(), 1u);
 }
 
 } // namespace

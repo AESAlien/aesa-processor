@@ -1,12 +1,12 @@
 #include "scheduler/attitude_frame.hpp"
 
-#include "attitude/ant_enu_transform.hpp"
+#include <pose/domain/ant_enu_transform.hpp>
 
 namespace beam
 {
 
 AttitudeFrame::AttitudeFrame(
-    const AntEnuTransform& transform,
+    const pose::AntEnuTransform& transform,
     const SearchGridConfig& searchGridConfig,
     const RequestCoverageConfig& requestCoverageConfig
 ) : _searchGrid(transform, searchGridConfig),

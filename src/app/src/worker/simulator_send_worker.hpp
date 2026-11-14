@@ -2,6 +2,8 @@
 
 #include "worker/worker.hpp"
 
+#include <optional>
+
 #include "dto/simulator_input.hpp"
 #include "queue/message_queue.hpp"
 #include <comm/controller/comm_controller.hpp>
@@ -9,6 +11,8 @@
 
 namespace app
 {
+using SimulatorSendOutput = std::monostate;
+
 class SimulatorSendWorker final : public Worker<SimulatorInput, std::monostate>
 {
 public:
@@ -20,7 +24,7 @@ public:
 
 private:
     SimulatorInput readInput() override;
-    std::monostate process(SimulatorInput input) override;
+    std::optional<SimulatorSendOutput> process(SimulatorInput input) override;
 
     comm::CommController& _controller;
     MessageQueue<SimulatorInput>& _simulatorQueue;

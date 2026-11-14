@@ -58,9 +58,9 @@ target::TrackEvent makeTrackEvent(
         .build();
 }
 
-beam::SetAttitudeCommand makeAttitudeCommand(double longitudeDegrees = 127.25)
+pose::SetRadarPoseCommand makeAttitudeCommand(double longitudeDegrees = 127.25)
 {
-    return beam::SetAttitudeCommand::Builder()
+    return pose::SetRadarPoseCommand::Builder()
         .latitude(37.5_deg)
         .longitude(math::Angle::fromDegrees(longitudeDegrees))
         .altitude(1250.0_m)

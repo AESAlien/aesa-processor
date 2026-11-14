@@ -6,7 +6,7 @@
 
 | 이름 | 주요 역할 |
 |---|---|
-| [신성현](https://github.com/sin6708k) | • 시스템 내부 구조 설계<br/>• 각 모듈 코드 리뷰 및 리팩터링<br/>• 수치 연산(`math`) 모듈 구현 |
+| [신성현](https://github.com/sin6708k) | • 모듈 구성과 스레드 간 통신 구조 설계<br/>• GitHub 저장소 운영과 이슈, PR 관리<br/>• 각 모듈 코드 리뷰와 리팩터링<br/>• 레이더 포즈(`pose`) 모듈 구현<br/>• 수치 연산(`math`) 모듈 구현 |
 | [박현준](https://github.com/2chasik) | • 타겟 추적(`target`) 모듈 구현 |
 | [이인성](https://github.com/inseong10) | • TCP 통신(`comm`) 모듈 구현 |
 | [장해찬](https://github.com/papperfield) | • 실행 제어(`app`) 모듈 구현 |
@@ -20,13 +20,16 @@
 flowchart BT
     app[실행 제어 모듈<br/>app]
     comm[TCP 통신 모듈<br/>comm]
+    pose[레이더 포즈 모듈<br/>pose]
     target[타겟 추적 모듈<br/>target]
     beam[빔 스케쥴링 모듈<br/>beam]
     math[수치 연산 모듈<br/>math]
 
     app-- CommController --> comm
+    app-- PoseController --> pose
     app-- TargetController --> target
     app-- BeamController --> beam
+    pose --> math
     target --> math
     beam --> math
 ```
@@ -46,11 +49,11 @@ block-beta
     space
     block:Processor:5
         columns 5
-        SimulatorSendWorker["모의기 송신<br/>스레드"] space:4
-        space:2 BeamWorker["빔 스케쥴링<br/>스레드"] space:2
-        CommReceiveWorker["수신<br/>스레드"] space:3 TickWorker["틱<br/>스레드"]
-        space:2 TargetWorker["타겟 추적<br/>스레드"] space:2
-        ConsoleSendWorker["전시기 송신<br/>스레드"] space:4
+        SimulatorSendWorker["모의기 송신<br/>스레드"] space:2 BeamWorker["빔 스케쥴링<br/>스레드"] space:1
+        space:5
+        CommReceiveWorker["수신<br/>스레드"] space PoseWorker["레이더 포즈<br/>스레드"] space:1 TickWorker["틱<br/>스레드"]
+        space:5
+        ConsoleSendWorker["전시기 송신<br/>스레드"] space:2 TargetWorker["타겟 추적<br/>스레드"] space
     end
 
     Simulator-- "TCP/IP 수신" -->CommReceiveWorker
@@ -58,14 +61,17 @@ block-beta
     SimulatorSendWorker-- "TCP/IP 송신" -->Simulator
     ConsoleSendWorker-- "TCP/IP 송신" -->Console
 
-    TickWorker-- "10ms 틱" -->TargetWorker
+    CommReceiveWorker-- "포즈 설정" -->ConsoleSendWorker
+    CommReceiveWorker-- "포즈 설정" -->PoseWorker
+    CommReceiveWorker-- "탐지 결과 /<br/>초기화" -->TargetWorker
+    CommReceiveWorker-- "ON / OFF" -->BeamWorker
+    PoseWorker-- "자세 설정" -->BeamWorker
+    PoseWorker-- "좌표 설정" -->TargetWorker
+    TargetWorker-- "추적 결과" -->ConsoleSendWorker
+    TargetWorker-- "빔 요청" -->BeamWorker
+    BeamWorker-- "빔 송신" -->SimulatorSendWorker
     TickWorker-- "10ms 틱" -->BeamWorker
-    CommReceiveWorker-- "빔 탐지 결과" -->TargetWorker
-    CommReceiveWorker-- "자세 설정 명령<br/>운용 설정 명령" -->BeamWorker
-    CommReceiveWorker-- "자세 설정 명령" -->ConsoleSendWorker
-    TargetWorker-- "빔 요청 명령" -->BeamWorker
-    TargetWorker-- "타겟 추적 결과" -->ConsoleSendWorker
-    BeamWorker-- "빔 송신 명령" -->SimulatorSendWorker
+    TickWorker-- "10ms 틱" -->TargetWorker
 ```
 
 ## 빌드 및 실행

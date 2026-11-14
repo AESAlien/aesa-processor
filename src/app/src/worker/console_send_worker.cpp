@@ -20,16 +20,16 @@ ConsoleInput ConsoleSendWorker::readInput()
     return _consoleQueue.read();
 }
 
-std::monostate ConsoleSendWorker::process(ConsoleInput input)
+std::optional<ConsoleSendOutput> ConsoleSendWorker::process(ConsoleInput input)
 {
-    if (const auto* attitude = std::get_if<beam::SetAttitudeCommand>(&input))
+    if (const auto* command = std::get_if<pose::SetRadarPoseCommand>(&input))
     {
-        _controller.sendRadarAttitude(*attitude);
+        _controller.sendRadarPose(*command);
     }
-    else if (const auto* events = std::get_if<std::vector<target::TrackEvent>>(&input))
+    else if (const auto* event = std::get_if<std::vector<target::TrackEvent>>(&input))
     {
-        _controller.sendTrackEvents(*events);
+        _controller.sendTrackEvents(*event);
     }
-    return {};
+    return std::nullopt;
 }
 } // namespace app

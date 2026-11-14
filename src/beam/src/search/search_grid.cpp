@@ -1,13 +1,13 @@
 #include "search/search_grid.hpp"
 
-#include "attitude/ant_enu_transform.hpp"
+#include <pose/domain/ant_enu_transform.hpp>
 
 #include <cstdint>
 
 namespace beam
 {
 
-SearchGrid::SearchGrid(const AntEnuTransform& transform, const SearchGridConfig& config)
+SearchGrid::SearchGrid(const pose::AntEnuTransform& transform, const SearchGridConfig& config)
 {
     _beams.reserve(config.azimuthCount() * config.elevationCount());
 
@@ -32,6 +32,11 @@ const SearchBeam& SearchGrid::nextBeam()
     const SearchBeam& beam = _beams[_searchCursor];
     _searchCursor = (_searchCursor + 1) % _beams.size();
     return beam;
+}
+
+void SearchGrid::reset() noexcept
+{
+    _searchCursor = 0;
 }
 
 } // namespace beam

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "attitude/ant_enu_transform.hpp"
+#include <pose/domain/ant_enu_transform.hpp>
 
 #include <beam/config/request_coverage_config.hpp>
 
@@ -15,14 +15,14 @@ namespace beam
 class RequestCoverage
 {
 public:
-    RequestCoverage(const AntEnuTransform& transform, const RequestCoverageConfig& config);
+    RequestCoverage(const pose::AntEnuTransform& transform, const RequestCoverageConfig& config);
 
     // ENU 방향을 안테나 기준으로 바꾼 뒤 원형 방위각 구간과 고각 구간에 포함되는지 검사한다.
     // 경계는 기본 허용오차(Angle::DEFAULT_TOLERANCE) 안이면 영역에 포함한다.
     bool contains(const math::SphericalDirection& direction_enu) const;
 
 private:
-    AntEnuTransform _transform;
+    pose::AntEnuTransform _transform;
     RequestCoverageConfig _config;
 };
 

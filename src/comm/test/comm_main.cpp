@@ -96,7 +96,7 @@ void printIncomingData(const comm::IncomingDto& message)
     }
 
     if (const auto* command =
-            std::get_if<beam::SetAttitudeCommand>(&message))
+            std::get_if<pose::SetRadarPoseCommand>(&message))
     {
         std::cout
             << "[received] type=radar-attitude"
