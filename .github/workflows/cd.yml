@@ -87,7 +87,7 @@ jobs:
 
     steps:
       - name: Download tested package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: aesa-processor-${{ github.sha }}-linux-x86_64
           path: dist
