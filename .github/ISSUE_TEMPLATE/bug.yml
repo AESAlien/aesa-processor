@@ -1,0 +1,48 @@
+name: Bug
+description: 재현 가능한 버그를 보고합니다.
+title: "[Bug] "
+type: bug
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 문제 설명
+      description: 어떤 문제가 발생하는지 설명해 주세요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 단계
+      description: 문제를 재현하는 단계를 순서대로 작성해 주세요.
+      placeholder: |
+        1. 다음 화면으로 이동합니다.
+        2. 다음 동작을 수행합니다.
+        3. 오류를 확인합니다.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: 기대한 동작
+      description: 정상적으로는 어떻게 동작해야 하는지 설명해 주세요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: 실제 동작
+      description: 실제로 관찰한 결과를 설명해 주세요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 환경 정보
+      description: 운영체제, 버전 등 문제 재현에 도움이 되는 환경 정보를 작성해 주세요.
+    validations:
+      required: false
