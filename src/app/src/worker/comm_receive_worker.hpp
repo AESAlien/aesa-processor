@@ -3,11 +3,13 @@
 #include "worker/worker.hpp"
 
 #include "dto/beam_input.hpp"
+#include "dto/pose_input.hpp"
 #include "dto/target_input.hpp"
-#include "dto/console_input.hpp"
 #include "queue/message_queue.hpp"
+
 #include <comm/controller/comm_controller.hpp>
 #include <comm/dto/incoming_dto.hpp>
+
 #include <optional>
 #include <variant>
 
@@ -22,7 +24,7 @@ public:
         comm::CommController& controller,
         MessageQueue<BeamInput>& beamQueue,
         MessageQueue<TargetInput>& targetQueue,
-        MessageQueue<ConsoleInput>& consoleQueue,
+        MessageQueue<PoseInput>& poseQueue,
         std::shared_ptr<spdlog::logger> logger
     );
 
@@ -34,6 +36,6 @@ private:
     comm::CommController& _controller;
     MessageQueue<BeamInput>& _beamQueue;
     MessageQueue<TargetInput>& _targetQueue;
-    MessageQueue<ConsoleInput>& _consoleQueue;
+    MessageQueue<PoseInput>& _poseQueue;
 };
 } // namespace app

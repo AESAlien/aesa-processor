@@ -22,9 +22,9 @@ ConsoleInput ConsoleSendWorker::readInput()
 
 std::optional<ConsoleSendOutput> ConsoleSendWorker::process(ConsoleInput input)
 {
-    if (const auto* command = std::get_if<beam::SetAttitudeCommand>(&input))
+    if (const auto* command = std::get_if<pose::SetRadarPoseCommand>(&input))
     {
-        _controller.sendRadarAttitude(*command);
+        _controller.sendRadarPose(*command);
     }
     else if (const auto* event = std::get_if<std::vector<target::TrackEvent>>(&input))
     {

@@ -45,6 +45,7 @@ target_include_directories(magic_enum SYSTEM INTERFACE
 )
 
 add_subdirectory(math)
+add_subdirectory(pose)
 add_subdirectory(beam)
 add_subdirectory(target)
 add_subdirectory(comm)

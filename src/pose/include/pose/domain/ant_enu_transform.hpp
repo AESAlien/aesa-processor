@@ -1,21 +1,22 @@
 #pragma once
 
-#include <beam/config/attitude_config.hpp>
-#include "attitude/radar_attitude.hpp"
+#include <pose/domain/radar_attitude.hpp>
+#include <pose/config/ant_enu_transform_config.hpp>
 #include <math/geometry/spherical_direction.hpp>
 #include <math/linear_algebra/square_matrix.hpp>
+#include <math/linear_algebra/vector.hpp>
 
-namespace beam
+namespace pose
 {
 
 class AntEnuTransform
 {
 public:
-    AntEnuTransform(const RadarAttitude&, const AttitudeConfig&);
+    AntEnuTransform(const RadarAttitude& attitude, const AntEnuTransformConfig& config);
 
     math::SphericalDirection antToEnu(const math::SphericalDirection& direction_ant) const;
 
-    const math::SquareMatrix& rotationMatrix() const;
+    math::Vector antToEnu(const math::Vector& vector_ant) const;
 
     math::SphericalDirection enuToAnt(const math::SphericalDirection& direction_enu) const;
 
@@ -23,4 +24,4 @@ private:
     math::SquareMatrix _rotationMatrix;
 };
 
-} // namespace beam
+} // namespace pose

@@ -52,20 +52,9 @@ SetOperationStateStatus BeamScheduler::setOperationState(OperationState state)
     return SetOperationStateStatus::CHANGED;
 }
 
-SetAttitudeStatus BeamScheduler::setAttitudeFrame(AttitudeFrame attitudeFrame)
+void BeamScheduler::setAttitudeFrame(AttitudeFrame attitudeFrame)
 {
-    if (_operationState != OperationState::ON)
-    {
-        return SetAttitudeStatus::IGNORED_NOT_ON;
-    }
-
-    if (_attitudeFrame.has_value())
-    {
-        return SetAttitudeStatus::IGNORED_ALREADY_SET;
-    }
-
     _attitudeFrame.emplace(std::move(attitudeFrame));
-    return SetAttitudeStatus::APPLIED;
 }
 
 RequestBeamStatus BeamScheduler::addRequest(const BeamRequest& request)
@@ -93,9 +82,12 @@ std::optional<TransmitBeamCommand> BeamScheduler::next(std::chrono::milliseconds
 
     ++_commandCount;
 
-    if (const std::optional<BeamRequest> request = _requestQueue.popNextDue(currentTime))
+    while (const std::optional<BeamRequest> request = _requestQueue.popNextDue(currentTime))
     {
-        return makeRequestCommand(*request, currentTime, _commandCount);
+        if (_attitudeFrame->requestCoverage().contains(request->direction_enu()))
+        {
+            return makeRequestCommand(*request, currentTime, _commandCount);
+        }
     }
 
     return makeSearchCommand(_attitudeFrame->searchGrid().nextBeam(), currentTime, _commandCount);
@@ -108,7 +100,10 @@ bool BeamScheduler::isReady() const
 
 void BeamScheduler::reset()
 {
-    _attitudeFrame.reset();
+    if (_attitudeFrame)
+    {
+        _attitudeFrame->searchGrid().reset();
+    }
     _requestQueue.clear();
     _commandCount = 0;
 }

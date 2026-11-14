@@ -5,22 +5,23 @@
 ```mermaid
 flowchart TB
     CommReceiveWorker[수신<br/>스레드]
+    PoseWorker[레이더 포즈<br/>스레드]
     TargetWorker[타겟 추적<br/>스레드]
     TickWorker[틱<br/>스레드]
     SimulatorSendWorker[모의기 송신<br/>스레드]
 
     subgraph BeamController
         setOperationState["setOperationState()"]
-        setAttitude["setAttitude()"]
+        setAntEnuTransform["setAntEnuTransform()"]
         requestBeam["requestBeam()"]
         nextBeamCommand["nextBeamCommand()"]
     end
 
-    CommReceiveWorker -->|운용 설정 명령| setOperationState
-    CommReceiveWorker -->|자세 설정 명령| setAttitude
-    TargetWorker -->|빔 요청 명령| requestBeam
+    CommReceiveWorker -->|ON / OFF| setOperationState
+    PoseWorker -->|자세 설정| setAntEnuTransform
+    TargetWorker -->|빔 요청| requestBeam
     TickWorker -->|10ms 틱| nextBeamCommand
-    nextBeamCommand -->|빔 송신 명령| SimulatorSendWorker
+    nextBeamCommand -->|빔 송신| SimulatorSendWorker
 ```
 
 ## 클래스 다이어그램
@@ -30,7 +31,6 @@ classDiagram
     direction TB
 
     BeamController *-- BeamScheduler
-    AntEnuTransform ..> RadarAttitude : 회전 행렬 계산
 
     BeamScheduler *-- "0..1" AttitudeFrame
     BeamScheduler *-- RequestQueue
@@ -44,12 +44,10 @@ classDiagram
 
 ## 환경 설정
 
+장착 회전 행렬과 피치 한계는 [pose 모듈](../pose/README.md)의 설정이다. 운용 상태와 관계없이 받은 변환으로 탐색 격자와 요청 영역을 갱신한다.
+
 | 환경 변수 | 설정 용도 | 허용 범위 |
 |---|---|---|
-| `BEAM_MAX_ABS_PITCH_DEG` | 허용하는 최대 절대 pitch | (0°, 90°] |
-| `BEAM_MOUNT_ANT_TO_BODY_ROTATION` | 안테나 좌표계에서 몸체 좌표계로의 장착 회전 행렬 | 3×3 회전 행렬 |
-| `MOUNT_ORTHOGONAL_ABSOLUTE_TOLERANCE` | 장착 행렬 직교성 검사의 절대 허용오차 | 0 이상 |
-| `MOUNT_ORTHOGONAL_RELATIVE_TOLERANCE` | 장착 행렬 직교성 검사의 상대 허용오차 | 0 이상 |
 | `BEAM_SEARCH_AZIMUTH_COUNT` | 탐색 격자의 방위각 개수 | 1 이상 |
 | `BEAM_SEARCH_ELEVATION_COUNT` | 탐색 격자의 고각 개수 | 1 이상 |
 | `BEAM_SEARCH_AZIMUTH_START_DEG` | 탐색 격자 방위각 시작점 | 제한 없음 |

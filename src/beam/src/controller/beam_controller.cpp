@@ -1,8 +1,6 @@
 #include <beam/controller/beam_controller.hpp>
 #include <beam/dto/log/beam_event_logger.hpp>
 
-#include "attitude/ant_enu_transform.hpp"
-#include "attitude/radar_attitude.hpp"
 #include "scheduler/attitude_frame.hpp"
 #include "request/factory/beam_request_factory.hpp"
 #include "scheduler/beam_scheduler.hpp"
@@ -41,34 +39,13 @@ void BeamController::setOperationState(SetOperationStateCommand command)
     }
 }
 
-void BeamController::setAttitude(SetAttitudeCommand command)
+void BeamController::setAntEnuTransform(const pose::SetAntEnuTransformCommand& command)
 {
-    // 잘못된 자세정보이면 RadarAttitude 생성자(roll/yaw 범위)나 AntEnuTransform 생성자(짐벌락)가 std::invalid_argument를 던진다.
-    // 검증과 AttitudeFrame(탐색 격자·요청 빔 영역 판정) 생성은 운용 상태와 관계없이 하고, 받아들일지는 BeamScheduler가 정한다.
-    // 예외가 나면 BeamScheduler는 그대로다.
-    // 위도·경도·고도는 빔 모듈에서 쓰지 않으므로 넘기지 않는다.
-    const AntEnuTransform transform(RadarAttitude(command.roll, command.pitch, command.yaw), _config.attitude);
-    const SetAttitudeStatus status =
-        _scheduler->setAttitudeFrame(AttitudeFrame(transform, _config.searchGrid, _config.requestCoverage));
-
-    if (!_eventLogger)
+    const AttitudeFrame frame(command.transform, _config.searchGrid, _config.requestCoverage);
+    _scheduler->setAttitudeFrame(frame);
+    if (_eventLogger)
     {
-        return;
-    }
-
-    switch (status)
-    {
-    case SetAttitudeStatus::APPLIED:
-        _eventLogger->logAttitudeApplied(command);
-        break;
-
-    case SetAttitudeStatus::IGNORED_NOT_ON:
-        _eventLogger->logAttitudeIgnoredWhileOff(command);
-        break;
-
-    case SetAttitudeStatus::IGNORED_ALREADY_SET:
-        _eventLogger->logAttitudeIgnoredAlreadySet(command);
-        break;
+        _eventLogger->logAttitudeApplied();
     }
 }
 

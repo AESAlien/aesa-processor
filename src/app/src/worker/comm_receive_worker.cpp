@@ -9,13 +9,13 @@ CommReceiveWorker::CommReceiveWorker(
     comm::CommController& controller,
     MessageQueue<BeamInput>& beamQueue,
     MessageQueue<TargetInput>& targetQueue,
-    MessageQueue<ConsoleInput>& consoleQueue,
+    MessageQueue<PoseInput>& poseQueue,
     std::shared_ptr<spdlog::logger> logger
 ) : Worker(std::move(logger)),
     _controller(controller),
     _beamQueue(beamQueue),
     _targetQueue(targetQueue),
-    _consoleQueue(consoleQueue)
+    _poseQueue(poseQueue)
 {
 }
 
@@ -31,10 +31,9 @@ std::optional<CommReceiveOutput> CommReceiveWorker::process(std::monostate)
 
 void CommReceiveWorker::writeOutput(CommReceiveOutput output)
 {
-    if (auto* command = std::get_if<beam::SetAttitudeCommand>(&output))
+    if (auto* command = std::get_if<pose::SetRadarPoseCommand>(&output))
     {
-        _consoleQueue.write(*command);
-        _beamQueue.write(*command);
+        _poseQueue.write(std::move(*command));
     }
     else if (auto* command = std::get_if<beam::SetOperationStateCommand>(&output))
     {

@@ -15,7 +15,7 @@ class AttitudeFrame
 {
 public:
     AttitudeFrame(
-        const AntEnuTransform& transform,
+        const pose::AntEnuTransform& transform,
         const SearchGridConfig& searchGridConfig,
         const RequestCoverageConfig& requestCoverageConfig);
 

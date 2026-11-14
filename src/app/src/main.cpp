@@ -1,4 +1,5 @@
 #include "dto/beam_input.hpp"
+#include "dto/pose_input.hpp"
 #include "queue/message_queue.hpp"
 #include "dto/target_input.hpp"
 #include "dto/console_input.hpp"
@@ -9,6 +10,7 @@
 
 #include "worker/beam_worker.hpp"
 #include "worker/comm_receive_worker.hpp"
+#include "worker/pose_worker.hpp"
 #include "worker/simulator_send_worker.hpp"
 #include "worker/console_send_worker.hpp"
 #include "worker/target_worker.hpp"
@@ -16,6 +18,7 @@
 
 #include <beam/controller/beam_controller.hpp>
 #include <comm/controller/comm_controller.hpp>
+#include <pose/controller/pose_controller.hpp>
 #include <target/controller/target_controller.hpp>
 
 #include <spdlog/spdlog.h>
@@ -82,7 +85,7 @@ void startWorker(
 
 int main()
 {
-    std::array<std::thread, 6> threads;
+    std::array<std::thread, 7> threads;
     std::shared_ptr<spdlog::logger> mainLogger;
 
     try
@@ -122,6 +125,7 @@ int main()
         const auto beamLogger = messageLogManager->addLogger("beam");
         const auto targetLogger = messageLogManager->addLogger("target");
         const auto commLogger = messageLogManager->addLogger("comm");
+        const auto poseLogger = messageLogManager->addLogger("pose");
 
         // 빔 처리 이벤트는 메시지 로그와 콘솔에 기록한다.
         messageLogManager->addLogger(
@@ -153,7 +157,8 @@ int main()
         app::MessageQueue<app::TargetInput> targetQueue;
         app::MessageQueue<app::ConsoleInput> consoleQueue;
         app::MessageQueue<app::SimulatorInput> simulatorQueue;
-        mainLogger->info("[6/12] Four worker input queues initialized");
+        app::MessageQueue<app::PoseInput> poseQueue;
+        mainLogger->info("[6/12] Five worker input queues initialized");
 
         // 7. 설정과 로거를 주입해 컨트롤러를 생성한다.
         beam::BeamController beamController(
@@ -170,6 +175,7 @@ int main()
             config.commConfig,
             commLogger
         );
+        const pose::PoseController poseController(config.poseConfig);
         mainLogger->info("[7/12] Controllers initialized");
 
         // 8. 컨트롤러와 입력 큐를 연결하는 워커를 생성한다.
@@ -195,8 +201,15 @@ int main()
             commController,
             beamQueue,
             targetQueue,
-            consoleQueue,
+            poseQueue,
             commLogger
+        );
+        app::PoseWorker poseWorker(
+            poseController,
+            poseQueue,
+            beamQueue,
+            consoleQueue,
+            poseLogger
         );
         app::SimulatorSendWorker simulatorSendWorker(
             commController,
@@ -221,7 +234,8 @@ int main()
         startWorker(threads[3], commReceiveWorker);
         startWorker(threads[4], simulatorSendWorker);
         startWorker(threads[5], consoleSendWorker);
-        mainLogger->info("[10/12] All 6 worker threads started");
+        startWorker(threads[6], poseWorker);
+        mainLogger->info("[10/12] All 7 worker threads started");
 
         // 11. 종료 시그널이 들어올 때까지 대기한다.
         mainLogger->info("[11/12] Application is running; waiting for shutdown signal");

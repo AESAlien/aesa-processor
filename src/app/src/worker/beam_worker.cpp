@@ -32,9 +32,9 @@ std::optional<BeamOutput> BeamWorker::process(BeamInput input)
     {
         _controller.setOperationState(*command);
     }
-    else if (auto* command = std::get_if<beam::SetAttitudeCommand>(&input))
+    else if (auto* command = std::get_if<pose::SetAntEnuTransformCommand>(&input))
     {
-        _controller.setAttitude(*command);
+        _controller.setAntEnuTransform(*command);
     }
     else if (auto* event = std::get_if<TickEvent>(&input))
     {

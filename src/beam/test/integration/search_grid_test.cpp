@@ -1,6 +1,7 @@
 #include "search/search_grid.hpp"
 
-#include "attitude/ant_enu_transform.hpp"
+#include <pose/domain/ant_enu_transform.hpp>
+#include <pose/domain/factory/radar_attitude_factory.hpp>
 #include <gtest/gtest.h>
 
 #include <cmath>
@@ -28,22 +29,19 @@ beam::SearchGridConfig::Builder validConfigBuilder()
         .beamWidth(beam::BeamWidth(6_deg, 6_deg));
 }
 
-beam::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
+pose::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    const auto attitude = beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw);
+    const pose::RadarAttitudeFactory factory(pose::RadarAttitudeFactoryConfig(89_deg));
+    const auto attitude = factory.create(roll, math::TiltAngle(pitch), yaw);
 
-    const auto config = beam::AttitudeConfig(
-        89_deg,
-        math::SquareMatrix::identity(3),
-        math::Tolerance{1e-6, 0.0}
-    );
+    const auto config = pose::AntEnuTransformConfig(math::SquareMatrix::identity(3));
 
-    return beam::AntEnuTransform(attitude, config);
+    return pose::AntEnuTransform(attitude, config);
 }
 
 // 새 격자를 처음부터 한 바퀴 돌며 모든 빔을 탐색 순서대로 꺼낸다.
 std::vector<beam::SearchBeam> takeAllBeams(
-    const beam::AntEnuTransform& transform,
+    const pose::AntEnuTransform& transform,
     const beam::SearchGridConfig& config = validConfigBuilder().build()
 ) {
     auto grid = beam::SearchGrid(transform, config);
