@@ -1,0 +1,37 @@
+name: Feature
+description: 요구사항과 설계에 따라 기능 구현을 요청합니다.
+title: "[Feature] "
+type: feature
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 요청 내용
+      description: 구현해야 하는 기능과 목적을 설명해 주세요.
+      placeholder: |
+        - ~하는 기능을 구현하세요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: 검증 기준
+      description: 구현이 완료되었다고 판단할 수 있는 기준을 작성해 주세요.
+      placeholder: |
+        - ~할 수 있어야 한다.
+    validations:
+      required: true
+
+  - type: textarea
+    id: traceability
+    attributes:
+      label: 관련 요구사항 및 설계
+      description: 관련 요구사항이나 설계가 있다면 한 줄씩 작성해 주세요.
+      placeholder: |
+        **[요구사항 1 ID](Notion 링크).** 요구사항 1 내용
+        **[요구사항 2 ID](Notion 링크).** 요구사항 2 내용
+        **[설계 1 ID](Notion 링크).** 설계 1 내용
+        **[설계 2 ID](Notion 링크).** 설계 2 내용
+    validations:
+      required: false
