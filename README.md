@@ -61,11 +61,12 @@ block-beta
     SimulatorSendWorker-- "TCP/IP 송신" -->Simulator
     ConsoleSendWorker-- "TCP/IP 송신" -->Console
 
-    PoseWorker-- "포즈 설정" -->ConsoleSendWorker
+    CommReceiveWorker-- "포즈 설정" -->ConsoleSendWorker
     CommReceiveWorker-- "포즈 설정" -->PoseWorker
     CommReceiveWorker-- "탐지 결과 /<br/>초기화" -->TargetWorker
     CommReceiveWorker-- "ON / OFF" -->BeamWorker
     PoseWorker-- "자세 설정" -->BeamWorker
+    PoseWorker-- "좌표 설정" -->TargetWorker
     TargetWorker-- "추적 결과" -->ConsoleSendWorker
     TargetWorker-- "빔 요청" -->BeamWorker
     BeamWorker-- "빔 송신" -->SimulatorSendWorker

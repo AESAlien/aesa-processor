@@ -391,13 +391,16 @@ TEST(TargetLifecycleControllerTest, CopiedControllersKeepTheHandlerAndRepository
     std::uint32_t id = 0;
     {
         auto source = TargetController(config());
+        source.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+            pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+        ));
         auto copy = source;
         EXPECT_FALSE(source.handleDetection(event(BeamType::SEARCH, 99, 500ms, false)));
         EXPECT_FALSE(copy.handleDetection(event(BeamType::SEARCH, 99, 400ms)));
         const auto confirmation = source.handleDetection(event(BeamType::SEARCH, 7, 0ms));
         ASSERT_TRUE(confirmation);
         id = confirmation->requestId;
-        EXPECT_TRUE(copy.nextTrackEvents().empty());
+        EXPECT_TRUE(copy.getTrackEvents().empty());
 
         const auto tracking = copy.handleDetection(
             event(
@@ -409,14 +412,14 @@ TEST(TargetLifecycleControllerTest, CopiedControllersKeepTheHandlerAndRepository
         ASSERT_TRUE(tracking);
         EXPECT_EQ(tracking->requestId, id);
         EXPECT_EQ(tracking->transmitTime, 1100ms);
-        ASSERT_EQ(source.nextTrackEvents().size(), 1u);
-        EXPECT_EQ(source.nextTrackEvents().front().timestamp, 100ms);
+        ASSERT_EQ(source.getTrackEvents().size(), 1u);
+        EXPECT_EQ(source.getTrackEvents().front().timestamp, 100ms);
         controller = copy;
     }
 
-    ASSERT_EQ(controller.nextTrackEvents().size(), 1u);
+    ASSERT_EQ(controller.getTrackEvents().size(), 1u);
     ASSERT_TRUE(controller.handleDetection(event(BeamType::TRACKING, id, 1100ms)));
-    const auto updatedEvents = controller.nextTrackEvents();
+    const auto updatedEvents = controller.getTrackEvents();
     ASSERT_EQ(updatedEvents.size(), 1u);
     EXPECT_EQ(updatedEvents.front().id, id);
     EXPECT_EQ(updatedEvents.front().timestamp, 1100ms);
@@ -429,13 +432,16 @@ TEST(TargetLifecycleControllerTest, CopiedControllersKeepTheHandlerAndRepository
 TEST(TargetLifecycleControllerTest, IgnoresWrongPhaseAndStaleResultsWithoutConsumingIdentity)
 {
     auto controller = TargetController(config());
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+    ));
     const auto confirmation = controller.handleDetection(event(BeamType::SEARCH, 10, 0ms));
     ASSERT_TRUE(confirmation);
     const auto id = confirmation->requestId;
     EXPECT_FALSE(controller.handleDetection(event(BeamType::TRACKING, id, 100ms)));
     EXPECT_FALSE(controller.handleDetection(event(BeamType::CONFIRMATION, id, 0ms)));
     EXPECT_FALSE(controller.handleDetection(event(BeamType::CONFIRMATION, 999, 100ms)));
-    EXPECT_TRUE(controller.nextTrackEvents().empty());
+    EXPECT_TRUE(controller.getTrackEvents().empty());
 
     const auto tracking = controller.handleDetection(event(BeamType::CONFIRMATION, id, 100ms));
     ASSERT_TRUE(tracking);
@@ -445,7 +451,7 @@ TEST(TargetLifecycleControllerTest, IgnoresWrongPhaseAndStaleResultsWithoutConsu
     const auto retry = controller.handleDetection(event(BeamType::TRACKING, id, 1100ms, false));
     ASSERT_TRUE(retry);
     EXPECT_EQ(retry->requestId, id);
-    const auto reports = controller.nextTrackEvents();
+    const auto reports = controller.getTrackEvents();
     ASSERT_EQ(reports.size(), 1u);
     EXPECT_EQ(reports.front().id, id);
     EXPECT_EQ(reports.front().timestamp, 100ms);
@@ -454,6 +460,9 @@ TEST(TargetLifecycleControllerTest, IgnoresWrongPhaseAndStaleResultsWithoutConsu
 TEST(TargetLifecycleControllerTest, InvalidTrackingBatchPreservesObservationAndMissHistory)
 {
     auto controller = TargetController(config());
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+    ));
     const auto confirmation = controller.handleDetection(event(BeamType::SEARCH, 1, 0ms));
     ASSERT_TRUE(confirmation);
     const auto id = confirmation->requestId;
@@ -462,11 +471,11 @@ TEST(TargetLifecycleControllerTest, InvalidTrackingBatchPreservesObservationAndM
     auto invalid = event(BeamType::TRACKING, id, 2100ms);
     invalid.plots.front().power_db = std::numeric_limits<float>::quiet_NaN();
     EXPECT_THROW(controller.handleDetection(invalid), std::invalid_argument);
-    ASSERT_EQ(controller.nextTrackEvents().size(), 1u);
-    EXPECT_EQ(controller.nextTrackEvents().front().timestamp, 100ms);
+    ASSERT_EQ(controller.getTrackEvents().size(), 1u);
+    EXPECT_EQ(controller.getTrackEvents().front().timestamp, 100ms);
     ASSERT_TRUE(controller.handleDetection(event(BeamType::TRACKING, id, 2100ms, false)));
     EXPECT_FALSE(controller.handleDetection(event(BeamType::TRACKING, id, 3100ms, false)));
-    EXPECT_TRUE(controller.nextTrackEvents().empty());
+    EXPECT_TRUE(controller.getTrackEvents().empty());
 }
 
 } // namespace

@@ -30,9 +30,13 @@ std::optional<TargetOutput> TargetWorker::process(TargetInput input)
     {
         return _controller.handleDetection(*event);
     }
+    else if (auto* command = std::get_if<pose::SetEnuGeoTransformCommand>(&input))
+    {
+        _controller.setEnuGeoTransform(std::move(*command));
+    }
     else if (std::holds_alternative<TickEvent>(input))
     {
-        return _controller.nextTrackEvents();
+        return _controller.getTrackEvents();
     }
     return std::nullopt;
 }

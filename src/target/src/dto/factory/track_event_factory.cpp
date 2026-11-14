@@ -9,7 +9,7 @@
 namespace target
 {
 
-TrackEvent TrackEventFactory::from(const ConfirmedTrack& confirmedTrack)
+TrackEvent TrackEventFactory::from(const ConfirmedTrack& confirmedTrack, const pose::GeoPosition& geodeticPosition)
 {
     if (confirmedTrack.id() > std::numeric_limits<std::uint16_t>::max())
     {
@@ -42,9 +42,9 @@ TrackEvent TrackEventFactory::from(const ConfirmedTrack& confirmedTrack)
         .azimuth(confirmedTrack.azimuth())
         .elevation(confirmedTrack.elevation())
         .dopplerVelocity(confirmedTrack.dopplerVelocity())
-        .latitude(0_deg)
-        .longitude(0_deg)
-        .altitude(position.z)
+        .latitude(geodeticPosition.latitude)
+        .longitude(geodeticPosition.longitude)
+        .altitude(geodeticPosition.altitude)
         .speed(speed)
         .heading(heading)
         .flightPathAngle(flightPathAngle)

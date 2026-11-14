@@ -28,11 +28,15 @@ pose::SetRadarPoseCommand makeCommand(math::Angle roll, math::Angle pitch, math:
 }
 }
 
-TEST(PoseControllerTest, ReturnsAntEnuTransformAndOriginalCommand)
+TEST(PoseControllerTest, ReturnsBothTransformsAndOriginalCommand)
 {
     const auto command = makeCommand(-10_deg, 0_deg, -20_deg);
     const auto result = CONTROLLER.setRadarPose(command);
 
+    const auto origin = result.enuGeoTransform.transform.enuToGeo(math::CartesianPosition(0_m, 0_m, 0_m));
+    EXPECT_EQ(origin.latitude, command.latitude);
+    EXPECT_EQ(origin.longitude, command.longitude);
+    EXPECT_EQ(origin.altitude, command.altitude);
     EXPECT_EQ(result.pose.latitude, command.latitude);
     EXPECT_EQ(result.pose.longitude, command.longitude);
     EXPECT_EQ(result.pose.altitude, command.altitude);

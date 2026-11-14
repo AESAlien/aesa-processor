@@ -3,6 +3,7 @@
 #include "dto/beam_input.hpp"
 #include "dto/console_input.hpp"
 #include "dto/pose_input.hpp"
+#include "dto/target_input.hpp"
 #include "queue/message_queue.hpp"
 #include "worker/worker.hpp"
 
@@ -21,6 +22,7 @@ public:
         const pose::PoseController& controller,
         MessageQueue<PoseInput>& poseQueue,
         MessageQueue<BeamInput>& beamQueue,
+        MessageQueue<TargetInput>& targetQueue,
         MessageQueue<ConsoleInput>& consoleQueue,
         std::shared_ptr<spdlog::logger> logger
     );
@@ -33,6 +35,7 @@ private:
     const pose::PoseController& _controller;
     MessageQueue<PoseInput>& _poseQueue;
     MessageQueue<BeamInput>& _beamQueue;
+    MessageQueue<TargetInput>& _targetQueue;
     MessageQueue<ConsoleInput>& _consoleQueue;
 };
 }

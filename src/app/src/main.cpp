@@ -208,6 +208,7 @@ int main()
             poseController,
             poseQueue,
             beamQueue,
+            targetQueue,
             consoleQueue,
             poseLogger
         );

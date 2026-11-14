@@ -1,9 +1,11 @@
 #pragma once
 
+#include <pose/domain/enu_geo_transform.hpp>
 #include <target/dto/track_event.hpp>
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace target
@@ -19,11 +21,13 @@ public:
         std::size_t maxReportedTrackCount
     );
 
-    std::vector<TrackEvent> nextTrackEvents() const;
+    void setEnuGeoTransform(pose::EnuGeoTransform enuGeoTransform);
+    std::vector<TrackEvent> getTrackEvents() const;
 
 private:
     std::shared_ptr<const TrackRepository> _trackRepository;
     std::size_t _maxReportedTrackCount;
+    std::optional<pose::EnuGeoTransform> _enuGeoTransform;
 };
 
 } // namespace target

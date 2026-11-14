@@ -8,12 +8,14 @@ PoseWorker::PoseWorker(
     const pose::PoseController& controller,
     MessageQueue<PoseInput>& poseQueue,
     MessageQueue<BeamInput>& beamQueue,
+    MessageQueue<TargetInput>& targetQueue,
     MessageQueue<ConsoleInput>& consoleQueue,
     std::shared_ptr<spdlog::logger> logger
 ) : Worker(std::move(logger)),
     _controller(controller),
     _poseQueue(poseQueue),
     _beamQueue(beamQueue),
+    _targetQueue(targetQueue),
     _consoleQueue(consoleQueue)
 {
 }
@@ -31,6 +33,7 @@ std::optional<PoseOutput> PoseWorker::process(PoseInput input)
 void PoseWorker::writeOutput(pose::SetRadarPoseResult output)
 {
     _beamQueue.write(std::move(output.antEnuTransform));
+    _targetQueue.write(std::move(output.enuGeoTransform));
     _consoleQueue.write(std::move(output.pose));
 }
 }

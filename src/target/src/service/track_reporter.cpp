@@ -1,6 +1,8 @@
 #include "track_reporter.hpp"
 
 #include "dto/factory/track_event_factory.hpp"
+#include "domain/confirmed_track.hpp"
+#include "domain/track_state.hpp"
 #include "repository/track_repository.hpp"
 
 #include <stdexcept>
@@ -21,14 +23,25 @@ TrackReporter::TrackReporter(
     }
 }
 
-std::vector<TrackEvent> TrackReporter::nextTrackEvents() const
+void TrackReporter::setEnuGeoTransform(pose::EnuGeoTransform enuGeoTransform)
 {
+    _enuGeoTransform = std::move(enuGeoTransform);
+}
+
+std::vector<TrackEvent> TrackReporter::getTrackEvents() const
+{
+    if (!_enuGeoTransform)
+    {
+        return {};
+    }
+
     const auto confirmedTracks = _trackRepository->confirmedTracks(_maxReportedTrackCount);
     std::vector<TrackEvent> events;
     events.reserve(confirmedTracks.size());
     for (const auto* confirmedTrack : confirmedTracks)
     {
-        events.push_back(TrackEventFactory::from(*confirmedTrack));
+        const auto position = _enuGeoTransform->enuToGeo(confirmedTrack->state()->position());
+        events.push_back(TrackEventFactory::from(*confirmedTrack, position));
     }
     return events;
 }

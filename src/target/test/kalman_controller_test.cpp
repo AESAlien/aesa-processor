@@ -104,6 +104,9 @@ TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInst
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+    ));
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
     EXPECT_EQ(tracking->beamType, beam::RequestBeamType::TRACKING);
@@ -123,7 +126,7 @@ TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInst
     ASSERT_TRUE(next);
     EXPECT_EQ(next->requestId, tracking->requestId);
     EXPECT_EQ(next->transmitTime, 2100ms);
-    const auto events = controller.nextTrackEvents();
+    const auto events = controller.getTrackEvents();
     ASSERT_EQ(events.size(), 1u);
     EXPECT_EQ(events[0].id, tracking->requestId);
     EXPECT_EQ(events[0].timestamp, 1100ms);
@@ -144,6 +147,9 @@ TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAnd
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+    ));
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
     // 고정 공분산 98 I로는 잔차 50 m와 200 m가 모두 탈락한다.
@@ -158,7 +164,7 @@ TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAnd
     );
     ASSERT_TRUE(next);
     EXPECT_EQ(next->requestId, tracking->requestId);
-    const auto events = controller.nextTrackEvents();
+    const auto events = controller.getTrackEvents();
     ASSERT_EQ(events.size(), 1u);
     EXPECT_GT(events[0].slantRange.m(), 1040.0);
     EXPECT_LT(events[0].slantRange.m(), 1050.0);
@@ -174,7 +180,7 @@ TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAnd
     );
     ASSERT_TRUE(newCandidate);
     EXPECT_EQ(newCandidate->requestId, 2u);
-    EXPECT_EQ(controller.nextTrackEvents().size(), 1u);
+    EXPECT_EQ(controller.getTrackEvents().size(), 1u);
 }
 
 TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsForecastingDuringMisses)
@@ -187,6 +193,9 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+    ));
     const auto tracking = beginTracking(controller, trajectory(0.0), trajectory(0.1));
     ASSERT_TRUE(tracking);
     const auto noiseMultipliers = std::array<std::array<double, 3>, 12>{
@@ -217,7 +226,7 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
         ASSERT_TRUE(next) << "Update at " << observationTime.count() << " ms";
         EXPECT_EQ(next->requestId, tracking->requestId);
         EXPECT_EQ(next->transmitTime, observationTime + 1000ms);
-        const auto events = controller.nextTrackEvents();
+        const auto events = controller.getTrackEvents();
         ASSERT_EQ(events.size(), 1u);
         EXPECT_EQ(events[0].timestamp, observationTime);
         const auto measuredError = (measured - truth).distance().m();
@@ -226,7 +235,7 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
         filteredSquaredError += filteredError * filteredError;
     }
     EXPECT_LT(filteredSquaredError, 0.8 * measuredSquaredError);
-    const auto finalEvents = controller.nextTrackEvents();
+    const auto finalEvents = controller.getTrackEvents();
     ASSERT_EQ(finalEvents.size(), 1u);
     EXPECT_LT((consolePosition(finalEvents[0]) - trajectory(12.1)).distance().m(), 7.0);
     const auto trueSpeed = std::hypot(
@@ -255,7 +264,7 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
             const auto truth = trajectory(std::chrono::duration<double>(retry->transmitTime).count()).toSpherical();
             EXPECT_NEAR(retry->direction_ant.azimuth.deg(), truth.direction.azimuth.deg(), 0.05);
             EXPECT_NEAR(retry->direction_ant.elevation.deg(), truth.direction.elevation.deg(), 0.05);
-            const auto events = controller.nextTrackEvents();
+            const auto events = controller.getTrackEvents();
             ASSERT_EQ(events.size(), 1u);
             EXPECT_EQ(events[0].timestamp, observationTime);
             EXPECT_EQ(events[0].slantRange, finalEvents[0].slantRange);
@@ -263,7 +272,7 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
         else
         {
             EXPECT_FALSE(retry);
-            EXPECT_TRUE(controller.nextTrackEvents().empty());
+            EXPECT_TRUE(controller.getTrackEvents().empty());
         }
     }
 }
@@ -280,6 +289,9 @@ TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAn
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         );
         auto controller = TargetController(config);
+        controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+            pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+        ));
         const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
         ASSERT_TRUE(tracking);
         ASSERT_TRUE(
@@ -316,11 +328,11 @@ TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAn
         EXPECT_EQ(recovered.has_value(), broadPrior);
         if (!broadPrior)
         {
-            EXPECT_TRUE(controller.nextTrackEvents().empty());
+            EXPECT_TRUE(controller.getTrackEvents().empty());
             continue;
         }
         EXPECT_EQ(recovered->requestId, tracking->requestId);
-        const auto events = controller.nextTrackEvents();
+        const auto events = controller.getTrackEvents();
         ASSERT_EQ(events.size(), 1u);
         EXPECT_EQ(events[0].timestamp, 3100ms);
         ASSERT_TRUE(
@@ -353,7 +365,7 @@ TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAn
                 )
             )
         );
-        EXPECT_TRUE(controller.nextTrackEvents().empty());
+        EXPECT_TRUE(controller.getTrackEvents().empty());
     }
 }
 
