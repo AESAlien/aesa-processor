@@ -6,7 +6,7 @@
 
 | 이름 | 주요 역할 |
 |---|---|
-| [신성현](https://github.com/sin6708k) | • 시스템 내부 구조 설계<br/>• 각 모듈 코드 리뷰 및 리팩터링<br/>• 수치 연산(`math`) 모듈 구현 |
+| [신성현](https://github.com/sin6708k) | • 모듈 구성과 스레드 간 통신 구조 설계<br/>• GitHub 저장소 운영과 이슈, PR 관리<br/>• 각 모듈 코드 리뷰와 리팩터링<br/>• 레이더 포즈(`pose`) 모듈 구현<br/>• 수치 연산(`math`) 모듈 구현 |
 | [박현준](https://github.com/2chasik) | • 타겟 추적(`target`) 모듈 구현 |
 | [이인성](https://github.com/inseong10) | • TCP 통신(`comm`) 모듈 구현 |
 | [장해찬](https://github.com/papperfield) | • 실행 제어(`app`) 모듈 구현 |
