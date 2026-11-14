@@ -1,5 +1,6 @@
 add_library(pose STATIC
     src/domain/ant_enu_transform.cpp
+    src/domain/enu_geo_transform.cpp
     src/domain/radar_attitude.cpp
     src/domain/factory/radar_attitude_factory.cpp
     src/config/ant_enu_transform_config.cpp
@@ -16,6 +17,7 @@ if(BUILD_TESTING)
 
     add_executable(pose_test
         test/ant_enu_transform_test.cpp
+        test/enu_geo_transform_test.cpp
         test/pose_config_test.cpp
         test/pose_controller_test.cpp
         test/radar_attitude_test.cpp
