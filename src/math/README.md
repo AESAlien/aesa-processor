@@ -1,6 +1,6 @@
 # 수치 연산(`math`) 모듈
 
-## 클래스 다이어그램
+## 도메인 클래스 다이어그램
 
 ```mermaid
 classDiagram
@@ -12,7 +12,6 @@ classDiagram
     Length --|> Quantity
 
     CircularAngle *-- Angle
-    CircularAngleRange *-- Angle : 구간의 각도 폭
     TiltAngle *-- Angle
     AngularWidth *-- Angle
     Distance *-- Length
@@ -36,14 +35,14 @@ classDiagram
 
     LinearVelocity --|> Quantity
     LinearAcceleration --|> Quantity
-    QuantityTolerance *-- Tolerance
-    Vector *-- Matrix
-    SquareMatrix *-- Matrix
 
     Speed *-- LinearVelocity
     CartesianVelocity *-- "3" LinearVelocity
     CartesianAcceleration *-- "3" LinearAcceleration
 
+    Vector *-- Matrix
+    SquareMatrix *-- Matrix
+    QuantityTolerance *-- Tolerance
 ```
 
 ## 주요 타입

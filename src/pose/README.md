@@ -1,5 +1,15 @@
 # 레이더 포즈 모듈(`pose`)
 
+## 도메인 클래스 다이어그램
+
+```mermaid
+classDiagram
+    direction TB
+
+    AntEnuTransform ..> RadarAttitude : 변환 생성 입력
+    EnuGeoTransform *-- GeoPosition : ENU 원점
+```
+
 ## 환경 설정
 
 | 환경 변수 | 설정 용도 | 허용 범위 |

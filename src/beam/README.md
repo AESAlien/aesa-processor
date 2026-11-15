@@ -3,7 +3,7 @@
 ## 입출력 인터페이스
 
 ```mermaid
-flowchart TB
+flowchart LR
     CommReceiveWorker[수신<br/>스레드]
     PoseWorker[레이더 포즈<br/>스레드]
     TargetWorker[타겟 추적<br/>스레드]
@@ -22,23 +22,36 @@ flowchart TB
     TargetWorker -->|빔 요청| requestBeam
     TickWorker -->|10ms 틱| nextBeamCommand
     nextBeamCommand -->|빔 송신| SimulatorSendWorker
+
+    classDef communication fill:#DCFCE7,stroke:#16A34A,color:#166534,stroke-width:2px
+    classDef processing fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
+    classDef utility fill:#F3E8FF,stroke:#9333EA,color:#6B21A8,stroke-width:2px
+    classDef control fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-width:2px
+
+    class CommReceiveWorker,SimulatorSendWorker communication
+    class TargetWorker processing
+    class PoseWorker utility
+    class TickWorker control
+    style BeamController fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
 ```
 
-## 클래스 다이어그램
+## 도메인 클래스 다이어그램
 
 ```mermaid
 classDiagram
     direction TB
 
-    BeamController *-- BeamScheduler
+    class AntEnuTransform["pose::AntEnuTransform"]
 
     BeamScheduler *-- "0..1" AttitudeFrame
     BeamScheduler *-- RequestQueue
+
     AttitudeFrame *-- SearchGrid
     AttitudeFrame *-- RequestCoverage
     SearchGrid *-- "0..*" SearchBeam
     SearchGrid ..> AntEnuTransform : 탐색 빔 방향 변환
     RequestCoverage *-- AntEnuTransform
+
     RequestQueue *-- "0..*" BeamRequest
 ```
 

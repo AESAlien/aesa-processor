@@ -12,9 +12,9 @@
 | [장해찬](https://github.com/papperfield) | • 실행 제어(`app`) 모듈 구현 |
 | [천영기](https://github.com/YGC20) | • 빔 스케쥴링(`beam`) 모듈 구현 |
 
-## 시스템 구성도
+## 시스템 구조
 
-### 모듈 구조
+### 컴포넌트 다이어그램
 
 ```mermaid
 flowchart BT
@@ -32,9 +32,19 @@ flowchart BT
     pose --> math
     target --> math
     beam --> math
+
+    classDef communication fill:#DCFCE7,stroke:#16A34A,color:#166534,stroke-width:2px
+    classDef processing fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
+    classDef utility fill:#F3E8FF,stroke:#9333EA,color:#6B21A8,stroke-width:2px
+    classDef control fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-width:2px
+
+    class comm communication
+    class target,beam processing
+    class pose,math utility
+    class app control
 ```
 
-### 스레드 통신 구조
+### 데이터 플로우 다이어그램
 
 ```mermaid
 block-beta
@@ -56,23 +66,38 @@ block-beta
         ConsoleSendWorker["전시기 송신<br/>스레드"] space:2 TargetWorker["타겟 추적<br/>스레드"] space
     end
 
-    Simulator-- "TCP/IP 수신" -->CommReceiveWorker
-    Console-- "TCP/IP 수신" -->CommReceiveWorker
-    SimulatorSendWorker-- "TCP/IP 송신" -->Simulator
-    ConsoleSendWorker-- "TCP/IP 송신" -->Console
+    Simulator -- "TCP/IP 수신" --> CommReceiveWorker
+    Console -- "TCP/IP 수신" --> CommReceiveWorker
+    SimulatorSendWorker -- "TCP/IP 송신" --> Simulator
+    ConsoleSendWorker -- "TCP/IP 송신" --> Console
 
-    CommReceiveWorker-- "포즈 설정" -->ConsoleSendWorker
-    CommReceiveWorker-- "포즈 설정" -->PoseWorker
-    CommReceiveWorker-- "탐지 결과 /<br/>초기화" -->TargetWorker
-    CommReceiveWorker-- "ON / OFF" -->BeamWorker
-    PoseWorker-- "자세 설정" -->BeamWorker
-    PoseWorker-- "좌표 설정" -->TargetWorker
-    TargetWorker-- "추적 결과" -->ConsoleSendWorker
-    TargetWorker-- "빔 요청" -->BeamWorker
-    BeamWorker-- "빔 송신" -->SimulatorSendWorker
-    TickWorker-- "10ms 틱" -->BeamWorker
-    TickWorker-- "10ms 틱" -->TargetWorker
+    CommReceiveWorker -- "포즈" --> PoseWorker
+    CommReceiveWorker -- "탐지" --> TargetWorker
+    PoseWorker -- "포즈" --> ConsoleSendWorker
+    PoseWorker -- "자세" --> BeamWorker
+    PoseWorker -- "좌표" --> TargetWorker
+    TargetWorker -- "트랙" --> ConsoleSendWorker
+    TargetWorker -- "빔 요청" --> BeamWorker
+    BeamWorker -- "빔 송신" --> SimulatorSendWorker
+    TickWorker -- "10ms 틱" --> BeamWorker
+    TickWorker -- "10ms 틱" --> TargetWorker
+
+    classDef external fill:#FEF3C7,stroke:#D97706,color:#92400E,stroke-width:2px
+    classDef communication fill:#DCFCE7,stroke:#16A34A,color:#166534,stroke-width:2px
+    classDef processing fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
+    classDef utility fill:#F3E8FF,stroke:#9333EA,color:#6B21A8,stroke-width:2px
+    classDef control fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-width:2px
+
+    class Simulator,Console external
+    class SimulatorSendWorker,CommReceiveWorker,ConsoleSendWorker communication
+    class BeamWorker,TargetWorker processing
+    class PoseWorker utility
+    class TickWorker control
 ```
+
+### 모듈별 클래스 다이어그램
+
+[실행 제어](src/app/README.md#워커-클래스-다이어그램) / [TCP 통신](src/comm/README.md#네트워크-클래스-다이어그램) / [레이더 포즈](src/pose/README.md#도메인-클래스-다이어그램) / [타겟 추적](src/target/README.md#도메인-클래스-다이어그램) / [빔 스케줄링](src/beam/README.md#도메인-클래스-다이어그램) / [수치 연산](src/math/README.md#도메인-클래스-다이어그램)
 
 ## 빌드 및 실행
 

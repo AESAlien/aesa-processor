@@ -3,7 +3,7 @@
 ## 입출력 인터페이스
 
 ```mermaid
-flowchart TB
+flowchart LR
     CommReceiveWorker[수신<br/>스레드]
     PoseWorker[레이더 포즈<br/>스레드]
     TickWorker[틱<br/>스레드]
@@ -23,19 +23,43 @@ flowchart TB
     TickWorker -->|10ms 틱| removeExpiredTracks
     TickWorker -->|10ms 틱| getTrackEvents
     getTrackEvents -->|추적 결과| ConsoleSendWorker
+
+    classDef communication fill:#DCFCE7,stroke:#16A34A,color:#166534,stroke-width:2px
+    classDef processing fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
+    classDef utility fill:#F3E8FF,stroke:#9333EA,color:#6B21A8,stroke-width:2px
+    classDef control fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-width:2px
+
+    class CommReceiveWorker,ConsoleSendWorker communication
+    class BeamWorker processing
+    class PoseWorker utility
+    class TickWorker control
+    style TargetController fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
 ```
 
-## 클래스 다이어그램
+## 도메인 클래스 다이어그램
 
 ```mermaid
 classDiagram
     direction TB
 
-    TargetController *-- DetectionHandler
-    TargetController *-- TrackExpirationHandler
-    TargetController *-- TrackReporter
-    DetectionHandler *-- TentativeSelector
-    DetectionHandler *-- TrackSelector
+    class DetectionResult {
+        <<variant>>
+    }
+
+    TentativeTrack *-- Observation
+    Observation "0..*" --* DetectionResult
+    ConfirmedTrack o-- TrackState : 공유 소유
+    TentativeTrack ..> ConfirmedTrack : 생성
+
+    TentativeTrack o-- ITrackingAlgorithm : 공유 소유
+    ConfirmedTrack o-- ITrackingAlgorithm : 공유 소유
+
+    IPositionUncertainty <|-- ConstantAccelerationAlgorithm
+    ITrackingAlgorithm <|-- ConstantAccelerationAlgorithm
+    ITrackingAlgorithm <|-- ConstantVelocityAlgorithm
+
+    Observation <.. TentativeSelector : 선택
+    Observation <.. TrackSelector : 선택
     TentativeSelector *-- IAssociationAlgorithm
     TrackSelector *-- IAssociationAlgorithm
     IAssociationAlgorithm <|-- NdsAlgorithm
@@ -45,25 +69,6 @@ classDiagram
 classDiagram
     direction TB
 
-    DetectionResult *-- "0..*" Observation
-    TentativeTrack *-- Observation
-    ConfirmedTrack o-- TrackState : 공유 소유
-    ConfirmedTrack <.. TentativeTrack  : 생성
-
-    TentativeTrack o-- ITrackingAlgorithm : 공유 소유
-    ConfirmedTrack o-- ITrackingAlgorithm : 공유 소유
-
-    IPositionUncertainty <|-- ConstantAccelerationAlgorithm
-    ITrackingAlgorithm <|-- ConstantAccelerationAlgorithm
-    ITrackingAlgorithm <|-- ConstantVelocityAlgorithm
-
-    
-```
-
-```mermaid
-classDiagram
-    direction TB
-    
     DetectionResultBase <|-- SearchDetectionResult
     DetectionResultBase <|-- ConfirmationDetectionResult
     DetectionResultBase <|-- TrackingDetectionResult
