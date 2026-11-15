@@ -34,8 +34,10 @@ std::optional<TargetOutput> TargetWorker::process(TargetInput input)
     {
         _controller.setEnuGeoTransform(std::move(*command));
     }
-    else if (std::holds_alternative<TickEvent>(input))
+    else if (const auto* tick = std::get_if<TickEvent>(&input))
     {
+        // 응답 없는 트랙을 먼저 정리해 삭제된 트랙이 이번 틱의 보고에 포함되지 않게 한다.
+        _controller.removeExpiredTracks(tick->currentTime);
         return _controller.getTrackEvents();
     }
     return std::nullopt;

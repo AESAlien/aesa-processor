@@ -69,7 +69,7 @@ jobs:
           sha256sum "$package_name.tar.gz" > "$package_name.tar.gz.sha256"
 
       - name: Upload package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: aesa-processor-${{ github.sha }}-linux-x86_64
           path: build/dist/*
@@ -87,7 +87,7 @@ jobs:
 
     steps:
       - name: Download tested package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: aesa-processor-${{ github.sha }}-linux-x86_64
           path: dist

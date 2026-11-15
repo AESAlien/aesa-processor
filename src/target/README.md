@@ -13,12 +13,14 @@ flowchart TB
     subgraph TargetController
         setEnuGeoTransform["setEnuGeoTransform()"]
         handleDetection["handleDetection()"]
+        removeExpiredTracks["removeExpiredTracks()"]
         getTrackEvents["getTrackEvents()"]
     end
 
     CommReceiveWorker -->|탐지 결과| handleDetection
     PoseWorker -->|좌표 설정| setEnuGeoTransform
     handleDetection -->|빔 요청| BeamWorker
+    TickWorker -->|10ms 틱| removeExpiredTracks
     TickWorker -->|10ms 틱| getTrackEvents
     getTrackEvents -->|추적 결과| ConsoleSendWorker
 ```
@@ -30,6 +32,7 @@ classDiagram
     direction TB
 
     TargetController *-- DetectionHandler
+    TargetController *-- TrackExpirationHandler
     TargetController *-- TrackReporter
     DetectionHandler *-- TentativeSelector
     DetectionHandler *-- TrackSelector
@@ -75,8 +78,8 @@ classDiagram
 | `TARGET_MEASUREMENT_STANDARD_DEVIATION_M` | 위치 관측의 표준 편차 | 0 초과 |
 | `TARGET_POSITION_NDS_THRESHOLD` | 위치 연관 NDS 점수 임계값 | 0 이상 |
 | `TARGET_CONFIRMATION_DELAY_MS` | 확인 빔 요청까지의 지연 시간 | 0 ms 초과 |
-| `TARGET_TRACKING_INTERVAL_MS` | 다음 추적 빔 요청까지의 간격 | 0 ms 초과 |
-| `TARGET_MAX_CONSECUTIVE_TRACKING_MISSES` | 트랙을 유지할 최대 연속 미탐 수 | 1 이상 |
+| `TARGET_TRACKING_INTERVAL_MS` | 다음 추적 빔 요청까지의 간격. 연속 미탐 한도와 곱해 응답 대기 한도로도 사용 | 0 ms 초과 |
+| `TARGET_MAX_CONSECUTIVE_TRACKING_MISSES` | 트랙을 유지할 최대 연속 미탐 수. 추적 주기와 곱해 응답 대기 한도로도 사용 | 1 이상 |
 | `TARGET_INITIAL_ACCELERATION_STANDARD_DEVIATION_MPS2` | 초기 가속도 추정의 표준 편차 | 0 초과 |
 | `TARGET_MAX_REPORTED_TRACK_COUNT` | 전시기에 보고할 최대 트랙 수 | 1–100 |
 | `TARGET_PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2` | 추적 상태 예측에 사용하는 가속도 잡음 표준 편차 | 0 이상 |

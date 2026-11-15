@@ -36,9 +36,9 @@ std::optional<BeamOutput> BeamWorker::process(BeamInput input)
     {
         _controller.setAntEnuTransform(*command);
     }
-    else if (auto* event = std::get_if<TickEvent>(&input))
+    else if (auto* tick = std::get_if<TickEvent>(&input))
     {
-        return _controller.nextBeamCommand(event->currentTime);
+        return _controller.nextBeamCommand(tick->currentTime);
     }
     return std::nullopt;
 }

@@ -6,6 +6,7 @@ add_library(target STATIC
     src/config/target_config.cpp
     src/controller/target_controller.cpp
     src/service/detection_handler.cpp
+    src/service/track_expiration_handler.cpp
     src/service/track_reporter.cpp
     src/domain/association/nds_calculation.cpp
     src/domain/association/nds_algorithm.cpp
@@ -123,4 +124,12 @@ if(BUILD_TESTING)
     target_link_libraries(target_track_reporting_limit_test PRIVATE target GTest::gtest_main)
 
     gtest_discover_tests(target_track_reporting_limit_test)
+
+    add_executable(target_track_expiration_handler_test test/track_expiration_handler_test.cpp)
+    target_include_directories(target_track_expiration_handler_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_link_libraries(target_track_expiration_handler_test PRIVATE target GTest::gtest_main)
+
+    gtest_discover_tests(target_track_expiration_handler_test)
 endif()
