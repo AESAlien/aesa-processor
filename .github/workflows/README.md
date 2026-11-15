@@ -68,3 +68,21 @@ cp .env.example .env
 운용 장비에서의 설치와 프로세스 재시작은 운영자가 수행합니다. 이전 버전으로
 복구할 때는 기존 프로세스를 종료하고 해당 Release 패키지에 운용 설정을 적용한
 뒤 실행합니다.
+
+## Pull Request 자동 승인
+
+`auto-approve.yml`은 `@sin6708k`가 작성한 `main` 대상 PR 중 초안이 아니고
+GitHub의 리뷰 상태가 `REVIEW_REQUIRED`인 PR의 현재 커밋에 승인 리뷰를 남깁니다.
+열린 PR은 생성, 다시 열기, 커밋 갱신, 초안 해제 및 대상 브랜치를 `main`으로
+변경할 때 확인합니다. 승인 작업에는 `pull-requests: write` 권한을 사용합니다.
+
+이미 닫혔거나 병합된 PR은 **Actions → Auto-approve PR → Run workflow**에서
+`main` 브랜치와 PR 번호를 지정해 한 건씩 처리합니다. 현재 리뷰 상태가 조건에
+맞으면 기존 커밋에 승인 요청을 보냅니다. GitHub API가 요청을 거부하면 실패 원인을
+Actions 로그에서 확인할 수 있습니다.
+
+저장소의 **Settings → Actions → General → Workflow permissions**에서
+**Allow GitHub Actions to create and approve pull requests**를 활성화해야 합니다.
+저장소에 적용되는 Actions 이벤트 정책에서도 `pull_request_target`을 허용해야 합니다.
+워크플로가 `main`에 반영되면 자동 실행과 수동 실행을 사용할 수 있습니다. 자동 승인은
+CI 결과와 별개로 제출되며, 병합에는 저장소의 필수 검사와 리뷰 규칙이 적용됩니다.
