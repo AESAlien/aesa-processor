@@ -1,4 +1,4 @@
-#include "scheduler/beam_scheduler.hpp"
+#include "domain/scheduler/beam_scheduler.hpp"
 
 #include <utility>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "search/search_beam.hpp"
+#include "domain/search/search_beam.hpp"
 
 #include <beam/config/search_grid_config.hpp>
 

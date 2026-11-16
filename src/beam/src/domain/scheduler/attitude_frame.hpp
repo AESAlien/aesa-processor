@@ -1,7 +1,7 @@
 #pragma once
 
-#include "request/request_coverage.hpp"
-#include "search/search_grid.hpp"
+#include "domain/request/request_coverage.hpp"
+#include "domain/search/search_grid.hpp"
 
 #include <beam/config/request_coverage_config.hpp>
 #include <beam/config/search_grid_config.hpp>

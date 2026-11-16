@@ -1,4 +1,4 @@
-#include "request/factory/beam_request_factory.hpp"
+#include "controller/beam_request_factory.hpp"
 
 #include <gtest/gtest.h>
 

@@ -1,4 +1,4 @@
-#include "search/search_grid.hpp"
+#include "domain/search/search_grid.hpp"
 
 #include <pose/domain/ant_enu_transform.hpp>
 #include <pose/domain/factory/radar_attitude_factory.hpp>

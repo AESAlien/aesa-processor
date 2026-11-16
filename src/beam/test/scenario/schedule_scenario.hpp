@@ -9,9 +9,9 @@
 
 #pragma once
 
-#include "scheduler/beam_scheduler.hpp"
-#include "scheduler/attitude_frame.hpp"
-#include "request/factory/beam_request_factory.hpp"
+#include "domain/scheduler/beam_scheduler.hpp"
+#include "domain/scheduler/attitude_frame.hpp"
+#include "controller/beam_request_factory.hpp"
 
 #include <pose/domain/ant_enu_transform.hpp>
 #include <pose/domain/factory/radar_attitude_factory.hpp>

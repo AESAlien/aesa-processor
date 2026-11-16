@@ -1,4 +1,4 @@
-#include "request/beam_request.hpp"
+#include "domain/request/beam_request.hpp"
 
 #include <gtest/gtest.h>
 

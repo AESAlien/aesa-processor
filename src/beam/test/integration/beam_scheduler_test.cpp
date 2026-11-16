@@ -1,5 +1,5 @@
-#include "scheduler/beam_scheduler.hpp"
-#include "scheduler/attitude_frame.hpp"
+#include "domain/scheduler/beam_scheduler.hpp"
+#include "domain/scheduler/attitude_frame.hpp"
 
 #include <pose/domain/ant_enu_transform.hpp>
 #include <pose/domain/factory/radar_attitude_factory.hpp>
