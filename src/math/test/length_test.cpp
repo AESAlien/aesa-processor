@@ -122,7 +122,6 @@ TEST(LengthTest, AbsPreservesLengthTypeAndReturnsNonnegativeValue)
     EXPECT_DOUBLE_EQ(math::abs(-2.0_km).km(), 2.0);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LengthTest, RejectsNonFiniteAdditionAndSubtractionResults)
 {
     const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
@@ -131,7 +130,6 @@ TEST(LengthTest, RejectsNonFiniteAdditionAndSubtractionResults)
     EXPECT_THROW(maximum - (-maximum), std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LengthTest, RejectsInvalidScalarOperations)
 {
     const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
@@ -141,7 +139,6 @@ TEST(LengthTest, RejectsInvalidScalarOperations)
     EXPECT_THROW(maximum / -0.0, std::domain_error);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LengthTest, CompoundArithmeticPreservesValueOnFailure)
 {
     const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
@@ -157,7 +154,6 @@ TEST(LengthTest, CompoundArithmeticPreservesValueOnFailure)
     EXPECT_EQ(length, maximum);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LengthTest, RejectsNonFiniteValues)
 {
     for (double value : {
@@ -172,7 +168,6 @@ TEST(LengthTest, RejectsNonFiniteValues)
     }
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LengthTest, RejectsOverflowDuringKilometerConversion)
 {
     const double maxValue = std::numeric_limits<double>::max();

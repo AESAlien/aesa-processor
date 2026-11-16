@@ -72,7 +72,6 @@ TEST(TrigonometryTest, ComputesInverseTangentFromVelocityComponents)
     EXPECT_NEAR(math::atan2(0_mps, -1_mps).deg(), 180.0, 1e-12);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(TrigonometryTest, RejectsInvalidInverseFunctionInputs)
 {
     const double infinity = std::numeric_limits<double>::infinity();

@@ -253,7 +253,6 @@ TEST(AngleTest, AbsPreservesAngleTypeAndReturnsNonnegativeValue)
     EXPECT_DOUBLE_EQ(math::abs(0_deg).deg(), 0.0);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(AngleTest, RejectsDivisionByZeroWithoutChangingValue)
 {
     auto angle = 45.0_deg;
@@ -262,7 +261,6 @@ TEST(AngleTest, RejectsDivisionByZeroWithoutChangingValue)
     EXPECT_DOUBLE_EQ(angle.deg(), 45.0);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(AngleTest, EqualsRejectsInvalidRelativeTolerance)
 {
     const double infinity = std::numeric_limits<double>::infinity();
@@ -276,7 +274,6 @@ TEST(AngleTest, EqualsRejectsInvalidRelativeTolerance)
 
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(AngleTest, RejectsNonFiniteInputsAndConvertedValues)
 {
     const double INVALID_VALUES[] =
@@ -300,7 +297,6 @@ TEST(AngleTest, RejectsNonFiniteInputsAndConvertedValues)
     EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(-MAX_VALUE).deg(), -MAX_VALUE);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(AngleTest, RejectsArithmeticOverflowWithoutChangingValue)
 {
     const double MAX_VALUE = std::numeric_limits<double>::max();
@@ -321,7 +317,6 @@ TEST(AngleTest, RejectsArithmeticOverflowWithoutChangingValue)
     EXPECT_DOUBLE_EQ(angle.deg(), MAX_VALUE);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(AngleTest, RejectsNonFiniteArithmeticResultsWithoutChangingValue)
 {
     auto angle = 1.0_deg;

@@ -49,7 +49,6 @@ std::string invalidArgumentMessage(Function&& function)
 
 } // namespace
 
-// 요청 팩토리는 명령의 송신 시각과 요청 ID 및 방향을 전달한다.
 TEST(BeamRequestFactoryTest, ConvertsFromRequestBeamCommand)
 {
     // Given: 확인 빔 요청 명령을 준비한다.
@@ -71,7 +70,6 @@ TEST(BeamRequestFactoryTest, ConvertsFromRequestBeamCommand)
     EXPECT_EQ(request.direction_enu().elevation, 20.5_deg);
 }
 
-// 요청 팩토리는 빔 종류에 맞는 폭과 우선순위를 지정한다.
 TEST(BeamRequestFactoryTest, CreatesRequestMatchingBeamType)
 {
     // Given: 확인 및 추적 빔 폭이 서로 다른 팩토리를 준비한다.
@@ -93,7 +91,6 @@ TEST(BeamRequestFactoryTest, CreatesRequestMatchingBeamType)
     EXPECT_GT(confirmation.priority(), tracking.priority());
 }
 
-// 요청 팩토리는 잘못된 ID와 시각 및 빔 종류를 거부한다.
 TEST(BeamRequestFactoryTest, RejectsInvalidCommand)
 {
     // Given: 잘못된 값을 하나씩 가진 요청 명령들을 준비한다.

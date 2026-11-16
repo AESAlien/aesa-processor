@@ -145,7 +145,6 @@ TEST(CartesianDisplacementTest, CalculatesDistanceAtExtremeFiniteScales)
     }
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsAdditionOverflow)
 {
     const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
@@ -155,7 +154,6 @@ TEST(CartesianDisplacementTest, RejectsAdditionOverflow)
     EXPECT_THROW(position + displacement, std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsPositionDisplacementSubtractionOverflow)
 {
     const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
@@ -165,7 +163,6 @@ TEST(CartesianDisplacementTest, RejectsPositionDisplacementSubtractionOverflow)
     EXPECT_THROW(position - displacement, std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsDisplacementAdditionOverflow)
 {
     const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
@@ -175,7 +172,6 @@ TEST(CartesianDisplacementTest, RejectsDisplacementAdditionOverflow)
     EXPECT_THROW(left + right, std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsInvalidVelocityTimeProduct)
 {
     const auto maximum = math::LinearVelocity::fromMetersPerSecond(
@@ -187,7 +183,6 @@ TEST(CartesianDisplacementTest, RejectsInvalidVelocityTimeProduct)
         std::numeric_limits<double>::quiet_NaN()}, std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsInvalidElapsedTime)
 {
     const math::CartesianDisplacement displacement(1_m, 0_m, 0_m);
@@ -198,7 +193,6 @@ TEST(CartesianDisplacementTest, RejectsInvalidElapsedTime)
     }
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, DividesSubnormalComponentsWithoutReciprocalOverflow)
 {
     const double smallest = std::numeric_limits<double>::denorm_min();
@@ -211,7 +205,6 @@ TEST(CartesianDisplacementTest, DividesSubnormalComponentsWithoutReciprocalOverf
     EXPECT_EQ(velocity.z, 0_mps);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsVelocityOverflow)
 {
     const math::CartesianDisplacement displacement(1_m, 0_m, 0_m);
@@ -220,7 +213,6 @@ TEST(CartesianDisplacementTest, RejectsVelocityOverflow)
         std::chrono::duration<double>{std::numeric_limits<double>::denorm_min()}, std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianDisplacementTest, RejectsSubtractionOverflow)
 {
     const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());

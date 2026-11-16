@@ -47,7 +47,6 @@ TEST(SearchGridConfigTest, ZeroCountThrowsWithoutDividingByZero)
     EXPECT_THROW(build(bothZero), std::invalid_argument);
 }
 
-// 빔 ID 범위를 초과하는 격자 크기를 거부한다.
 TEST(SearchGridConfigTest, BeamCountBeyondUint32Throws)
 {
     // Given: 검증할 입력과 설정을 준비한다.
@@ -74,7 +73,6 @@ TEST(SearchGridConfigTest, KeepsGivenBeamWidth)
     EXPECT_EQ(config.beamWidth(), width);
 }
 
-// 격자의 마지막 각도를 계산할 때 발생하는 오버플로를 거부한다.
 TEST(SearchGridConfigTest, GridAngleOverflowThrows)
 {
     // Given: 검증할 입력과 설정을 준비한다.
@@ -94,7 +92,6 @@ TEST(SearchGridConfigTest, GridAngleOverflowThrows)
     EXPECT_THROW(build(endOverflow), std::invalid_argument);
 }
 
-// 단일 빔 격자는 사용하지 않는 큰 각도 간격을 허용한다.
 TEST(SearchGridConfigTest, LargeStepWithSingleBeamPerAxisIsAccepted)
 {
     // Given: 검증할 입력과 설정을 준비한다.
@@ -107,7 +104,6 @@ TEST(SearchGridConfigTest, LargeStepWithSingleBeamPerAxisIsAccepted)
     EXPECT_NO_THROW(build());
 }
 
-// 격자에서 계산된 끝 고각이 물리 범위를 벗어나면 거부한다.
 TEST(SearchGridConfigTest, ElevationOutsideSphericalRangeThrows)
 {
     // Given: 검증할 입력과 설정을 준비한다.

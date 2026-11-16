@@ -190,7 +190,6 @@ TEST(LinearVelocityTest, EqualsHandlesRelativeComparisonAtNumericLimits)
     EXPECT_TRUE(math::LinearVelocity::fromMetersPerSecond(2.0 * smallest).equals(math::LinearVelocity::fromMetersPerSecond(smallest), math::QuantityTolerance<math::LinearVelocity>{0.0_mps, 0.5}));
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LinearVelocityTest, RejectsInvalidVelocityDurationProducts)
 {
     using namespace math::literals;
@@ -202,7 +201,6 @@ TEST(LinearVelocityTest, RejectsInvalidVelocityDurationProducts)
         std::numeric_limits<double>::quiet_NaN()}, std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LinearVelocityTest, RejectsZeroDuration)
 {
     using namespace math::literals;
@@ -214,7 +212,6 @@ TEST(LinearVelocityTest, RejectsZeroDuration)
     EXPECT_THROW(0_km / 0s, std::domain_error);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LinearVelocityTest, EqualsRejectsInvalidRelativeTolerance)
 {
     const double infinity = std::numeric_limits<double>::infinity();
@@ -227,7 +224,6 @@ TEST(LinearVelocityTest, EqualsRejectsInvalidRelativeTolerance)
     }
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LinearVelocityTest, RejectsNonFiniteValues)
 {
     const double INVALID_VALUES[] =
@@ -243,7 +239,6 @@ TEST(LinearVelocityTest, RejectsNonFiniteValues)
     }
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LinearVelocityTest, RejectsNonFiniteResultsFromDurationDivision)
 {
     using namespace math::literals;

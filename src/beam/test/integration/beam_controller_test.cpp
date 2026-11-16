@@ -122,7 +122,6 @@ TEST(BeamControllerTest, ReturnsNothingBeforeStart)
     EXPECT_FALSE(command.has_value());
 }
 
-// 컨트롤러는 운용 시작과 자세 수신 후 탐색 명령을 반환한다.
 TEST(BeamControllerTest, ReturnsSearchBeamAfterOnAndAttitude)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
@@ -185,7 +184,6 @@ TEST(BeamControllerTest, AttitudeCommandChangesSearchDirection)
     }
 }
 
-// 컨트롤러는 받은 요청 명령을 송신 명령에 반영한다.
 TEST(BeamControllerTest, RequestBeamIsDeliveredToBeamScheduler)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
@@ -291,7 +289,6 @@ TEST(BeamControllerTest, StopsAfterOffAndRestartsFromBeginningOnNextOn)
     EXPECT_EQ(restarted->commandCount, 1u);
 }
 
-// 컨트롤러는 주입된 탐색 격자 설정을 송신에 반영한다.
 TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
@@ -321,7 +318,6 @@ TEST(BeamControllerTest, InjectedSearchGridConfigIsUsed)
     }
 }
 
-// 컨트롤러는 주입된 추적 빔 폭을 요청 송신에 반영한다.
 TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
@@ -345,7 +341,6 @@ TEST(BeamControllerTest, InjectedRequestBeamConfigIsUsed)
     EXPECT_EQ(command->beamWidth.elevation, 4_deg);
 }
 
-// 컨트롤러는 주입된 확인 빔 폭을 요청 송신에 반영한다.
 TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
@@ -370,7 +365,6 @@ TEST(BeamControllerTest, InjectedConfirmationBeamWidthIsUsed)
     EXPECT_EQ(command->beamWidth.elevation, 5_deg);
 }
 
-// 컨트롤러 이동은 주입된 설정과 송신 진행 상태를 유지한다.
 TEST(BeamControllerTest, MovedControllerKeepsInjectedConfigAndState)
 {
     // Given: 검사에 필요한 설정과 운용 상태의 컨트롤러를 준비한다.
@@ -439,7 +433,6 @@ TEST(BeamControllerTest, RequestOutsideCoverageIsNotTransmitted)
     EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
 }
 
-// 컨트롤러는 전달받은 자세를 요청 영역 판정에 반영한다.
 TEST(BeamControllerTest, CoverageUsesAttitudeOfAttitudeCommand)
 {
     // Given: 검사할 자세와 설정으로 운용 준비된 컨트롤러를 만든다.
@@ -459,7 +452,6 @@ TEST(BeamControllerTest, CoverageUsesAttitudeOfAttitudeCommand)
     EXPECT_EQ(result2.status, beam::RequestBeamStatus::OUT_OF_COVERAGE);
 }
 
-// 컨트롤러는 주입된 요청 영역 설정을 접수 결과에 반영한다.
 TEST(BeamControllerTest, InjectedRequestCoverageConfigIsUsed)
 {
     // Given: 검사할 자세와 설정으로 운용 준비된 컨트롤러를 만든다.

@@ -75,7 +75,6 @@ TEST(CartesianAccelerationTest, CalculatesMagnitude)
     }
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianAccelerationTest, RejectsInvalidVelocityResult)
 {
     const auto maximum = math::LinearAcceleration::fromMetersPerSecondSquared(

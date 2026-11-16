@@ -292,7 +292,6 @@ TEST(SphericalPositionTest, ComparesEachCoordinateWithSeparateTolerance)
     EXPECT_TRUE(point != nearby);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianPositionTest, RejectsOriginWithoutSphericalDirection)
 {
     const math::CartesianPosition origin(0_m, 0_m, 0_m);
@@ -300,7 +299,6 @@ TEST(CartesianPositionTest, RejectsOriginWithoutSphericalDirection)
     EXPECT_THROW(origin.toSpherical(), std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(CartesianPositionTest, RejectsUnrepresentableSphericalRadius)
 {
     const auto maximum = math::Length::fromMeters(std::numeric_limits<double>::max());
@@ -309,14 +307,12 @@ TEST(CartesianPositionTest, RejectsUnrepresentableSphericalRadius)
     EXPECT_THROW(position.toSpherical(), std::overflow_error);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(SphericalDirectionTest, RejectsElevationOutsideInclusiveRange)
 {
     EXPECT_THROW((math::SphericalDirection(0_deg, -90.001_deg)), std::invalid_argument);
     EXPECT_THROW((math::SphericalDirection(0_deg, 90.001_deg)), std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(SphericalDirectionTest, ConvertsLargeFiniteCartesianVectorsWithoutOverflow)
 {
     const double max = std::numeric_limits<double>::max();
@@ -327,7 +323,6 @@ TEST(SphericalDirectionTest, ConvertsLargeFiniteCartesianVectorsWithoutOverflow)
     EXPECT_NEAR(direction.elevation.deg(), 35.264389682754654, 1e-12);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(SphericalDirectionTest, RejectsInvalidCartesianVectors)
 {
     EXPECT_THROW((math::SphericalDirection::fromCartesianUnitVector(math::Vector{1.0, 2.0})), std::invalid_argument);

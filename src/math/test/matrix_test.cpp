@@ -219,19 +219,16 @@ TEST(MatrixTest, ChecksWhetherAllElementsAreFinite)
     EXPECT_FALSE(matrix.isFinite());
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(MatrixTest, RejectsDimensionsThatOverflowStorageSize)
 {
     EXPECT_THROW((math::Matrix(std::numeric_limits<std::size_t>::max(), 2)), std::length_error);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(MatrixTest, RejectsInitializerListsWithDifferentRowSizes)
 {
     EXPECT_THROW((math::Matrix{{1.0, 2.0}, {3.0}}), std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(MatrixTest, RejectsOutOfRangeAccess)
 {
     math::Matrix matrix{{1.0, 2.0}, {3.0, 4.0}};
@@ -247,7 +244,6 @@ TEST(MatrixTest, RejectsOutOfRangeAccess)
     EXPECT_THROW(constant.at(0, 2), std::out_of_range);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(MatrixTest, RejectsAdditionAndSubtractionOfDifferentDimensions)
 {
     math::Matrix matrix2x2{{1.0, 2.0}, {3.0, 4.0}};
@@ -257,7 +253,6 @@ TEST(MatrixTest, RejectsAdditionAndSubtractionOfDifferentDimensions)
     EXPECT_THROW(matrix2x2 - matrix2x1, std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(MatrixTest, RejectsMultiplicationOfIncompatibleDimensions)
 {
     math::Matrix left(2, 3);
@@ -266,7 +261,6 @@ TEST(MatrixTest, RejectsMultiplicationOfIncompatibleDimensions)
     EXPECT_THROW(left * right, std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(MatrixTest, RejectsDivisionByZero)
 {
     math::Matrix matrix{{1.0, 2.0}};

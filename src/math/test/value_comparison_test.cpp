@@ -106,7 +106,6 @@ TYPED_TEST(EqualsTest, ChecksDimensionsAndSupportsEmptyValues)
     EXPECT_TRUE(TypeParam().equals(TypeParam(), math::Tolerance{0.0, 0.0}));
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TYPED_TEST(EqualsTest, RejectsNonfiniteElements)
 {
     const auto finite = makeValue<TypeParam>(1.0, 2.0);
@@ -684,7 +683,6 @@ TYPED_TEST(QuantityComparisonTest, RelativeToleranceControlsLargeValues)
     EXPECT_TRUE(-outside < -value);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, ExplicitTolerancesRemainIndependentAndRejectTinyNegatives)
 {
     const auto zero = makeQuantity<TypeParam>(0.0);
@@ -697,7 +695,6 @@ TYPED_TEST(QuantityComparisonTest, ExplicitTolerancesRemainIndependentAndRejectT
     EXPECT_THROW(zero.equals(zero, math::QuantityTolerance{negativeTolerance, 0.0}), std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TYPED_TEST(QuantityComparisonTest, RejectsNonfiniteValuesAtConstruction)
 {
     EXPECT_THROW(makeQuantity<TypeParam>(std::numeric_limits<double>::infinity()), std::invalid_argument);

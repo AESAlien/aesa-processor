@@ -26,7 +26,6 @@ pose::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::A
 
 } // namespace
 
-// 영 자세 변환은 입력 방향의 방위각과 고각을 유지한다.
 TEST(AntEnuTransformTest, ZeroAttitudeKeepsAngles)
 {
     // Given: 영 자세의 좌표 변환을 준비한다.
@@ -40,7 +39,6 @@ TEST(AntEnuTransformTest, ZeroAttitudeKeepsAngles)
     EXPECT_EQ(direction_enu.elevation, 10_deg);
 }
 
-// 좌표 변환은 장착 회전을 안테나 방향에 반영한다.
 TEST(AntEnuTransformTest, MountRotationIsAppliedToAntDirection)
 {
     // Given: 90도 장착 회전이 있는 좌표 변환을 준비한다.
@@ -56,7 +54,6 @@ TEST(AntEnuTransformTest, MountRotationIsAppliedToAntDirection)
     EXPECT_EQ(direction_enu.elevation, 0_deg);
 }
 
-// 요 회전은 방위각을 시계 방향으로 회전시킨다.
 TEST(AntEnuTransformTest, YawRotatesAzimuthClockwise)
 {
     // Given: 요가 90도인 좌표 변환을 준비한다.
@@ -70,7 +67,6 @@ TEST(AntEnuTransformTest, YawRotatesAzimuthClockwise)
     EXPECT_EQ(direction_enu.elevation, 0_deg);
 }
 
-// 피치 회전은 안테나 정면의 고각을 올린다.
 TEST(AntEnuTransformTest, PitchRaisesBoresight)
 {
     // Given: 피치가 10도인 좌표 변환을 준비한다.
@@ -84,7 +80,6 @@ TEST(AntEnuTransformTest, PitchRaisesBoresight)
     EXPECT_EQ(direction_enu.elevation, 10_deg);
 }
 
-// 정방향 변환 후 역방향 변환은 원래 방향을 복원한다.
 TEST(AntEnuTransformTest, AntToEnuAndBackRestoresAngles)
 {
     // Given: 세 축으로 회전한 좌표 변환을 준비한다.

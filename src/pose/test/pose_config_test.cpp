@@ -20,7 +20,6 @@ const double MAX_VALUE = std::numeric_limits<double>::max();
 
 } // namespace
 
-// 자세 설정은 3차원 회전 장착행렬을 허용한다.
 TEST(AntEnuTransformConfigTest, AcceptsRotationMount)
 {
     // Given: 검증할 입력과 설정을 준비한다.
@@ -40,7 +39,6 @@ TEST(AntEnuTransformConfigTest, BuilderRequiresMountRotation)
     EXPECT_THROW(pose::AntEnuTransformConfig::Builder().build(), std::logic_error);
 }
 
-// 자세 설정은 부동소수점 성분을 가진 회전행렬을 허용한다.
 TEST(AntEnuTransformConfigTest, AcceptsRotationMountWithFloatingPointEntries)
 {
     // Given: 라디안 각도로 계산한 회전행렬 성분을 준비한다.
@@ -66,7 +64,6 @@ TEST(AntEnuTransformConfigTest, UsesDefaultRotationTolerance)
     EXPECT_THROW((pose::AntEnuTransformConfig(skewed)), std::invalid_argument);
 }
 
-// 자세 설정은 회전행렬이 아닌 장착행렬을 거부한다.
 TEST(AntEnuTransformConfigTest, NonRotationMountThrows)
 {
     // Given: 검증할 입력과 설정을 준비한다.
@@ -89,7 +86,6 @@ TEST(AntEnuTransformConfigTest, NonRotationMountThrows)
     }
 }
 
-// 자세 설정은 비유한 성분이나 연산 오버플로가 있는 장착행렬을 거부한다.
 TEST(AntEnuTransformConfigTest, NonFiniteMountEntriesAndOverflowThrow)
 {
     // Given: 검증할 입력과 설정을 준비한다.
@@ -111,7 +107,6 @@ TEST(AntEnuTransformConfigTest, NonFiniteMountEntriesAndOverflowThrow)
     }
 }
 
-// 최대 피치 설정은 0도 초과 90도 이하만 허용한다.
 TEST(RadarAttitudeFactoryConfigTest, MaxAbsPitchMustBeInZeroToNinetyDegrees)
 {
     // Given: 검증할 입력과 설정을 준비한다.
@@ -139,7 +134,6 @@ TEST(RadarAttitudeFactoryConfigTest, BuilderRequiresMaxAbsPitch)
     EXPECT_THROW(pose::RadarAttitudeFactoryConfig::Builder().build(), std::logic_error);
 }
 
-// 최대 피치는 주기상 90도와 같아도 실제 값이 범위 밖이면 거부한다.
 TEST(RadarAttitudeFactoryConfigTest, MaxAbsPitchRejectsAnglesEquivalentToNinetyDegreesByPeriod)
 {
     // Given: 검증할 입력과 설정을 준비한다.

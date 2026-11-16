@@ -20,6 +20,8 @@ class DetectionEventLogger;
 class TrackExpirationHandler;
 class TrackReporter;
 
+// 복사본은 원본과 처리기 및 트랙 저장소를 공유한다.
+// 공유 상태에 접근하는 호출은 호출자가 직렬화해야 한다.
 class TargetController
 {
 public:
@@ -34,6 +36,7 @@ public:
 
     // 응답 대기 한도를 넘긴 트랙을 삭제한다. 탐지 결과가 오지 않아도 정리되도록 주기적으로 호출한다.
     void removeExpiredTracks(std::chrono::milliseconds currentTime);
+    // ENU 좌표 변환을 설정하기 전에는 빈 목록을 반환한다.
     std::vector<TrackEvent> getTrackEvents() const;
 
 private:

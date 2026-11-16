@@ -38,7 +38,6 @@ math::SphericalDirection direction(math::Angle azimuth, math::Angle elevation)
 
 } // namespace
 
-// 기본 영역 판정은 안테나의 옆과 뒤 방향을 거부한다.
 TEST(RequestCoverageTest, BehindTheAntennaIsOutside)
 {
     // Given: 검사할 자세와 요청 영역 설정을 준비한다.
@@ -55,7 +54,6 @@ TEST(RequestCoverageTest, BehindTheAntennaIsOutside)
     EXPECT_FALSE(containsLeft);
 }
 
-// 영역 판정은 요가 반영된 안테나 좌표에서 방위각을 검사한다.
 TEST(RequestCoverageTest, YawShiftsAzimuthToAntennaFrame)
 {
     // Given: 검사할 자세와 요청 영역 설정을 준비한다.
@@ -80,7 +78,6 @@ TEST(RequestCoverageTest, YawShiftsAzimuthToAntennaFrame)
     EXPECT_TRUE(containsRotatedInside);
 }
 
-// 영역 판정은 피치가 반영된 안테나 좌표에서 고각을 검사한다.
 TEST(RequestCoverageTest, PitchShiftsElevationToAntennaFrame)
 {
     // Given: 검사할 자세와 요청 영역 설정을 준비한다.
@@ -102,7 +99,6 @@ TEST(RequestCoverageTest, PitchShiftsElevationToAntennaFrame)
     EXPECT_TRUE(containsRotatedUpperDirection);
 }
 
-// 후방 경계 판정에도 요를 반영한 안테나 좌표를 사용한다.
 TEST(RequestCoverageTest, RearBoundaryUsesAntennaFrameAfterYaw)
 {
     // Given: 검사할 자세와 요청 영역 설정을 준비한다.

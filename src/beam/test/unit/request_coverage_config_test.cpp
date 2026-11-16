@@ -21,7 +21,6 @@ beam::RequestCoverageConfig::Builder validConfigBuilder()
 
 } // namespace
 
-// 영역 설정은 고각의 양 끝이 -90도부터 90도 사이여야 한다.
 TEST(RequestCoverageConfigTest, ElevationOutsideQuarterTurnThrows)
 {
     // Given: 검증할 입력과 설정을 준비한다.

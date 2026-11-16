@@ -38,7 +38,6 @@ std::string invalidArgumentMessage(Function&& function)
 
 } // namespace
 
-// 빔 요청은 전달받은 종류와 폭 및 식별 정보와 방향을 보관한다.
 TEST(BeamRequestTest, KeepsGivenValues)
 {
     // Given: 요청의 빔 폭과 방향을 준비한다.
@@ -59,7 +58,6 @@ TEST(BeamRequestTest, KeepsGivenValues)
     EXPECT_EQ(request.direction_enu().elevation, 20.5_deg);
 }
 
-// 빔 요청은 송신 시각 0과 최대 요청 ID를 허용한다.
 TEST(BeamRequestTest, AcceptsBoundaryValues)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
@@ -77,7 +75,6 @@ TEST(BeamRequestTest, AcceptsBoundaryValues)
     EXPECT_NO_THROW(construct());
 }
 
-// 빔 요청은 음수 송신 시각을 거부한다.
 TEST(BeamRequestTest, RejectsNegativeTransmitTime)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
@@ -95,7 +92,6 @@ TEST(BeamRequestTest, RejectsNegativeTransmitTime)
     EXPECT_THROW(construct(), std::invalid_argument);
 }
 
-// 빔 요청은 요청 ID 0을 거부한다.
 TEST(BeamRequestTest, RejectsZeroRequestId)
 {
     // Given: 생성자에 전달할 입력을 준비한다.

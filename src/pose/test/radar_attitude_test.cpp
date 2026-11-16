@@ -47,7 +47,6 @@ TEST(RadarAttitudeFactoryTest, StoresGivenValues)
     EXPECT_TRUE(attitude.yaw().isEquivalentTo(yaw));
 }
 
-// 자세 객체는 롤과 요의 명시된 범위를 벗어난 값을 거부한다.
 TEST(RadarAttitudeFactoryTest, ThrowsOnOutOfRangeValues)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
@@ -71,7 +70,6 @@ TEST(RadarAttitudeFactoryTest, ThrowsOnOutOfRangeValues)
     }
 }
 
-// 자세 객체는 주기상 유효 범위와 같아도 실제 값이 범위 밖이면 거부한다.
 TEST(RadarAttitudeFactoryTest, ThrowsOnValuesEquivalentByPeriodToValidRange)
 {
     // Given: 생성자에 전달할 입력을 준비한다.
@@ -92,7 +90,6 @@ TEST(RadarAttitudeFactoryTest, ThrowsOnValuesEquivalentByPeriodToValidRange)
     }
 }
 
-// 자세 객체는 롤과 요의 양 끝 경계를 허용한다.
 TEST(RadarAttitudeFactoryTest, AcceptsBoundaryAnglesIncludingEndpoints)
 {
     // Given: 생성자에 전달할 입력을 준비한다.

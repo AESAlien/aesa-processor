@@ -89,7 +89,6 @@ TEST(SearchGridTest, DefaultGridWrapsAfterExpectedBeamCount)
     EXPECT_EQ(afterWrapped.beamId, 1u);
 }
 
-// 격자의 빔 ID는 0부터 연속으로 증가한다.
 TEST(SearchGridTest, BeamIdsAreSequentialFromZero)
 {
     // Given: 격자의 자세 변환을 준비한다.
@@ -106,7 +105,6 @@ TEST(SearchGridTest, BeamIdsAreSequentialFromZero)
     }
 }
 
-// 영 자세 격자는 설정된 각도 간격과 순서를 유지한다.
 TEST(SearchGridTest, ZeroAttitudeKeepsFixedGrid)
 {
     // Given: 격자의 자세 변환을 준비한다.
@@ -125,7 +123,6 @@ TEST(SearchGridTest, ZeroAttitudeKeepsFixedGrid)
     }
 }
 
-// 격자는 낮은 고각의 왼쪽 방위각부터 탐색한다.
 TEST(SearchGridTest, GridOrderStartsLowElevationLeftAzimuth)
 {
     // Given: 격자의 자세 변환을 준비한다.
@@ -150,7 +147,6 @@ TEST(SearchGridTest, GridOrderStartsLowElevationLeftAzimuth)
     EXPECT_EQ(beams[188].direction_enu.elevation, 38.2_deg);
 }
 
-// 격자의 각 방향은 주어진 요 회전을 반영한다.
 TEST(SearchGridTest, YawShiftsAzimuthsBySameAngle)
 {
     // Given: 격자의 자세 변환을 준비한다.
@@ -171,7 +167,6 @@ TEST(SearchGridTest, YawShiftsAzimuthsBySameAngle)
     }
 }
 
-// 격자는 각 셀의 안테나 방향을 ENU 방향으로 변환한다.
 TEST(SearchGridTest, GridMatchesAnglesConvertedToEnuFrame)
 {
     // Given: 격자의 자세 변환을 준비한다.
@@ -193,7 +188,6 @@ TEST(SearchGridTest, GridMatchesAnglesConvertedToEnuFrame)
     }
 }
 
-// 격자의 ENU 방향을 역변환하면 설정된 셀의 방향과 일치한다.
 TEST(SearchGridTest, BeamsConvertedBackToAntennaFrameRestoreGrid)
 {
     // Given: 격자의 자세 변환을 준비한다.
@@ -212,7 +206,6 @@ TEST(SearchGridTest, BeamsConvertedBackToAntennaFrameRestoreGrid)
     }
 }
 
-// 시나리오 자세의 격자는 기준 로그의 탐색 방향과 일치한다.
 TEST(SearchGridTest, ScenarioAttitudeMatchesReferenceBeamAngles)
 {
     // Given: 격자의 자세 변환을 준비한다.
@@ -235,7 +228,6 @@ TEST(SearchGridTest, ScenarioAttitudeMatchesReferenceBeamAngles)
     EXPECT_EQ(beams[188].direction_enu.elevation, 38.2_deg);
 }
 
-// 사용자 격자는 설정한 빔 개수만큼 ID를 순환한다.
 TEST(SearchGridTest, CustomGridChangesBeamCountAndIds)
 {
     // Given: 검사할 설정과 탐색 상태를 준비한다.
@@ -257,7 +249,6 @@ TEST(SearchGridTest, CustomGridChangesBeamCountAndIds)
     EXPECT_EQ(grid.nextBeam().beamId, 0u);
 }
 
-// 사용자 격자는 설정한 시작각과 간격 및 빔 폭을 반영한다.
 TEST(SearchGridTest, CustomGridUsesConfiguredStartStepAndWidth)
 {
     // Given: 검사할 설정과 탐색 상태를 준비한다.
@@ -291,7 +282,6 @@ TEST(SearchGridTest, CustomGridUsesConfiguredStartStepAndWidth)
     }
 }
 
-// 단일 빔 격자는 큰 각도 간격을 사용하지 않고 같은 빔을 순환한다.
 TEST(SearchGridTest, LargeStepWithSingleBeamPerAxisIsAccepted)
 {
     // Given: 검사할 설정과 탐색 상태를 준비한다.
@@ -313,7 +303,6 @@ TEST(SearchGridTest, LargeStepWithSingleBeamPerAxisIsAccepted)
     EXPECT_EQ(grid.nextBeam().beamId, 0u);
 }
 
-// 단일 빔 격자는 매번 같은 빔을 반환한다.
 TEST(SearchGridTest, SingleBeamGridReturnsTheSameBeamEveryTime)
 {
     // Given: 검사할 설정과 탐색 상태를 준비한다.

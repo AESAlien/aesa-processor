@@ -76,7 +76,6 @@ TEST(LinearAccelerationTest, AbsReturnsNonnegativeAcceleration)
     EXPECT_EQ(math::abs(2_mps2), 2_mps2);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LinearAccelerationTest, RejectsInvalidScalarArithmetic)
 {
     const auto maximum = math::LinearAcceleration::fromMetersPerSecondSquared(
@@ -89,7 +88,6 @@ TEST(LinearAccelerationTest, RejectsInvalidScalarArithmetic)
     EXPECT_THROW(maximum / -0.0, std::domain_error);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LinearAccelerationTest, CompoundArithmeticPreservesValueOnFailure)
 {
     const auto maximum = math::LinearAcceleration::fromMetersPerSecondSquared(
@@ -106,7 +104,6 @@ TEST(LinearAccelerationTest, CompoundArithmeticPreservesValueOnFailure)
     EXPECT_EQ(acceleration, maximum);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(LinearAccelerationTest, RejectsNonfiniteValuesAndResults)
 {
     const double maximum = std::numeric_limits<double>::max();

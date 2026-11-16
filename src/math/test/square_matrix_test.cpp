@@ -383,7 +383,6 @@ TEST(SquareMatrixTest, AppliesCombinedPolicyToOrthogonalityAndRotation)
     EXPECT_FALSE(reflection.isRotation(combined));
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(SquareMatrixTest, RejectsNonSquareInputs)
 {
     EXPECT_THROW((math::SquareMatrix(math::Matrix(2, 3))), std::invalid_argument);
@@ -393,7 +392,6 @@ TEST(SquareMatrixTest, RejectsNonSquareInputs)
     EXPECT_THROW((math::SquareMatrix{{1.0, 2.0}, {3.0}}), std::invalid_argument);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(SquareMatrixTest, RejectsInvalidPolicyBeforeInspectingValues)
 {
     for (double invalid : {-1.0, std::numeric_limits<double>::infinity(),
@@ -404,7 +402,6 @@ TEST(SquareMatrixTest, RejectsInvalidPolicyBeforeInspectingValues)
     }
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(SquareMatrixTest, RejectsInvalidCholeskyInputs)
 {
     EXPECT_THROW(math::cholesky(math::SquareMatrix{{1.0, 2.0}, {0.0, 1.0}}), std::domain_error);
@@ -415,7 +412,6 @@ TEST(SquareMatrixTest, RejectsInvalidCholeskyInputs)
         std::domain_error);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(SquareMatrixTest, RejectsInvalidLowerTriangularSystems)
 {
     EXPECT_THROW(
@@ -437,7 +433,6 @@ TEST(SquareMatrixTest, RejectsInvalidLowerTriangularSystems)
         std::domain_error);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(SquareMatrixTest, RejectsNonfiniteLowerTriangularSolutions)
 {
     const double maximum = std::numeric_limits<double>::max();
@@ -448,7 +443,6 @@ TEST(SquareMatrixTest, RejectsNonfiniteLowerTriangularSolutions)
         std::domain_error);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(SquareMatrixTest, RejectsInvalidUpperTriangularSystems)
 {
     EXPECT_THROW(
@@ -470,7 +464,6 @@ TEST(SquareMatrixTest, RejectsInvalidUpperTriangularSystems)
         std::domain_error);
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(SquareMatrixTest, RejectsNonfiniteUpperTriangularSolutions)
 {
     const double maximum = std::numeric_limits<double>::max();

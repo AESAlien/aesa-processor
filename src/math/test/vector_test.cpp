@@ -195,7 +195,6 @@ TEST(VectorTest, ChecksWhetherAllElementsAreFinite)
     EXPECT_FALSE(vector.isFinite());
 }
 
-// 예외 입력과 경계 조건을 올바르게 처리하는지 검증한다.
 TEST(VectorTest, RejectsMatricesWithoutExactlyOneColumn)
 {
     EXPECT_THROW((math::Vector(math::Matrix(1, 3))), std::invalid_argument);

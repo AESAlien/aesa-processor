@@ -26,7 +26,7 @@ namespace beam
 //
 // 상태:
 // - OFF에서도 최신 AttitudeFrame을 저장하고, next()는 std::nullopt를 반환한다.
-// - OFF에서 ON으로 바뀌면 요청 큐, 송신 횟수, 탐색 순서를 초기화한다.
+// - OFF에서 ON으로 바뀌면 최신 AttitudeFrame을 유지한 채 요청 큐, 송신 횟수, 탐색 순서를 초기화한다.
 // - ON이고 AttitudeFrame을 받은 상태에서만 빔을 송신한다.
 class BeamScheduler
 {

@@ -97,7 +97,6 @@ math::Angle gridElevation(std::size_t index)
 
 } // namespace
 
-// 스케줄러는 초기 상태에서 송신 명령을 반환하지 않는다.
 TEST(BeamSchedulerTest, ReturnsNothingInitially)
 {
     // Given: 검사할 운용 상태의 스케줄러를 준비한다.
@@ -110,7 +109,6 @@ TEST(BeamSchedulerTest, ReturnsNothingInitially)
     EXPECT_FALSE(command.has_value());
 }
 
-// 스케줄러는 켜져 있어도 자세 프레임이 없으면 송신하지 않는다.
 TEST(BeamSchedulerTest, ReturnsNothingWhenOnButAttitudeFrameNotReceived)
 {
     // Given: 검사할 운용 상태의 스케줄러를 준비한다.
@@ -139,7 +137,6 @@ TEST(BeamSchedulerTest, UsesLatestAttitudeFrameReceivedWhileOff)
     EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0) + 10_deg));
 }
 
-// 켜진 뒤 자세 프레임을 받으면 스케줄러가 송신할 수 있다.
 TEST(BeamSchedulerTest, AttitudeFrameAfterOnMakesBeamSchedulerReady)
 {
     // Given: 검사할 운용 상태의 스케줄러를 준비한다.
@@ -154,7 +151,6 @@ TEST(BeamSchedulerTest, AttitudeFrameAfterOnMakesBeamSchedulerReady)
     EXPECT_TRUE(command.has_value());
 }
 
-// 스케줄러는 운용을 끄면 송신을 중단한다.
 TEST(BeamSchedulerTest, ReturnsNothingAfterTurnedOff)
 {
     // Given: 검사에 필요한 운용 상태와 요청 또는 자세 프레임을 준비한다.
@@ -182,7 +178,6 @@ TEST(BeamSchedulerTest, AppliesSecondAttitudeFrameWhileOn)
     EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0) + 10_deg));
 }
 
-// 요청이 없는 스케줄러는 격자 순서로 탐색 빔을 송신한다.
 TEST(BeamSchedulerTest, ReturnsSearchBeamsInGridOrderWhenNoRequests)
 {
     // Given: 검사에 필요한 운용 상태와 요청 또는 자세 프레임을 준비한다.
@@ -205,7 +200,6 @@ TEST(BeamSchedulerTest, ReturnsSearchBeamsInGridOrderWhenNoRequests)
     }
 }
 
-// 스케줄러는 마지막 탐색 빔 다음에 첫 빔을 송신한다.
 TEST(BeamSchedulerTest, SearchCursorWrapsAroundAfterLastBeam)
 {
     // Given: 검사에 필요한 운용 상태와 요청 또는 자세 프레임을 준비한다.
@@ -246,7 +240,6 @@ TEST(BeamSchedulerTest, SearchBeamTransmitTimeIsCurrentTime)
     EXPECT_EQ(second->transmitTime, 1240ms);
 }
 
-// 스케줄러는 전달받은 자세 프레임의 탐색 방향을 송신한다.
 TEST(BeamSchedulerTest, SearchBeamsFollowGivenSearchGrid)
 {
     // Given: 검사에 필요한 운용 상태와 요청 또는 자세 프레임을 준비한다.
@@ -263,7 +256,6 @@ TEST(BeamSchedulerTest, SearchBeamsFollowGivenSearchGrid)
     EXPECT_EQ(command->direction_ant.elevation, gridElevation(0));
 }
 
-// 스케줄러는 확인 요청을 확인 빔 명령으로 송신한다.
 TEST(BeamSchedulerTest, ConfirmationRequestProducesConfirmationBeam)
 {
     // Given: 검사에 필요한 운용 상태와 요청 또는 자세 프레임을 준비한다.
@@ -285,7 +277,6 @@ TEST(BeamSchedulerTest, ConfirmationRequestProducesConfirmationBeam)
     EXPECT_EQ(command->beamWidth.elevation, 3_deg);
 }
 
-// 스케줄러는 추적 요청을 추적 빔 명령으로 송신한다.
 TEST(BeamSchedulerTest, TrackingRequestProducesTrackingBeam)
 {
     // Given: 검사에 필요한 운용 상태와 요청 또는 자세 프레임을 준비한다.
@@ -353,7 +344,6 @@ TEST(BeamSchedulerTest, RequestBeamDoesNotAdvanceSearchCursor)
     EXPECT_EQ(search->beamId, 2u);
 }
 
-// 지연된 요청 명령의 송신 시각은 현재 틱의 시각이다.
 TEST(BeamSchedulerTest, DelayedRequestUsesCurrentTimeAsTransmitTime)
 {
     // Given: 검사에 필요한 운용 상태와 요청 또는 자세 프레임을 준비한다.
@@ -482,7 +472,6 @@ TEST(BeamSchedulerTest, CommandCountDoesNotIncreaseWhenNothingIsSent)
     EXPECT_EQ(first->commandCount, 1u);
 }
 
-// 꺼진 상태에서 받은 요청은 이후 운용에 남지 않는다.
 TEST(BeamSchedulerTest, RequestWhileOffIsIgnored)
 {
     // Given: 검사할 운용 상태의 스케줄러를 준비한다.
@@ -499,7 +488,6 @@ TEST(BeamSchedulerTest, RequestWhileOffIsIgnored)
     EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
 }
 
-// 자세 프레임 전에 받은 요청은 이후 송신되지 않는다.
 TEST(BeamSchedulerTest, RequestBeforeAttitudeFrameIsIgnored)
 {
     // Given: 검사할 운용 상태의 스케줄러를 준비한다.
@@ -552,7 +540,6 @@ TEST(BeamSchedulerTest, AddRequestReturnsAcceptedWhenQueued)
     EXPECT_EQ(command->beamId, request.requestId());
 }
 
-// 스케줄러는 영역 밖 요청을 거부하고 탐색을 계속한다.
 TEST(BeamSchedulerTest, RequestOutsideCoverageIsNotQueued)
 {
     // Given: 검사할 자세 프레임을 받은 스케줄러를 준비한다.
@@ -575,7 +562,6 @@ TEST(BeamSchedulerTest, RequestOutsideCoverageIsNotQueued)
     EXPECT_EQ(command->beamId, 0u);
 }
 
-// 스케줄러는 받은 자세 프레임의 영역 판정으로 요청을 접수한다.
 TEST(BeamSchedulerTest, CoverageIsJudgedInAntennaFrameOfReceivedAttitude)
 {
     // Given: 검사할 자세 프레임을 받은 스케줄러를 준비한다.
@@ -641,7 +627,6 @@ TEST(BeamSchedulerTest, TurningOnAgainResetsScheduleAndKeepsAttitude)
     EXPECT_TRUE(first->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0) + 10_deg));
 }
 
-// 켜진 상태에서 다시 켜도 탐색 순서와 명령 수는 유지된다.
 TEST(BeamSchedulerTest, TurningOnWhileAlreadyOnKeepsState)
 {
     // Given: 검사에 필요한 운용 상태와 요청 또는 자세 프레임을 준비한다.
@@ -660,7 +645,6 @@ TEST(BeamSchedulerTest, TurningOnWhileAlreadyOnKeepsState)
     EXPECT_EQ(command->commandCount, 2u);
 }
 
-// 꺼진 상태에서 다시 꺼도 이후 정상 운용할 수 있다.
 TEST(BeamSchedulerTest, TurningOffWhileAlreadyOffDoesNothing)
 {
     // Given: 검사할 운용 상태의 스케줄러를 준비한다.

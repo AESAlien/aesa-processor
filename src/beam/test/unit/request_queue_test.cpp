@@ -58,7 +58,6 @@ TEST(RequestQueueTest, FutureRequestIsNotPoppedAndStaysQueued)
     EXPECT_EQ(due->transmitTime(), 1010ms);
 }
 
-// 예정 시각이 현재 시각인 요청은 바로 반환된다.
 TEST(RequestQueueTest, RequestExactlyAtCurrentTimeIsDue)
 {
     // Given: 검사할 시각과 우선순위를 가진 요청들을 큐에 넣는다.
@@ -89,7 +88,6 @@ TEST(RequestQueueTest, PoppedRequestIsRemovedFromQueue)
     EXPECT_FALSE(second.has_value());
 }
 
-// 큐는 삽입 순서와 관계없이 송신 시각 순으로 요청을 반환한다.
 TEST(RequestQueueTest, EarliestDueRequestComesFirstRegardlessOfInsertionOrder)
 {
     // Given: 순서를 구분할 수 있는 여러 요청을 큐에 넣는다.
@@ -135,7 +133,6 @@ TEST(RequestQueueTest, SameTransmitTimeHigherPriorityComesFirst)
     EXPECT_EQ(second->requestId(), 1u);
 }
 
-// 송신 시각과 우선순위가 같은 요청은 삽입 순서대로 반환된다.
 TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
 {
     // Given: 순서를 구분할 수 있는 여러 요청을 큐에 넣는다.
@@ -158,7 +155,6 @@ TEST(RequestQueueTest, SameTransmitTimeAndTypeKeepsInsertionOrder)
     EXPECT_TRUE(request3->direction_enu().azimuth.isEquivalentTo(3_deg));
 }
 
-// 우선순위보다 이른 송신 시각을 먼저 적용한다.
 TEST(RequestQueueTest, EarlierTrackingStillComesBeforeLaterConfirmation)
 {
     // Given: 검사할 시각과 우선순위를 가진 요청들을 큐에 넣는다.
@@ -174,7 +170,6 @@ TEST(RequestQueueTest, EarlierTrackingStillComesBeforeLaterConfirmation)
     EXPECT_EQ(request->transmitBeamType(), beam::BeamType::TRACKING);
 }
 
-// 오래 기다린 요청도 큐에서 만료되지 않는다.
 TEST(RequestQueueTest, VeryOldRequestIsStillPopped)
 {
     // Given: 검사할 시각과 우선순위를 가진 요청들을 큐에 넣는다.
@@ -195,7 +190,6 @@ TEST(RequestQueueTest, VeryOldRequestIsStillPopped)
     EXPECT_FALSE(queue.popNextDue(100000ms).has_value());
 }
 
-// 몰린 요청도 손실 없이 시각과 우선순위 순서로 반환된다.
 TEST(RequestQueueTest, CrowdedRequestsAreAllPoppedInTimeOrderWithoutDrop)
 {
     // Given: 검사할 시각과 우선순위를 가진 요청들을 큐에 넣는다.
@@ -222,7 +216,6 @@ TEST(RequestQueueTest, CrowdedRequestsAreAllPoppedInTimeOrderWithoutDrop)
     EXPECT_FALSE(queue.popNextDue(5000ms).has_value());
 }
 
-// 큐 초기화는 현재 요청과 미래 요청을 모두 제거한다.
 TEST(RequestQueueTest, ClearRemovesAllRequests)
 {
     // Given: 검사할 시각과 우선순위를 가진 요청들을 큐에 넣는다.

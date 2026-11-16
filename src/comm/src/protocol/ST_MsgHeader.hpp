@@ -18,6 +18,8 @@ enum class MessageId : uint16_t
     RADAR_ATTITUDE_FROM_SIMULATOR = 0xBA02,
 };
 
+// 패킹한 프로토콜 구조체를 바이트 배열에 직접 복사한다.
+// 양단의 정수 바이트 순서와 부동소수점 표현이 일치해야 한다.
 #pragma pack(push, 1)
 struct ST_MsgHeader
 {
