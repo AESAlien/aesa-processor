@@ -64,7 +64,7 @@ if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     include(GoogleTest)
 
-    add_executable(message_queue_test test/message_queue_test.cpp)
+    add_executable(message_queue_test test/unit/queue/message_queue_test.cpp)
     configure_app_internal(message_queue_test)
     target_link_libraries(message_queue_test PRIVATE app_runtime GTest::gtest_main)
     gtest_discover_tests(message_queue_test PROPERTIES TIMEOUT 10)

@@ -48,10 +48,10 @@ if(BUILD_TESTING)
     include(GoogleTest)
 
     add_library(comm_native_socket_test_support STATIC
-        test/native_socket/native_socket_test_support.cpp
+        test/support/native_socket/native_socket_test_support.cpp
     )
     target_include_directories(comm_native_socket_test_support PUBLIC
-        "${CMAKE_CURRENT_SOURCE_DIR}/test"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test/support"
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
     target_link_libraries(comm_native_socket_test_support PRIVATE
@@ -60,7 +60,7 @@ if(BUILD_TESTING)
     )
 
     add_executable(comm_message_decoder_test
-        test/unit/message_decoder_test.cpp
+        test/unit/message/message_decoder_test.cpp
     )
     target_include_directories(comm_message_decoder_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -71,7 +71,7 @@ if(BUILD_TESTING)
     )
     gtest_discover_tests(comm_message_decoder_test)
 
-    add_executable(comm_socket_test test/socket_test.cpp)
+    add_executable(comm_socket_test test/integration/socket/socket_test.cpp)
     target_include_directories(comm_socket_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
@@ -83,7 +83,7 @@ if(BUILD_TESTING)
     )
     gtest_discover_tests(comm_socket_test)
 
-    add_executable(comm_socket_error_test test/socket_error_test.cpp)
+    add_executable(comm_socket_error_test test/unit/socket/socket_error_test.cpp)
     target_include_directories(comm_socket_error_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
@@ -94,14 +94,14 @@ if(BUILD_TESTING)
     )
     gtest_discover_tests(comm_socket_error_test)
 
-    add_executable(comm_config_test test/unit/comm_config_test.cpp)
+    add_executable(comm_config_test test/unit/config/comm_config_test.cpp)
     target_link_libraries(comm_config_test PRIVATE
         comm
         GTest::gtest_main
     )
     gtest_discover_tests(comm_config_test)
 
-    add_executable(comm_message_encoder_test test/unit/message_encoder_test.cpp)
+    add_executable(comm_message_encoder_test test/unit/message/message_encoder_test.cpp)
     target_include_directories(comm_message_encoder_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
@@ -111,7 +111,7 @@ if(BUILD_TESTING)
     )
     gtest_discover_tests(comm_message_encoder_test)
 
-    add_executable(comm_message_framer_test test/unit/message_framer_test.cpp)
+    add_executable(comm_message_framer_test test/unit/message/message_framer_test.cpp)
     target_include_directories(comm_message_framer_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
