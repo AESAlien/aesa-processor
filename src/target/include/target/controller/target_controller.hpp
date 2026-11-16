@@ -8,6 +8,7 @@
 #include <spdlog/logger.h>
 
 #include <chrono>
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -18,6 +19,7 @@ namespace target
 class DetectionHandler;
 class DetectionEventLogger;
 class TrackExpirationHandler;
+class TrackRepository;
 class TrackReporter;
 
 class TargetController
@@ -36,7 +38,12 @@ public:
     void removeExpiredTracks(std::chrono::milliseconds currentTime);
     std::vector<TrackEvent> getTrackEvents() const;
 
+    // 잠정-확정 트랙과 탐색 결과 기록을 모두 지우고 삭제한 트랙 수를 반환한다.
+    // 트랙 ID 순번은 유지하므로 클리어 전에 요청한 빔의 결과가 늦게 와도 무시된다.
+    std::size_t clearTracks();
+
 private:
+    std::shared_ptr<TrackRepository> _trackRepository;
     std::shared_ptr<DetectionHandler> _detectionHandler;
     std::shared_ptr<TrackExpirationHandler> _trackExpirationHandler;
     std::shared_ptr<TrackReporter> _trackReporter;

@@ -24,6 +24,9 @@ public:
     const ConfirmedTrack* findConfirmedTrack(std::uint32_t id) const;
     bool replace(ConfirmedTrack confirmedTrack);
     bool remove(std::uint32_t id);
+    // 잠정-확정 트랙을 모두 삭제하고 삭제한 개수를 반환한다.
+    // 새 ID 순번은 유지해 삭제 전에 송신한 빔의 늦은 결과가 새 트랙에 연결되지 않게 한다.
+    std::size_t clear();
     const std::list<Track>& tracks() const;
 
     // 두 조회 모두 등록 순서로 반환한다. 트랙을 교체하거나 삭제하면 해당 포인터는 무효가 된다.
