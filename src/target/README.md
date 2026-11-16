@@ -1,6 +1,40 @@
 # 타겟 추적(`target`) 모듈
 
-## 입출력 인터페이스
+## 디렉터리 구조
+
+```text
+target/
+├── include/
+│   └── target/
+│       ├── config/
+│       ├── controller/      # 모듈 호출 진입점
+│       └── dto/
+│           └── log/
+├── src/
+│   ├── domain/              # 도메인 모델과 규칙
+│   │   ├── association/     # 관측과 트랙의 연관 판정
+│   │   ├── factory/
+│   │   └── tracking/        # 트랙 상태 추정과 위치 불확실성 계산
+│   ├── dto/
+│   │   └── factory/
+│   ├── repository/          # 도메인 객체의 저장과 조회
+│   └── service/             # 도메인 동작을 조합하는 처리 흐름
+└── test/
+    ├── unit/                # 단위 테스트
+    │   ├── domain/
+    │   │   └── association/
+    │   └── repository/
+    ├── integration/         # 통합 테스트
+    │   ├── config/
+    │   ├── controller/
+    │   ├── domain/
+    │   │   ├── association/
+    │   │   └── tracking/
+    │   └── service/
+    └── support/             # 공용 보조 코드
+```
+
+## 데이터 플로우 다이어그램
 
 ```mermaid
 flowchart LR

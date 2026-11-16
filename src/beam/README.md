@@ -1,6 +1,39 @@
 # 빔 스케줄링(`beam`) 모듈
 
-## 입출력 인터페이스
+## 디렉터리 구조
+
+```text
+beam/
+├── include/
+│   └── beam/
+│       ├── config/
+│       ├── controller/      # 모듈 호출 진입점
+│       ├── domain/          # 도메인 모델과 규칙
+│       └── dto/
+│           └── log/
+├── src/
+│   └── domain/
+│       ├── request/         # 요청 빔 데이터와 대기열, 영역 판정
+│       ├── scheduler/       # 운용 상태와 송신 순서 관리
+│       └── search/          # 탐색 빔 격자와 순회 상태
+└── test/
+    ├── unit/                # 단위 테스트
+    │   ├── config/
+    │   ├── controller/
+    │   ├── domain/
+    │   │   └── request/
+    │   └── dto/
+    ├── integration/         # 통합 테스트
+    │   ├── controller/
+    │   └── domain/
+    │       ├── request/
+    │       ├── scheduler/
+    │       └── search/
+    ├── scenario/            # 테스트와 시각화 도구가 공유하는 시나리오
+    └── tools/               # 데이터 출력과 시각화
+```
+
+## 데이터 플로우 다이어그램
 
 ```mermaid
 flowchart LR
