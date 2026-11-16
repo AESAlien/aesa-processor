@@ -1,14 +1,10 @@
-name: Auto-approve PR
+name: Manual PR approval
 
 on:
-  pull_request_target:
-    branches:
-      - main
-    types: [opened, reopened, synchronize, ready_for_review, edited]
   workflow_dispatch:
     inputs:
       pr_number:
-        description: Number of the closed pull request
+        description: Number of the closed or merged pull request
         required: true
         type: number
 
@@ -17,15 +13,10 @@ permissions: {}
 jobs:
   approve:
     name: Approve Pull Request
-    if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'pull_request_target' &&
-       github.event.pull_request.user.id == 84899666 &&
-       !github.event.pull_request.draft &&
-       (github.event.action != 'edited' || github.event.changes.base.ref.from))
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency:
-      group: auto-approve-${{ inputs.pr_number || github.event.pull_request.number }}
+      group: manual-approve-${{ inputs.pr_number }}
     permissions:
       pull-requests: write
 
@@ -33,22 +24,19 @@ jobs:
       - name: Approve current PR commit
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
-          EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ inputs.pr_number }}
         run: |
           if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
             echo 'A positive pull request number is required.' >&2
             exit 1
           fi
 
-          # GitHub account ID 84899666 belongs to @sin6708k.
           candidate=$(gh api graphql \
             -F owner="$GITHUB_REPOSITORY_OWNER" -F repo="${GITHUB_REPOSITORY#*/}" \
             -F number="$PR_NUMBER" -f query='
               query($owner: String!, $repo: String!, $number: Int!) {
                 repository(owner: $owner, name: $repo) {
                   pullRequest(number: $number) {
-                    author { ... on User { databaseId } }
                     baseRefName
                     headRefOid
                     isDraft
@@ -61,8 +49,8 @@ jobs:
                 }
               }' --jq '
                 .data.repository.pullRequest
-                | select(.author.databaseId == 84899666 and .baseRefName == "main"
-                    and .isDraft == false and .reviewDecision == "REVIEW_REQUIRED")
+                | select(.baseRefName == "main" and .isDraft == false
+                    and .reviewDecision == "REVIEW_REQUIRED")
                 | select(.headRefOid != .reviews.nodes[0].commit.oid)
                 | [.state, .headRefOid] | @tsv')
           if [[ -z "$candidate" ]]; then
@@ -71,17 +59,12 @@ jobs:
           fi
 
           IFS=$'\t' read -r pr_state head_sha <<< "$candidate"
-          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
-            if [[ "$pr_state" != CLOSED && "$pr_state" != MERGED ]]; then
-              echo 'Skipping manual approval because the PR is open.'
-              exit 0
-            fi
-          elif [[ "$pr_state" != OPEN || "$head_sha" != "$EVENT_HEAD_SHA" ]]; then
-            echo 'Skipping approval because the PR or its head commit changed.'
+          if [[ "$pr_state" != CLOSED && "$pr_state" != MERGED ]]; then
+            echo 'Skipping manual approval because the PR is open.'
             exit 0
           fi
 
           gh api --method POST "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" --silent \
             -f event=APPROVE \
             -f commit_id="$head_sha" \
-            -f body='Automatically approved for @sin6708k.'
+            -f body='Approved through the manual GitHub Actions workflow.'
