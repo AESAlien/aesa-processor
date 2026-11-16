@@ -2,7 +2,7 @@
 #include <beam/dto/log/beam_event_logger.hpp>
 
 #include "domain/scheduler/attitude_frame.hpp"
-#include "controller/beam_request_factory.hpp"
+#include "domain/request/factory/beam_request_factory.hpp"
 #include "domain/scheduler/beam_scheduler.hpp"
 
 #include <utility>

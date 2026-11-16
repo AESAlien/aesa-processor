@@ -14,14 +14,15 @@ beam/
 ├── src/
 │   └── domain/
 │       ├── request/         # 요청 빔 데이터와 대기열, 영역 판정
+│       │   └── factory/
 │       ├── scheduler/       # 운용 상태와 송신 순서 관리
 │       └── search/          # 탐색 빔 격자와 순회 상태
 └── test/
     ├── unit/                # 단위 테스트
     │   ├── config/
-    │   ├── controller/
     │   ├── domain/
     │   │   └── request/
+    │   │       └── factory/
     │   └── dto/
     ├── integration/         # 통합 테스트
     │   ├── controller/

@@ -1,12 +1,12 @@
 add_library(beam STATIC
     src/controller/beam_controller.cpp
-    src/controller/beam_request_factory.cpp
 
     src/domain/beam_width.cpp
 
     src/domain/search/search_grid.cpp
 
     src/domain/request/beam_request.cpp
+    src/domain/request/factory/beam_request_factory.cpp
     src/domain/request/request_coverage.cpp
     src/domain/request/request_queue.cpp
 
@@ -66,7 +66,7 @@ if(BUILD_TESTING)
     gtest_discover_tests(beam_request_test)
 
     add_executable(beam_request_factory_test
-        test/unit/controller/beam_request_factory_test.cpp
+        test/unit/domain/request/factory/beam_request_factory_test.cpp
     )
     target_include_directories(beam_request_factory_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"

@@ -1,4 +1,4 @@
-#include "controller/beam_request_factory.hpp"
+#include "domain/request/factory/beam_request_factory.hpp"
 
 #include <sstream>
 #include <stdexcept>
