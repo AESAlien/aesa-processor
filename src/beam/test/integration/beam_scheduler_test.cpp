@@ -58,10 +58,9 @@ beam::AttitudeFrame makeZeroAttitudeFrame()
     return makeAttitudeFrame(0_deg, 0_deg, 0_deg);
 }
 
-// ON으로 바꾸고 AttitudeFrame까지 넣어 준비 상태로 만든다.
+// AttitudeFrame을 넣어 준비 상태로 만든다.
 void makeReady(beam::BeamScheduler& scheduler, beam::AttitudeFrame attitudeFrame)
 {
-    scheduler.setOperationState(beam::OperationState::ON);
     scheduler.setAttitudeFrame(std::move(attitudeFrame));
 }
 
@@ -100,73 +99,42 @@ math::Angle gridElevation(std::size_t index)
 // 스케줄러는 초기 상태에서 송신 명령을 반환하지 않는다.
 TEST(BeamSchedulerTest, ReturnsNothingInitially)
 {
-    // Given: 검사할 운용 상태의 스케줄러를 준비한다.
+    // Given: 자세 프레임을 받지 않은 초기 상태의 스케줄러를 준비한다.
     beam::BeamScheduler scheduler;
 
-    // When: 운용 입력을 적용하고 송신 명령을 요청한다.
+    // When: 송신 명령을 요청한다.
     const auto command = scheduler.next(0ms);
 
     // Then: 스케줄러는 초기 상태에서 송신 명령을 반환하지 않는다.
     EXPECT_FALSE(command.has_value());
 }
 
-// 스케줄러는 켜져 있어도 자세 프레임이 없으면 송신하지 않는다.
-TEST(BeamSchedulerTest, ReturnsNothingWhenOnButAttitudeFrameNotReceived)
-{
-    // Given: 검사할 운용 상태의 스케줄러를 준비한다.
-    beam::BeamScheduler scheduler;
-    scheduler.setOperationState(beam::OperationState::ON);
-
-    // When: 운용 입력을 적용하고 송신 명령을 요청한다.
-    const auto command = scheduler.next(0ms);
-
-    // Then: 스케줄러는 켜져 있어도 자세 프레임이 없으면 송신하지 않는다.
-    EXPECT_FALSE(command.has_value());
-}
-
-// OFF 중 받은 최신 자세는 다음 ON에 적용된다.
-TEST(BeamSchedulerTest, UsesLatestAttitudeFrameReceivedWhileOff)
+// 초기화해도 마지막으로 받은 자세 프레임을 그대로 사용한다.
+TEST(BeamSchedulerTest, ResetKeepsLatestAttitudeFrame)
 {
     beam::BeamScheduler scheduler;
     scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
     scheduler.setAttitudeFrame(makeAttitudeFrame(0_deg, 0_deg, 10_deg));
-    EXPECT_FALSE(scheduler.next(0ms).has_value());
 
-    scheduler.setOperationState(beam::OperationState::ON);
+    scheduler.reset();
     const auto command = scheduler.next(10ms);
 
     ASSERT_TRUE(command.has_value());
     EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0) + 10_deg));
 }
 
-// 켜진 뒤 자세 프레임을 받으면 스케줄러가 송신할 수 있다.
-TEST(BeamSchedulerTest, AttitudeFrameAfterOnMakesBeamSchedulerReady)
+// 자세 프레임을 받으면 스케줄러가 송신할 수 있다.
+TEST(BeamSchedulerTest, AttitudeFrameMakesBeamSchedulerReady)
 {
-    // Given: 검사할 운용 상태의 스케줄러를 준비한다.
+    // Given: 초기 상태의 스케줄러를 준비한다.
     beam::BeamScheduler scheduler;
-    scheduler.setOperationState(beam::OperationState::ON);
 
-    // When: 운용 입력을 적용하고 송신 명령을 요청한다.
+    // When: 자세 프레임을 적용하고 송신 명령을 요청한다.
     scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
     const auto command = scheduler.next(0ms);
 
-    // Then: 켜진 뒤 자세 프레임을 받으면 스케줄러가 송신할 수 있다.
+    // Then: 자세 프레임을 받으면 스케줄러가 송신할 수 있다.
     EXPECT_TRUE(command.has_value());
-}
-
-// 스케줄러는 운용을 끄면 송신을 중단한다.
-TEST(BeamSchedulerTest, ReturnsNothingAfterTurnedOff)
-{
-    // Given: 검사에 필요한 운용 상태와 요청 또는 자세 프레임을 준비한다.
-    beam::BeamScheduler scheduler;
-    makeReady(scheduler);
-    ASSERT_TRUE(scheduler.next(0ms).has_value());
-
-    // When: 준비된 스케줄러의 운용을 끈다.
-    scheduler.setOperationState(beam::OperationState::OFF);
-
-    // Then: 스케줄러는 운용을 끄면 송신을 중단한다.
-    EXPECT_FALSE(scheduler.next(10ms).has_value());
 }
 
 // ON 중에도 새 프레임을 적용한다.
@@ -467,9 +435,8 @@ TEST(BeamSchedulerTest, CommandCountStartsAtOneAndIncreasesPerCommand)
 // 송신하지 않은 틱은 명령 수를 증가시키지 않는다.
 TEST(BeamSchedulerTest, CommandCountDoesNotIncreaseWhenNothingIsSent)
 {
-    // Given: 켜져 있지만 자세 프레임은 없는 스케줄러를 준비한다.
+    // Given: 자세 프레임이 없는 스케줄러를 준비한다.
     beam::BeamScheduler scheduler;
-    scheduler.setOperationState(beam::OperationState::ON);
 
     // When: 준비 전의 틱을 처리한 뒤 자세 프레임을 받아 다음 틱을 처리한다.
     const auto notReady = scheduler.next(0ms);
@@ -482,31 +449,13 @@ TEST(BeamSchedulerTest, CommandCountDoesNotIncreaseWhenNothingIsSent)
     EXPECT_EQ(first->commandCount, 1u);
 }
 
-// 꺼진 상태에서 받은 요청은 이후 운용에 남지 않는다.
-TEST(BeamSchedulerTest, RequestWhileOffIsIgnored)
-{
-    // Given: 검사할 운용 상태의 스케줄러를 준비한다.
-    beam::BeamScheduler scheduler;
-    const auto request = makeRequest(beam::BeamType::TRACKING, 0ms, 3, 1_deg, 2_deg);
-
-    // When: 운용 입력을 적용하고 송신 명령을 요청한다.
-    scheduler.addRequest(request);
-    makeReady(scheduler);
-    const auto command = scheduler.next(0ms);
-
-    // Then: 꺼진 상태에서 받은 요청은 이후 운용에 남지 않는다.
-    ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
-}
-
 // 자세 프레임 전에 받은 요청은 이후 송신되지 않는다.
 TEST(BeamSchedulerTest, RequestBeforeAttitudeFrameIsIgnored)
 {
-    // Given: 검사할 운용 상태의 스케줄러를 준비한다.
+    // Given: 자세 프레임이 없는 스케줄러를 준비한다.
     beam::BeamScheduler scheduler;
-    scheduler.setOperationState(beam::OperationState::ON);
 
-    // When: 운용 입력을 적용하고 송신 명령을 요청한다.
+    // When: 요청을 넣은 뒤 자세 프레임을 적용하고 송신 명령을 요청한다.
     scheduler.addRequest(makeRequest(beam::BeamType::TRACKING, 0ms, 4, 1_deg, 2_deg));
     scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
     const auto command = scheduler.next(0ms);
@@ -516,21 +465,21 @@ TEST(BeamSchedulerTest, RequestBeforeAttitudeFrameIsIgnored)
     EXPECT_EQ(command->beamType, beam::BeamType::SEARCH);
 }
 
-// 꺼져 있거나 자세 프레임이 없으면 요청 접수 상태는 준비 전이다.
-TEST(BeamSchedulerTest, AddRequestReturnsNotReadyWhileOffOrBeforeAttitudeFrame)
+// 자세 프레임이 없으면 초기화 여부와 관계없이 요청 접수 상태는 준비 전이다.
+TEST(BeamSchedulerTest, AddRequestReturnsNotReadyBeforeAttitudeFrame)
 {
-    // Given: 꺼진 스케줄러와 접수할 요청을 준비한다.
+    // Given: 자세 프레임이 없는 스케줄러와 접수할 요청을 준비한다.
     beam::BeamScheduler scheduler;
     const auto request = makeRequest(beam::BeamType::TRACKING, 0ms, 3, 1_deg, 2_deg);
 
-    // When: 꺼진 상태와 켜진 뒤 자세 프레임을 받기 전 상태에서 요청한다.
-    const auto whileOff = scheduler.addRequest(request);
-    scheduler.setOperationState(beam::OperationState::ON);
+    // When: 자세 프레임을 받기 전과 초기화한 뒤에 요청한다.
     const auto beforeAttitude = scheduler.addRequest(request);
+    scheduler.reset();
+    const auto afterReset = scheduler.addRequest(request);
 
-    // Then: 두 상태 모두 준비 전 결과를 반환한다.
-    EXPECT_EQ(whileOff, beam::RequestBeamStatus::NOT_READY);
+    // Then: 두 경우 모두 준비 전 결과를 반환한다.
     EXPECT_EQ(beforeAttitude, beam::RequestBeamStatus::NOT_READY);
+    EXPECT_EQ(afterReset, beam::RequestBeamStatus::NOT_READY);
 }
 
 // 준비된 스케줄러는 요청을 접수하고 송신한다.
@@ -600,8 +549,8 @@ TEST(BeamSchedulerTest, CoverageIsJudgedInAntennaFrameOfReceivedAttitude)
     EXPECT_TRUE(command->direction_ant.azimuth.isEquivalentTo(72_deg));
 }
 
-// 스케줄러는 재시작 후 새 자세 프레임의 영역 판정을 사용한다.
-TEST(BeamSchedulerTest, CoverageFollowsAttitudeFrameReceivedAfterRestart)
+// 스케줄러는 초기화 후 새 자세 프레임의 영역 판정을 사용한다.
+TEST(BeamSchedulerTest, CoverageFollowsAttitudeFrameReceivedAfterReset)
 {
     // Given: 회전한 자세 프레임을 받은 스케줄러와 영역 밖 요청을 준비한다.
     beam::BeamScheduler scheduler;
@@ -609,20 +558,19 @@ TEST(BeamSchedulerTest, CoverageFollowsAttitudeFrameReceivedAfterRestart)
     const auto request = makeRequest(beam::BeamType::TRACKING, 0ms, 10, -50_deg, 0_deg);
     ASSERT_EQ(scheduler.addRequest(request), beam::RequestBeamStatus::OUT_OF_COVERAGE);
 
-    // When: 운용을 재시작하고 새 자세 프레임 전후에 같은 방향을 요청한다.
-    scheduler.setOperationState(beam::OperationState::OFF);
-    scheduler.setOperationState(beam::OperationState::ON);
+    // When: 초기화하고 새 자세 프레임 전후에 같은 방향을 요청한다.
+    scheduler.reset();
     const auto beforeAttitude = scheduler.addRequest(request);
     scheduler.setAttitudeFrame(makeZeroAttitudeFrame());
     const auto afterAttitude = scheduler.addRequest(request);
 
-    // Then: 재시작 직후에도 기존 자세를 사용하며 새 프레임이 오면 판정 영역을 바꾼다.
+    // Then: 초기화 직후에도 기존 자세를 사용하며 새 프레임이 오면 판정 영역을 바꾼다.
     EXPECT_EQ(beforeAttitude, beam::RequestBeamStatus::OUT_OF_COVERAGE);
     EXPECT_EQ(afterAttitude, beam::RequestBeamStatus::ACCEPTED);
 }
 
-// 운용 재시작 시 마지막 자세를 사용해 탐색을 처음부터 시작한다.
-TEST(BeamSchedulerTest, TurningOnAgainResetsScheduleAndKeepsAttitude)
+// 초기화하면 대기 요청을 버리고 마지막 자세로 탐색을 처음부터 시작한다.
+TEST(BeamSchedulerTest, ResetRestartsScheduleAndKeepsAttitude)
 {
     beam::BeamScheduler scheduler;
     makeReady(scheduler, makeAttitudeFrame(0_deg, 0_deg, 10_deg));
@@ -630,8 +578,7 @@ TEST(BeamSchedulerTest, TurningOnAgainResetsScheduleAndKeepsAttitude)
     scheduler.next(10ms);
     scheduler.addRequest(makeRequest(beam::BeamType::TRACKING, 1000ms, 6, 1_deg, 2_deg));
 
-    scheduler.setOperationState(beam::OperationState::OFF);
-    scheduler.setOperationState(beam::OperationState::ON);
+    scheduler.reset();
     const auto first = scheduler.next(1000ms);
 
     ASSERT_TRUE(first.has_value());
@@ -639,40 +586,6 @@ TEST(BeamSchedulerTest, TurningOnAgainResetsScheduleAndKeepsAttitude)
     EXPECT_EQ(first->beamId, 0u);
     EXPECT_EQ(first->commandCount, 1u);
     EXPECT_TRUE(first->direction_ant.azimuth.isEquivalentTo(gridAzimuth(0) + 10_deg));
-}
-
-// 켜진 상태에서 다시 켜도 탐색 순서와 명령 수는 유지된다.
-TEST(BeamSchedulerTest, TurningOnWhileAlreadyOnKeepsState)
-{
-    // Given: 검사에 필요한 운용 상태와 요청 또는 자세 프레임을 준비한다.
-    beam::BeamScheduler scheduler;
-    makeReady(scheduler);
-    scheduler.next(0ms);
-
-    // When: 켜진 스케줄러에 켜기 명령을 다시 전달한다.
-    scheduler.setOperationState(beam::OperationState::ON);
-
-    const auto command = scheduler.next(10ms);
-
-    // Then: 켜진 상태에서 다시 켜도 탐색 순서와 명령 수는 유지된다.
-    ASSERT_TRUE(command.has_value());
-    EXPECT_EQ(command->beamId, 1u);
-    EXPECT_EQ(command->commandCount, 2u);
-}
-
-// 꺼진 상태에서 다시 꺼도 이후 정상 운용할 수 있다.
-TEST(BeamSchedulerTest, TurningOffWhileAlreadyOffDoesNothing)
-{
-    // Given: 검사할 운용 상태의 스케줄러를 준비한다.
-    beam::BeamScheduler scheduler;
-
-    // When: 운용 입력을 적용하고 송신 명령을 요청한다.
-    scheduler.setOperationState(beam::OperationState::OFF);
-    makeReady(scheduler);
-    const auto command = scheduler.next(0ms);
-
-    // Then: 꺼진 상태에서 다시 꺼도 이후 정상 운용할 수 있다.
-    EXPECT_TRUE(command.has_value());
 }
 
 // BeamScheduler는 요청에 담긴 빔 폭을 송신 명령에 전달한다.
@@ -703,25 +616,6 @@ TEST(BeamSchedulerTest, RequestBeamWidthFollowsEachRequest)
     EXPECT_EQ(tracking->beamType, beam::BeamType::TRACKING);
     EXPECT_EQ(tracking->beamWidth.azimuth, 4_deg);
     EXPECT_EQ(tracking->beamWidth.elevation, 5_deg);
-}
-
-// 스케줄러는 운용 상태가 바뀔 때만 CHANGED를 반환한다.
-TEST(BeamSchedulerTest, SetOperationStateReturnsChangedOnlyWhenStateChanges)
-{
-    // Given: 초기 상태(OFF)의 스케줄러를 준비한다.
-    beam::BeamScheduler scheduler;
-
-    // When: 같은 상태와 다른 상태를 번갈아 전달한다.
-    const auto offWhileOff = scheduler.setOperationState(beam::OperationState::OFF);
-    const auto onWhileOff = scheduler.setOperationState(beam::OperationState::ON);
-    const auto onWhileOn = scheduler.setOperationState(beam::OperationState::ON);
-    const auto offWhileOn = scheduler.setOperationState(beam::OperationState::OFF);
-
-    // Then: 상태가 바뀐 경우만 CHANGED, 같은 상태는 UNCHANGED를 반환한다.
-    EXPECT_EQ(offWhileOff, beam::SetOperationStateStatus::UNCHANGED);
-    EXPECT_EQ(onWhileOff, beam::SetOperationStateStatus::CHANGED);
-    EXPECT_EQ(onWhileOn, beam::SetOperationStateStatus::UNCHANGED);
-    EXPECT_EQ(offWhileOn, beam::SetOperationStateStatus::CHANGED);
 }
 
 TEST(BeamSchedulerTest, RechecksPendingRequestsAgainstUpdatedCoverage)

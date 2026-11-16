@@ -37,21 +37,6 @@ TransmitBeamCommand makeRequestCommand(
 }
 } // namespace
 
-SetOperationStateStatus BeamScheduler::setOperationState(OperationState state)
-{
-    if (state == _operationState)
-    {
-        return SetOperationStateStatus::UNCHANGED;
-    }
-
-    if (state == OperationState::ON)
-    {
-        reset();
-    }
-    _operationState = state;
-    return SetOperationStateStatus::CHANGED;
-}
-
 void BeamScheduler::setAttitudeFrame(AttitudeFrame attitudeFrame)
 {
     _attitudeFrame.emplace(std::move(attitudeFrame));
@@ -95,7 +80,7 @@ std::optional<TransmitBeamCommand> BeamScheduler::next(std::chrono::milliseconds
 
 bool BeamScheduler::isReady() const
 {
-    return _operationState == OperationState::ON && _attitudeFrame.has_value();
+    return _attitudeFrame.has_value();
 }
 
 void BeamScheduler::reset()

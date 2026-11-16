@@ -37,7 +37,9 @@ void CommReceiveWorker::writeOutput(CommReceiveOutput output)
     }
     else if (auto* command = std::get_if<beam::SetOperationStateCommand>(&output))
     {
-        _beamQueue.write(std::move(*command));
+        // 빔과 타겟이 각자 자기 큐 순서대로 운용 상태를 반영하도록 양쪽에 보낸다.
+        _beamQueue.write(*command);
+        _targetQueue.write(std::move(*command));
     }
     else if (auto* event = std::get_if<target::DetectionEvent>(&output))
     {

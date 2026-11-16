@@ -5,6 +5,7 @@
 #include "dto/target_input.hpp"
 #include "dto/beam_input.hpp"
 #include "dto/console_input.hpp"
+#include "operation/operation_state_gate.hpp"
 #include "queue/message_queue.hpp"
 #include <target/controller/target_controller.hpp>
 #include <vector>
@@ -27,17 +28,21 @@ public:
         MessageQueue<TargetInput>& targetQueue,
         MessageQueue<BeamInput>& beamQueue,
         MessageQueue<ConsoleInput>& consoleQueue,
-        std::shared_ptr<spdlog::logger> logger
+        std::shared_ptr<spdlog::logger> logger,
+        std::shared_ptr<spdlog::logger> operationLogger
     );
 
 private:
     TargetInput readInput() override;
     std::optional<TargetOutput> process(TargetInput input) override;
     void writeOutput(TargetOutput output) override;
+    void applyOperationState(beam::OperationState state);
 
     target::TargetController& _controller;
     MessageQueue<TargetInput>& _targetQueue;
     MessageQueue<BeamInput>& _beamQueue;
     MessageQueue<ConsoleInput>& _consoleQueue;
+    std::shared_ptr<spdlog::logger> _operationLogger;
+    OperationStateGate _operationState;
 };
 } // namespace app
