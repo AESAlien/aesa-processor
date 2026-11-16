@@ -2,7 +2,7 @@
 
 #include "dto/tick_event.hpp"
 #include <beam/dto/set_operation_state_command.hpp>
-#include <beam/dto/set_attitude_command.hpp>
+#include <pose/dto/set_ant_enu_transform_command.hpp>
 #include <beam/dto/request_beam_command.hpp>
 #include <variant>
 
@@ -10,7 +10,7 @@ namespace app
 {
 using BeamInput = std::variant<
     beam::SetOperationStateCommand,
-    beam::SetAttitudeCommand,
+    pose::SetAntEnuTransformCommand,
     beam::RequestBeamCommand,
     TickEvent
 >;

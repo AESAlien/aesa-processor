@@ -217,7 +217,7 @@ TEST(MessageDecoderTest, DecodesRadarAttitudeAndConvertsAltitudeToMeters)
     // 검증: 각 축이 뒤바뀌지 않고 고도는 1250미터인 자세 명령을 반환한다.
     ASSERT_EQ(result.error, comm::DecodingError::NONE);
     ASSERT_TRUE(result.message.has_value());
-    const auto* command = std::get_if<beam::SetAttitudeCommand>(&*result.message);
+    const auto* command = std::get_if<pose::SetRadarPoseCommand>(&*result.message);
     ASSERT_NE(command, nullptr);
     EXPECT_DOUBLE_EQ(command->latitude.deg(), 37.5);
     EXPECT_DOUBLE_EQ(command->longitude.deg(), 127.25);

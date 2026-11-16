@@ -123,11 +123,16 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
             )
         );
         ASSERT_TRUE(tracking.has_value());
-        const auto events = controller.nextTrackEvents();
+        EXPECT_TRUE(controller.getTrackEvents().empty());
+        controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+            pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(127_deg), 100_m))
+        ));
+        const auto events = controller.getTrackEvents();
         ASSERT_EQ(events.size(), 1u);
         EXPECT_DOUBLE_EQ(events[0].speed.mps(), displacement);
-        EXPECT_DOUBLE_EQ(events[0].latitude.deg(), 0.0);
-        EXPECT_DOUBLE_EQ(events[0].longitude.deg(), 0.0);
+        EXPECT_NEAR(events[0].latitude.deg(), (100.0 + displacement) / 110576.02, 1e-8);
+        EXPECT_NEAR(events[0].longitude.deg(), 127.0, 1e-9);
+        EXPECT_NEAR(events[0].altitude.m(), 100.0008, 0.00002);
         EXPECT_DOUBLE_EQ(events[0].heading.deg(), 0.0);
         EXPECT_DOUBLE_EQ(events[0].flightPathAngle.deg(), 0.0);
     }
@@ -146,6 +151,9 @@ TEST(ImmutableGeometryTest, ReportsNormalizedWestboundHeadingAndSignedFlightPath
                 target::TrackManagementConfig(100ms, 1000ms, 3, 100)
             )
         );
+        controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+            pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+        ));
         const auto confirmation = controller.handleDetection(
             target::DetectionEvent(
                 BeamType::SEARCH,
@@ -166,7 +174,7 @@ TEST(ImmutableGeometryTest, ReportsNormalizedWestboundHeadingAndSignedFlightPath
         );
         ASSERT_TRUE(tracking.has_value());
 
-        const auto events = controller.nextTrackEvents();
+        const auto events = controller.getTrackEvents();
 
         ASSERT_EQ(events.size(), 1u);
         EXPECT_NEAR(events[0].heading.deg(), 270.0, 1e-9);

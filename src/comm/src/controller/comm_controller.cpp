@@ -71,7 +71,7 @@ public:
         _networkManager.sendToOperatorConsole(*result.bytes);
     }
 
-    void sendRadarAttitude(const beam::SetAttitudeCommand& command)
+    void sendRadarPose(const pose::SetRadarPoseCommand& command)
     {
         const EncodeResult result = encodeRadarAttitude(command);
         if (!result.bytes)
@@ -138,10 +138,10 @@ void CommController::sendTrackEvents(
     _impl->sendTrackEvents(trackEvents);
 }
 
-void CommController::sendRadarAttitude(
-    const beam::SetAttitudeCommand& command
+void CommController::sendRadarPose(
+    const pose::SetRadarPoseCommand& command
 ) {
-    _impl->sendRadarAttitude(command);
+    _impl->sendRadarPose(command);
 }
 
 } // namespace comm

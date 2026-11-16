@@ -13,10 +13,6 @@ add_library(beam STATIC
     src/scheduler/attitude_frame.cpp
     src/scheduler/beam_scheduler.cpp
 
-    src/attitude/ant_enu_transform.cpp
-    src/attitude/radar_attitude.cpp
-
-    src/config/attitude_config.cpp
     src/config/search_grid_config.cpp
     src/config/request_beam_config.cpp
     src/config/request_coverage_config.cpp
@@ -28,14 +24,13 @@ target_include_directories(beam
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
-target_link_libraries(beam PUBLIC math spdlog::spdlog)
+target_link_libraries(beam PUBLIC math pose spdlog::spdlog)
 
 if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     include(GoogleTest)
 
     add_executable(beam_config_test
-        test/unit/attitude_config_test.cpp
         test/unit/request_coverage_config_test.cpp
         test/unit/search_grid_config_test.cpp
     )
@@ -44,19 +39,6 @@ if(BUILD_TESTING)
         GTest::gtest_main
     )
     gtest_discover_tests(beam_config_test)
-
-    add_executable(beam_attitude_test
-        test/unit/ant_enu_transform_test.cpp
-        test/unit/radar_attitude_test.cpp
-    )
-    target_include_directories(beam_attitude_test PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src"
-    )
-    target_link_libraries(beam_attitude_test PRIVATE
-        beam
-        GTest::gtest_main
-    )
-    gtest_discover_tests(beam_attitude_test)
 
     add_executable(beam_search_grid_test
         test/integration/search_grid_test.cpp

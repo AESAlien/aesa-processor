@@ -19,9 +19,9 @@ SimulatorInput SimulatorSendWorker::readInput()
     return _simulatorQueue.read();
 }
 
-std::monostate SimulatorSendWorker::process(SimulatorInput input)
+std::optional<SimulatorSendOutput> SimulatorSendWorker::process(SimulatorInput input)
 {
     _controller.sendBeamCommand(input);
-    return {};
+    return std::nullopt;
 }
 } // namespace app

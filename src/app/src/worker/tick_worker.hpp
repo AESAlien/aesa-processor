@@ -7,11 +7,14 @@
 #include "dto/tick_event.hpp"
 #include "queue/message_queue.hpp"
 #include <chrono>
+#include <optional>
 #include <variant>
 
 namespace app
 {
-class TickWorker final : public Worker<std::monostate, TickEvent>
+using TickOutput = TickEvent;
+
+class TickWorker final : public Worker<std::monostate, TickOutput>
 {
 public:
     TickWorker(
@@ -22,8 +25,8 @@ public:
 
 private:
     std::monostate readInput() override;
-    TickEvent process(std::monostate input) override;
-    void writeOutput(TickEvent output) override;
+    std::optional<TickOutput> process(std::monostate input) override;
+    void writeOutput(TickOutput output) override;
 
     MessageQueue<BeamInput>& _beamQueue;
     MessageQueue<TargetInput>& _targetQueue;

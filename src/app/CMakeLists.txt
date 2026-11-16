@@ -17,6 +17,7 @@ add_library(app_runtime STATIC
 
     src/worker/beam_worker.cpp
     src/worker/comm_receive_worker.cpp
+    src/worker/pose_worker.cpp
     src/worker/simulator_send_worker.cpp
     src/worker/console_send_worker.cpp
     src/worker/target_worker.cpp
@@ -31,6 +32,7 @@ function(configure_app_internal target_name)
     target_link_libraries(${target_name} PRIVATE
         spdlog::spdlog
         beam
+        pose
         target
         comm
         Threads::Threads

@@ -3,7 +3,7 @@
 namespace beam
 {
 
-RequestCoverage::RequestCoverage(const AntEnuTransform& transform, const RequestCoverageConfig& config)
+RequestCoverage::RequestCoverage(const pose::AntEnuTransform& transform, const RequestCoverageConfig& config)
     : _transform(transform),
       _config(config)
 {

@@ -13,7 +13,8 @@
 #include "scheduler/attitude_frame.hpp"
 #include "request/factory/beam_request_factory.hpp"
 
-#include "attitude/ant_enu_transform.hpp"
+#include <pose/domain/ant_enu_transform.hpp>
+#include <pose/domain/factory/radar_attitude_factory.hpp>
 
 #include <chrono>
 #include <cstdint>
@@ -58,12 +59,10 @@ inline beam::RequestCoverageConfig::Builder openRequestCoverageConfigBuilder()
 // 잘못된 자세정보면 std::invalid_argument를 던진다.
 inline beam::AttitudeFrame makeAttitudeFrame(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    const beam::AntEnuTransform transform(
-        beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw),
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}));
+    const pose::RadarAttitudeFactory factory(pose::RadarAttitudeFactoryConfig(89_deg));
+    const pose::AntEnuTransform transform(
+        factory.create(roll, math::TiltAngle(pitch), yaw),
+        pose::AntEnuTransformConfig(math::SquareMatrix::identity(3)));
     return beam::AttitudeFrame(
         transform,
         validSearchGridConfigBuilder().build(),

@@ -23,3 +23,26 @@ flowchart TB
     createWorkers --> openServer --> startWorkers --> waitForShutdownRequest
     waitForShutdownRequest -->|SIGINT 또는 SIGTERM| exit
 ```
+
+## 워커 클래스 다이어그램
+
+```mermaid
+classDiagram
+    direction TB
+
+    class Worker {
+        <<abstract>>
+        +run()
+        #readInput()*
+        #process(input)*
+        #writeOutput(output)
+    }
+
+    Worker <|-- CommReceiveWorker
+    Worker <|-- PoseWorker
+    Worker <|-- BeamWorker
+    Worker <|-- TargetWorker
+    Worker <|-- ConsoleSendWorker
+    Worker <|-- SimulatorSendWorker
+    Worker <|-- TickWorker
+```

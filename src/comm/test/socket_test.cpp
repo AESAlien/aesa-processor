@@ -348,9 +348,9 @@ TEST(CommControllerTest, SendsSimulatorAttitudeToConsole)
     // receiveData()는 두 연결을 수락한 뒤 자세 메시지를 반환한다.
     const std::optional<comm::IncomingDto> incoming = controller.receiveData();
     ASSERT_TRUE(incoming);
-    const auto* attitude = std::get_if<beam::SetAttitudeCommand>(&*incoming);
+    const auto* attitude = std::get_if<pose::SetRadarPoseCommand>(&*incoming);
     ASSERT_NE(attitude, nullptr);
-    controller.sendRadarAttitude(*attitude);
+    controller.sendRadarPose(*attitude);
 
     std::vector<uint8_t> sent(sizeof(comm::protocol::ST_RadarAttMsg));
     std::size_t offset = 0;

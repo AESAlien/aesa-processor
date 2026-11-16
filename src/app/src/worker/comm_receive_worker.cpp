@@ -9,45 +9,39 @@ CommReceiveWorker::CommReceiveWorker(
     comm::CommController& controller,
     MessageQueue<BeamInput>& beamQueue,
     MessageQueue<TargetInput>& targetQueue,
-    MessageQueue<ConsoleInput>& consoleQueue,
+    MessageQueue<PoseInput>& poseQueue,
     std::shared_ptr<spdlog::logger> logger
 ) : Worker(std::move(logger)),
     _controller(controller),
     _beamQueue(beamQueue),
     _targetQueue(targetQueue),
-    _consoleQueue(consoleQueue)
+    _poseQueue(poseQueue)
 {
 }
 
-std::optional<comm::IncomingDto> CommReceiveWorker::readInput()
+std::monostate CommReceiveWorker::readInput()
+{
+    return {};
+}
+
+std::optional<CommReceiveOutput> CommReceiveWorker::process(std::monostate)
 {
     return _controller.receiveData();
 }
 
-std::optional<comm::IncomingDto> CommReceiveWorker::process(
-    std::optional<comm::IncomingDto> input
-) {
-    return input;
-}
-
-void CommReceiveWorker::writeOutput(std::optional<comm::IncomingDto> output)
+void CommReceiveWorker::writeOutput(CommReceiveOutput output)
 {
-    if (!output)
+    if (auto* command = std::get_if<pose::SetRadarPoseCommand>(&output))
     {
-        return;
+        _poseQueue.write(std::move(*command));
     }
-    if (auto* attitude = std::get_if<beam::SetAttitudeCommand>(&*output))
+    else if (auto* command = std::get_if<beam::SetOperationStateCommand>(&output))
     {
-        _consoleQueue.write(*attitude);
-        _beamQueue.write(*attitude);
+        _beamQueue.write(std::move(*command));
     }
-    else if (auto* state = std::get_if<beam::SetOperationStateCommand>(&*output))
+    else if (auto* event = std::get_if<target::DetectionEvent>(&output))
     {
-        _beamQueue.write(std::move(*state));
-    }
-    else if (auto* detection = std::get_if<target::DetectionEvent>(&*output))
-    {
-        _targetQueue.write(std::move(*detection));
+        _targetQueue.write(std::move(*event));
     }
 }
 } // namespace app

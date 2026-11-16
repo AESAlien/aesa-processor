@@ -7,19 +7,23 @@
 #include <vector>
 #include <cstddef>
 
+namespace pose
+{
+class AntEnuTransform;
+}
+
 namespace beam
 {
-
-class AntEnuTransform;
 
 // SearchGridConfig의 격자(안테나 정면 기준)를 ENU 기준 탐색 빔 목록으로 만들어 두고, 탐색 순서대로 하나씩 꺼내 쓴다.
 class SearchGrid
 {
 public:
-    explicit SearchGrid(const AntEnuTransform& transform, const SearchGridConfig& config);
+    explicit SearchGrid(const pose::AntEnuTransform& transform, const SearchGridConfig& config);
 
     // 탐색 순서상 다음 빔을 반환하고 커서를 한 칸 옮긴다. 마지막 빔 다음에는 처음 빔으로 돌아간다.
     const SearchBeam& nextBeam();
+    void reset() noexcept;
 
 private:
     std::vector<SearchBeam> _beams{};

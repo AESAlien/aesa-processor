@@ -55,10 +55,15 @@ TargetController::TargetController(
         config.trackManagement,
         repository
     );
-    _trackReporter = std::make_shared<const TrackReporter>(
+    _trackReporter = std::make_shared<TrackReporter>(
         repository,
         config.trackManagement.maxReportedTrackCount()
     );
+}
+
+void TargetController::setEnuGeoTransform(pose::SetEnuGeoTransformCommand command)
+{
+    _trackReporter->setEnuGeoTransform(std::move(command.transform));
 }
 
 std::optional<beam::RequestBeamCommand> TargetController::handleDetection(DetectionEvent detection)
@@ -72,9 +77,9 @@ std::optional<beam::RequestBeamCommand> TargetController::handleDetection(Detect
     return _detectionHandler->handle(result);
 }
 
-std::vector<TrackEvent> TargetController::nextTrackEvents() const
+std::vector<TrackEvent> TargetController::getTrackEvents() const
 {
-    return _trackReporter->nextTrackEvents();
+    return _trackReporter->getTrackEvents();
 }
 
 void TargetController::removeExpiredTracks(std::chrono::milliseconds currentTime)

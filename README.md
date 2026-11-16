@@ -1,37 +1,50 @@
 # AESA 추적 레이더 데이터 처리부
 
-모의기로부터 받은 **빔 탐지 결과**를 바탕으로 타겟을 추적하고, 탐색 및 추적에 필요한 **빔 송신 명령**을 모의기로 전달합니다. **타겟 추적 결과**는 전시기로 전달합니다.
+LIG D&A AESA 레이더 시스템 개발 현업에서 제공한 모의기와 전시기를 연동하여 **타겟 탐색**, **타겟 추적**, **빔 명령 송신** 기능 등을 수행하는 임베디드 SW
 
 ## 기여자
 
 | 이름 | 주요 역할 |
 |---|---|
-| [신성현](https://github.com/sin6708k) | • 시스템 내부 구조 설계<br/>• 각 모듈 코드 리뷰 및 리팩터링<br/>• 수치 연산(`math`) 모듈 구현 |
+| [신성현](https://github.com/sin6708k) | • 모듈 간 데이터 입출력 흐름 설계<br/>• GitHub 개발 프로세스 관리<br/>• PR 코드 리뷰 총괄<br/>• 레이더 포즈(`pose`) 모듈 구현<br/>• 수치 연산(`math`) 모듈 구현 |
 | [박현준](https://github.com/2chasik) | • 타겟 추적(`target`) 모듈 구현 |
 | [이인성](https://github.com/inseong10) | • TCP 통신(`comm`) 모듈 구현 |
 | [장해찬](https://github.com/papperfield) | • 실행 제어(`app`) 모듈 구현 |
 | [천영기](https://github.com/YGC20) | • 빔 스케쥴링(`beam`) 모듈 구현 |
 
-## 시스템 구성도
+## 시스템 구조
 
-### 모듈 구조
+### 컴포넌트 다이어그램
 
 ```mermaid
 flowchart BT
     app[실행 제어 모듈<br/>app]
     comm[TCP 통신 모듈<br/>comm]
+    pose[레이더 포즈 모듈<br/>pose]
     target[타겟 추적 모듈<br/>target]
     beam[빔 스케쥴링 모듈<br/>beam]
     math[수치 연산 모듈<br/>math]
 
     app-- CommController --> comm
+    app-- PoseController --> pose
     app-- TargetController --> target
     app-- BeamController --> beam
+    pose --> math
     target --> math
     beam --> math
+
+    classDef communication fill:#DCFCE7,stroke:#16A34A,color:#166534,stroke-width:2px
+    classDef processing fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
+    classDef utility fill:#F3E8FF,stroke:#9333EA,color:#6B21A8,stroke-width:2px
+    classDef control fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-width:2px
+
+    class comm communication
+    class target,beam processing
+    class pose,math utility
+    class app control
 ```
 
-### 스레드 통신 구조
+### 데이터 플로우 다이어그램
 
 ```mermaid
 block-beta
@@ -46,27 +59,45 @@ block-beta
     space
     block:Processor:5
         columns 5
-        SimulatorSendWorker["모의기 송신<br/>스레드"] space:4
-        space:2 BeamWorker["빔 스케쥴링<br/>스레드"] space:2
-        CommReceiveWorker["수신<br/>스레드"] space:3 TickWorker["틱<br/>스레드"]
-        space:2 TargetWorker["타겟 추적<br/>스레드"] space:2
-        ConsoleSendWorker["전시기 송신<br/>스레드"] space:4
+        SimulatorSendWorker["모의기 송신<br/>스레드"] space:2 BeamWorker["빔 스케쥴링<br/>스레드"] space:1
+        space:5
+        CommReceiveWorker["수신<br/>스레드"] space PoseWorker["레이더 포즈<br/>스레드"] space:1 TickWorker["틱<br/>스레드"]
+        space:5
+        ConsoleSendWorker["전시기 송신<br/>스레드"] space:2 TargetWorker["타겟 추적<br/>스레드"] space
     end
 
-    Simulator-- "TCP/IP 수신" -->CommReceiveWorker
-    Console-- "TCP/IP 수신" -->CommReceiveWorker
-    SimulatorSendWorker-- "TCP/IP 송신" -->Simulator
-    ConsoleSendWorker-- "TCP/IP 송신" -->Console
+    Simulator -- "TCP/IP 수신" --> CommReceiveWorker
+    Console -- "TCP/IP 수신" --> CommReceiveWorker
+    SimulatorSendWorker -- "TCP/IP 송신" --> Simulator
+    ConsoleSendWorker -- "TCP/IP 송신" --> Console
 
-    TickWorker-- "10ms 틱" -->TargetWorker
-    TickWorker-- "10ms 틱" -->BeamWorker
-    CommReceiveWorker-- "빔 탐지 결과" -->TargetWorker
-    CommReceiveWorker-- "자세 설정 명령<br/>운용 설정 명령" -->BeamWorker
-    CommReceiveWorker-- "자세 설정 명령" -->ConsoleSendWorker
-    TargetWorker-- "빔 요청 명령" -->BeamWorker
-    TargetWorker-- "타겟 추적 결과" -->ConsoleSendWorker
-    BeamWorker-- "빔 송신 명령" -->SimulatorSendWorker
+    CommReceiveWorker -- "포즈" --> PoseWorker
+    CommReceiveWorker -- "탐지" --> TargetWorker
+    PoseWorker -- "포즈" --> ConsoleSendWorker
+    PoseWorker -- "자세" --> BeamWorker
+    PoseWorker -- "좌표" --> TargetWorker
+    TargetWorker -- "트랙" --> ConsoleSendWorker
+    TargetWorker -- "빔 요청" --> BeamWorker
+    BeamWorker -- "빔 송신" --> SimulatorSendWorker
+    TickWorker -- "10ms 틱" --> BeamWorker
+    TickWorker -- "10ms 틱" --> TargetWorker
+
+    classDef external fill:#FEF3C7,stroke:#D97706,color:#92400E,stroke-width:2px
+    classDef communication fill:#DCFCE7,stroke:#16A34A,color:#166534,stroke-width:2px
+    classDef processing fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
+    classDef utility fill:#F3E8FF,stroke:#9333EA,color:#6B21A8,stroke-width:2px
+    classDef control fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-width:2px
+
+    class Simulator,Console external
+    class SimulatorSendWorker,CommReceiveWorker,ConsoleSendWorker communication
+    class BeamWorker,TargetWorker processing
+    class PoseWorker utility
+    class TickWorker control
 ```
+
+### 모듈별 클래스 다이어그램
+
+[실행 제어](src/app/README.md#워커-클래스-다이어그램) / [TCP 통신](src/comm/README.md#네트워크-클래스-다이어그램) / [레이더 포즈](src/pose/README.md#도메인-클래스-다이어그램) / [타겟 추적](src/target/README.md#도메인-클래스-다이어그램) / [빔 스케줄링](src/beam/README.md#도메인-클래스-다이어그램) / [수치 연산](src/math/README.md#도메인-클래스-다이어그램)
 
 ## 빌드 및 실행
 

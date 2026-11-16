@@ -6,20 +6,19 @@
 #include <math/quantity/length.hpp>
 #include <optional>
 
-namespace beam
+namespace pose
 {
 
-struct SetAttitudeCommand
+struct SetRadarPoseCommand
 {
     math::TiltAngle latitude;
     math::CircularAngle longitude;
     math::Length altitude;
-    // 원래 입력 범위는 RadarAttitude에서 검사하므로 roll/yaw는 정규화하지 않는다.
     math::Angle roll;
     math::TiltAngle pitch;
     math::Angle yaw;
 
-    SetAttitudeCommand(
+    SetRadarPoseCommand(
         math::TiltAngle latitude,
         math::CircularAngle longitude,
         math::Length altitude,
@@ -48,9 +47,9 @@ struct SetAttitudeCommand
         Builder& pitch(math::TiltAngle value) { _pitch = value; return *this; }
         Builder& yaw(math::Angle value) { _yaw = value; return *this; }
 
-        SetAttitudeCommand build() const
+        SetRadarPoseCommand build() const
         {
-            return SetAttitudeCommand(
+            return SetRadarPoseCommand(
                 _latitude.value(), _longitude.value(), _altitude.value(),
                 _roll.value(), _pitch.value(), _yaw.value());
         }
@@ -65,6 +64,6 @@ struct SetAttitudeCommand
     };
 };
 
-static_assert(sizeof(SetAttitudeCommand) == 48, "SetAttitudeCommand must be 48 bytes");
+static_assert(sizeof(SetRadarPoseCommand) == 48, "SetRadarPoseCommand must be 48 bytes");
 
-} // namespace beam
+} // namespace pose

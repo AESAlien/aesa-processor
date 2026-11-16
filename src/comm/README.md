@@ -1,20 +1,14 @@
 # TCP 통신(`comm`) 모듈
 
-## 클래스 다이어그램
+## 네트워크 클래스 다이어그램
 
 ```mermaid
 classDiagram
     direction TB
-    class MessageEncoder {
-        <<functions>>
-    }
     class NativeSocket {
         <<functions>>
     }
 
-    CommController *-- NetworkManager
-    CommController ..> MessageEncoder : 호출
-    CommController *-- MessageDecoder
     NetworkManager *-- "0..1" TcpServer
     NetworkManager *-- "2" PeerConnection
     PeerConnection o-- "0..1" Session : 공유 소유

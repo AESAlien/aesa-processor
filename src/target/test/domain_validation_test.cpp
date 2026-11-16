@@ -517,6 +517,9 @@ TEST(TargetConfigTest, ControllerOwnsTemporaryConfigAndUsesInjectedIntervalsAndM
             TrackManagementConfig(250ms, 400ms, 2, 100)
         )
     );
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+    ));
 
     const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 1000ms));
     ASSERT_TRUE(confirmation);
@@ -545,7 +548,7 @@ TEST(TargetConfigTest, ControllerOwnsTemporaryConfigAndUsesInjectedIntervalsAndM
         {
             ASSERT_TRUE(retry);
             EXPECT_EQ(retry->transmitTime, resultTime + 400ms);
-            EXPECT_EQ(controller.nextTrackEvents().size(), 1u);
+            EXPECT_EQ(controller.getTrackEvents().size(), 1u);
         }
         else
         {
@@ -553,7 +556,7 @@ TEST(TargetConfigTest, ControllerOwnsTemporaryConfigAndUsesInjectedIntervalsAndM
         }
         resultTime += 400ms;
     }
-    EXPECT_TRUE(controller.nextTrackEvents().empty());
+    EXPECT_TRUE(controller.getTrackEvents().empty());
 }
 
 TEST(TargetConfigTest, ControllerPassesInjectedSpeedLimitToConfirmationMatcher)
@@ -568,6 +571,9 @@ TEST(TargetConfigTest, ControllerPassesInjectedSpeedLimitToConfirmationMatcher)
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         );
         auto controller = TargetController(config);
+        controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+            pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+        ));
         const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 1000ms));
         ASSERT_TRUE(confirmation);
 
@@ -581,7 +587,7 @@ TEST(TargetConfigTest, ControllerPassesInjectedSpeedLimitToConfirmationMatcher)
             )
         );
         EXPECT_EQ(tracking.has_value(), !restricted);
-        EXPECT_EQ(controller.nextTrackEvents().size(), restricted ? 0u : 1u);
+        EXPECT_EQ(controller.getTrackEvents().size(), restricted ? 0u : 1u);
     }
 }
 

@@ -1,7 +1,7 @@
 #include "request/request_coverage.hpp"
 
-#include "attitude/ant_enu_transform.hpp"
-#include "attitude/radar_attitude.hpp"
+#include <pose/domain/ant_enu_transform.hpp>
+#include <pose/domain/factory/radar_attitude_factory.hpp>
 
 #include <gtest/gtest.h>
 
@@ -10,14 +10,12 @@ using namespace math::literals;
 namespace
 {
 
-beam::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
+pose::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::Angle yaw)
 {
-    return beam::AntEnuTransform(
-        beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw),
-        beam::AttitudeConfig(
-            89_deg,
-            math::SquareMatrix::identity(3),
-            math::Tolerance{1e-6, 0.0}));
+    const pose::RadarAttitudeFactory factory(pose::RadarAttitudeFactoryConfig(89_deg));
+    return pose::AntEnuTransform(
+        factory.create(roll, math::TiltAngle(pitch), yaw),
+        pose::AntEnuTransformConfig(math::SquareMatrix::identity(3)));
 }
 
 // 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도

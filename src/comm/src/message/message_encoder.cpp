@@ -223,7 +223,7 @@ EncodeResult encodeTrackEvents(
 }
 
 EncodeResult encodeRadarAttitude(
-    const beam::SetAttitudeCommand& command
+    const pose::SetRadarPoseCommand& command
 ) {
     protocol::ST_RadarAttMsg message{};
     message.msgHeader = makeHeader(

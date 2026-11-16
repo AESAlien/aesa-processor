@@ -27,6 +27,7 @@ target_include_directories(comm
 
 target_link_libraries(comm PUBLIC
     beam
+    pose
     target
     spdlog::spdlog
 )

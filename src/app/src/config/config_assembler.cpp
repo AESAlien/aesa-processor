@@ -6,7 +6,6 @@
 #include <math/bounded/tilt_angle.hpp>
 #include <math/quantity/length.hpp>
 #include <math/quantity/linear_acceleration.hpp>
-#include <math/tolerance.hpp>
 
 #include <chrono>
 #include <cstddef>
@@ -25,29 +24,42 @@ ConfigAssembler::ConfigAssembler(ConfigValueReader values)
 
 Config ConfigAssembler::assemble()
 {
+    pose::PoseConfig poseConfig = createPoseConfig();
     beam::BeamConfig beamConfig = createBeamConfig();
     target::TargetConfig targetConfig = createTargetConfig();
     comm::CommConfig commConfig = createCommConfig();
     _reader.ensureAllConsumed();
 
     return Config(
+        std::move(poseConfig),
         std::move(beamConfig),
         std::move(targetConfig),
         std::move(commConfig));
+}
+
+pose::PoseConfig ConfigAssembler::createPoseConfig()
+{
+    try
+    {
+        const pose::RadarAttitudeFactoryConfig attitude(
+            math::Angle::fromDegrees(_reader.requireDouble("POSE_MAX_ABS_PITCH_DEG"))
+        );
+        pose::AntEnuTransformConfig antEnuTransformConfig(
+            _reader.requireSquareMatrix("POSE_MOUNT_ANT_TO_BODY_ROTATION", 3)
+        );
+        return pose::PoseConfig(attitude, std::move(antEnuTransformConfig));
+    }
+    catch (const std::invalid_argument& error)
+    {
+        throw std::runtime_error(
+            "Invalid Pose configuration: " + std::string(error.what()));
+    }
 }
 
 beam::BeamConfig ConfigAssembler::createBeamConfig()
 {
     try
     {
-        const double MAX_ABS_PITCH_DEG =
-            _reader.requireDouble("BEAM_MAX_ABS_PITCH_DEG");
-        const math::SquareMatrix MOUNT_ANT_TO_BODY_ROTATION =
-            _reader.requireSquareMatrix("BEAM_MOUNT_ANT_TO_BODY_ROTATION", 3);
-        const double MOUNT_ORTHOGONAL_ABSOLUTE_TOLERANCE =
-            _reader.requireDouble("MOUNT_ORTHOGONAL_ABSOLUTE_TOLERANCE");
-        const double MOUNT_ORTHOGONAL_RELATIVE_TOLERANCE =
-            _reader.requireDouble("MOUNT_ORTHOGONAL_RELATIVE_TOLERANCE");
         const std::size_t SEARCH_AZIMUTH_COUNT =
             _reader.requireUnsigned<std::size_t>("BEAM_SEARCH_AZIMUTH_COUNT");
         const std::size_t SEARCH_ELEVATION_COUNT =
@@ -76,12 +88,6 @@ beam::BeamConfig ConfigAssembler::createBeamConfig()
             _reader.requireDouble("BEAM_REQUEST_COVERAGE_ELEVATION_MAX_DEG");
 
         return beam::BeamConfig(
-            beam::AttitudeConfig(
-                math::Angle::fromDegrees(MAX_ABS_PITCH_DEG),
-                MOUNT_ANT_TO_BODY_ROTATION,
-                math::Tolerance{
-                    MOUNT_ORTHOGONAL_ABSOLUTE_TOLERANCE,
-                    MOUNT_ORTHOGONAL_RELATIVE_TOLERANCE}),
             beam::SearchGridConfig(
                 SEARCH_AZIMUTH_COUNT,
                 SEARCH_ELEVATION_COUNT,

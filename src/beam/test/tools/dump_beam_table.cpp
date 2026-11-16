@@ -7,8 +7,10 @@
 
 #include "search/search_grid.hpp"
 
-#include "attitude/ant_enu_transform.hpp"
+#include <pose/domain/ant_enu_transform.hpp>
+#include <pose/domain/factory/radar_attitude_factory.hpp>
 
+#include <array>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -44,13 +46,11 @@ int main(int argc, char** argv)
     auto xform = [&]() {
         try
         {
-            const auto att = beam::RadarAttitude(roll, math::TiltAngle(pitch), yaw);
-            return beam::AntEnuTransform(
+            const pose::RadarAttitudeFactory factory(pose::RadarAttitudeFactoryConfig(89_deg));
+            const auto att = factory.create(roll, math::TiltAngle(pitch), yaw);
+            return pose::AntEnuTransform(
                 att,
-                beam::AttitudeConfig(
-                    89_deg,
-                    math::SquareMatrix::identity(3),
-                    math::Tolerance{1e-6, 0.0}));
+                pose::AntEnuTransformConfig(math::SquareMatrix::identity(3)));
         }
         catch (const std::invalid_argument& e)
         {
@@ -61,13 +61,15 @@ int main(int argc, char** argv)
 
     if (printMatrix)
     {
-        const auto& matrix = xform.rotationMatrix();
-        for (std::size_t row = 0; row < matrix.rows(); ++row)
+        // 안테나 좌표축 세 개를 ENU로 변환하면 회전 행렬의 열을 얻는다.
+        const std::array columns{
+            xform.antToEnu(math::Vector({1.0, 0.0, 0.0})),
+            xform.antToEnu(math::Vector({0.0, 1.0, 0.0})),
+            xform.antToEnu(math::Vector({0.0, 0.0, 1.0}))
+        };
+        for (std::size_t row = 0; row < columns.size(); ++row)
         {
-            for (std::size_t column = 0; column < matrix.columns(); ++column)
-            {
-                std::printf("%.17g%c", matrix(row, column), column + 1 == matrix.columns() ? '\n' : ' ');
-            }
+            std::printf("%.17g %.17g %.17g\n", columns[0](row), columns[1](row), columns[2](row));
         }
         return 0;
     }

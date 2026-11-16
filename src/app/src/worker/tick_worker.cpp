@@ -25,7 +25,7 @@ std::monostate TickWorker::readInput()
     return {};
 }
 
-TickEvent TickWorker::process(std::monostate)
+std::optional<TickOutput> TickWorker::process(std::monostate)
 {
     if (!_started)
     {
@@ -45,7 +45,7 @@ TickEvent TickWorker::process(std::monostate)
     return TickEvent{currentTime};
 }
 
-void TickWorker::writeOutput(TickEvent output)
+void TickWorker::writeOutput(TickOutput output)
 {
     _beamQueue.write(output);
     _targetQueue.write(std::move(output));

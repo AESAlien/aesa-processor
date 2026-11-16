@@ -666,6 +666,9 @@ TEST(TrackingAssociationControllerTest, OutOfGatePlotsKeepRetryingUntilThreeMiss
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+    ));
     const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 0ms, {1000_m}));
     ASSERT_TRUE(confirmation);
     const auto tracking = controller.handleDetection(
@@ -694,14 +697,14 @@ TEST(TrackingAssociationControllerTest, OutOfGatePlotsKeepRetryingUntilThreeMiss
             ASSERT_TRUE(retry);
             EXPECT_EQ(retry->requestId, confirmation->requestId);
             EXPECT_EQ(retry->transmitTime, time + 1000ms);
-            const auto events = controller.nextTrackEvents();
+            const auto events = controller.getTrackEvents();
             ASSERT_EQ(events.size(), 1u);
             EXPECT_EQ(events[0].timestamp, 100ms);
         }
         else
         {
             EXPECT_FALSE(retry);
-            EXPECT_TRUE(controller.nextTrackEvents().empty());
+            EXPECT_TRUE(controller.getTrackEvents().empty());
         }
     }
     const auto next = controller.handleDetection(result(BeamType::SEARCH, 1, 3200ms, {1200_m}));
@@ -719,6 +722,9 @@ TEST(TrackingAssociationControllerTest, NearestSuccessResetsMissesAndPreservesOt
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+    ));
     const auto firstConfirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 0ms, {1000_m}));
     ASSERT_TRUE(firstConfirmation);
     ASSERT_TRUE(
@@ -764,7 +770,7 @@ TEST(TrackingAssociationControllerTest, NearestSuccessResetsMissesAndPreservesOt
     );
     ASSERT_TRUE(recovered);
     EXPECT_EQ(recovered->requestId, firstConfirmation->requestId);
-    const auto events = controller.nextTrackEvents();
+    const auto events = controller.getTrackEvents();
     ASSERT_EQ(events.size(), 2u);
     EXPECT_EQ(events[0].id, firstConfirmation->requestId);
     EXPECT_EQ(events[0].slantRange, 1000_m);
@@ -803,7 +809,7 @@ TEST(TrackingAssociationControllerTest, NearestSuccessResetsMissesAndPreservesOt
             )
         )
     );
-    const auto remaining = controller.nextTrackEvents();
+    const auto remaining = controller.getTrackEvents();
     ASSERT_EQ(remaining.size(), 1u);
     EXPECT_EQ(remaining[0].id, secondConfirmation->requestId);
     EXPECT_EQ(remaining[0].timestamp, 300ms);

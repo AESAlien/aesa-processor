@@ -181,7 +181,7 @@ DecodeResult MessageDecoder::decodeRadarAttitude(
     }
 
     return decoded(
-        beam::SetAttitudeCommand::Builder()
+        pose::SetRadarPoseCommand::Builder()
             .latitude(math::Angle::fromDegrees(message.radar_lat_deg))
             .longitude(math::Angle::fromDegrees(message.radar_lon_deg))
             .altitude(math::Length::fromKilometers(message.radar_alt_km))
