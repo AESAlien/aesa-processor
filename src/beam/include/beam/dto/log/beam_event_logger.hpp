@@ -1,7 +1,5 @@
 #pragma once
 
-#include <beam/domain/operation_state.hpp>
-
 namespace beam
 {
 struct RequestBeamResult;
@@ -12,9 +10,6 @@ class BeamEventLogger
 {
 public:
     virtual ~BeamEventLogger() = default;
-
-    // 운용 상태가 바뀌었다. 같은 상태의 중복 수신은 호출하지 않는다.
-    virtual void logOperationStateChanged(OperationState state) noexcept = 0;
 
     // 자세정보를 반영했다.
     virtual void logAttitudeApplied() noexcept = 0;

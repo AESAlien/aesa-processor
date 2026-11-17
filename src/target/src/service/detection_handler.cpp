@@ -176,4 +176,9 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     return trackingCommandFrom(result.requestId, *prediction);
 }
 
+void DetectionHandler::clearSearchHistory()
+{
+    _lastSearchResultTimes.clear();
+}
+
 } // namespace target

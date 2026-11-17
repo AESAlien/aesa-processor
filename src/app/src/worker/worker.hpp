@@ -26,11 +26,7 @@ public:
         {
             try
             {
-                Input input = readInput();
-                if (auto output = process(std::move(input)))
-                {
-                    writeOutput(std::move(*output));
-                }
+                runOnce();
                 continue;
             }
             catch (const std::exception& error)
@@ -43,6 +39,16 @@ public:
             }
 
             std::this_thread::sleep_for(_retryDelay);
+        }
+    }
+
+    // 입력 하나를 읽어 처리하고, 결과가 있으면 출력한다. 입력이 없으면 기다린다.
+    void runOnce()
+    {
+        Input input = readInput();
+        if (auto output = process(std::move(input)))
+        {
+            writeOutput(std::move(*output));
         }
     }
 

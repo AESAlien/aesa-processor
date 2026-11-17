@@ -134,6 +134,14 @@ int main()
             spdlog::async_overflow_policy::discard_new,
             spdlog::level::info
         );
+
+        // 운용 상태 전환은 메시지 로그와 콘솔에 기록한다.
+        const auto operationLogger = messageLogManager->addLogger(
+            "operation",
+            spdlog::level::info,
+            spdlog::async_overflow_policy::discard_new,
+            spdlog::level::info
+        );
         mainLogger->info("[2/12] Message loggers registered");
 
         // 3. CSV 로거를 등록한다.
@@ -188,14 +196,16 @@ int main()
             beamController,
             beamQueue,
             simulatorQueue,
-            beamLogger
+            beamLogger,
+            operationLogger
         );
         app::TargetWorker targetWorker(
             targetController,
             targetQueue,
             beamQueue,
             consoleQueue,
-            targetLogger
+            targetLogger,
+            operationLogger
         );
         app::CommReceiveWorker commReceiveWorker(
             commController,

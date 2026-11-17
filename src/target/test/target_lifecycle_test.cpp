@@ -478,5 +478,39 @@ TEST(TargetLifecycleControllerTest, InvalidTrackingBatchPreservesObservationAndM
     EXPECT_TRUE(controller.getTrackEvents().empty());
 }
 
+// 운용 OFF로 잠정·확정 트랙을 모두 지우면 보고가 비고, 이전 트랙의 늦은 결과는 무시되며,
+// 새 탐지부터 다음 ID로 다시 추적한다.
+TEST(TargetLifecycleControllerTest, ClearTracksRemovesAllTracksAndRestartsFromNewDetections)
+{
+    auto controller = TargetController(config());
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
+        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
+    ));
+    const auto confirmedRequest = controller.handleDetection(event(BeamType::SEARCH, 1, 0ms));
+    ASSERT_TRUE(confirmedRequest);
+    const auto confirmedId = confirmedRequest->requestId;
+    ASSERT_TRUE(controller.handleDetection(event(BeamType::CONFIRMATION, confirmedId, 100ms)));
+    const auto tentativeRequest = controller.handleDetection(event(BeamType::SEARCH, 2, 200ms, true, 2000_m));
+    ASSERT_TRUE(tentativeRequest);
+    const auto tentativeId = tentativeRequest->requestId;
+    ASSERT_EQ(controller.getTrackEvents().size(), 1u);
+
+    EXPECT_EQ(controller.clearTracks(), 2u);
+
+    EXPECT_TRUE(controller.getTrackEvents().empty());
+    EXPECT_FALSE(controller.handleDetection(event(BeamType::TRACKING, confirmedId, 1100ms)));
+    EXPECT_FALSE(controller.handleDetection(event(BeamType::CONFIRMATION, tentativeId, 300ms, true, 2000_m)));
+    EXPECT_TRUE(controller.getTrackEvents().empty());
+    EXPECT_EQ(controller.clearTracks(), 0u);
+
+    const auto restarted = controller.handleDetection(event(BeamType::SEARCH, 1, 2000ms));
+    ASSERT_TRUE(restarted);
+    EXPECT_EQ(restarted->requestId, tentativeId + 1);
+    ASSERT_TRUE(controller.handleDetection(event(BeamType::CONFIRMATION, restarted->requestId, 2100ms)));
+    const auto reports = controller.getTrackEvents();
+    ASSERT_EQ(reports.size(), 1u);
+    EXPECT_EQ(reports.front().id, restarted->requestId);
+}
+
 } // namespace
 } // namespace target

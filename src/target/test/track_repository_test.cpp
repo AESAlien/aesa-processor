@@ -135,5 +135,41 @@ TEST(TrackRepositoryTest, RejectsUnreportableIdentitiesWithoutConsumingAnId)
     EXPECT_EQ(repository.add(factory.createTentative(repository.nextId(), observation())), 1u);
 }
 
+// 운용 OFF 시 모든 트랙을 지우되, 늦게 도착한 결과가 새 트랙에 붙지 않도록 ID는 재사용하지 않는다.
+TEST(TrackRepositoryTest, ClearRemovesAllTrackTypesWithoutReusingIds)
+{
+    TrackRepository repository;
+    const auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
+    const auto tentative = factory.createTentative(repository.nextId(), observation());
+    repository.add(tentative);
+    repository.add(factory.createTentative(repository.nextId(), observation()));
+    const auto confirmation = Observation(math::SphericalPosition(1001_m, 0_deg, 0_deg), 0_mps, -10.0f, 100ms);
+    const auto confirmed = tentative.confirm(confirmation);
+    ASSERT_TRUE(confirmed);
+    ASSERT_TRUE(repository.replace(*confirmed));
+
+    EXPECT_EQ(repository.clear(), 2u);
+
+    EXPECT_TRUE(repository.tracks().empty());
+    EXPECT_TRUE(repository.confirmedTracks().empty());
+    EXPECT_TRUE(repository.tentativeTracks().empty());
+    EXPECT_EQ(repository.findConfirmedTrack(1), nullptr);
+    EXPECT_EQ(repository.findTentativeTrack(2), nullptr);
+    EXPECT_EQ(repository.nextId(), 3u);
+    EXPECT_EQ(repository.add(factory.createTentative(repository.nextId(), observation())), 3u);
+}
+
+TEST(TrackRepositoryTest, ClearIsRepeatableOnEmptyRepository)
+{
+    TrackRepository repository;
+    const auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
+    repository.add(factory.createTentative(repository.nextId(), observation()));
+
+    EXPECT_EQ(repository.clear(), 1u);
+    EXPECT_EQ(repository.clear(), 0u);
+    EXPECT_TRUE(repository.tracks().empty());
+    EXPECT_EQ(repository.nextId(), 2u);
+}
+
 } // namespace
 } // namespace target

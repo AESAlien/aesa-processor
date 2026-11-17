@@ -140,6 +140,13 @@ bool TrackRepository::remove(std::uint32_t id)
     return true;
 }
 
+std::size_t TrackRepository::clear()
+{
+    const auto count = _tracks.size();
+    _tracks.clear();
+    return count;
+}
+
 const std::list<Track>& TrackRepository::tracks() const
 {
     return _tracks;

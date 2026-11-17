@@ -11,13 +11,13 @@ flowchart LR
     SimulatorSendWorker[모의기 송신<br/>스레드]
 
     subgraph BeamController
-        setOperationState["setOperationState()"]
+        reset["reset()"]
         setAntEnuTransform["setAntEnuTransform()"]
         requestBeam["requestBeam()"]
         nextBeamCommand["nextBeamCommand()"]
     end
 
-    CommReceiveWorker -->|ON / OFF| setOperationState
+    CommReceiveWorker -->|ON / OFF 전환| reset
     PoseWorker -->|자세 설정| setAntEnuTransform
     TargetWorker -->|빔 요청| requestBeam
     TickWorker -->|10ms 틱| nextBeamCommand

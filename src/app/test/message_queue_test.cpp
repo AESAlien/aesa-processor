@@ -14,7 +14,8 @@ namespace app
 {
 namespace
 {
-static_assert(!std::is_invocable_v<
+// 운용 명령은 OFF 시 트랙을 지울 수 있도록 타겟 큐에도 전달된다.
+static_assert(std::is_invocable_v<
     decltype(&MessageQueue<TargetInput>::write), MessageQueue<TargetInput>&, beam::SetOperationStateCommand
 >);
 
