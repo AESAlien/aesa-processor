@@ -2,7 +2,6 @@
 
 #include <gtest/gtest.h>
 
-// 빔 종류의 와이어 값과 요청 빔 종류의 값이 일치한다.
 TEST(BeamTypeTest, RequestBeamTypeValuesMatchBeamType)
 {
     // Given: 송신 빔과 요청 빔의 각 종류를 준비한다.

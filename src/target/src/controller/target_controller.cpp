@@ -21,11 +21,10 @@ TargetController::TargetController(
     const TargetConfig& config,
     std::shared_ptr<DetectionEventLogger> detectionLogger,
     std::shared_ptr<spdlog::logger> messageLogger
-) : _detectionLogger(std::move(detectionLogger)),
+) : _trackRepository(std::make_shared<TrackRepository>()),
+    _detectionLogger(std::move(detectionLogger)),
     _messageLogger(std::move(messageLogger))
 {
-    const auto repository = std::make_shared<TrackRepository>();
-
     auto trackingAlgorithm = std::make_shared<ConstantAccelerationAlgorithm>(
         config.tracking,
         config.measurement
@@ -46,17 +45,17 @@ TargetController::TargetController(
 
     _detectionHandler = std::make_shared<DetectionHandler>(
         config.trackManagement,
-        repository,
+        _trackRepository,
         std::move(trackFactory),
         std::move(tentativeSelector),
         std::move(trackSelector)
     );
     _trackExpirationHandler = std::make_shared<TrackExpirationHandler>(
         config.trackManagement,
-        repository
+        _trackRepository
     );
     _trackReporter = std::make_shared<TrackReporter>(
-        repository,
+        _trackRepository,
         config.trackManagement.maxReportedTrackCount()
     );
 }
@@ -93,6 +92,12 @@ void TargetController::removeExpiredTracks(std::chrono::milliseconds currentTime
     {
         _messageLogger->info("Removed unanswered track: id={}, currentTime={}ms", id, currentTime.count());
     }
+}
+
+std::size_t TargetController::clearTracks()
+{
+    _detectionHandler->clearSearchHistory();
+    return _trackRepository->clear();
 }
 
 } // namespace target

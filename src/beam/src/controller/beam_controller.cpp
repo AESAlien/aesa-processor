@@ -28,15 +28,9 @@ BeamController::BeamController(BeamController&&) noexcept = default;
 
 BeamController& BeamController::operator=(BeamController&&) noexcept = default;
 
-void BeamController::setOperationState(SetOperationStateCommand command)
+void BeamController::reset()
 {
-    const SetOperationStateStatus status = _scheduler->setOperationState(command.powerState);
-
-    // 같은 상태의 중복 수신(UNCHANGED)은 기록하지 않는다.
-    if (_eventLogger && status == SetOperationStateStatus::CHANGED)
-    {
-        _eventLogger->logOperationStateChanged(command.powerState);
-    }
+    _scheduler->reset();
 }
 
 void BeamController::setAntEnuTransform(const pose::SetAntEnuTransformCommand& command)

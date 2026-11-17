@@ -59,7 +59,6 @@ TEST(SearchGridConfigTest, BeamCountBeyondUint32Throws)
     EXPECT_THROW(build(), std::invalid_argument);
 }
 
-// 격자 설정은 전달받은 빔 폭을 보관한다.
 TEST(SearchGridConfigTest, KeepsGivenBeamWidth)
 {
     // Given: 방위각과 고각의 폭이 서로 다른 빔 폭을 준비한다.
@@ -120,7 +119,6 @@ TEST(SearchGridConfigTest, ElevationOutsideSphericalRangeThrows)
     EXPECT_THROW(build(falling), std::invalid_argument);
 }
 
-// 끝 고각이 한 바퀴를 돌아 물리 범위를 벗어나면 격자를 거부한다.
 TEST(SearchGridConfigTest, ElevationEquivalentByPeriodToValidRangeThrows)
 {
     // Given: 시작 고각은 유효하지만 끝 고각은 450도가 되는 격자를 준비한다.
@@ -136,7 +134,6 @@ TEST(SearchGridConfigTest, ElevationEquivalentByPeriodToValidRangeThrows)
     EXPECT_THROW(build(), std::invalid_argument);
 }
 
-// 격자 설정은 시작각과 간격으로 인덱스별 각도를 계산한다.
 TEST(SearchGridConfigTest, AngleAtIndexIsStartPlusStepTimesIndex)
 {
     // Given: 시작각과 간격이 지정된 격자 설정을 준비한다.

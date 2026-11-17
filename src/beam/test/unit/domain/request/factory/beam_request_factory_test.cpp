@@ -117,7 +117,6 @@ TEST(BeamRequestFactoryTest, RejectsInvalidCommand)
     EXPECT_THROW(from(searchType), std::invalid_argument);
 }
 
-// 알 수 없는 빔 종류 오류 메시지는 빔 종류의 정수값과 요청 ID를 포함한다.
 TEST(BeamRequestFactoryTest, UnknownTypeMessageIncludesTypeValueAndRequestId)
 {
     // Given: 정의되지 않은 빔 종류(9)의 명령을 준비한다.

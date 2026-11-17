@@ -109,7 +109,6 @@ TEST(BeamRequestTest, RejectsZeroRequestId)
     EXPECT_THROW(construct(), std::invalid_argument);
 }
 
-// 빔 요청의 검증 오류 메시지는 송신 시각과 요청 ID를 포함한다.
 TEST(BeamRequestTest, ValidationMessageIncludesInputValues)
 {
     // Given: 송신 시각이 음수인 입력과 요청 ID가 0인 입력을 준비한다.

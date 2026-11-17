@@ -212,6 +212,7 @@ inline void markSent(
 } // namespace detail
 
 // 시나리오를 새 BeamScheduler로 실행한다. 자세정보 시각에 attitudeFrame의 복사본을 넘긴다.
+// 운용 상태는 app이 관리하므로, 시나리오가 app처럼 ON 전에는 next()를 호출하지 않고 ON 전환 시 reset()을 호출한다.
 inline Result run(Scenario scenario, const beam::AttitudeFrame& attitudeFrame)
 {
     Result result;
@@ -222,7 +223,7 @@ inline Result run(Scenario scenario, const beam::AttitudeFrame& attitudeFrame)
     {
         if (time == scenario.onTime)
         {
-            scheduler.setOperationState(beam::OperationState::ON);
+            scheduler.reset();
             status = Status::ON_WAIT_ATTITUDE;
         }
         if (time == scenario.attitudeTime)
@@ -235,10 +236,16 @@ inline Result run(Scenario scenario, const beam::AttitudeFrame& attitudeFrame)
             status = Status::READY;
         }
 
+        std::optional<beam::TransmitBeamCommand> command;
+        if (status != Status::OFF)
+        {
+            command = scheduler.next(time);
+        }
+
         TickRecord record{
             time.count(),
             status,
-            scheduler.next(time)
+            std::move(command)
         };
         if (record.command.has_value() && record.command->beamType != beam::BeamType::SEARCH)
         {

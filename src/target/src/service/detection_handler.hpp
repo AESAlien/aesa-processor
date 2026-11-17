@@ -33,6 +33,9 @@ public:
 
     std::optional<beam::RequestBeamCommand> handle(const DetectionResult& result);
 
+    // 탐색 빔별 마지막 결과 시각을 모두 지운다. 운용을 다시 시작할 때 이전 기록을 남기지 않는다.
+    void clearSearchHistory();
+
 private:
     std::optional<beam::RequestBeamCommand> handle(const SearchDetectionResult& result);
     std::optional<beam::RequestBeamCommand> handle(const ConfirmationDetectionResult& result);

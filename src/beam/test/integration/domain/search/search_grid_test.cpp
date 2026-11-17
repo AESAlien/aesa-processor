@@ -67,7 +67,6 @@ math::Angle gridElevation(std::size_t beamIndex)
 
 } // namespace
 
-// 기본 격자는 189개의 빔을 반환한 뒤 첫 빔부터 순서대로 다시 반환한다.
 TEST(SearchGridTest, DefaultGridWrapsAfterExpectedBeamCount)
 {
     // Given: 기본 설정의 영 자세 격자를 준비한다.
@@ -323,7 +322,6 @@ TEST(SearchGridTest, SingleBeamGridReturnsTheSameBeamEveryTime)
     EXPECT_EQ(third.beamId, 0u);
 }
 
-// 복사한 격자의 탐색 커서는 원본과 독립적으로 움직인다.
 TEST(SearchGridTest, CopiedGridKeepsItsOwnCursor)
 {
     // Given: 첫 빔을 꺼낸 격자를 준비한다.

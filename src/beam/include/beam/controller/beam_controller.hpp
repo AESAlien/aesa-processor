@@ -4,7 +4,6 @@
 #include <beam/dto/request_beam_command.hpp>
 #include <beam/dto/request_beam_result.hpp>
 #include <pose/dto/set_ant_enu_transform_command.hpp>
-#include <beam/dto/set_operation_state_command.hpp>
 #include <beam/dto/transmit_beam_command.hpp>
 #include <spdlog/logger.h>
 
@@ -25,7 +24,7 @@ class BeamController
 {
 public:
     // 주어진 설정으로 만든다. 설정은 BeamConfig 생성 시 이미 검증되어 있다.
-    // eventLogger가 있으면 처리 이벤트(운용 상태 변경, 자세정보 반영, 요청 거부)를 기록한다. 없으면 기록하지 않는다.
+    // eventLogger가 있으면 처리 이벤트(자세정보 반영, 요청 거부)를 기록한다. 없으면 기록하지 않는다.
     explicit BeamController(
         const BeamConfig& config,
         std::shared_ptr<BeamEventLogger> eventLogger = {},
@@ -36,17 +35,17 @@ public:
     BeamController(BeamController&&) noexcept;
     BeamController& operator=(BeamController&&) noexcept;
 
-    // 운용 상태를 바꾼다. OFF에서 ON으로 바뀌면 요청 큐, 송신 횟수, 탐색 순서가 초기화된다.
-    // 현재와 같은 상태이면 아무것도 바꾸지 않는다. 상태가 바뀐 경우만 기록한다.
-    void setOperationState(SetOperationStateCommand command);
+    // 요청 큐, 송신 횟수, 탐색 순서를 초기화한다. 받은 자세정보는 유지한다.
+    // 운용 상태가 바뀔 때 호출자(app)가 호출한다.
+    void reset();
 
     // 검증된 변환으로 탐색 격자와 요청 영역을 갱신한다.
     void setAntEnuTransform(const pose::SetAntEnuTransformCommand& command);
 
-    // 요청 값이 잘못되면(알 수 없는 종류, 음수 transmitTime, requestId 0) 운용 상태와 관계없이 std::invalid_argument를 던진다.
+    // 요청 값이 잘못되면(알 수 없는 종류, 음수 transmitTime, requestId 0) std::invalid_argument를 던진다.
     // 생성자에 주입한 요청 빔 설정(빔 폭)은 BeamRequestFactory가 요청을 만들 때 반영된다.
     // 올바른 요청의 처리 결과를 반환한다. 결과에는 상태와 함께 요청의 requestId가 그대로 담긴다.
-    // - NOT_READY: 준비 상태(ON이고 자세정보를 받음)가 아니어서 버렸다.
+    // - NOT_READY: 자세정보를 받기 전이어서 버렸다.
     // - OUT_OF_COVERAGE: 요청 방향(ENU)을 안테나 기준으로 바꾼 값이 추적 영역(RequestCoverageConfig) 밖이어서 버렸다.
     // - ACCEPTED: 큐에 넣었다.
     // 버려진 요청은 송신되지 않으므로, 표적을 어떻게 할지는 호출한 쪽이 결과를 보고 정한다. 버려진 요청은 기록한다.

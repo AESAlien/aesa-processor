@@ -15,7 +15,7 @@ beam/
 │   └── domain/
 │       ├── request/         # 요청 빔 데이터와 대기열, 영역 판정
 │       │   └── factory/
-│       ├── scheduler/       # 운용 상태와 송신 순서 관리
+│       ├── scheduler/       # 자세 프레임과 송신 순서 관리
 │       └── search/          # 탐색 빔 격자와 순회 상태
 └── test/
     ├── unit/                # 단위 테스트
@@ -42,20 +42,26 @@ flowchart LR
     PoseWorker[레이더 포즈<br/>스레드]
     TargetWorker[타겟 추적<br/>스레드]
     TickWorker[틱<br/>스레드]
+    BeamWorker[빔 스케줄링<br/>스레드]
     SimulatorSendWorker[모의기 송신<br/>스레드]
 
     subgraph BeamController
-        setOperationState["setOperationState()"]
+        reset["reset()"]
         setAntEnuTransform["setAntEnuTransform()"]
         requestBeam["requestBeam()"]
         nextBeamCommand["nextBeamCommand()"]
     end
 
-    CommReceiveWorker -->|ON / OFF| setOperationState
-    PoseWorker -->|자세 설정| setAntEnuTransform
-    TargetWorker -->|빔 요청| requestBeam
-    TickWorker -->|10ms 틱| nextBeamCommand
-    nextBeamCommand -->|빔 송신| SimulatorSendWorker
+    CommReceiveWorker -->|운용 명령| BeamWorker
+    PoseWorker -->|자세 설정| BeamWorker
+    TargetWorker -->|빔 요청| BeamWorker
+    TickWorker -->|10ms 틱| BeamWorker
+    BeamWorker -->|ON / OFF 전환| reset
+    BeamWorker --> setAntEnuTransform
+    BeamWorker -->|ON| requestBeam
+    BeamWorker -->|ON| nextBeamCommand
+    nextBeamCommand -->|빔 송신 명령| BeamWorker
+    BeamWorker -->|빔 송신 명령| SimulatorSendWorker
 
     classDef communication fill:#DCFCE7,stroke:#16A34A,color:#166534,stroke-width:2px
     classDef processing fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
@@ -63,7 +69,7 @@ flowchart LR
     classDef control fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-width:2px
 
     class CommReceiveWorker,SimulatorSendWorker communication
-    class TargetWorker processing
+    class TargetWorker,BeamWorker processing
     class PoseWorker utility
     class TickWorker control
     style BeamController fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px

@@ -28,7 +28,6 @@ beam::BeamRequest makeRequest(
 
 } // namespace
 
-// 빈 요청 큐에서는 꺼낼 요청이 없다.
 TEST(RequestQueueTest, EmptyQueueReturnsNothing)
 {
     // Given: 요청이 없는 큐를 준비한다.
@@ -41,7 +40,6 @@ TEST(RequestQueueTest, EmptyQueueReturnsNothing)
     EXPECT_FALSE(request.has_value());
 }
 
-// 미래 요청은 예정 시각 전까지 큐에 남는다.
 TEST(RequestQueueTest, FutureRequestIsNotPoppedAndStaysQueued)
 {
     // Given: 미래에 송신할 요청이 있는 큐를 준비한다.
@@ -72,7 +70,6 @@ TEST(RequestQueueTest, RequestExactlyAtCurrentTimeIsDue)
     EXPECT_EQ(request->transmitTime(), 1000ms);
 }
 
-// 꺼낸 요청은 큐에서 제거된다.
 TEST(RequestQueueTest, PoppedRequestIsRemovedFromQueue)
 {
     // Given: 송신할 요청 하나를 큐에 넣는다.
@@ -110,7 +107,6 @@ TEST(RequestQueueTest, EarliestDueRequestComesFirstRegardlessOfInsertionOrder)
     EXPECT_TRUE(request3->direction_enu().azimuth.isEquivalentTo(3_deg));
 }
 
-// 송신 시각이 같으면 빔 종류와 관계없이 우선순위가 높은 요청을 먼저 반환한다.
 TEST(RequestQueueTest, SameTransmitTimeHigherPriorityComesFirst)
 {
     // Given: 같은 시각에 송신할 요청들의 우선순위를 빔 종류와 독립적으로 지정한다.

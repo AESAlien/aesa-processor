@@ -30,7 +30,6 @@ std::string invalidArgumentMessage(Function&& function)
 
 } // namespace
 
-// 자세 객체는 전달받은 롤과 피치 및 요를 보관한다.
 TEST(RadarAttitudeFactoryTest, StoresGivenValues)
 {
     // Given: 각 축을 구분할 수 있는 자세 각도를 준비한다.
@@ -109,7 +108,6 @@ TEST(RadarAttitudeFactoryTest, AcceptsBoundaryAnglesIncludingEndpoints)
     EXPECT_NO_THROW(construct(lowerRoll, lowerYaw));
 }
 
-// 자세 객체의 범위 오류 메시지는 입력된 롤과 요 값을 포함한다.
 TEST(RadarAttitudeFactoryTest, OutOfRangeMessageIncludesInputValue)
 {
     // Given: 롤과 요가 각각 범위를 벗어난 입력을 준비한다.

@@ -15,6 +15,8 @@ add_library(app_runtime STATIC
     src/log/logger/beam_event_message_logger.cpp
     src/log/logger/detection_event_csv_logger.cpp
 
+    src/operation/operation_state_gate.cpp
+
     src/worker/beam_worker.cpp
     src/worker/comm_receive_worker.cpp
     src/worker/pose_worker.cpp
@@ -68,4 +70,19 @@ if(BUILD_TESTING)
     configure_app_internal(message_queue_test)
     target_link_libraries(message_queue_test PRIVATE app_runtime GTest::gtest_main)
     gtest_discover_tests(message_queue_test PROPERTIES TIMEOUT 10)
+
+    add_executable(operation_state_gate_test test/unit/operation/operation_state_gate_test.cpp)
+    configure_app_internal(operation_state_gate_test)
+    target_link_libraries(operation_state_gate_test PRIVATE app_runtime GTest::gtest_main)
+    gtest_discover_tests(operation_state_gate_test)
+
+    add_executable(beam_worker_test test/integration/worker/beam_worker_test.cpp)
+    configure_app_internal(beam_worker_test)
+    target_link_libraries(beam_worker_test PRIVATE app_runtime GTest::gtest_main)
+    gtest_discover_tests(beam_worker_test PROPERTIES TIMEOUT 10)
+
+    add_executable(target_worker_test test/integration/worker/target_worker_test.cpp)
+    configure_app_internal(target_worker_test)
+    target_link_libraries(target_worker_test PRIVATE app_runtime GTest::gtest_main)
+    gtest_discover_tests(target_worker_test PROPERTIES TIMEOUT 10)
 endif()

@@ -175,5 +175,20 @@ TEST_F(DetectionHandlerTest, PreexistingTargetsDoNotCollideWithNewRegistrations)
     EXPECT_EQ(_repository->tracks().size(), 2u);
 }
 
+// 운용을 다시 시작하면 이전 탐색 결과 시각이 새 탐색 결과를 막지 않아야 한다.
+TEST_F(DetectionHandlerTest, ClearingSearchHistoryForgetsPreviousSearchResultTimes)
+{
+    EXPECT_FALSE(_handler.handle(result(BeamType::SEARCH, 50, 500ms, 1000_m, false)));
+    EXPECT_FALSE(_handler.handle(result(BeamType::SEARCH, 50, 400ms)));
+    EXPECT_TRUE(_repository->tracks().empty());
+
+    _handler.clearSearchHistory();
+
+    const auto confirmation = _handler.handle(result(BeamType::SEARCH, 50, 400ms));
+    ASSERT_TRUE(confirmation);
+    EXPECT_EQ(confirmation->beamType, beam::RequestBeamType::CONFIRMATION);
+    EXPECT_NE(_repository->findTentativeTrack(confirmation->requestId), nullptr);
+}
+
 } // namespace
 } // namespace target

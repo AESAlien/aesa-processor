@@ -10,34 +10,6 @@
 
 namespace app
 {
-namespace
-{
-// OperationState는 bool 기반 enum이므로 magic_enum 대신 직접 변환한다.
-const char* operationStateName(beam::OperationState state)
-{
-    return state == beam::OperationState::ON ? "ON" : "OFF";
-}
-}
-
-void BeamEventMessageLogger::logOperationStateChanged(beam::OperationState state) noexcept
-{
-    try
-    {
-        if (const auto logger = spdlog::get(LOGGER_NAME))
-        {
-            logger->log(spdlog::level::info, "Operation state changed: {}", operationStateName(state));
-        }
-    }
-    catch (const std::exception& error)
-    {
-        std::fprintf(stderr, "[BeamEventMessageLogger] %s\n", error.what());
-    }
-    catch (...)
-    {
-        std::fprintf(stderr, "[BeamEventMessageLogger] Logging failed\n");
-    }
-}
-
 void BeamEventMessageLogger::logAttitudeApplied() noexcept
 {
     try
