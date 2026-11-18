@@ -22,8 +22,8 @@ constexpr std::chrono::milliseconds RECEIVE_POLL_TIMEOUT{100};
 class CommController::Impl
 {
 public:
-    explicit Impl(CommConfig configuration)
-      : _networkManager(std::move(configuration))
+    Impl(CommConfig configuration, std::shared_ptr<spdlog::logger> logger)
+      : _networkManager(std::move(configuration), std::move(logger))
     {
     }
 
@@ -110,7 +110,7 @@ CommController::CommController(
     CommConfig configuration,
     std::shared_ptr<spdlog::logger> messageLogger
 ) : _messageLogger(std::move(messageLogger)),
-    _impl(std::make_unique<Impl>(std::move(configuration)))
+    _impl(std::make_unique<Impl>(std::move(configuration), _messageLogger))
 {
 }
 

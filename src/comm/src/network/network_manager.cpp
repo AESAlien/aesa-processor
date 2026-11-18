@@ -4,13 +4,26 @@
 #include <network/tcp_server.hpp>
 
 #include <iostream>
+#include <string>
 #include <utility>
 
 namespace comm
 {
+namespace
+{
 
-NetworkManager::NetworkManager(CommConfig configuration)
-  : _serverEndpoint(configuration.server()),
+std::string describe(const CommEndpoint& endpoint)
+{
+    return endpoint.getAddress() + ":" + std::to_string(endpoint.getPort());
+}
+
+} // namespace
+
+NetworkManager::NetworkManager(
+    CommConfig configuration,
+    std::shared_ptr<spdlog::logger> logger
+) : _logger(std::move(logger)),
+    _serverEndpoint(configuration.server()),
     _operatorConsole("operator-console", configuration.operatorConsole()),
     _scenarioSimulator("scenario-simulator", configuration.scenarioSimulator())
 {
@@ -92,13 +105,34 @@ void NetworkManager::assignToPeer(const std::shared_ptr<Session>& session)
     {
         if (peer->matches(*session))
         {
+            // 같은 상대가 이전 연결을 닫지 않은 채 다시 접속하면 이전 세션을 새 세션으로 바꾼다.
+            const bool replaced = static_cast<bool>(peer->getSession());
             peer->setSession(session);
+            if (_logger)
+            {
+                _logger->info(
+                    "Peer connected: peer={}, remote={}{}",
+                    peer->getName(),
+                    describe(session->getRemoteEndpoint()),
+                    replaced ? ", replacedPreviousSession=true" : ""
+                );
+            }
             return;
         }
     }
 
     // 반환 시 거부한 세션을 해제하고 해당 연결을 닫는다.
+    // 주소는 같고 포트만 다른 재접속(예: 운용콘솔이 3100이 아닌 포트로 접속)도 여기서 거부된다.
     const CommEndpoint& remoteEndpoint = session->getRemoteEndpoint();
+    if (_logger)
+    {
+        _logger->warn(
+            "Rejected unknown connection: remoteAddress={}, remotePort={}",
+            remoteEndpoint.getAddress(),
+            remoteEndpoint.getPort()
+        );
+        return;
+    }
     std::cerr << "[NetworkManager] Rejected unknown connection: remoteAddress="
               << remoteEndpoint.getAddress()
               << ", remotePort=" << remoteEndpoint.getPort() << '\n';
@@ -106,12 +140,42 @@ void NetworkManager::assignToPeer(const std::shared_ptr<Session>& session)
 
 std::optional<ReceivedFrames> NetworkManager::receiveFrom(PeerConnection& peer)
 {
-    std::vector<MessageFrame> frames = peer.receive();
+    const std::shared_ptr<Session> session = peer.getSession();
+    std::vector<MessageFrame> frames;
+    try
+    {
+        frames = peer.receive();
+    }
+    catch (const ReceiveError&)
+    {
+        logIfClosed(peer, session, "receive-error");
+        throw;
+    }
+    logIfClosed(peer, session, "closed-by-peer");
+
     if (frames.empty())
     {
         return std::nullopt;
     }
     return ReceivedFrames{peer.getName(), std::move(frames)};
+}
+
+void NetworkManager::logIfClosed(
+    const PeerConnection& peer,
+    const std::shared_ptr<Session>& session,
+    const char* reason
+) const {
+    if (!_logger || !session || session->isOpen())
+    {
+        return;
+    }
+    // 송신 실패로 이쪽에서 닫은 연결은 수신 경로가 EOF나 오류로 확인하더라도 상대가 끊은 것이 아니다.
+    _logger->info(
+        "Peer disconnected: peer={}, remote={}, reason={}",
+        peer.getName(),
+        describe(session->getRemoteEndpoint()),
+        session->wasShutDownAfterSendFailure() ? "send-error" : reason
+    );
 }
 
 } // namespace comm

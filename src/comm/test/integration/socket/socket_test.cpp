@@ -15,12 +15,15 @@
 #include <native_socket/native_socket_test_support.hpp>
 
 #include <gtest/gtest.h>
+#include <spdlog/sinks/ostream_sink.h>
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <chrono>
 #include <cstring>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -312,6 +315,80 @@ TEST(NetworkManagerTest, RejectsUnknownPeerWithoutReplacingKnownConnection)
     ASSERT_EQ(console.waitReadable(), 1);
     ASSERT_EQ(console.receiveByte(received), 1);
     EXPECT_EQ(received, 0x51);
+}
+
+// 상대 연결, 알 수 없는 연결 거부, 연결 종료를 comm 로그(파일)에 남긴다.
+// 거부 기록이 표준 오류에만 나가 처리부 로그로는 재접속 실패를 확인할 수 없었다.
+TEST(NetworkManagerTest, LogsConnectionRejectionAndDisconnection)
+{
+    TestSocket apiLifetime;
+    NativePeer console;
+    NativePeer simulator;
+    NativePeer unknown;
+    ASSERT_EQ(console.bind(), 0);
+    ASSERT_EQ(simulator.bind(), 0);
+    std::ostringstream output;
+    auto logger = std::make_shared<spdlog::logger>(
+        "network_manager_test",
+        std::make_shared<spdlog::sinks::ostream_sink_st>(output)
+    );
+    logger->set_pattern("%l %v");
+    const uint16_t port = availablePort();
+    comm::NetworkManager manager(makeConfig(port, console, simulator), logger);
+    manager.start();
+
+    const std::string consoleEndpoint = "127.0.0.1:" + std::to_string(console.localPort());
+    ASSERT_EQ(console.connect(port), 0);
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+    ASSERT_EQ(unknown.connect(port), 0);
+    const std::string unknownPort = std::to_string(unknown.localPort());
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+    console.close();
+    pollFor(manager, std::chrono::milliseconds{200});
+
+    const std::string text = output.str();
+    EXPECT_NE(text.find("info Peer connected: peer=operator-console, remote=" + consoleEndpoint), std::string::npos)
+        << text;
+    EXPECT_NE(text.find("warning Rejected unknown connection: remoteAddress=127.0.0.1, remotePort=" + unknownPort),
+              std::string::npos) << text;
+    EXPECT_NE(text.find("info Peer disconnected: peer=operator-console, remote=" + consoleEndpoint), std::string::npos)
+        << text;
+}
+
+// 일부만 송신한 뒤 송신이 실패해 이쪽에서 닫은 연결은 상대가 끊은 것으로 기록하지 않는다.
+TEST(NetworkManagerTest, LogsLocalShutdownAfterSendFailureAsSendError)
+{
+    if (!comm::native_socket::test::supportsBoundedSendBuffer())
+    {
+        GTEST_SKIP() << "Bounded send-buffer stress is not supported";
+    }
+    TestSocket apiLifetime;
+    NativePeer console;
+    NativePeer simulator;
+    ASSERT_EQ(console.bind(), 0);
+    ASSERT_EQ(simulator.bind(), 0);
+    ASSERT_EQ(console.setReceiveBufferSize(4096), 0);
+    std::ostringstream output;
+    auto logger = std::make_shared<spdlog::logger>(
+        "network_manager_send_failure_test",
+        std::make_shared<spdlog::sinks::ostream_sink_st>(output)
+    );
+    logger->set_pattern("%l %v");
+    const uint16_t port = availablePort();
+    comm::NetworkManager manager(makeConfig(port, console, simulator), logger);
+    manager.start();
+    ASSERT_EQ(console.connect(port), 0);
+    EXPECT_FALSE(manager.poll(SOCKET_WAIT_TIMEOUT));
+
+    // 상대는 연결을 유지한 채 읽지 않는다.
+    const std::vector<uint8_t> payload(32 * 1024 * 1024, 0x5A);
+    EXPECT_THROW(manager.sendToOperatorConsole(payload, std::chrono::milliseconds{40}), comm::SendError);
+    pollFor(manager, std::chrono::milliseconds{200});
+
+    const std::string text = output.str();
+    EXPECT_NE(text.find("info Peer disconnected: peer=operator-console"), std::string::npos) << text;
+    EXPECT_NE(text.find("reason=send-error"), std::string::npos) << text;
+    EXPECT_EQ(text.find("reason=closed-by-peer"), std::string::npos) << text;
 }
 
 // 모의기에서 받은 자세 정보를 전시기용 자세 메시지로 전시기에 보낸다.

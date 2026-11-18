@@ -4,6 +4,7 @@
 #include <message/message_framer.hpp>
 #include <socket/connected_socket.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <string>
@@ -31,6 +32,10 @@ public:
     // 연결이 종료되면 false를 반환하며, 이때 세션을 폐기해야 한다.
     bool isOpen() const noexcept;
 
+    // 일부만 송신한 뒤 송신이 실패해 이쪽에서 연결을 닫았으면 true를 반환한다.
+    // 이후 수신 경로가 확인하는 연결 종료는 상대가 끊은 것이 아니다.
+    bool wasShutDownAfterSendFailure() const noexcept;
+
     const CommEndpoint& getRemoteEndpoint() const noexcept;
     const ConnectedSocket& getSocket() const noexcept;
 
@@ -57,6 +62,8 @@ private:
     CommEndpoint _remoteEndpoint;
     ConnectedSocket _socket;
     bool _open = true;
+    // 송신 스레드가 기록하고 수신 스레드가 읽는다.
+    std::atomic<bool> _shutDownAfterSendFailure{false};
     MessageFramer _framer;
 };
 
