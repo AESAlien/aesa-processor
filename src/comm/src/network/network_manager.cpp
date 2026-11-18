@@ -169,11 +169,12 @@ void NetworkManager::logIfClosed(
     {
         return;
     }
+    // 송신 실패로 이쪽에서 닫은 연결은 수신 경로가 EOF나 오류로 확인하더라도 상대가 끊은 것이 아니다.
     _logger->info(
         "Peer disconnected: peer={}, remote={}, reason={}",
         peer.getName(),
         describe(session->getRemoteEndpoint()),
-        reason
+        session->wasShutDownAfterSendFailure() ? "send-error" : reason
     );
 }
 

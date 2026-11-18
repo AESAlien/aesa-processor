@@ -67,6 +67,7 @@ private:
     std::optional<ReceivedFrames> receiveFrom(PeerConnection& peer);
 
     // 수신 중 세션이 닫혔으면 연결 종료를 기록한다.
+    // 송신 실패로 이쪽에서 닫은 세션은 reason 대신 send-error로 기록한다.
     void logIfClosed(
         const PeerConnection& peer,
         const std::shared_ptr<Session>& session,

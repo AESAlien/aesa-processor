@@ -30,6 +30,11 @@ bool Session::isOpen() const noexcept
     return _open;
 }
 
+bool Session::wasShutDownAfterSendFailure() const noexcept
+{
+    return _shutDownAfterSendFailure.load();
+}
+
 const CommEndpoint& Session::getRemoteEndpoint() const noexcept
 {
     return _remoteEndpoint;
@@ -160,6 +165,8 @@ void Session::failSend(
 ) {
     if (bytesSent > 0)
     {
+        // 수신 스레드가 연결 종료를 확인하기 전에 종료 원인을 남긴다.
+        _shutDownAfterSendFailure.store(true);
         try
         {
             _socket.shutdown();
