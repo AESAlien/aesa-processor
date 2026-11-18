@@ -50,9 +50,6 @@ public:
         const pose::SetRadarPoseCommand& command
     );
 
-    // void requestStop() noexcept;
-    // void closeServer() noexcept;
-
 private:
     class Impl;
     std::shared_ptr<spdlog::logger> _messageLogger;

@@ -1,9 +1,9 @@
 #include <beam/controller/beam_controller.hpp>
 #include <beam/dto/log/beam_event_logger.hpp>
 
-#include "scheduler/attitude_frame.hpp"
-#include "request/factory/beam_request_factory.hpp"
-#include "scheduler/beam_scheduler.hpp"
+#include "domain/scheduler/attitude_frame.hpp"
+#include "domain/request/factory/beam_request_factory.hpp"
+#include "domain/scheduler/beam_scheduler.hpp"
 
 #include <utility>
 

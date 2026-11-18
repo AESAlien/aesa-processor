@@ -38,78 +38,82 @@ if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     include(GoogleTest)
 
-    add_executable(target_track_repository_test test/track_repository_test.cpp)
+    add_executable(target_track_repository_test test/unit/repository/track_repository_test.cpp)
     target_include_directories(target_track_repository_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
     target_link_libraries(target_track_repository_test PRIVATE target GTest::gtest_main)
     gtest_discover_tests(target_track_repository_test)
 
-    add_executable(target_detection_handler_test test/detection_handler_test.cpp)
+    add_executable(target_detection_handler_test test/integration/service/detection_handler_test.cpp)
     target_include_directories(target_detection_handler_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
     target_link_libraries(target_detection_handler_test PRIVATE target GTest::gtest_main)
     gtest_discover_tests(target_detection_handler_test)
 
-    add_executable(target_nds_algorithm_test test/nds_algorithm_test.cpp)
+    add_executable(target_nds_algorithm_test test/unit/domain/association/nds_algorithm_test.cpp)
     target_include_directories(target_nds_algorithm_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test/support"
     )
     target_link_libraries(target_nds_algorithm_test PRIVATE target GTest::gtest_main)
     gtest_discover_tests(target_nds_algorithm_test)
 
-    add_executable(target_config_test test/target_config_test.cpp)
+    add_executable(target_config_test test/integration/config/target_config_test.cpp)
     target_include_directories(target_config_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
     target_link_libraries(target_config_test PRIVATE target GTest::gtest_main)
     gtest_discover_tests(target_config_test)
 
-    add_executable(target_lifecycle_test test/target_lifecycle_test.cpp)
+    add_executable(target_lifecycle_test test/integration/controller/target_lifecycle_test.cpp)
     target_include_directories(target_lifecycle_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
     target_link_libraries(target_lifecycle_test PRIVATE target GTest::gtest_main)
     gtest_discover_tests(target_lifecycle_test)
 
-    add_executable(target_immutable_geometry_test test/immutable_geometry_test.cpp)
+    add_executable(target_immutable_geometry_test test/integration/controller/immutable_geometry_test.cpp)
     target_include_directories(target_immutable_geometry_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
     target_link_libraries(target_immutable_geometry_test PRIVATE target GTest::gtest_main)
     gtest_discover_tests(target_immutable_geometry_test)
 
-    add_executable(target_domain_validation_test test/domain_validation_test.cpp)
+    add_executable(target_domain_validation_test test/integration/domain/domain_validation_test.cpp)
     target_include_directories(target_domain_validation_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test/support"
     )
     target_link_libraries(target_domain_validation_test PRIVATE target GTest::gtest_main)
     gtest_discover_tests(target_domain_validation_test)
 
-    add_executable(target_tracking_association_test test/tracking_association_test.cpp)
+    add_executable(target_tracking_association_test test/integration/domain/association/tracking_association_test.cpp)
     target_include_directories(target_tracking_association_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test/support"
     )
     target_link_libraries(target_tracking_association_test PRIVATE target GTest::gtest_main)
     gtest_discover_tests(target_tracking_association_test)
 
-    add_executable(target_tracking_state_test test/tracking_state_test.cpp)
+    add_executable(target_tracking_state_test test/integration/domain/tracking_state_test.cpp)
     target_include_directories(target_tracking_state_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
     target_link_libraries(target_tracking_state_test PRIVATE target GTest::gtest_main)
     gtest_discover_tests(target_tracking_state_test)
 
-    add_executable(target_constant_acceleration_algorithm_test test/constant_acceleration_algorithm_test.cpp)
+    add_executable(target_constant_acceleration_algorithm_test test/integration/domain/tracking/constant_acceleration_algorithm_test.cpp)
     target_include_directories(target_constant_acceleration_algorithm_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test/support"
     )
     target_link_libraries(target_constant_acceleration_algorithm_test PRIVATE target GTest::gtest_main)
 
     gtest_discover_tests(target_constant_acceleration_algorithm_test)
 
-    add_executable(target_kalman_controller_test test/kalman_controller_test.cpp)
+    add_executable(target_kalman_controller_test test/integration/controller/kalman_controller_test.cpp)
     target_include_directories(target_kalman_controller_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
@@ -117,7 +121,7 @@ if(BUILD_TESTING)
 
     gtest_discover_tests(target_kalman_controller_test)
 
-    add_executable(target_track_reporting_limit_test test/track_reporting_limit_test.cpp)
+    add_executable(target_track_reporting_limit_test test/integration/service/track_reporting_limit_test.cpp)
     target_include_directories(target_track_reporting_limit_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
@@ -125,7 +129,7 @@ if(BUILD_TESTING)
 
     gtest_discover_tests(target_track_reporting_limit_test)
 
-    add_executable(target_track_expiration_handler_test test/track_expiration_handler_test.cpp)
+    add_executable(target_track_expiration_handler_test test/integration/service/track_expiration_handler_test.cpp)
     target_include_directories(target_track_expiration_handler_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )

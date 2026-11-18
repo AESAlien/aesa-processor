@@ -3,15 +3,15 @@ add_library(beam STATIC
 
     src/domain/beam_width.cpp
 
-    src/search/search_grid.cpp
+    src/domain/search/search_grid.cpp
 
-    src/request/beam_request.cpp
-    src/request/factory/beam_request_factory.cpp
-    src/request/request_coverage.cpp
-    src/request/request_queue.cpp
+    src/domain/request/beam_request.cpp
+    src/domain/request/factory/beam_request_factory.cpp
+    src/domain/request/request_coverage.cpp
+    src/domain/request/request_queue.cpp
 
-    src/scheduler/attitude_frame.cpp
-    src/scheduler/beam_scheduler.cpp
+    src/domain/scheduler/attitude_frame.cpp
+    src/domain/scheduler/beam_scheduler.cpp
 
     src/config/search_grid_config.cpp
     src/config/request_beam_config.cpp
@@ -31,8 +31,8 @@ if(BUILD_TESTING)
     include(GoogleTest)
 
     add_executable(beam_config_test
-        test/unit/request_coverage_config_test.cpp
-        test/unit/search_grid_config_test.cpp
+        test/unit/config/request_coverage_config_test.cpp
+        test/unit/config/search_grid_config_test.cpp
     )
     target_link_libraries(beam_config_test PRIVATE
         beam
@@ -41,7 +41,7 @@ if(BUILD_TESTING)
     gtest_discover_tests(beam_config_test)
 
     add_executable(beam_search_grid_test
-        test/integration/search_grid_test.cpp
+        test/integration/domain/search/search_grid_test.cpp
     )
     target_include_directories(beam_search_grid_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -53,8 +53,8 @@ if(BUILD_TESTING)
     gtest_discover_tests(beam_search_grid_test)
 
     add_executable(beam_request_test
-        test/unit/beam_request_test.cpp
-        test/unit/beam_type_test.cpp
+        test/unit/domain/request/beam_request_test.cpp
+        test/unit/dto/beam_type_test.cpp
     )
     target_include_directories(beam_request_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -66,7 +66,7 @@ if(BUILD_TESTING)
     gtest_discover_tests(beam_request_test)
 
     add_executable(beam_request_factory_test
-        test/unit/beam_request_factory_test.cpp
+        test/unit/domain/request/factory/beam_request_factory_test.cpp
     )
     target_include_directories(beam_request_factory_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -78,7 +78,7 @@ if(BUILD_TESTING)
     gtest_discover_tests(beam_request_factory_test)
 
     add_executable(beam_request_queue_test
-        test/unit/request_queue_test.cpp
+        test/unit/domain/request/request_queue_test.cpp
     )
     target_include_directories(beam_request_queue_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -90,7 +90,7 @@ if(BUILD_TESTING)
     gtest_discover_tests(beam_request_queue_test)
 
     add_executable(beam_request_coverage_test
-        test/integration/request_coverage_test.cpp
+        test/integration/domain/request/request_coverage_test.cpp
     )
     target_include_directories(beam_request_coverage_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -102,7 +102,7 @@ if(BUILD_TESTING)
     gtest_discover_tests(beam_request_coverage_test)
 
     add_executable(beam_scheduler_test
-        test/integration/beam_scheduler_test.cpp
+        test/integration/domain/scheduler/beam_scheduler_test.cpp
     )
     target_include_directories(beam_scheduler_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -114,7 +114,7 @@ if(BUILD_TESTING)
     gtest_discover_tests(beam_scheduler_test)
 
     add_executable(beam_controller_test
-        test/integration/beam_controller_test.cpp
+        test/integration/controller/beam_controller_test.cpp
     )
     target_include_directories(beam_controller_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"

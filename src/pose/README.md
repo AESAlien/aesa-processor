@@ -1,5 +1,52 @@
 # 레이더 포즈 모듈(`pose`)
 
+## 디렉터리 구조
+
+```text
+pose/
+├── include/
+│   └── pose/
+│       ├── config/
+│       ├── controller/      # 모듈 호출 진입점
+│       ├── domain/          # 도메인 모델과 규칙
+│       │   └── factory/
+│       └── dto/
+├── src/
+└── test/
+    ├── unit/                # 단위 테스트
+    │   ├── config/
+    │   └── domain/
+    │       └── factory/
+    └── integration/         # 통합 테스트
+        └── controller/
+```
+
+## 데이터 플로우 다이어그램
+
+```mermaid
+flowchart LR
+    CommReceiveWorker[수신<br/>스레드]
+    BeamWorker[빔 스케줄링<br/>스레드]
+    TargetWorker[타겟 추적<br/>스레드]
+    ConsoleSendWorker[전시기 송신<br/>스레드]
+
+    subgraph PoseController
+        setRadarPose["setRadarPose()"]
+    end
+
+    CommReceiveWorker -->|SetRadarPoseCommand| setRadarPose
+    setRadarPose -->|SetAntEnuTransformCommand| BeamWorker
+    setRadarPose -->|SetEnuGeoTransformCommand| TargetWorker
+    setRadarPose -->|SetRadarPoseCommand| ConsoleSendWorker
+
+    classDef communication fill:#DCFCE7,stroke:#16A34A,color:#166534,stroke-width:2px
+    classDef processing fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
+
+    class CommReceiveWorker,ConsoleSendWorker communication
+    class BeamWorker,TargetWorker processing
+    style PoseController fill:#F3E8FF,stroke:#9333EA,color:#6B21A8,stroke-width:2px
+```
+
 ## 도메인 클래스 다이어그램
 
 ```mermaid

@@ -107,12 +107,7 @@ DecodeResult MessageDecoder::decode(
         return failed(DecodingError::INVALID_MESSAGE_SIZE);
     }
 
-    /*현재 version 사용 x
-    if (frame.header.version != protocol::MESSAGE_VERSION)
-    {
-        return failed(DecodingError::UNSUPPORTED_VERSION);
-    }
-    */
+    // 수신 헤더의 version 값과 관계없이 동일한 디코딩 규칙을 적용한다.
 
     switch (static_cast<protocol::MessageId>(frame.header.message_Id))
     {

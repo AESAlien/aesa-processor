@@ -38,6 +38,7 @@ std::optional<TickOutput> TickWorker::process(std::monostate)
         now - *_started
     );
     _nextTick += TICK_PERIOD;
+    // 놓친 틱이 몰려 나가지 않도록 현재 시각을 기준으로 다음 틱을 예약한다.
     if (_nextTick <= now)
     {
         _nextTick = now + TICK_PERIOD;

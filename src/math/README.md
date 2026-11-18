@@ -1,5 +1,31 @@
 # 수치 연산(`math`) 모듈
 
+## 디렉터리 구조
+
+```text
+math/
+├── include/
+│   └── math/
+│       ├── bounded/         # 각도, 거리, 속력의 범위를 제한하는 타입
+│       ├── geometry/        # 직교 좌표와 구면 좌표, 방향, 변위, 속도, 가속도 타입
+│       ├── linear_algebra/  # 행렬과 벡터 타입, 선형대수 연산
+│       ├── quantity/        # 물리량 타입
+│       └── range/           # 범위 정의와 포함 여부 판정
+├── src/
+│   └── trigonometry.cpp
+└── test/
+    ├── unit/                # 단위 테스트
+    │   ├── bounded/
+    │   ├── geometry/
+    │   ├── linear_algebra/
+    │   ├── quantity/
+    │   ├── range/
+    │   ├── trigonometry_test.cpp
+    │   └── value_comparison_test.cpp
+    └── integration/         # 통합 테스트
+        └── geometry/
+```
+
 ## 도메인 클래스 다이어그램
 
 ```mermaid

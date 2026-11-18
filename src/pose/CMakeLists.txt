@@ -16,11 +16,11 @@ if(BUILD_TESTING)
     include(GoogleTest)
 
     add_executable(pose_test
-        test/ant_enu_transform_test.cpp
-        test/enu_geo_transform_test.cpp
-        test/pose_config_test.cpp
-        test/pose_controller_test.cpp
-        test/radar_attitude_test.cpp
+        test/unit/domain/ant_enu_transform_test.cpp
+        test/unit/domain/enu_geo_transform_test.cpp
+        test/unit/config/pose_config_test.cpp
+        test/integration/controller/pose_controller_test.cpp
+        test/unit/domain/factory/radar_attitude_test.cpp
     )
     target_link_libraries(pose_test PRIVATE pose GTest::gtest_main)
     gtest_discover_tests(pose_test)
