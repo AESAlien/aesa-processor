@@ -4,6 +4,8 @@
 #include <network/dto/received_frames.hpp>
 #include <network/peer_connection.hpp>
 
+#include <spdlog/logger.h>
+
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -19,10 +21,14 @@ class TcpServer;
 
 // 설정에 따라 만든 연결을 소유하고 수명 관리와 전송의 세부 구현을 감춘다.
 // start()와 poll()은 수신 스레드에서 실행하며, 송신은 동시에 실행할 수 있다.
+// logger가 있으면 상대 연결·교체·종료와 알 수 없는 연결 거부를 기록한다.
 class NetworkManager
 {
 public:
-    explicit NetworkManager(CommConfig configuration);
+    explicit NetworkManager(
+        CommConfig configuration,
+        std::shared_ptr<spdlog::logger> logger = {}
+    );
     ~NetworkManager();
 
     NetworkManager(const NetworkManager&) = delete;
@@ -60,6 +66,14 @@ private:
 
     std::optional<ReceivedFrames> receiveFrom(PeerConnection& peer);
 
+    // 수신 중 세션이 닫혔으면 연결 종료를 기록한다.
+    void logIfClosed(
+        const PeerConnection& peer,
+        const std::shared_ptr<Session>& session,
+        const char* reason
+    ) const;
+
+    std::shared_ptr<spdlog::logger> _logger;
     CommEndpoint _serverEndpoint;
     PeerConnection _operatorConsole;
     PeerConnection _scenarioSimulator;
