@@ -134,7 +134,7 @@ void CsvLogManager::configureLogger(
         sink->log(spdlog::details::log_msg(logger.name(), spdlog::level::info, header));
         sink->flush();
     }
-    
+
     logger.sinks().push_back(sink);
     logger.flush_on(spdlog::level::info);
     logger.set_error_handler(errorHandler);

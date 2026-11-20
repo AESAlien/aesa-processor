@@ -53,84 +53,96 @@ bool Speed::isNonnegative() const noexcept
 bool Speed::equals(
     const Speed& other,
     const QuantityTolerance<LinearVelocity>& tolerance
-) const noexcept {
+) const noexcept
+{
     return equals(other._velocity, tolerance);
 }
 
 bool Speed::equals(
     LinearVelocity other,
     const QuantityTolerance<LinearVelocity>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _velocity.equals(other, tolerance);
 }
 
 bool Speed::notEquals(
     const Speed& other,
     const QuantityTolerance<LinearVelocity>& tolerance
-) const noexcept {
+) const noexcept
+{
     return notEquals(other._velocity, tolerance);
 }
 
 bool Speed::notEquals(
     LinearVelocity other,
     const QuantityTolerance<LinearVelocity>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _velocity.notEquals(other, tolerance);
 }
 
 bool Speed::lessThan(
     const Speed& other,
     const QuantityTolerance<LinearVelocity>& tolerance
-) const noexcept {
+) const noexcept
+{
     return lessThan(other._velocity, tolerance);
 }
 
 bool Speed::lessThan(
     LinearVelocity other,
     const QuantityTolerance<LinearVelocity>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _velocity.lessThan(other, tolerance);
 }
 
 bool Speed::lessThanOrEqual(
     const Speed& other,
     const QuantityTolerance<LinearVelocity>& tolerance
-) const noexcept {
+) const noexcept
+{
     return lessThanOrEqual(other._velocity, tolerance);
 }
 
 bool Speed::lessThanOrEqual(
     LinearVelocity other,
     const QuantityTolerance<LinearVelocity>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _velocity.lessThanOrEqual(other, tolerance);
 }
 
 bool Speed::greaterThan(
     const Speed& other,
     const QuantityTolerance<LinearVelocity>& tolerance
-) const noexcept {
+) const noexcept
+{
     return greaterThan(other._velocity, tolerance);
 }
 
 bool Speed::greaterThan(
     LinearVelocity other,
     const QuantityTolerance<LinearVelocity>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _velocity.greaterThan(other, tolerance);
 }
 
 bool Speed::greaterThanOrEqual(
     const Speed& other,
     const QuantityTolerance<LinearVelocity>& tolerance
-) const noexcept {
+) const noexcept
+{
     return greaterThanOrEqual(other._velocity, tolerance);
 }
 
 bool Speed::greaterThanOrEqual(
     LinearVelocity other,
     const QuantityTolerance<LinearVelocity>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _velocity.greaterThanOrEqual(other, tolerance);
 }
 

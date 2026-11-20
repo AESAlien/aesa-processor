@@ -1,5 +1,4 @@
-﻿#include "math/linear_algebra/matrix.hpp"
-
+#include "math/linear_algebra/matrix.hpp"
 
 #include <cmath>
 #include <limits>
@@ -12,15 +11,15 @@ namespace math
 Matrix::Matrix() noexcept = default;
 
 Matrix::Matrix(std::size_t rows, std::size_t columns, double value)
-    : _rows(rows),
-      _columns(columns)
+  : _rows(rows),
+    _columns(columns)
 {
     validate();
     _values.assign(rows * columns, value);
 }
 
 Matrix::Matrix(std::initializer_list<std::initializer_list<double>> values)
-    : _rows(values.size())
+  : _rows(values.size())
 {
     if (values.size() != 0)
     {
@@ -219,8 +218,7 @@ Matrix Matrix::operator*(const Matrix& other) const
         {
             for (std::size_t column = 0; column < other._columns; ++column)
             {
-                result(row, column) += _values[row * _columns + inner]
-                    * other._values[inner * other._columns + column];
+                result(row, column) += _values[row * _columns + inner] * other._values[inner * other._columns + column];
             }
         }
     }

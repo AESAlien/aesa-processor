@@ -146,7 +146,7 @@ TEST(BeamControllerTest, AttitudeCommandChangesSearchDirection)
     };
     const AttitudeCase cases[] =
     {
-        {0_deg, 0_deg, 20_deg, 90_deg, 90_deg, 20_deg}, // 정면의 피치와 요 회전
+        {0_deg, 0_deg, 20_deg, 90_deg, 90_deg, 20_deg},   // 정면의 피치와 요 회전
         {90_deg, 10_deg, 0_deg, 30_deg, 120_deg, -10_deg} // 오른쪽 방향의 롤과 요 회전
     };
 
@@ -219,7 +219,8 @@ TEST(BeamControllerTest, InvalidRequestThrowsEvenBeforeAttitude)
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 7.5_deg, 15.5_deg);
 
     // When: 잘못된 요청을 접수한다.
-    const auto requestBeam = [&] { return controller.requestBeam(request); };
+    const auto requestBeam = [&]
+    { return controller.requestBeam(request); };
 
     // Then: 준비 전 결과 대신 검증 예외를 전달한다.
     EXPECT_THROW(requestBeam(), std::invalid_argument);
@@ -233,7 +234,8 @@ TEST(BeamControllerTest, InvalidRequestIsNotQueued)
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 0, 7.5_deg, 15.5_deg);
 
     // When: 잘못된 요청을 접수한다.
-    const auto requestBeam = [&] { return controller.requestBeam(request); };
+    const auto requestBeam = [&]
+    { return controller.requestBeam(request); };
 
     // Then: 요청 검증 예외를 전달한다.
     EXPECT_THROW(requestBeam(), std::invalid_argument);
@@ -451,7 +453,8 @@ TEST(BeamControllerTest, InvalidRequestThrowsBeforeCoverageCheck)
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 90_deg, 0_deg);
 
     // When: 잘못된 요청을 접수한다.
-    const auto requestBeam = [&] { return controller.requestBeam(request); };
+    const auto requestBeam = [&]
+    { return controller.requestBeam(request); };
 
     // Then: 영역 밖 결과 대신 요청 검증 예외를 전달한다.
     EXPECT_THROW(requestBeam(), std::invalid_argument);

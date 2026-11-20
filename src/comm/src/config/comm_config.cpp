@@ -9,8 +9,7 @@ CommConfig::CommConfig(
     CommEndpoint server,
     CommEndpoint operatorConsole,
     CommEndpoint scenarioSimulator
-)
-  : _server(std::move(server)),
+) : _server(std::move(server)),
     _operatorConsole(std::move(operatorConsole)),
     _scenarioSimulator(std::move(scenarioSimulator))
 {

@@ -10,13 +10,13 @@
 namespace math
 {
 SphericalDirection::SphericalDirection(Angle azimuth, Angle elevation)
-    : SphericalDirection(CircularAngle(azimuth), TiltAngle(elevation))
+  : SphericalDirection(CircularAngle(azimuth), TiltAngle(elevation))
 {
 }
 
 SphericalDirection::SphericalDirection(CircularAngle azimuth, TiltAngle elevation) noexcept
-    : azimuth(azimuth),
-      elevation(elevation)
+  : azimuth(azimuth),
+    elevation(elevation)
 {
 }
 
@@ -37,11 +37,7 @@ SphericalDirection SphericalDirection::fromCartesianUnitVector(const Vector& vec
         throw std::invalid_argument("Cartesian direction requires a finite 3D vector");
     }
 
-    const double maxComponent = std::max({
-        std::abs(vector(0)),
-        std::abs(vector(1)),
-        std::abs(vector(2))
-    });
+    const double maxComponent = std::max({std::abs(vector(0)), std::abs(vector(1)), std::abs(vector(2))});
     if (maxComponent == 0.0)
     {
         throw std::invalid_argument("Cartesian direction cannot be created from a zero vector");
@@ -54,7 +50,8 @@ SphericalDirection SphericalDirection::fromCartesianUnitVector(const Vector& vec
 
     return SphericalDirection(
         Angle::fromRadians(std::atan2(x, y)),
-        Angle::fromRadians(std::atan2(z, horizontalNorm)));
+        Angle::fromRadians(std::atan2(z, horizontalNorm))
+    );
 }
 
 }

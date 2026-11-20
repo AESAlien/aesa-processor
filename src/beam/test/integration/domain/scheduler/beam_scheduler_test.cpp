@@ -46,11 +46,13 @@ beam::AttitudeFrame makeAttitudeFrame(math::Angle roll, math::Angle pitch, math:
     const pose::RadarAttitudeFactory factory(pose::RadarAttitudeFactoryConfig(89_deg));
     const auto transform = pose::AntEnuTransform(
         factory.create(roll, math::TiltAngle(pitch), yaw),
-        pose::AntEnuTransformConfig(math::SquareMatrix::identity(3)));
+        pose::AntEnuTransformConfig(math::SquareMatrix::identity(3))
+    );
     return beam::AttitudeFrame(
         transform,
         validSearchGridConfigBuilder().build(),
-        validRequestCoverageConfigBuilder().build());
+        validRequestCoverageConfigBuilder().build()
+    );
 }
 
 beam::AttitudeFrame makeZeroAttitudeFrame()
@@ -80,7 +82,8 @@ beam::BeamRequest makeRequest(
     const int priority = beamType == beam::BeamType::CONFIRMATION ? 1 : 0;
     return beam::BeamRequest(
         beamType, beam::BeamWidth(3_deg, 3_deg), priority,
-        transmitTime, requestId, math::SphericalDirection(azimuth, elevation));
+        transmitTime, requestId, math::SphericalDirection(azimuth, elevation)
+    );
 }
 
 // 영 자세에서 탐색 빔 index번째(0부터)의 방위각/고각
@@ -574,12 +577,8 @@ TEST(BeamSchedulerTest, RequestBeamWidthFollowsEachRequest)
     // Given: 빔 폭이 서로 다른 두 요청을 준비된 스케줄러에 넣는다.
     beam::BeamScheduler scheduler;
     makeReady(scheduler);
-    scheduler.addRequest(beam::BeamRequest(
-        beam::BeamType::CONFIRMATION, beam::BeamWidth(2_deg, 3_deg), 1,
-        0ms, 1, math::SphericalDirection(1_deg, 5_deg)));
-    scheduler.addRequest(beam::BeamRequest(
-        beam::BeamType::TRACKING, beam::BeamWidth(4_deg, 5_deg), 0,
-        10ms, 2, math::SphericalDirection(1_deg, 5_deg)));
+    scheduler.addRequest(beam::BeamRequest(beam::BeamType::CONFIRMATION, beam::BeamWidth(2_deg, 3_deg), 1, 0ms, 1, math::SphericalDirection(1_deg, 5_deg)));
+    scheduler.addRequest(beam::BeamRequest(beam::BeamType::TRACKING, beam::BeamWidth(4_deg, 5_deg), 0, 10ms, 2, math::SphericalDirection(1_deg, 5_deg)));
 
     // When: 각 요청의 송신 시각에 명령을 꺼낸다.
     const auto confirmation = scheduler.next(0ms);
@@ -600,10 +599,8 @@ TEST(BeamSchedulerTest, RechecksPendingRequestsAgainstUpdatedCoverage)
 {
     beam::BeamScheduler scheduler;
     makeReady(scheduler);
-    ASSERT_EQ(scheduler.addRequest(makeRequest(beam::BeamType::TRACKING, 10ms, 1, 0_deg, 0_deg)),
-              beam::RequestBeamStatus::ACCEPTED);
-    ASSERT_EQ(scheduler.addRequest(makeRequest(beam::BeamType::TRACKING, 10ms, 2, 50_deg, 0_deg)),
-              beam::RequestBeamStatus::ACCEPTED);
+    ASSERT_EQ(scheduler.addRequest(makeRequest(beam::BeamType::TRACKING, 10ms, 1, 0_deg, 0_deg)), beam::RequestBeamStatus::ACCEPTED);
+    ASSERT_EQ(scheduler.addRequest(makeRequest(beam::BeamType::TRACKING, 10ms, 2, 50_deg, 0_deg)), beam::RequestBeamStatus::ACCEPTED);
 
     scheduler.setAttitudeFrame(makeAttitudeFrame(0_deg, 0_deg, 90_deg));
     const auto command = scheduler.next(10ms);

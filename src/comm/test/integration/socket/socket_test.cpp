@@ -71,9 +71,7 @@ struct HasSend : std::false_type
 {
 };
 template <typename T>
-struct HasSend<T, std::void_t<decltype(std::declval<T&>().sendBytes(
-    std::declval<const std::vector<uint8_t>&>()
-))>> : std::true_type
+struct HasSend<T, std::void_t<decltype(std::declval<T&>().sendBytes(std::declval<const std::vector<uint8_t>&>()))>> : std::true_type
 {
 };
 static_assert(!HasAccept<comm::ConnectedSocket>::value);
@@ -178,11 +176,7 @@ TEST(NetworkManagerTest, OwnsConnectionsAndRoutesDestinationSpecificSends)
     const uint16_t port = availablePort();
     uint8_t received = 0;
     {
-        comm::NetworkManager manager(comm::CommConfig(
-            comm::CommEndpoint("127.0.0.1", port),
-            comm::CommEndpoint("127.0.0.1", console.localPort()),
-            comm::CommEndpoint("127.0.0.1", simulator.localPort())
-        ));
+        comm::NetworkManager manager(comm::CommConfig(comm::CommEndpoint("127.0.0.1", port), comm::CommEndpoint("127.0.0.1", console.localPort()), comm::CommEndpoint("127.0.0.1", simulator.localPort())));
         EXPECT_THROW(manager.poll(std::chrono::milliseconds{0}), comm::ReceiveError);
         EXPECT_NO_THROW(manager.sendToOperatorConsole({0x01}));
         EXPECT_NO_THROW(manager.sendToScenarioSimulator({0x02}));
@@ -469,7 +463,7 @@ TEST(TcpServerTest, RotatesBetweenSocketsThatAreReadyAtTheSameTime)
     const comm::SocketSelector selector({&first->getSocket(), &second->getSocket()});
     const auto deadline = std::chrono::steady_clock::now() + SOCKET_WAIT_TIMEOUT;
     while (selector.waitReadable(std::chrono::milliseconds{10}).size() < 2 &&
-        std::chrono::steady_clock::now() < deadline)
+           std::chrono::steady_clock::now() < deadline)
     {
     }
 
@@ -905,22 +899,23 @@ TEST(ConnectedSocketTest, SessionSendCompletesEntireStream)
     std::vector<uint8_t> received(payload.size());
     std::size_t receivedSize = 0;
 
-    std::thread reader([&]
-    {
-        while (receivedSize < received.size())
+    std::thread reader(
+        [&]
         {
-            if (client.waitReadable() != 1)
+            while (receivedSize < received.size())
             {
-                return;
+                if (client.waitReadable() != 1)
+                {
+                    return;
+                }
+                const int count = client.receiveBytes(received.data() + receivedSize, received.size() - receivedSize);
+                if (count <= 0)
+                {
+                    return;
+                }
+                receivedSize += static_cast<std::size_t>(count);
             }
-            const int count = client.receiveBytes(received.data() + receivedSize, received.size() - receivedSize);
-            if (count <= 0)
-            {
-                return;
-            }
-            receivedSize += static_cast<std::size_t>(count);
         }
-    }
     );
     EXPECT_NO_THROW(session.send(payload, SOCKET_WAIT_TIMEOUT));
     reader.join();

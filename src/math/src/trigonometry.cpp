@@ -77,7 +77,7 @@ Angle atan(double value)
     {
         throw std::domain_error("Inverse tangent requires a finite value");
     }
-    
+
     return Angle::fromRadians(std::atan(value));
 }
 

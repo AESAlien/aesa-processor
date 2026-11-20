@@ -27,7 +27,8 @@ BeamConfig BeamConfig::Builder::build() const
     return BeamConfig(
         *_searchGrid,
         *_requestBeam,
-        *_requestCoverage);
+        *_requestCoverage
+    );
 }
 
 } // namespace beam

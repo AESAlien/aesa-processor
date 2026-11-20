@@ -23,8 +23,8 @@ constexpr uint8_t DESTINATION_ID = 20;
 constexpr std::chrono::seconds RECEIVE_TIMEOUT{3};
 constexpr std::string_view PAYLOAD = "Hello World";
 
-using comm::SocketHandle;
 using comm::INVALID_SOCKET_HANDLE;
+using comm::SocketHandle;
 
 void waitForExit()
 {
@@ -78,8 +78,8 @@ bool sendAll(
     {
         const std::size_t remainingSize = message.size() - bytesSent;
         const int sendSize = remainingSize > static_cast<std::size_t>(
-            std::numeric_limits<int>::max()
-        )
+                                                 std::numeric_limits<int>::max()
+                                             )
             ? std::numeric_limits<int>::max()
             : static_cast<int>(remainingSize);
 
@@ -116,8 +116,8 @@ bool receiveAll(
         const std::size_t remainingSize =
             receivedMessage.size() - bytesReceived;
         const int receiveSize = remainingSize > static_cast<std::size_t>(
-            std::numeric_limits<int>::max()
-        )
+                                                    std::numeric_limits<int>::max()
+                                                )
             ? std::numeric_limits<int>::max()
             : static_cast<int>(remainingSize);
 

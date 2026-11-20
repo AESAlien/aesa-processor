@@ -54,7 +54,8 @@ TEST(RadarAttitudeFactoryTest, ThrowsOnOutOfRangeValues)
     const math::Angle invalidYaws[] = {361_deg, -361_deg};
 
     // When: 준비한 값으로 대상 객체 생성을 시도한다.
-    const auto construct = [&](math::Angle roll, math::Angle yaw) {
+    const auto construct = [&](math::Angle roll, math::Angle yaw)
+    {
         return FACTORY.create(roll, pitch, yaw);
     };
 
@@ -77,7 +78,8 @@ TEST(RadarAttitudeFactoryTest, ThrowsOnValuesEquivalentByPeriodToValidRange)
     const math::Angle invalidYaws[] = {720_deg, -720_deg};
 
     // When: 준비한 값으로 대상 객체 생성을 시도한다.
-    const auto construct = [&](math::Angle roll, math::Angle yaw) {
+    const auto construct = [&](math::Angle roll, math::Angle yaw)
+    {
         return FACTORY.create(roll, pitch, yaw);
     };
 
@@ -99,7 +101,8 @@ TEST(RadarAttitudeFactoryTest, AcceptsBoundaryAnglesIncludingEndpoints)
     const auto lowerYaw = -360_deg;
 
     // When: 준비한 값으로 대상 객체 생성을 시도한다.
-    const auto construct = [&](math::Angle roll, math::Angle yaw) {
+    const auto construct = [&](math::Angle roll, math::Angle yaw)
+    {
         return FACTORY.create(roll, pitch, yaw);
     };
 
@@ -114,8 +117,18 @@ TEST(RadarAttitudeFactoryTest, OutOfRangeMessageIncludesInputValue)
     const auto pitch = math::TiltAngle(0_deg);
 
     // When: 각 입력으로 자세 객체 생성을 시도한다.
-    const auto rollMessage = invalidArgumentMessage([&] { FACTORY.create(200_deg, pitch, 0_deg); });
-    const auto yawMessage = invalidArgumentMessage([&] { FACTORY.create(0_deg, pitch, -400_deg); });
+    const auto rollMessage = invalidArgumentMessage(
+        [&]
+        {
+            FACTORY.create(200_deg, pitch, 0_deg);
+        }
+    );
+    const auto yawMessage = invalidArgumentMessage(
+        [&]
+        {
+            FACTORY.create(0_deg, pitch, -400_deg);
+        }
+    );
 
     // Then: 메시지에 원인과 입력값이 함께 담긴다.
     EXPECT_NE(rollMessage.find("roll must be in"), std::string::npos) << rollMessage;
@@ -139,7 +152,12 @@ TEST(RadarAttitudeFactoryTest, RejectsPitchAtOrNearEitherConfiguredLimit)
 TEST(RadarAttitudeFactoryTest, PitchErrorIncludesInputAndLimit)
 {
     const auto factory = pose::RadarAttitudeFactory(pose::RadarAttitudeFactoryConfig(60_deg));
-    const auto message = invalidArgumentMessage([&] { factory.create(0_deg, math::TiltAngle(70_deg), 0_deg); });
+    const auto message = invalidArgumentMessage(
+        [&]
+        {
+            factory.create(0_deg, math::TiltAngle(70_deg), 0_deg);
+        }
+    );
 
     EXPECT_NE(message.find("gimbal lock"), std::string::npos) << message;
     EXPECT_NE(message.find("pitch=70"), std::string::npos) << message;

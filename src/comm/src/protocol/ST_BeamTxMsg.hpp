@@ -8,6 +8,7 @@ namespace comm::protocol
 {
 
 #pragma pack(push, 1)
+// NOLINTBEGIN(readability-identifier-naming)
 struct ST_BeamTx
 {
     uint8_t beamType;
@@ -21,12 +22,15 @@ struct ST_BeamTx
     float el_width_deg;
     uint8_t padding_data[28];
 };
+// NOLINTEND(readability-identifier-naming)
 
+// NOLINTBEGIN(readability-identifier-naming)
 struct ST_BeamTxMsg
 {
     ST_MsgHeader msgHeader;
     ST_BeamTx beam_cmd;
 };
+// NOLINTEND(readability-identifier-naming)
 #pragma pack(pop)
 
 static_assert(sizeof(ST_BeamTx) == 60, "ST_BeamTx must be 60 bytes");

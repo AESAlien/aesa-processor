@@ -4,7 +4,7 @@ namespace math
 {
 
 CircularAngle::CircularAngle(Angle angle) noexcept
-    : _angle(wrap360(angle))
+  : _angle(wrap360(angle))
 {
 }
 
@@ -36,14 +36,16 @@ const Angle& CircularAngle::angle() const noexcept
 bool CircularAngle::isEquivalentTo(
     const CircularAngle& other,
     const QuantityTolerance<Angle>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _angle.isEquivalentTo(other._angle, tolerance);
 }
 
 bool CircularAngle::isEquivalentTo(
     Angle other,
     const QuantityTolerance<Angle>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _angle.isEquivalentTo(other, tolerance);
 }
 

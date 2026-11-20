@@ -9,17 +9,17 @@ namespace math
 {
 
 Vector::Vector()
-    : Vector(0)
+  : Vector(0)
 {
 }
 
 Vector::Vector(std::size_t size, double value)
-    : _matrix(size, 1, value)
+  : _matrix(size, 1, value)
 {
 }
 
 Vector::Vector(std::initializer_list<double> values)
-    : Vector(values.size())
+  : Vector(values.size())
 {
     std::size_t index = 0;
     for (double value : values)
@@ -29,7 +29,7 @@ Vector::Vector(std::initializer_list<double> values)
 }
 
 Vector::Vector(Matrix matrix)
-    : _matrix(std::move(matrix))
+  : _matrix(std::move(matrix))
 {
     validate();
 }
@@ -46,7 +46,7 @@ Vector::Vector(const Vector&) = default;
 Vector& Vector::operator=(const Vector&) = default;
 
 Vector::Vector(Vector&& other)
-    : Vector()
+  : Vector()
 {
     std::swap(_matrix, other._matrix);
 }

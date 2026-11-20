@@ -22,9 +22,11 @@ enum class RequestBeamType : uint8_t
 
 static_assert(
     static_cast<uint8_t>(RequestBeamType::CONFIRMATION) == static_cast<uint8_t>(BeamType::CONFIRMATION),
-    "RequestBeamType::CONFIRMATION must have the same value as BeamType::CONFIRMATION");
+    "RequestBeamType::CONFIRMATION must have the same value as BeamType::CONFIRMATION"
+);
 static_assert(
     static_cast<uint8_t>(RequestBeamType::TRACKING) == static_cast<uint8_t>(BeamType::TRACKING),
-    "RequestBeamType::TRACKING must have the same value as BeamType::TRACKING");
+    "RequestBeamType::TRACKING must have the same value as BeamType::TRACKING"
+);
 
 } // namespace beam

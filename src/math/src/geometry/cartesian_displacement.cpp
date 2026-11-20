@@ -10,9 +10,9 @@ namespace math
 {
 
 CartesianDisplacement::CartesianDisplacement(Length x, Length y, Length z) noexcept
-    : x(x),
-      y(y),
-      z(z)
+  : x(x),
+    y(y),
+    z(z)
 {
 }
 
@@ -21,7 +21,8 @@ CartesianDisplacement CartesianDisplacement::operator+(const CartesianDisplaceme
     return CartesianDisplacement(
         x + other.x,
         y + other.y,
-        z + other.z);
+        z + other.z
+    );
 }
 
 Distance CartesianDisplacement::distance() const
@@ -45,7 +46,8 @@ CartesianVelocity CartesianDisplacement::operator/(std::chrono::duration<double>
     return CartesianVelocity(
         x / elapsed,
         y / elapsed,
-        z / elapsed);
+        z / elapsed
+    );
 }
 
 }

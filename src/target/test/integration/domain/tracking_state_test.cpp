@@ -154,9 +154,7 @@ TEST(ConstantVelocityAlgorithmTest, TreatsVelocityWithinDefaultToleranceAsStatio
 
 TEST(TrackingStateTest, RejectsNonfiniteAccelerationComponents)
 {
-    for (auto invalid : {std::numeric_limits<double>::quiet_NaN(),
-             std::numeric_limits<double>::infinity(),
-             -std::numeric_limits<double>::infinity()})
+    for (auto invalid : {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()})
     {
         EXPECT_THROW(
             math::CartesianAcceleration(
@@ -221,8 +219,7 @@ TEST(TrackingStateTest, RejectedUpdatesPreserveAccelerationStrategyDataAndMissHi
     EXPECT_EQ(target.state(), saved);
     EXPECT_EQ(EnrichedAlgorithm::data(target), 25);
 
-    for (auto fault : {EnrichedAlgorithm::Fault::INVALID_DATA,
-             EnrichedAlgorithm::Fault::WRONG_TIME})
+    for (auto fault : {EnrichedAlgorithm::Fault::INVALID_DATA, EnrichedAlgorithm::Fault::WRONG_TIME})
     {
         algorithm->fault = fault;
         EXPECT_THROW(target.update(observation(1020_m, 2100ms)), std::invalid_argument);

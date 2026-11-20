@@ -25,7 +25,8 @@ public:
         int priority,
         std::chrono::milliseconds transmitTime,
         std::uint32_t requestId,
-        math::SphericalDirection direction_enu);
+        math::SphericalDirection direction_enu
+    );
 
     // 송신 시 명령에 담는 빔 종류.
     BeamType transmitBeamType() const noexcept;

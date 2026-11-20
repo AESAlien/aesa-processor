@@ -106,7 +106,8 @@ int main(int argc, char** argv)
         return usage(argv[0]);
     }
 
-    const auto frame = [&]() {
+    const auto frame = [&]()
+    {
         try
         {
             // 잘못된 자세정보이면 RadarAttitude 생성자나 AntEnuTransform 생성자가 std::invalid_argument를 던진다.
@@ -144,7 +145,8 @@ int main(int argc, char** argv)
                 command.direction_ant.azimuth.deg(),
                 command.direction_ant.elevation.deg(),
                 command.beamWidth.azimuth.deg(),
-                command.beamWidth.elevation.deg());
+                command.beamWidth.elevation.deg()
+            );
         }
 
         std::printf("# requests\n");
@@ -158,7 +160,8 @@ int main(int argc, char** argv)
                 static_cast<long long>(spec.request.transmitTime().count()),
                 spec.request.direction_enu().azimuth.deg(),
                 spec.request.direction_enu().elevation.deg(),
-                spec.sentTick_ms);
+                spec.sentTick_ms
+            );
         }
 
         std::printf("# grid\n");

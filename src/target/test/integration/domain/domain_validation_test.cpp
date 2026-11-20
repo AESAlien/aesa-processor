@@ -177,9 +177,7 @@ TEST(DomainValidationTest, MathOriginIsAllowedButObservationOriginIsRejectedAtCr
 
 TEST(DomainValidationTest, ObservationRejectsNonfinitePowerButAcceptsNegativeDecibels)
 {
-    for (auto invalid : {std::numeric_limits<float>::quiet_NaN(),
-             std::numeric_limits<float>::infinity(),
-             -std::numeric_limits<float>::infinity()})
+    for (auto invalid : {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()})
     {
         EXPECT_THROW(Observation(position(), 0_mps, invalid, 0ms), std::invalid_argument);
     }
@@ -517,9 +515,7 @@ TEST(TargetConfigTest, ControllerOwnsTemporaryConfigAndUsesInjectedIntervalsAndM
             TrackManagementConfig(250ms, 400ms, 2, 100)
         )
     );
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
 
     const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 1000ms));
     ASSERT_TRUE(confirmation);
@@ -571,9 +567,7 @@ TEST(TargetConfigTest, ControllerPassesInjectedSpeedLimitToConfirmationMatcher)
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         );
         auto controller = TargetController(config);
-        controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-            pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-        ));
+        controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
         const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 1000ms));
         ASSERT_TRUE(confirmation);
 
@@ -608,7 +602,7 @@ TEST(DomainValidationTest, InvalidPlotBatchDoesNotPartiallyRegisterCandidates)
                 1,
                 0ms,
                 {DetectionEvent::Plot(math::Distance(1000_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f),
-                    DetectionEvent::Plot(math::Distance(0_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f)}
+                 DetectionEvent::Plot(math::Distance(0_m), math::CircularAngle(0_deg), math::TiltAngle(0_deg), 0_mps, -10.0f)}
             )
         ),
         std::invalid_argument

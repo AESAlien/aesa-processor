@@ -34,10 +34,12 @@ TEST(RequestCoverageConfigTest, ElevationOutsideQuarterTurnThrows)
     const auto azimuth = math::CircularAngleRange(-60_deg, 60_deg);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
-    const auto build = [](const math::AngleRange& range) {
+    const auto build = [](const math::AngleRange& range)
+    {
         return validConfigBuilder().elevationRange(range).build();
     };
-    const auto construct = [&](const math::AngleRange& range) {
+    const auto construct = [&](const math::AngleRange& range)
+    {
         return beam::RequestCoverageConfig(azimuth, range);
     };
 

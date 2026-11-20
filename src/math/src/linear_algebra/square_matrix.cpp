@@ -11,17 +11,17 @@ namespace math
 SquareMatrix::SquareMatrix() noexcept = default;
 
 SquareMatrix::SquareMatrix(std::size_t size, double value)
-    : _matrix(size, size, value)
+  : _matrix(size, size, value)
 {
 }
 
 SquareMatrix::SquareMatrix(std::initializer_list<std::initializer_list<double>> values)
-    : SquareMatrix(Matrix(values))
+  : SquareMatrix(Matrix(values))
 {
 }
 
 SquareMatrix::SquareMatrix(Matrix matrix)
-    : _matrix(std::move(matrix))
+  : _matrix(std::move(matrix))
 {
     validate();
 }

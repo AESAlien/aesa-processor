@@ -15,6 +15,7 @@ struct ST_PlotHeader
     uint8_t padding[2];
 };
 
+// NOLINTBEGIN(readability-identifier-naming)
 struct ST_Plot
 {
     uint32_t ID;
@@ -24,7 +25,9 @@ struct ST_Plot
     float doppler_mps;
     float pwr_DB;
 };
+// NOLINTEND(readability-identifier-naming)
 
+// NOLINTBEGIN(readability-identifier-naming)
 struct ST_PlotMsg
 {
     ST_MsgHeader msgHeader;
@@ -32,6 +35,7 @@ struct ST_PlotMsg
     ST_PlotHeader plotHd;
     ST_Plot plot[100];
 };
+// NOLINTEND(readability-identifier-naming)
 #pragma pack(pop)
 
 static_assert(sizeof(ST_PlotHeader) == 4, "ST_PlotHeader must be 4 bytes");

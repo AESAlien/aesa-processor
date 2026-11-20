@@ -80,7 +80,8 @@ TrackingConfig processNoiseConfig(math::LinearAcceleration sigma)
 class SeedStateAlgorithm final : public ITrackingAlgorithm
 {
 public:
-    SeedStateAlgorithm(TrackState state, std::any data) : _state(std::move(state)), _data(std::move(data))
+    SeedStateAlgorithm(TrackState state, std::any data)
+      : _state(std::move(state)), _data(std::move(data))
     {
     }
 
@@ -420,20 +421,17 @@ TEST_F(ConstantAccelerationAlgorithmTest, NonzeroProcessNoiseUpdateMatchesIndepe
     {
         EXPECT_NEAR(
             updatedPositions[axis],
-            PREDICTED_POSITIONS[axis]
-                + PREDICTED_COVARIANCE[0][0] * RESIDUALS[axis] / INNOVATION_VARIANCE,
+            PREDICTED_POSITIONS[axis] + PREDICTED_COVARIANCE[0][0] * RESIDUALS[axis] / INNOVATION_VARIANCE,
             1e-9
         );
         EXPECT_NEAR(
             updatedVelocities[axis],
-            PREDICTED_VELOCITIES[axis]
-                + PREDICTED_COVARIANCE[1][0] * RESIDUALS[axis] / INNOVATION_VARIANCE,
+            PREDICTED_VELOCITIES[axis] + PREDICTED_COVARIANCE[1][0] * RESIDUALS[axis] / INNOVATION_VARIANCE,
             1e-9
         );
         EXPECT_NEAR(
             updatedAccelerations[axis],
-            PREDICTED_ACCELERATIONS[axis]
-                + PREDICTED_COVARIANCE[2][0] * RESIDUALS[axis] / INNOVATION_VARIANCE,
+            PREDICTED_ACCELERATIONS[axis] + PREDICTED_COVARIANCE[2][0] * RESIDUALS[axis] / INNOVATION_VARIANCE,
             1e-9
         );
     }
@@ -446,9 +444,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, NonzeroProcessNoiseUpdateMatchesIndepe
             const auto componentRow = row / 3;
             const auto componentColumn = column / 3;
             const auto expected = row % 3 == column % 3
-                ? PREDICTED_COVARIANCE[componentRow][componentColumn]
-                    - PREDICTED_COVARIANCE[componentRow][0]
-                        * PREDICTED_COVARIANCE[0][componentColumn] / INNOVATION_VARIANCE
+                ? PREDICTED_COVARIANCE[componentRow][componentColumn] - PREDICTED_COVARIANCE[componentRow][0] * PREDICTED_COVARIANCE[0][componentColumn] / INNOVATION_VARIANCE
                 : 0.0;
             EXPECT_NEAR(covariance(row, column), expected, 1e-9);
         }
@@ -481,10 +477,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, DoublingProcessSigmaQuadruplesAddedPre
     ASSERT_TRUE(tenCovariance);
     for (std::size_t axis = 0; axis < 3; ++axis)
     {
-        const auto addedFive = (*fiveCovariance)(axis, axis)
-            - (*baselineCovariance)(axis, axis);
-        const auto addedTen = (*tenCovariance)(axis, axis)
-            - (*baselineCovariance)(axis, axis);
+        const auto addedFive = (*fiveCovariance)(axis, axis) - (*baselineCovariance)(axis, axis);
+        const auto addedTen = (*tenCovariance)(axis, axis) - (*baselineCovariance)(axis, axis);
         EXPECT_DOUBLE_EQ(addedFive, 244.140625);
         EXPECT_DOUBLE_EQ(addedTen, 4.0 * addedFive);
     }
@@ -554,8 +548,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, MissesAndRepeatedPredictionsUseFullEla
     ASSERT_TRUE(repeatedCovariance);
     EXPECT_NEAR(predicted->sphericalPosition().toCartesian().y.m(), 1031.0, 1e-9);
     // 3초 뒤 공분산 F(3s) P F(3s)^T + Q(3s)에서 위치 잡음 항은 100 * 3^4 / 4 = 2025다.
-    const auto expectedVariance = 49.0 + 6.0 * 490.0 + 9.0 * 9800.25
-        + 27.0 * 5.0 + 81.0 * 25.0 + 2025.0;
+    const auto expectedVariance = 49.0 + 6.0 * 490.0 + 9.0 * 9800.25 + 27.0 * 5.0 + 81.0 * 25.0 + 2025.0;
     for (std::size_t axis = 0; axis < 3; ++axis)
     {
         EXPECT_NEAR((*predictedCovariance)(axis, axis), expectedVariance, 1e-7);
@@ -581,10 +574,7 @@ TEST_F(ConstantAccelerationAlgorithmTest, MissesAndRepeatedPredictionsUseFullEla
     EXPECT_NEAR(updated.position().y.m(), withoutMisses.position().y.m(), 1e-9);
     EXPECT_NEAR(updated.velocity().y.mps(), withoutMisses.velocity().y.mps(), 1e-9);
     EXPECT_NEAR(updated.acceleration().y.mps2(), withoutMisses.acceleration().y.mps2(), 1e-9);
-    EXPECT_TRUE(KalmanStateAccess::covariance(updatedData)->equals(
-        *KalmanStateAccess::covariance(withoutMissesData),
-        math::NONE_TOLERANCE
-    ));
+    EXPECT_TRUE(KalmanStateAccess::covariance(updatedData)->equals(*KalmanStateAccess::covariance(withoutMissesData), math::NONE_TOLERANCE));
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, ProcessNoiseReachesRealTrackingAndSearchNdsGates)
@@ -760,9 +750,7 @@ TEST(KalmanStateTest, RejectsCovarianceWithWrongDimension)
 
 TEST(KalmanStateTest, RejectsNonfiniteOrAsymmetricCovariance)
 {
-    for (auto invalid : {std::numeric_limits<double>::quiet_NaN(),
-             std::numeric_limits<double>::infinity(),
-             -std::numeric_limits<double>::infinity()})
+    for (auto invalid : {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()})
     {
         auto covariance = math::SquareMatrix::identity(TrackState::STATE_DIMENSION);
         covariance(0, 0) = invalid;
@@ -778,8 +766,7 @@ TEST(KalmanStateTest, RejectsNegativeOrSingularCovariance)
     auto negative = math::SquareMatrix::identity(TrackState::STATE_DIMENSION);
     negative(0, 0) = -1.0;
     EXPECT_THROW(KalmanStateAccess::makeState(negative), std::invalid_argument);
-    EXPECT_THROW(KalmanStateAccess::makeState(math::SquareMatrix(TrackState::STATE_DIMENSION)),
-        std::invalid_argument);
+    EXPECT_THROW(KalmanStateAccess::makeState(math::SquareMatrix(TrackState::STATE_DIMENSION)), std::invalid_argument);
 }
 
 TEST(ConstantAccelerationConfigTest, ValidatesInitialAccelerationVarianceAndSingleMeasurementNoise)

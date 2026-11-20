@@ -37,7 +37,7 @@ double Length::km() const noexcept
 }
 
 Length::Length(double meters)
-    : Quantity<Length>(meters)
+  : Quantity<Length>(meters)
 {
 }
 

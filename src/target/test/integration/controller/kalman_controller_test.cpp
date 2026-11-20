@@ -78,8 +78,8 @@ std::optional<beam::RequestBeamCommand> beginTracking(
 math::CartesianPosition consolePosition(const TrackEvent& event)
 {
     return math::SphericalPosition(
-        event.slantRange,
-        math::SphericalDirection(event.azimuth, event.elevation)
+               event.slantRange,
+               math::SphericalDirection(event.azimuth, event.elevation)
     )
         .toCartesian();
 }
@@ -104,9 +104,7 @@ TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInst
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
     EXPECT_EQ(tracking->beamType, beam::RequestBeamType::TRACKING);
@@ -147,9 +145,7 @@ TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAnd
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
     ASSERT_TRUE(tracking);
     // 고정 공분산 98 I로는 잔차 50 m와 200 m가 모두 탈락한다.
@@ -193,9 +189,7 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     const auto tracking = beginTracking(controller, trajectory(0.0), trajectory(0.1));
     ASSERT_TRUE(tracking);
     const auto noiseMultipliers = std::array<std::array<double, 3>, 12>{
@@ -289,9 +283,7 @@ TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAn
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         );
         auto controller = TargetController(config);
-        controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-            pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-        ));
+        controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
         const auto tracking = beginTracking(controller, radial(1000_m), radial(1000_m));
         ASSERT_TRUE(tracking);
         ASSERT_TRUE(

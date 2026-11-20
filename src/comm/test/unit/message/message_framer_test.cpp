@@ -300,7 +300,8 @@ TEST(MessageFramerTest, RejectsMaximumSizeSmallerThanHeader)
     const std::size_t invalidSizes[] = {0, HEADER_SIZE - 1};
 
     // 실행: 각 크기로 프레이머 생성을 시도한다.
-    const auto construct = [](std::size_t size) { return comm::MessageFramer(size); };
+    const auto construct = [](std::size_t size)
+    { return comm::MessageFramer(size); };
 
     // 검증: 헤더보다 작은 최대 크기는 모두 거부한다.
     for (std::size_t size : invalidSizes)

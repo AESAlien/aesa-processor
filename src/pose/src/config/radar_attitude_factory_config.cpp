@@ -8,7 +8,7 @@ namespace pose
 using namespace math::literals;
 
 RadarAttitudeFactoryConfig::RadarAttitudeFactoryConfig(math::Angle maxAbsPitch)
-    : _maxAbsPitch(maxAbsPitch)
+  : _maxAbsPitch(maxAbsPitch)
 {
     validate();
 }

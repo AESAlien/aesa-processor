@@ -15,14 +15,11 @@ SearchGrid::SearchGrid(const pose::AntEnuTransform& transform, const SearchGridC
     {
         for (std::size_t a = 0; a < config.azimuthCount(); ++a)
         {
-            const math::SphericalDirection direction_enu = transform.antToEnu(math::SphericalDirection(
-                config.azimuthAt(a),
-                config.elevationAt(e)));
+            const math::SphericalDirection direction_ant(config.azimuthAt(a), config.elevationAt(e));
+            const math::SphericalDirection direction_enu = transform.antToEnu(direction_ant);
 
-            _beams.push_back(SearchBeam{
-                static_cast<uint32_t>(_beams.size()),
-                direction_enu,
-                config.beamWidth()});
+            const SearchBeam beam{static_cast<uint32_t>(_beams.size()), direction_enu, config.beamWidth()};
+            _beams.push_back(beam);
         }
     }
 }

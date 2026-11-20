@@ -6,10 +6,10 @@
 namespace math
 {
 
-template<typename T>
+template <typename T>
 class QuantityTolerance;
 
-template<typename Derived>
+template <typename Derived>
 class Quantity
 {
 public:
@@ -187,7 +187,7 @@ protected:
     Quantity& operator=(Quantity&&) noexcept = default;
 
     explicit Quantity(double value)
-        : _value(value)
+      : _value(value)
     {
         validate();
     }

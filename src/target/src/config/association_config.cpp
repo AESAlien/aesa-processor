@@ -21,11 +21,7 @@ AssociationConfig::AssociationConfig(
     math::LinearVelocity maxAssociationSpeed,
     math::LinearVelocity maxInitialDopplerDifference,
     double positionNdsThreshold
-) : AssociationConfig(
-        math::Speed(maxAssociationSpeed),
-        math::Speed(maxInitialDopplerDifference),
-        positionNdsThreshold
-    )
+) : AssociationConfig(math::Speed(maxAssociationSpeed), math::Speed(maxInitialDopplerDifference), positionNdsThreshold)
 {
 }
 

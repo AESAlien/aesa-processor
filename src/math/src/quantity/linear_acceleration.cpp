@@ -27,7 +27,7 @@ double LinearAcceleration::mps2() const noexcept
 }
 
 LinearAcceleration::LinearAcceleration(double metersPerSecondSquared)
-    : Quantity<LinearAcceleration>(metersPerSecondSquared)
+  : Quantity<LinearAcceleration>(metersPerSecondSquared)
 {
 }
 
@@ -42,13 +42,15 @@ namespace literals
 LinearAcceleration operator""_mps2(unsigned long long metersPerSecondSquared) noexcept
 {
     return LinearAcceleration::fromMetersPerSecondSquared(
-        static_cast<double>(metersPerSecondSquared));
+        static_cast<double>(metersPerSecondSquared)
+    );
 }
 
 LinearAcceleration operator""_mps2(long double metersPerSecondSquared)
 {
     return LinearAcceleration::fromMetersPerSecondSquared(
-        static_cast<double>(metersPerSecondSquared));
+        static_cast<double>(metersPerSecondSquared)
+    );
 }
 
 }

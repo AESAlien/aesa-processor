@@ -195,7 +195,9 @@ public:
 #ifdef __linux__
     Impl()
     {
-        struct sigaction action{};
+        struct sigaction action
+        {
+        };
         action.sa_handler = handleTestSignal;
         sigemptyset(&action.sa_mask);
         if (sigaction(SIGUSR1, &action, &_previous) < 0)
@@ -205,14 +207,15 @@ public:
         const pthread_t target = pthread_self();
         try
         {
-            _sender = std::thread([this, target]
-            {
-                while (!_stop.load())
+            _sender = std::thread(
+                [this, target]
                 {
-                    pthread_kill(target, SIGUSR1);
-                    std::this_thread::sleep_for(std::chrono::milliseconds{1});
+                    while (!_stop.load())
+                    {
+                        pthread_kill(target, SIGUSR1);
+                        std::this_thread::sleep_for(std::chrono::milliseconds{1});
+                    }
                 }
-            }
             );
         }
         catch (...)
@@ -230,7 +233,9 @@ public:
     }
 
 private:
-    struct sigaction _previous{};
+    struct sigaction _previous
+    {
+    };
     std::atomic<bool> _stop{false};
     std::thread _sender;
 #endif

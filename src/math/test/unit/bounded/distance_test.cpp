@@ -10,15 +10,21 @@ using namespace math::literals;
 
 static_assert(!std::is_default_constructible_v<math::Distance>);
 static_assert(!std::is_constructible_v<math::Distance, double>);
-static_assert(std::is_same_v<
-    decltype(std::declval<math::Distance>() + std::declval<math::Length>()),
-    math::Distance>);
-static_assert(std::is_same_v<
-    decltype(std::declval<math::Length>() + std::declval<math::Distance>()),
-    math::Distance>);
-static_assert(std::is_same_v<
-    decltype(std::declval<math::Distance>() / std::declval<math::Distance>()),
-    double>);
+static_assert(
+    std::is_same_v<
+        decltype(std::declval<math::Distance>() + std::declval<math::Length>()),
+        math::Distance>
+);
+static_assert(
+    std::is_same_v<
+        decltype(std::declval<math::Length>() + std::declval<math::Distance>()),
+        math::Distance>
+);
+static_assert(
+    std::is_same_v<
+        decltype(std::declval<math::Distance>() / std::declval<math::Distance>()),
+        double>
+);
 
 TEST(DistanceTest, CreatesFromLengthAndUnits)
 {

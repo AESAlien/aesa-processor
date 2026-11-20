@@ -107,9 +107,7 @@ TEST(TrackReportingLimitTest, HandlesZeroNinetyNineOneHundredAndOneHundredOneTra
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     addCandidates(controller, 103);
     // 처음과 마지막 트랙을 잠정 상태로 남겨 보고 한도에 포함되는지 확인한다.
     expectReportedIds(controller, 0, 2);
@@ -133,9 +131,7 @@ TEST(TrackReportingLimitTest, UnreportedTargetCanUpdateAndExpireWithoutAffecting
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     addCandidates(controller, 101);
     confirm(controller, 1, 101);
     expectReportedIds(controller, 100, 1);
@@ -164,9 +160,7 @@ TEST(TrackReportingLimitTest, RevealsTheNextStoredTrackingTargetWhenAReportedTar
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     addCandidates(controller, 101);
     confirm(controller, 1, 101);
     expectReportedIds(controller, 100, 1);
@@ -184,9 +178,7 @@ TEST(TrackReportingLimitTest, UsesInjectedLimitWithoutLimitingTentativeOrHiddenT
         TrackManagementConfig(100ms, 1000ms, 3, 2)
     );
     auto controller = TargetController(config);
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     addCandidates(controller, 5);
     confirm(controller, 2, 5);
     expectReportedIds(controller, 2, 2);

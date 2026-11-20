@@ -45,7 +45,8 @@ RequestCoverageConfig RequestCoverageConfig::Builder::build() const
 
     return RequestCoverageConfig(
         *_azimuthRange,
-        *_elevationRange);
+        *_elevationRange
+    );
 }
 
 } // namespace beam

@@ -195,9 +195,7 @@ TEST(TargetConfigTest, BuildersAcceptExplicitZeroValuesAndFeedTheController)
         )
         .build();
     auto controller = TargetController(config);
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     const auto confirmation = controller.handleDetection(detection(beam::BeamType::SEARCH, 0, 0ms, 1000_m));
     ASSERT_TRUE(confirmation);
     const auto tracking = controller.handleDetection(
@@ -223,9 +221,7 @@ TEST(TargetConfigTest, ControllerKeepsSnapshotsWhenComponentsAreReplaced)
         TrackManagementConfig(100ms, 1000ms, 3, 100)
     );
     auto controller = TargetController(config);
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     config.association = AssociationConfig(0_mps, 0_mps, 0.0);
     config.measurement = MeasurementConfig(1_m);
     config.tracking = TrackingConfig(1_mps2, 100_mps2);

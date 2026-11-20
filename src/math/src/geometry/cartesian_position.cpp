@@ -12,9 +12,9 @@ namespace math
 {
 
 CartesianPosition::CartesianPosition(Length x, Length y, Length z) noexcept
-    : x(x),
-      y(y),
-      z(z)
+  : x(x),
+    y(y),
+    z(z)
 {
 }
 
@@ -47,7 +47,8 @@ CartesianPosition CartesianPosition::operator+(const CartesianDisplacement& disp
     return CartesianPosition(
         x + displacement.x,
         y + displacement.y,
-        z + displacement.z);
+        z + displacement.z
+    );
 }
 
 CartesianPosition CartesianPosition::operator-(const CartesianDisplacement& displacement) const
@@ -55,7 +56,8 @@ CartesianPosition CartesianPosition::operator-(const CartesianDisplacement& disp
     return CartesianPosition(
         x - displacement.x,
         y - displacement.y,
-        z - displacement.z);
+        z - displacement.z
+    );
 }
 
 CartesianDisplacement CartesianPosition::operator-(const CartesianPosition& other) const
@@ -63,7 +65,8 @@ CartesianDisplacement CartesianPosition::operator-(const CartesianPosition& othe
     return CartesianDisplacement(
         x - other.x,
         y - other.y,
-        z - other.z);
+        z - other.z
+    );
 }
 
 }

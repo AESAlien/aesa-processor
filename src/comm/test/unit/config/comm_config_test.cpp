@@ -15,13 +15,15 @@ namespace
 
 static_assert(std::is_copy_assignable_v<comm::CommEndpoint>);
 static_assert(std::is_copy_assignable_v<comm::CommConfig>);
-static_assert(std::is_same_v<
-    decltype(std::declval<const comm::CommEndpoint&>().getAddress()),
-    const std::string&>
+static_assert(
+    std::is_same_v<
+        decltype(std::declval<const comm::CommEndpoint&>().getAddress()),
+        const std::string&>
 );
-static_assert(std::is_same_v<
-    decltype(std::declval<const comm::CommConfig&>().operatorConsole()),
-    const comm::CommEndpoint&>
+static_assert(
+    std::is_same_v<
+        decltype(std::declval<const comm::CommConfig&>().operatorConsole()),
+        const comm::CommEndpoint&>
 );
 
 } // namespace
@@ -73,7 +75,8 @@ TEST(CommEndpointTest, RejectsMalformedAddresses)
     };
 
     // 실행: 각 주소로 통신 엔드포인트 생성을 시도한다.
-    const auto construct = [](const char* address) { return comm::CommEndpoint(address, 3200); };
+    const auto construct = [](const char* address)
+    { return comm::CommEndpoint(address, 3200); };
 
     // 검증: 잘못된 주소는 모두 거부한다.
     for (const char* address : invalidAddresses)
@@ -95,7 +98,8 @@ TEST(CommEndpointTest, RejectsMissingAddressOrPort)
     const uint16_t validPort = 3200;
 
     // 실행: 주소 또는 포트가 빠진 엔드포인트 생성을 시도한다.
-    const auto construct = [](const std::string& address, uint16_t port) { return comm::CommEndpoint(address, port); };
+    const auto construct = [](const std::string& address, uint16_t port)
+    { return comm::CommEndpoint(address, port); };
 
     // 검증: 주소와 포트 중 하나라도 빠지면 거부한다.
     EXPECT_THROW(construct(missingAddress, missingPort), std::invalid_argument);
@@ -113,7 +117,8 @@ TEST(CommEndpointTest, RejectsInvalidAddressAndIncompleteEndpoint)
     const std::string validAddress = "127.0.0.1";
 
     // 실행: 각 입력으로 엔드포인트 생성을 시도한다.
-    const auto construct = [](const std::string& address, uint16_t port) { return comm::CommEndpoint(address, port); };
+    const auto construct = [](const std::string& address, uint16_t port)
+    { return comm::CommEndpoint(address, port); };
 
     // 검증: 잘못된 주소와 불완전한 엔드포인트는 모두 거부한다.
     EXPECT_THROW(
@@ -143,7 +148,8 @@ TEST(CommConfigTest, AcceptsServerAndBothPeers)
     const comm::CommEndpoint scenarioSimulator("127.0.0.3", 3300);
 
     // 실행: 준비한 엔드포인트들로 통신 설정 생성을 시도한다.
-    const auto construct = [&] { return comm::CommConfig(server, operatorConsole, scenarioSimulator); };
+    const auto construct = [&]
+    { return comm::CommConfig(server, operatorConsole, scenarioSimulator); };
 
     // 검증: 서로 다른 두 피어를 가진 설정은 정상 생성된다.
     EXPECT_NO_THROW(construct());
@@ -157,7 +163,8 @@ TEST(CommConfigTest, RejectsInvalidEndpointRelationships)
     const comm::CommEndpoint sharedPeer("127.0.0.2", 3100);
 
     // 실행: 두 피어에 같은 엔드포인트를 지정해 설정 생성을 시도한다.
-    const auto construct = [&] { return comm::CommConfig(server, sharedPeer, sharedPeer); };
+    const auto construct = [&]
+    { return comm::CommConfig(server, sharedPeer, sharedPeer); };
 
     // 검증: 두 피어를 구분할 수 없는 설정은 거부한다.
     EXPECT_THROW(construct(), std::invalid_argument);

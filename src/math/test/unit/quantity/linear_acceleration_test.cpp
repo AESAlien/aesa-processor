@@ -12,8 +12,6 @@ using namespace std::chrono_literals;
 static_assert(!std::is_default_constructible_v<math::LinearAcceleration>);
 static_assert(!std::is_constructible_v<math::LinearAcceleration, double>);
 
-
-
 // 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(LinearAccelerationTest, PreservesSignedMetersPerSecondSquared)
 {
@@ -79,7 +77,8 @@ TEST(LinearAccelerationTest, AbsReturnsNonnegativeAcceleration)
 TEST(LinearAccelerationTest, RejectsInvalidScalarArithmetic)
 {
     const auto maximum = math::LinearAcceleration::fromMetersPerSecondSquared(
-        std::numeric_limits<double>::max());
+        std::numeric_limits<double>::max()
+    );
 
     EXPECT_THROW(maximum + maximum, std::invalid_argument);
     EXPECT_THROW(maximum - (-maximum), std::invalid_argument);
@@ -91,7 +90,8 @@ TEST(LinearAccelerationTest, RejectsInvalidScalarArithmetic)
 TEST(LinearAccelerationTest, CompoundArithmeticPreservesValueOnFailure)
 {
     const auto maximum = math::LinearAcceleration::fromMetersPerSecondSquared(
-        std::numeric_limits<double>::max());
+        std::numeric_limits<double>::max()
+    );
     auto acceleration = maximum;
 
     EXPECT_THROW(acceleration += maximum, std::invalid_argument);
@@ -110,17 +110,24 @@ TEST(LinearAccelerationTest, RejectsNonfiniteValuesAndResults)
 
     EXPECT_THROW(
         math::LinearAcceleration::fromMetersPerSecondSquared(
-            std::numeric_limits<double>::infinity()),
-        std::invalid_argument);
+            std::numeric_limits<double>::infinity()
+        ),
+        std::invalid_argument
+    );
     EXPECT_THROW(
         math::LinearAcceleration::fromMetersPerSecondSquared(maximum) * 2s,
-        std::invalid_argument);
+        std::invalid_argument
+    );
     EXPECT_THROW(
         1_mps2 * std::chrono::duration<double>{
-            std::numeric_limits<double>::quiet_NaN()},
-        std::invalid_argument);
+                     std::numeric_limits<double>::quiet_NaN()
+                 },
+        std::invalid_argument
+    );
     EXPECT_THROW(
         math::literals::operator""_mps2(
-            static_cast<long double>(std::numeric_limits<double>::infinity())),
-        std::invalid_argument);
+            static_cast<long double>(std::numeric_limits<double>::infinity())
+        ),
+        std::invalid_argument
+    );
 }

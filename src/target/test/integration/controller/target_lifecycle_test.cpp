@@ -368,11 +368,7 @@ TEST(TargetLifecycleTest, ConfirmationSelectorRanksPlotsAndRejectsStaleObservati
     const auto id = repository.add(
         TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).createTentative(repository.nextId(), observation(0ms))
     );
-    const auto observations = std::vector<Observation>({
-        observation(100ms, 1030_m),
-        observation(100ms, 1005_m),
-        Observation(math::SphericalPosition(1005_m, 0_deg, 0_deg), 0_mps, -20.0f, 100ms)
-    });
+    const auto observations = std::vector<Observation>({observation(100ms, 1030_m), observation(100ms, 1005_m), Observation(math::SphericalPosition(1005_m, 0_deg, 0_deg), 0_mps, -20.0f, 100ms)});
     const auto selected = selector.selectConfirmationObservation(*repository.findTentativeTrack(id), 100ms, observations);
     ASSERT_TRUE(selected);
     EXPECT_EQ(selected->slantRange(), 1005_m);
@@ -391,9 +387,7 @@ TEST(TargetLifecycleControllerTest, CopiedControllersKeepTheHandlerAndRepository
     std::uint32_t id = 0;
     {
         auto source = TargetController(config());
-        source.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-            pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-        ));
+        source.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
         auto copy = source;
         EXPECT_FALSE(source.handleDetection(event(BeamType::SEARCH, 99, 500ms, false)));
         EXPECT_FALSE(copy.handleDetection(event(BeamType::SEARCH, 99, 400ms)));
@@ -432,9 +426,7 @@ TEST(TargetLifecycleControllerTest, CopiedControllersKeepTheHandlerAndRepository
 TEST(TargetLifecycleControllerTest, IgnoresWrongPhaseAndStaleResultsWithoutConsumingIdentity)
 {
     auto controller = TargetController(config());
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     const auto confirmation = controller.handleDetection(event(BeamType::SEARCH, 10, 0ms));
     ASSERT_TRUE(confirmation);
     const auto id = confirmation->requestId;
@@ -460,9 +452,7 @@ TEST(TargetLifecycleControllerTest, IgnoresWrongPhaseAndStaleResultsWithoutConsu
 TEST(TargetLifecycleControllerTest, InvalidTrackingBatchPreservesObservationAndMissHistory)
 {
     auto controller = TargetController(config());
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     const auto confirmation = controller.handleDetection(event(BeamType::SEARCH, 1, 0ms));
     ASSERT_TRUE(confirmation);
     const auto id = confirmation->requestId;
@@ -483,9 +473,7 @@ TEST(TargetLifecycleControllerTest, InvalidTrackingBatchPreservesObservationAndM
 TEST(TargetLifecycleControllerTest, ClearTracksRemovesAllTracksAndRestartsFromNewDetections)
 {
     auto controller = TargetController(config());
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     const auto confirmedRequest = controller.handleDetection(event(BeamType::SEARCH, 1, 0ms));
     ASSERT_TRUE(confirmedRequest);
     const auto confirmedId = confirmedRequest->requestId;

@@ -66,8 +66,8 @@ void TrackState::validate() const
 {
     if (_timestamp.count() < 0 ||
         _sphericalPosition.radius.isNonpositive() ||
-        !std::isfinite(_power_db)
-    ) {
+        !std::isfinite(_power_db))
+    {
         throw std::invalid_argument("Tracking state requires valid observation values and time");
     }
 

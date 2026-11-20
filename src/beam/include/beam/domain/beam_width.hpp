@@ -9,11 +9,13 @@ struct BeamWidth
 {
     BeamWidth(
         math::Angle azimuth,
-        math::Angle elevation);
+        math::Angle elevation
+    );
 
     BeamWidth(
         math::AngularWidth azimuth,
-        math::AngularWidth elevation);
+        math::AngularWidth elevation
+    );
 
     bool operator==(const BeamWidth& other) const noexcept;
     bool operator!=(const BeamWidth& other) const noexcept;

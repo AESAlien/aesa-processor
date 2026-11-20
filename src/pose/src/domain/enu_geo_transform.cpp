@@ -27,11 +27,7 @@ math::Vector toEcef(const GeoPosition& position)
     const auto cosLatitude = math::cos(position.latitude);
     const auto radius = primeVerticalRadius(sinLatitude);
     const auto horizontal = (radius + position.altitude.m()) * cosLatitude;
-    return math::Vector({
-        horizontal * math::cos(position.longitude),
-        horizontal * math::sin(position.longitude),
-        (radius * (1.0 - ECCENTRICITY_SQUARED) + position.altitude.m()) * sinLatitude
-    });
+    return math::Vector({horizontal * math::cos(position.longitude), horizontal * math::sin(position.longitude), (radius * (1.0 - ECCENTRICITY_SQUARED) + position.altitude.m()) * sinLatitude});
 }
 
 math::SquareMatrix makeEnuToEcef(const GeoPosition& origin)
@@ -41,11 +37,7 @@ math::SquareMatrix makeEnuToEcef(const GeoPosition& origin)
     const auto sinLongitude = math::sin(origin.longitude);
     const auto cosLongitude = math::cos(origin.longitude);
 
-    return math::SquareMatrix({
-        {-sinLongitude, -sinLatitude * cosLongitude, cosLatitude * cosLongitude},
-        { cosLongitude, -sinLatitude * sinLongitude, cosLatitude * sinLongitude},
-        {          0.0,                 cosLatitude,                sinLatitude}
-    });
+    return math::SquareMatrix({{-sinLongitude, -sinLatitude * cosLongitude, cosLatitude * cosLongitude}, {cosLongitude, -sinLatitude * sinLongitude, cosLatitude * sinLongitude}, {0.0, cosLatitude, sinLatitude}});
 }
 } // namespace
 
@@ -87,12 +79,11 @@ GeoPosition EnuGeoTransform::enuToGeo(const math::CartesianPosition& position_en
             ECCENTRICITY_SQUARED * primeVerticalRadius(sinLatitude) * sinLatitude
         );
         const auto next = math::atan2(verticalDistance + correction, horizontalDistance);
-        
+
         if (math::abs(next - latitude).lessThanOrEqual(LATITUDE_TOLERANCE, math::Angle::NONE_TOLERANCE))
         {
             const auto sinNext = math::sin(next);
-            const auto altitude = horizontal * math::cos(next) + vertical * sinNext
-                - SEMI_MAJOR_AXIS_M * std::sqrt(1.0 - ECCENTRICITY_SQUARED * sinNext * sinNext);
+            const auto altitude = horizontal * math::cos(next) + vertical * sinNext - SEMI_MAJOR_AXIS_M * std::sqrt(1.0 - ECCENTRICITY_SQUARED * sinNext * sinNext);
 
             return GeoPosition(
                 math::TiltAngle(next),
@@ -100,7 +91,7 @@ GeoPosition EnuGeoTransform::enuToGeo(const math::CartesianPosition& position_en
                 math::Length::fromMeters(altitude)
             );
         }
-        
+
         latitude = next;
     }
     throw std::domain_error("Geodetic latitude did not converge");
@@ -110,7 +101,7 @@ math::CartesianPosition EnuGeoTransform::geoToEnu(const GeoPosition& position) c
 {
     const auto displacement_ecef = toEcef(position) - _origin_ecef;
     const auto position_enu = math::transpose(_rotationMatrix) * displacement_ecef;
-    
+
     return math::CartesianPosition(
         math::Length::fromMeters(position_enu(0)),
         math::Length::fromMeters(position_enu(1)),

@@ -20,8 +20,6 @@ static_assert(std::is_same_v<decltype(std::declval<const math::Vector&>().at(0))
 static_assert(std::is_same_v<decltype(std::declval<const math::Vector&>()(0)), const double&>);
 static_assert(std::is_same_v<decltype(std::declval<const math::Vector&>()[0]), const double&>);
 
-
-
 // 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(VectorTest, ConstructsColumnVectors)
 {

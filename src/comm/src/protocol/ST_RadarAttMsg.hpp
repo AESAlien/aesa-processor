@@ -6,6 +6,7 @@ namespace comm::protocol
 {
 
 #pragma pack(push, 1)
+// NOLINTBEGIN(readability-identifier-naming)
 struct ST_RadarAttMsg
 {
     ST_MsgHeader msgHeader;
@@ -16,6 +17,7 @@ struct ST_RadarAttMsg
     double pitch_deg;
     double yaw_deg;
 };
+// NOLINTEND(readability-identifier-naming)
 #pragma pack(pop)
 
 static_assert(sizeof(ST_RadarAttMsg) == 68, "ST_RadarAttMsg must be 68 bytes");

@@ -28,15 +28,18 @@ public:
     {
         static_assert(
             std::is_integral_v<Value> && std::is_unsigned_v<Value>,
-            "Value must be an unsigned integer type");
+            "Value must be an unsigned integer type"
+        );
 
         const unsigned long long value = requireUnsignedValue(key);
         if (value > static_cast<unsigned long long>(
-                std::numeric_limits<Value>::max()))
+                        std::numeric_limits<Value>::max()
+                    ))
         {
             throw std::runtime_error(
                 "Unsigned integer value is out of range for " +
-                std::string(key));
+                std::string(key)
+            );
         }
         return static_cast<Value>(value);
     }
@@ -48,18 +51,22 @@ public:
         using Period = typename Duration::period;
         static_assert(
             std::is_same_v<Duration, std::chrono::duration<Rep, Period>>,
-            "Duration must be a std::chrono::duration type");
+            "Duration must be a std::chrono::duration type"
+        );
         static_assert(
             std::is_integral_v<Rep>,
-            "Duration representation must be an integer type");
+            "Duration representation must be an integer type"
+        );
 
         const std::uint64_t value = requireUnsigned<std::uint64_t>(key);
         if (value > static_cast<std::uint64_t>(
-                std::numeric_limits<Rep>::max()))
+                        std::numeric_limits<Rep>::max()
+                    ))
         {
             throw std::runtime_error(
                 "Duration value is out of range for " +
-                std::string(key));
+                std::string(key)
+            );
         }
         return Duration(static_cast<Rep>(value));
     }

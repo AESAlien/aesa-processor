@@ -8,10 +8,9 @@ namespace math
 CartesianAcceleration::CartesianAcceleration(
     LinearAcceleration x,
     LinearAcceleration y,
-    LinearAcceleration z) noexcept
-    : x(x)
-    , y(y)
-    , z(z)
+    LinearAcceleration z
+) noexcept
+  : x(x), y(y), z(z)
 {
 }
 
@@ -23,7 +22,8 @@ LinearAcceleration CartesianAcceleration::horizontalAcceleration() const
 LinearAcceleration CartesianAcceleration::acceleration() const
 {
     return LinearAcceleration::fromMetersPerSecondSquared(
-        std::hypot(x.mps2(), y.mps2(), z.mps2()));
+        std::hypot(x.mps2(), y.mps2(), z.mps2())
+    );
 }
 
 }

@@ -51,7 +51,8 @@ struct SetRadarPoseCommand
         {
             return SetRadarPoseCommand(
                 _latitude.value(), _longitude.value(), _altitude.value(),
-                _roll.value(), _pitch.value(), _yaw.value());
+                _roll.value(), _pitch.value(), _yaw.value()
+            );
         }
 
     private:

@@ -8,9 +8,9 @@ namespace math
 {
 
 CartesianVelocity::CartesianVelocity(LinearVelocity x, LinearVelocity y, LinearVelocity z) noexcept
-    : x(x),
-      y(y),
-      z(z)
+  : x(x),
+    y(y),
+    z(z)
 {
 }
 
@@ -19,7 +19,8 @@ CartesianDisplacement CartesianVelocity::operator*(std::chrono::duration<double>
     return CartesianDisplacement(
         x * elapsed,
         y * elapsed,
-        z * elapsed);
+        z * elapsed
+    );
 }
 
 Speed CartesianVelocity::horizontalSpeed() const

@@ -67,7 +67,8 @@ TEST(BeamRequestTest, AcceptsBoundaryValues)
     const auto requestId = std::numeric_limits<std::uint32_t>::max();
 
     // When: 준비한 값으로 대상 객체 생성을 시도한다.
-    const auto construct = [&] {
+    const auto construct = [&]
+    {
         return beam::BeamRequest(beam::BeamType::TRACKING, width, 0, transmitTime, requestId, direction);
     };
 
@@ -84,7 +85,8 @@ TEST(BeamRequestTest, RejectsNegativeTransmitTime)
     const std::uint32_t requestId = 1;
 
     // When: 준비한 값으로 대상 객체 생성을 시도한다.
-    const auto construct = [&] {
+    const auto construct = [&]
+    {
         return beam::BeamRequest(beam::BeamType::TRACKING, width, 0, transmitTime, requestId, direction);
     };
 
@@ -101,7 +103,8 @@ TEST(BeamRequestTest, RejectsZeroRequestId)
     const std::uint32_t requestId = 0;
 
     // When: 준비한 값으로 대상 객체 생성을 시도한다.
-    const auto construct = [&] {
+    const auto construct = [&]
+    {
         return beam::BeamRequest(beam::BeamType::TRACKING, width, 0, transmitTime, requestId, direction);
     };
 
@@ -116,12 +119,18 @@ TEST(BeamRequestTest, ValidationMessageIncludesInputValues)
     const auto direction = makeDirection();
 
     // When: 각 입력으로 빔 요청 생성을 시도한다.
-    const auto negativeTimeMessage = invalidArgumentMessage([&] {
-        beam::BeamRequest(beam::BeamType::TRACKING, width, 0, -10ms, 3, direction);
-    });
-    const auto zeroIdMessage = invalidArgumentMessage([&] {
-        beam::BeamRequest(beam::BeamType::TRACKING, width, 0, 120ms, 0, direction);
-    });
+    const auto negativeTimeMessage = invalidArgumentMessage(
+        [&]
+        {
+            beam::BeamRequest(beam::BeamType::TRACKING, width, 0, -10ms, 3, direction);
+        }
+    );
+    const auto zeroIdMessage = invalidArgumentMessage(
+        [&]
+        {
+            beam::BeamRequest(beam::BeamType::TRACKING, width, 0, 120ms, 0, direction);
+        }
+    );
 
     // Then: 메시지에 원인과 입력값이 함께 담긴다.
     EXPECT_NE(negativeTimeMessage.find("transmit time must not be negative"), std::string::npos) << negativeTimeMessage;
