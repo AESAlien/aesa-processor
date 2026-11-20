@@ -26,7 +26,7 @@ math/
         └── geometry/
 ```
 
-## 도메인 클래스 구성
+## 클래스 다이어그램
 
 ```mermaid
 classDiagram

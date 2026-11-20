@@ -21,7 +21,7 @@ pose/
         └── controller/
 ```
 
-## 데이터 흐름
+## 모듈 입출력 흐름
 
 ```mermaid
 flowchart LR
@@ -47,7 +47,7 @@ flowchart LR
     style PoseController fill:#F3E8FF,stroke:#9333EA,color:#6B21A8,stroke-width:2px
 ```
 
-## 도메인 클래스 구성
+## 클래스 다이어그램
 
 ```mermaid
 classDiagram

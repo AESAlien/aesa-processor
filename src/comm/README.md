@@ -31,7 +31,7 @@ comm/
     └── comm_sender.cpp      # 수동 송신 테스트
 ```
 
-## 네트워크 클래스 구성
+## 클래스 다이어그램
 
 ```mermaid
 classDiagram
