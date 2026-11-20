@@ -89,6 +89,102 @@ classDiagram
     RequestQueue *-- "0..*" BeamRequest
 ```
 
+## 시퀀스 다이어그램
+
+### 자세 갱신
+
+[Notion 원문](https://app.notion.com/p/3e2261646eaa80958ddad09ebd489a13)
+
+```mermaid
+sequenceDiagram
+    actor app
+    participant BeamController
+    participant AntEnuTransform
+    participant BeamScheduler
+
+    app->>BeamController: setAntEnuTransform(command)
+    Note over BeamController: command.transform 사용
+
+    create participant AttitudeFrame
+    BeamController->>AttitudeFrame: new AttitudeFrame(transform)
+
+    create participant SearchGrid
+    AttitudeFrame->>SearchGrid: new SearchGrid(transform)
+
+    loop azimuth x elevation
+        SearchGrid->>AntEnuTransform: antToEnu(direction_ant)
+        AntEnuTransform-->>SearchGrid: direction_enu
+        Note over SearchGrid: SearchBeam 생성 및 추가
+    end
+
+    create participant RequestCoverage
+    AttitudeFrame->>RequestCoverage: new RequestCoverage(transform)
+
+    BeamController->>BeamScheduler: setAttitudeFrame(frame)
+    Note over BeamScheduler: 기존 AttitudeFrame 교체
+```
+
+### 탐색 빔 송신
+
+[Notion 원문](https://app.notion.com/p/3e4261646eaa80f686a7d8c47293ec28)
+
+```mermaid
+sequenceDiagram
+    actor app
+    participant BeamController
+    participant Scheduler
+    participant RequestQueue
+    participant SearchGrid
+
+    app->>BeamController: nextBeamCommand(currentTime)
+    BeamController->>Scheduler: next(currentTime)
+    Note over Scheduler: commandCount 증가
+    Scheduler->>RequestQueue: popNextDue(currentTime)
+    RequestQueue-->>Scheduler: 송신할 요청 없음
+    Scheduler->>SearchGrid: nextBeam()
+    Note over SearchGrid: 현재 커서의 SearchBeam 선택 후 커서 이동
+    SearchGrid-->>Scheduler: searchBeam
+    Note over Scheduler: 탐색 빔 명령 생성
+    Scheduler-->>BeamController: TransmitBeamCommand
+    BeamController-->>app: TransmitBeamCommand
+```
+
+### 요청 빔 송신
+
+[Notion 원문](https://app.notion.com/p/3e5261646eaa8006ba81dbb5709f1fc4)
+
+```mermaid
+sequenceDiagram
+    actor app
+    participant BeamController
+    participant BeamScheduler
+    participant RequestQueue
+    participant RequestCoverage
+    participant AntEnuTransform
+
+    app->>BeamController: nextBeamCommand(currentTime)
+    BeamController->>BeamScheduler: next(currentTime)
+    Note over BeamScheduler: commandCount 증가
+
+    BeamScheduler->>RequestQueue: popNextDue(currentTime)
+    Note over RequestQueue: 가장 이른 요청 선택 및 제거<br/>시각이 같으면 우선순위 높은 요청
+    RequestQueue-->>BeamScheduler: request
+
+    opt 송신 시각이 된 요청 있음
+        BeamScheduler->>RequestCoverage: contains(direction_enu)
+        RequestCoverage->>AntEnuTransform: enuToAnt(direction_enu)
+        AntEnuTransform-->>RequestCoverage: direction_ant
+        Note over RequestCoverage: 방위각 및 고각 범위 검사
+        RequestCoverage-->>BeamScheduler: 포함 여부
+
+        opt 송신 가능 범위에 포함
+            Note over BeamScheduler: 요청 빔 명령 생성
+            BeamScheduler-->>BeamController: TransmitBeamCommand
+            BeamController-->>app: TransmitBeamCommand
+        end
+    end
+```
+
 ## 환경 설정
 
 | 환경 변수 | 설정 용도 | 허용 범위 |
