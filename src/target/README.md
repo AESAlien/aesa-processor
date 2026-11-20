@@ -52,7 +52,7 @@ flowchart LR
     end
 
     CommReceiveWorker -->|탐지 결과| handleDetection
-    PoseWorker -->|좌표 설정| setEnuGeoTransform
+    PoseWorker -->|위치 좌표계 변환| setEnuGeoTransform
     handleDetection -->|빔 요청| BeamWorker
     TickWorker -->|10ms 틱| removeExpiredTracks
     TickWorker -->|10ms 틱| getTrackEvents

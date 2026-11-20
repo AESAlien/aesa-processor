@@ -42,7 +42,6 @@ flowchart LR
     PoseWorker[레이더 포즈<br/>스레드]
     TargetWorker[타겟 추적<br/>스레드]
     TickWorker[틱<br/>스레드]
-    BeamWorker[빔 스케줄링<br/>스레드]
     SimulatorSendWorker[모의기 송신<br/>스레드]
 
     subgraph BeamController
@@ -52,16 +51,11 @@ flowchart LR
         nextBeamCommand["nextBeamCommand()"]
     end
 
-    CommReceiveWorker -->|운용 명령| BeamWorker
-    PoseWorker -->|자세 설정| BeamWorker
-    TargetWorker -->|빔 요청| BeamWorker
-    TickWorker -->|10ms 틱| BeamWorker
-    BeamWorker -->|ON / OFF 전환| reset
-    BeamWorker --> setAntEnuTransform
-    BeamWorker -->|ON| requestBeam
-    BeamWorker -->|ON| nextBeamCommand
-    nextBeamCommand -->|빔 송신 명령| BeamWorker
-    BeamWorker -->|빔 송신 명령| SimulatorSendWorker
+    CommReceiveWorker -->|ON → OFF| reset
+    PoseWorker -->|자세 좌표계 변환| setAntEnuTransform
+    TargetWorker -->|빔 요청| requestBeam
+    TickWorker -->|10ms 틱| nextBeamCommand
+    nextBeamCommand -->|빔 송신 명령| SimulatorSendWorker
 
     classDef communication fill:#DCFCE7,stroke:#16A34A,color:#166534,stroke-width:2px
     classDef processing fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
@@ -69,7 +63,7 @@ flowchart LR
     classDef control fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-width:2px
 
     class CommReceiveWorker,SimulatorSendWorker communication
-    class TargetWorker,BeamWorker processing
+    class TargetWorker processing
     class PoseWorker utility
     class TickWorker control
     style BeamController fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
@@ -96,8 +90,6 @@ classDiagram
 ```
 
 ## 환경 설정
-
-장착 회전 행렬과 피치 한계는 [pose 모듈](../pose/README.md)의 설정이다. 운용 상태와 관계없이 받은 변환으로 탐색 격자와 요청 영역을 갱신한다.
 
 | 환경 변수 | 설정 용도 | 허용 범위 |
 |---|---|---|

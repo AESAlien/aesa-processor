@@ -71,14 +71,14 @@ block-beta
     SimulatorSendWorker -- "TCP/IP 송신" --> Simulator
     ConsoleSendWorker -- "TCP/IP 송신" --> Console
 
-    CommReceiveWorker -- "포즈" --> PoseWorker
+    CommReceiveWorker -- "위치 + 자세" --> PoseWorker
     CommReceiveWorker -- "탐지" --> TargetWorker
-    PoseWorker -- "포즈" --> ConsoleSendWorker
+    PoseWorker -- "위치 + 자세" --> ConsoleSendWorker
     PoseWorker -- "자세" --> BeamWorker
-    PoseWorker -- "좌표" --> TargetWorker
+    PoseWorker -- "위치" --> TargetWorker
     TargetWorker -- "트랙" --> ConsoleSendWorker
     TargetWorker -- "빔 요청" --> BeamWorker
-    BeamWorker -- "빔 송신" --> SimulatorSendWorker
+    BeamWorker -- "빔 명령" --> SimulatorSendWorker
     TickWorker -- "10ms 틱" --> BeamWorker
     TickWorker -- "10ms 틱" --> TargetWorker
 

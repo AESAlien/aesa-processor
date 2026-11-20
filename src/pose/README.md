@@ -34,10 +34,10 @@ flowchart LR
         setRadarPose["setRadarPose()"]
     end
 
-    CommReceiveWorker -->|SetRadarPoseCommand| setRadarPose
-    setRadarPose -->|SetAntEnuTransformCommand| BeamWorker
-    setRadarPose -->|SetEnuGeoTransformCommand| TargetWorker
-    setRadarPose -->|SetRadarPoseCommand| ConsoleSendWorker
+    CommReceiveWorker -->|위치 + 자세| setRadarPose
+    setRadarPose -->|자세 좌표계 변환| BeamWorker
+    setRadarPose -->|위치 좌표계 변환| TargetWorker
+    setRadarPose -->|위치 + 자세| ConsoleSendWorker
 
     classDef communication fill:#DCFCE7,stroke:#16A34A,color:#166534,stroke-width:2px
     classDef processing fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
