@@ -4,8 +4,6 @@
 
 ```text
 app/
-├── include/
-│   └── app/                 # .gitkeep만 있음
 ├── src/
 │   ├── config/
 │   ├── dto/
@@ -24,7 +22,7 @@ app/
         └── worker/
 ```
 
-## 실행 플로우
+## 실행 흐름
 
 ```mermaid
 flowchart TB
@@ -48,7 +46,7 @@ flowchart TB
     waitForShutdownRequest -->|SIGINT 또는 SIGTERM| exit
 ```
 
-## 워커 클래스 다이어그램
+## 워커 클래스 구성
 
 ```mermaid
 classDiagram

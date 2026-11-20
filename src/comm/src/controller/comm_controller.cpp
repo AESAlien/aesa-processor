@@ -19,98 +19,12 @@ constexpr std::chrono::milliseconds RECEIVE_POLL_TIMEOUT{100};
 
 } // namespace
 
-class CommController::Impl
-{
-public:
-    explicit Impl(CommConfig configuration)
-      : _networkManager(std::move(configuration))
-    {
-    }
-
-    void openServer()
-    {
-        _networkManager.start();
-    }
-
-    std::optional<IncomingDto> receiveData()
-    {
-        while (_pendingMessages.empty())
-        {
-            const std::optional<ReceivedFrames> received =
-                _networkManager.poll(RECEIVE_POLL_TIMEOUT);
-
-            if (received.has_value())
-            {
-                decodeFrames(*received);
-            }
-        }
-
-        IncomingDto message = std::move(_pendingMessages.front());
-        _pendingMessages.pop_front();
-        return message;
-    }
-
-    void sendBeamCommand(const beam::TransmitBeamCommand& command)
-    {
-        const EncodeResult result = encodeBeamCommand(command);
-        if (!result.bytes)
-        {
-            controller_error::throwEncodingFailure("scenario-simulator", result.error);
-        }
-        _networkManager.sendToScenarioSimulator(*result.bytes);
-    }
-
-    void sendTrackEvents(
-        const std::vector<target::TrackEvent>& trackEvents
-    ) {
-        const EncodeResult result = encodeTrackEvents(trackEvents);
-        if (!result.bytes)
-        {
-            controller_error::throwEncodingFailure("operator-console", result.error);
-        }
-        _networkManager.sendToOperatorConsole(*result.bytes);
-    }
-
-    void sendRadarPose(const pose::SetRadarPoseCommand& command)
-    {
-        const EncodeResult result = encodeRadarAttitude(command);
-        if (!result.bytes)
-        {
-            controller_error::throwEncodingFailure("operator-console", result.error);
-        }
-        _networkManager.sendToOperatorConsole(*result.bytes);
-    }
-
-private:
-    // 오류가 발생한 프레임 이전에 디코딩한 메시지는 대기열에 유지한다.
-    void decodeFrames(const ReceivedFrames& received)
-    {
-        for (const MessageFrame& frame : received.frames)
-        {
-            DecodeResult decodeResult = _messageDecoder.decode(frame);
-            if (decodeResult.error != DecodingError::NONE ||
-                !decodeResult.message.has_value())
-            {
-                controller_error::throwDecodingFailure(
-                    received.peerName,
-                    decodeResult.error
-                );
-            }
-
-            _pendingMessages.push_back(std::move(*decodeResult.message));
-        }
-    }
-
-    NetworkManager _networkManager;
-    MessageDecoder _messageDecoder;
-    std::deque<IncomingDto> _pendingMessages;
-};
-
 CommController::CommController(
     CommConfig configuration,
     std::shared_ptr<spdlog::logger> messageLogger
 ) : _messageLogger(std::move(messageLogger)),
-    _impl(std::make_unique<Impl>(std::move(configuration)))
+    _networkManager(std::make_unique<NetworkManager>(std::move(configuration))),
+    _messageDecoder(std::make_unique<MessageDecoder>())
 {
 }
 
@@ -118,30 +32,77 @@ CommController::~CommController() = default;
 
 void CommController::openServer()
 {
-    _impl->openServer();
+    _networkManager->start();
 }
 
 std::optional<IncomingDto> CommController::receiveData()
 {
-    return _impl->receiveData();
+    while (_pendingMessages.empty())
+    {
+        const std::optional<ReceivedFrames> received =
+            _networkManager->poll(RECEIVE_POLL_TIMEOUT);
+
+        if (received.has_value())
+        {
+            decodeFrames(*received);
+        }
+    }
+
+    IncomingDto message = std::move(_pendingMessages.front());
+    _pendingMessages.pop_front();
+    return message;
 }
 
 void CommController::sendBeamCommand(
     const beam::TransmitBeamCommand& command
 ) {
-    _impl->sendBeamCommand(command);
+    const EncodeResult result = encodeBeamCommand(command);
+    if (!result.bytes)
+    {
+        controller_error::throwEncodingFailure("scenario-simulator", result.error);
+    }
+    _networkManager->sendToScenarioSimulator(*result.bytes);
 }
 
 void CommController::sendTrackEvents(
     const std::vector<target::TrackEvent>& trackEvents
 ) {
-    _impl->sendTrackEvents(trackEvents);
+    const EncodeResult result = encodeTrackEvents(trackEvents);
+    if (!result.bytes)
+    {
+        controller_error::throwEncodingFailure("operator-console", result.error);
+    }
+    _networkManager->sendToOperatorConsole(*result.bytes);
 }
 
 void CommController::sendRadarPose(
     const pose::SetRadarPoseCommand& command
 ) {
-    _impl->sendRadarPose(command);
+    const EncodeResult result = encodeRadarAttitude(command);
+    if (!result.bytes)
+    {
+        controller_error::throwEncodingFailure("operator-console", result.error);
+    }
+    _networkManager->sendToOperatorConsole(*result.bytes);
+}
+
+// 오류가 발생한 프레임 이전에 디코딩한 메시지는 대기열에 유지한다.
+void CommController::decodeFrames(const ReceivedFrames& received)
+{
+    for (const MessageFrame& frame : received.frames)
+    {
+        DecodeResult decodeResult = _messageDecoder->decode(frame);
+        if (decodeResult.error != DecodingError::NONE ||
+            !decodeResult.message.has_value())
+        {
+            controller_error::throwDecodingFailure(
+                received.peerName,
+                decodeResult.error
+            );
+        }
+
+        _pendingMessages.push_back(std::move(*decodeResult.message));
+    }
 }
 
 } // namespace comm

@@ -1,20 +1,39 @@
 # AESA 추적 레이더 데이터 처리부
 
-LIG D&A AESA 레이더 시스템 개발 현업에서 제공한 모의기와 전시기를 연동하여 **타겟 탐색**, **타겟 추적**, **빔 명령 송신** 기능 등을 수행하는 임베디드 SW
+LIG D&A AESA 레이더 시스템 개발 현업에서 제공한 모의기 및 전시기와 연동하여 **실시간 빔 스케줄링**, **표적 추적**, **표적 관리 및 표시** 기능 등을 수행하는 임베디드 SW
 
 ## 기여자
 
 | 이름 | 주요 역할 |
 |---|---|
-| [신성현](https://github.com/sin6708k) | • 모듈 간 데이터 입출력 흐름 설계<br/>• GitHub 개발 프로세스 관리<br/>• PR 코드 리뷰 총괄<br/>• 레이더 포즈(`pose`) 모듈 구현<br/>• 수치 연산(`math`) 모듈 구현 |
-| [박현준](https://github.com/2chasik) | • 타겟 추적(`target`) 모듈 구현 |
+| [신성현](https://github.com/sin6708k) | • 모듈 간 데이터 흐름 설계<br/>• GitHub 개발 프로세스 관리<br/>• 코드 리뷰와 리팩터링<br/>• 레이더 포즈(`pose`) 모듈 구현<br/>• 수치 연산(`math`) 모듈 구현 |
+| [박현준](https://github.com/2chasik) | • 타겟 추적(`target`) 모듈 구현<br/>• Zybo Z7 케이스 제작 |
 | [이인성](https://github.com/inseong10) | • TCP 통신(`comm`) 모듈 구현 |
 | [장해찬](https://github.com/papperfield) | • 실행 제어(`app`) 모듈 구현 |
-| [천영기](https://github.com/YGC20) | • 빔 스케쥴링(`beam`) 모듈 구현 |
+| [천영기](https://github.com/YGC20) | • 빔 스케쥴링(`beam`) 모듈 구현<br/>• 분석기(`aesa-monitor`) 개발 |
 
-## 시스템 구조
+## 시스템 구성
 
-### 컴포넌트 다이어그램
+### 전체 흐름
+
+```mermaid
+flowchart LR
+    Search[영역 탐색]
+    Confirm[표적 확인]
+    Initialize[추적 초기화]
+    Track[주기적 추적]
+
+    Search --> Confirm
+    Confirm --> Initialize
+    Initialize --> Track
+```
+
+1. 탐색 빔으로 정해진 영역을 순서대로 탐색한다.
+2. 미확인 객체를 탐지하면 해당 방향으로 확인 빔을 할당한다.
+3. 두 탐지 결과의 동역학적 유사성을 확인한 뒤 트랙을 초기화한다.
+4. 정해진 주기로 추적 빔을 할당해 트랙을 갱신한다.
+
+### 모듈 구성
 
 ```mermaid
 flowchart BT
@@ -44,7 +63,7 @@ flowchart BT
     class app control
 ```
 
-### 데이터 플로우 다이어그램
+### 모듈 간 데이터 흐름
 
 ```mermaid
 block-beta
@@ -71,14 +90,14 @@ block-beta
     SimulatorSendWorker -- "TCP/IP 송신" --> Simulator
     ConsoleSendWorker -- "TCP/IP 송신" --> Console
 
-    CommReceiveWorker -- "포즈" --> PoseWorker
+    CommReceiveWorker -- "위치 + 자세" --> PoseWorker
     CommReceiveWorker -- "탐지" --> TargetWorker
-    PoseWorker -- "포즈" --> ConsoleSendWorker
+    PoseWorker -- "위치 + 자세" --> ConsoleSendWorker
     PoseWorker -- "자세" --> BeamWorker
-    PoseWorker -- "좌표" --> TargetWorker
+    PoseWorker -- "위치" --> TargetWorker
     TargetWorker -- "트랙" --> ConsoleSendWorker
     TargetWorker -- "빔 요청" --> BeamWorker
-    BeamWorker -- "빔 송신" --> SimulatorSendWorker
+    BeamWorker -- "빔 명령" --> SimulatorSendWorker
     TickWorker -- "10ms 틱" --> BeamWorker
     TickWorker -- "10ms 틱" --> TargetWorker
 
@@ -95,9 +114,9 @@ block-beta
     class TickWorker control
 ```
 
-### 모듈별 클래스 다이어그램
+### 모듈별 클래스 구성
 
-[실행 제어](src/app/README.md#워커-클래스-다이어그램) / [TCP 통신](src/comm/README.md#네트워크-클래스-다이어그램) / [레이더 포즈](src/pose/README.md#도메인-클래스-다이어그램) / [타겟 추적](src/target/README.md#도메인-클래스-다이어그램) / [빔 스케줄링](src/beam/README.md#도메인-클래스-다이어그램) / [수치 연산](src/math/README.md#도메인-클래스-다이어그램)
+[실행 제어](src/app/README.md#워커-클래스-구성) / [TCP 통신](src/comm/README.md#네트워크-클래스-구성) / [레이더 포즈](src/pose/README.md#도메인-클래스-구성) / [타겟 추적](src/target/README.md#도메인-클래스-구성) / [빔 스케줄링](src/beam/README.md#도메인-클래스-구성) / [수치 연산](src/math/README.md#도메인-클래스-구성)
 
 ## 빌드 및 실행
 

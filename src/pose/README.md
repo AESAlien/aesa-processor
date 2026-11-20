@@ -21,7 +21,7 @@ pose/
         └── controller/
 ```
 
-## 데이터 플로우 다이어그램
+## 데이터 흐름
 
 ```mermaid
 flowchart LR
@@ -34,10 +34,10 @@ flowchart LR
         setRadarPose["setRadarPose()"]
     end
 
-    CommReceiveWorker -->|SetRadarPoseCommand| setRadarPose
-    setRadarPose -->|SetAntEnuTransformCommand| BeamWorker
-    setRadarPose -->|SetEnuGeoTransformCommand| TargetWorker
-    setRadarPose -->|SetRadarPoseCommand| ConsoleSendWorker
+    CommReceiveWorker -->|위치 + 자세| setRadarPose
+    setRadarPose -->|자세 좌표계 변환| BeamWorker
+    setRadarPose -->|위치 좌표계 변환| TargetWorker
+    setRadarPose -->|위치 + 자세| ConsoleSendWorker
 
     classDef communication fill:#DCFCE7,stroke:#16A34A,color:#166534,stroke-width:2px
     classDef processing fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
@@ -47,7 +47,7 @@ flowchart LR
     style PoseController fill:#F3E8FF,stroke:#9333EA,color:#6B21A8,stroke-width:2px
 ```
 
-## 도메인 클래스 다이어그램
+## 도메인 클래스 구성
 
 ```mermaid
 classDiagram

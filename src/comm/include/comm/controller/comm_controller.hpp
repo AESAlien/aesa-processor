@@ -8,12 +8,17 @@
 #include <target/dto/track_event.hpp>
 #include <spdlog/logger.h>
 
+#include <deque>
 #include <memory>
 #include <optional>
 #include <vector>
 
 namespace comm
 {
+
+class MessageDecoder;
+class NetworkManager;
+struct ReceivedFrames;
 
 class CommController
 {
@@ -51,9 +56,12 @@ public:
     );
 
 private:
-    class Impl;
+    void decodeFrames(const ReceivedFrames& received);
+
     std::shared_ptr<spdlog::logger> _messageLogger;
-    std::unique_ptr<Impl> _impl;
+    std::unique_ptr<NetworkManager> _networkManager;
+    std::unique_ptr<MessageDecoder> _messageDecoder;
+    std::deque<IncomingDto> _pendingMessages;
 };
 
 } // namespace comm

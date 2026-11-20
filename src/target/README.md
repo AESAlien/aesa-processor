@@ -34,7 +34,7 @@ target/
     └── support/             # 공용 보조 코드
 ```
 
-## 데이터 플로우 다이어그램
+## 데이터 흐름
 
 ```mermaid
 flowchart LR
@@ -52,7 +52,7 @@ flowchart LR
     end
 
     CommReceiveWorker -->|탐지 결과| handleDetection
-    PoseWorker -->|좌표 설정| setEnuGeoTransform
+    PoseWorker -->|위치 좌표계 변환| setEnuGeoTransform
     handleDetection -->|빔 요청| BeamWorker
     TickWorker -->|10ms 틱| removeExpiredTracks
     TickWorker -->|10ms 틱| getTrackEvents
@@ -70,7 +70,7 @@ flowchart LR
     style TargetController fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
 ```
 
-## 도메인 클래스 다이어그램
+## 도메인 클래스 구성
 
 ```mermaid
 classDiagram
