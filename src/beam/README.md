@@ -34,7 +34,7 @@ beam/
     └── tools/               # 데이터 출력과 시각화
 ```
 
-## 데이터 플로우 다이어그램
+## 데이터 흐름
 
 ```mermaid
 flowchart LR
@@ -69,7 +69,7 @@ flowchart LR
     style BeamController fill:#DBEAFE,stroke:#2563EB,color:#1E40AF,stroke-width:2px
 ```
 
-## 도메인 클래스 다이어그램
+## 도메인 클래스 구성
 
 ```mermaid
 classDiagram

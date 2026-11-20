@@ -6,7 +6,7 @@ LIG D&A AESA 레이더 시스템 개발 현업에서 제공한 모의기 및 전
 
 | 이름 | 주요 역할 |
 |---|---|
-| [신성현](https://github.com/sin6708k) | • 모듈 간 데이터 플로우 설계<br/>• GitHub 개발 프로세스 관리<br/>• 코드 리뷰와 리팩터링<br/>• 레이더 포즈(`pose`) 모듈 구현<br/>• 수치 연산(`math`) 모듈 구현 |
+| [신성현](https://github.com/sin6708k) | • 모듈 간 데이터 흐름 설계<br/>• GitHub 개발 프로세스 관리<br/>• 코드 리뷰와 리팩터링<br/>• 레이더 포즈(`pose`) 모듈 구현<br/>• 수치 연산(`math`) 모듈 구현 |
 | [박현준](https://github.com/2chasik) | • 타겟 추적(`target`) 모듈 구현<br/>• Zybo Z7 케이스 제작 |
 | [이인성](https://github.com/inseong10) | • TCP 통신(`comm`) 모듈 구현 |
 | [장해찬](https://github.com/papperfield) | • 실행 제어(`app`) 모듈 구현 |
@@ -14,7 +14,7 @@ LIG D&A AESA 레이더 시스템 개발 현업에서 제공한 모의기 및 전
 
 ## 시스템 구성
 
-### 전체 플로우
+### 전체 흐름
 
 ```mermaid
 flowchart LR
@@ -33,7 +33,7 @@ flowchart LR
 3. 두 탐지 결과의 동역학적 유사성을 확인한 뒤 트랙을 초기화한다.
 4. 정해진 주기로 추적 빔을 할당해 트랙을 갱신한다.
 
-### 컴포넌트 다이어그램
+### 모듈 구성
 
 ```mermaid
 flowchart BT
@@ -63,7 +63,7 @@ flowchart BT
     class app control
 ```
 
-### 모듈 간 데이터 플로우
+### 모듈 간 데이터 흐름
 
 ```mermaid
 block-beta
@@ -114,9 +114,9 @@ block-beta
     class TickWorker control
 ```
 
-### 모듈별 클래스 다이어그램
+### 모듈별 클래스 구성
 
-[실행 제어](src/app/README.md#워커-클래스-다이어그램) / [TCP 통신](src/comm/README.md#네트워크-클래스-다이어그램) / [레이더 포즈](src/pose/README.md#도메인-클래스-다이어그램) / [타겟 추적](src/target/README.md#도메인-클래스-다이어그램) / [빔 스케줄링](src/beam/README.md#도메인-클래스-다이어그램) / [수치 연산](src/math/README.md#도메인-클래스-다이어그램)
+[실행 제어](src/app/README.md#워커-클래스-구성) / [TCP 통신](src/comm/README.md#네트워크-클래스-구성) / [레이더 포즈](src/pose/README.md#도메인-클래스-구성) / [타겟 추적](src/target/README.md#도메인-클래스-구성) / [빔 스케줄링](src/beam/README.md#도메인-클래스-구성) / [수치 연산](src/math/README.md#도메인-클래스-구성)
 
 ## 빌드 및 실행
 
