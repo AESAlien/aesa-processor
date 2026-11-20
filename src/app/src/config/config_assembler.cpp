@@ -42,13 +42,13 @@ pose::PoseConfig ConfigAssembler::createPoseConfig()
 {
     try
     {
-        const pose::RadarAttitudeFactoryConfig attitude(
-            math::Angle::fromDegrees(_reader.requireDouble("POSE_MAX_ABS_PITCH_DEG"))
-        );
+        const double maxAbsPitch_deg = _reader.requireDouble("POSE_MAX_ABS_PITCH_DEG");
+        const auto maxAbsPitch = math::Angle::fromDegrees(maxAbsPitch_deg);
+        const auto attitudeConfig = pose::RadarAttitudeFactoryConfig(maxAbsPitch);
         pose::AntEnuTransformConfig antEnuTransformConfig(
             _reader.requireSquareMatrix("POSE_MOUNT_ANT_TO_BODY_ROTATION", 3)
         );
-        return pose::PoseConfig(attitude, std::move(antEnuTransformConfig));
+        return pose::PoseConfig(attitudeConfig, std::move(antEnuTransformConfig));
     }
     catch (const std::invalid_argument& error)
     {
@@ -89,39 +89,41 @@ beam::BeamConfig ConfigAssembler::createBeamConfig()
         const double requestCoverageElevationMax_deg =
             _reader.requireDouble("BEAM_REQUEST_COVERAGE_ELEVATION_MAX_DEG");
 
+        const auto searchWidth = math::Angle::fromDegrees(searchWidth_deg);
+        const auto confirmationWidth = math::Angle::fromDegrees(confirmationWidth_deg);
+        const auto trackingWidth = math::Angle::fromDegrees(trackingWidth_deg);
+        const auto searchBeamWidth = beam::BeamWidth(searchWidth, searchWidth);
+        const auto confirmationBeamWidth = beam::BeamWidth(confirmationWidth, confirmationWidth);
+        const auto trackingBeamWidth = beam::BeamWidth(trackingWidth, trackingWidth);
+
+        auto searchGridConfig = beam::SearchGridConfig(
+            searchAzimuthCount,
+            searchElevationCount,
+            math::CircularAngle::fromDegrees(searchAzimuthStart_deg),
+            math::Angle::fromDegrees(searchAzimuthStep_deg),
+            math::TiltAngle::fromDegrees(searchElevationStart_deg),
+            math::Angle::fromDegrees(searchElevationStep_deg),
+            searchBeamWidth
+        );
+        auto requestBeamConfig = beam::RequestBeamConfig(
+            confirmationBeamWidth,
+            trackingBeamWidth
+        );
+
+        const auto azimuthRange = math::CircularAngleRange(
+            math::Angle::fromDegrees(requestCoverageAzimuthMin_deg),
+            math::Angle::fromDegrees(requestCoverageAzimuthMax_deg)
+        );
+        const auto elevationRange = math::AngleRange(
+            math::Angle::fromDegrees(requestCoverageElevationMin_deg),
+            math::Angle::fromDegrees(requestCoverageElevationMax_deg)
+        );
+        auto requestCoverageConfig = beam::RequestCoverageConfig(azimuthRange, elevationRange);
+
         return beam::BeamConfig(
-            beam::SearchGridConfig(
-                searchAzimuthCount,
-                searchElevationCount,
-                math::CircularAngle::fromDegrees(searchAzimuthStart_deg),
-                math::Angle::fromDegrees(searchAzimuthStep_deg),
-                math::TiltAngle::fromDegrees(searchElevationStart_deg),
-                math::Angle::fromDegrees(searchElevationStep_deg),
-                beam::BeamWidth(
-                    math::Angle::fromDegrees(searchWidth_deg),
-                    math::Angle::fromDegrees(searchWidth_deg)
-                )
-            ),
-            beam::RequestBeamConfig(
-                beam::BeamWidth(
-                    math::Angle::fromDegrees(confirmationWidth_deg),
-                    math::Angle::fromDegrees(confirmationWidth_deg)
-                ),
-                beam::BeamWidth(
-                    math::Angle::fromDegrees(trackingWidth_deg),
-                    math::Angle::fromDegrees(trackingWidth_deg)
-                )
-            ),
-            beam::RequestCoverageConfig(
-                math::CircularAngleRange(
-                    math::Angle::fromDegrees(requestCoverageAzimuthMin_deg),
-                    math::Angle::fromDegrees(requestCoverageAzimuthMax_deg)
-                ),
-                math::AngleRange(
-                    math::Angle::fromDegrees(requestCoverageElevationMin_deg),
-                    math::Angle::fromDegrees(requestCoverageElevationMax_deg)
-                )
-            )
+            std::move(searchGridConfig),
+            std::move(requestBeamConfig),
+            std::move(requestCoverageConfig)
         );
     }
     catch (const std::invalid_argument& error)
@@ -173,29 +175,35 @@ target::TargetConfig ConfigAssembler::createTargetConfig()
                 "TARGET_PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2"
             );
 
+        auto associationConfig = target::AssociationConfig(
+            math::Speed::fromMetersPerSecond(maxAssociationSpeed_mps),
+            math::Speed::fromMetersPerSecond(maxInitialDopplerDifference_mps),
+            positionNdsThreshold
+        );
+        const auto measurementDeviation = math::Length::fromMeters(measurementStandardDeviation_m);
+        auto measurementConfig = target::MeasurementConfig(measurementDeviation);
+        const auto initialAccelerationDeviation = math::LinearAcceleration::fromMetersPerSecondSquared(
+            initialAccelerationStandardDeviation_mps2
+        );
+        const auto processAccelerationDeviation = math::LinearAcceleration::fromMetersPerSecondSquared(
+            processAccelerationStandardDeviation_mps2
+        );
+        auto trackingConfig = target::TrackingConfig(
+            initialAccelerationDeviation,
+            processAccelerationDeviation
+        );
+        auto trackManagementConfig = target::TrackManagementConfig(
+            confirmationDelay,
+            trackingInterval,
+            maxConsecutiveTrackingMisses,
+            maxReportedTrackCount
+        );
+
         return target::TargetConfig(
-            target::AssociationConfig(
-                math::Speed::fromMetersPerSecond(maxAssociationSpeed_mps),
-                math::Speed::fromMetersPerSecond(maxInitialDopplerDifference_mps),
-                positionNdsThreshold
-            ),
-            target::MeasurementConfig(
-                math::Length::fromMeters(measurementStandardDeviation_m)
-            ),
-            target::TrackingConfig(
-                math::LinearAcceleration::fromMetersPerSecondSquared(
-                    initialAccelerationStandardDeviation_mps2
-                ),
-                math::LinearAcceleration::fromMetersPerSecondSquared(
-                    processAccelerationStandardDeviation_mps2
-                )
-            ),
-            target::TrackManagementConfig(
-                confirmationDelay,
-                trackingInterval,
-                maxConsecutiveTrackingMisses,
-                maxReportedTrackCount
-            )
+            std::move(associationConfig),
+            std::move(measurementConfig),
+            std::move(trackingConfig),
+            std::move(trackManagementConfig)
         );
     }
     catch (const std::invalid_argument& error)
@@ -225,14 +233,14 @@ comm::CommConfig ConfigAssembler::createCommConfig()
             "COMM_SCENARIO_SIMULATOR_PORT"
         );
 
+    auto serverEndpoint = comm::CommEndpoint(serverAddress, serverPort);
+    auto operatorConsoleEndpoint = comm::CommEndpoint(operatorConsoleAddress, operatorConsolePort);
+    auto scenarioSimulatorEndpoint = comm::CommEndpoint(scenarioSimulatorAddress, scenarioSimulatorPort);
+
     return comm::CommConfig(
-        comm::CommEndpoint(serverAddress, serverPort),
-        comm::CommEndpoint(
-            operatorConsoleAddress, operatorConsolePort
-        ),
-        comm::CommEndpoint(
-            scenarioSimulatorAddress, scenarioSimulatorPort
-        )
+        std::move(serverEndpoint),
+        std::move(operatorConsoleEndpoint),
+        std::move(scenarioSimulatorEndpoint)
     );
 }
 

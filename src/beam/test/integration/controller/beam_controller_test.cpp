@@ -218,12 +218,8 @@ TEST(BeamControllerTest, InvalidRequestThrowsEvenBeforeAttitude)
     auto controller = makeDefaultController();
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 7.5_deg, 15.5_deg);
 
-    // When: 잘못된 요청을 접수한다.
-    const auto requestBeam = [&]
-    { return controller.requestBeam(request); };
-
-    // Then: 준비 전 결과 대신 검증 예외를 전달한다.
-    EXPECT_THROW(requestBeam(), std::invalid_argument);
+    // When & Then: 잘못된 요청을 접수하면 준비 전 결과 대신 검증 예외를 전달한다.
+    EXPECT_THROW(controller.requestBeam(request), std::invalid_argument);
 }
 
 TEST(BeamControllerTest, InvalidRequestIsNotQueued)
@@ -233,12 +229,8 @@ TEST(BeamControllerTest, InvalidRequestIsNotQueued)
     controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 0, 7.5_deg, 15.5_deg);
 
-    // When: 잘못된 요청을 접수한다.
-    const auto requestBeam = [&]
-    { return controller.requestBeam(request); };
-
-    // Then: 요청 검증 예외를 전달한다.
-    EXPECT_THROW(requestBeam(), std::invalid_argument);
+    // When & Then: 잘못된 요청을 접수하면 검증 예외를 전달한다.
+    EXPECT_THROW(controller.requestBeam(request), std::invalid_argument);
 
     // When: 거부된 요청 이후 송신 명령을 요청한다.
     const auto command = controller.nextBeamCommand(0ms);
@@ -452,12 +444,8 @@ TEST(BeamControllerTest, InvalidRequestThrowsBeforeCoverageCheck)
     controller.setAntEnuTransform(makeAntEnuTransformCommand(0_deg, 0_deg, 0_deg));
     const auto request = makeRequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 0, 90_deg, 0_deg);
 
-    // When: 잘못된 요청을 접수한다.
-    const auto requestBeam = [&]
-    { return controller.requestBeam(request); };
-
-    // Then: 영역 밖 결과 대신 요청 검증 예외를 전달한다.
-    EXPECT_THROW(requestBeam(), std::invalid_argument);
+    // When & Then: 잘못된 요청을 접수하면 영역 밖 결과 대신 검증 예외를 전달한다.
+    EXPECT_THROW(controller.requestBeam(request), std::invalid_argument);
 }
 
 TEST(BeamControllerTest, RequestBeamResultCarriesRequestIdForEveryStatus)
