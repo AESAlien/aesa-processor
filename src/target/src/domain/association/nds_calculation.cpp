@@ -35,8 +35,8 @@ std::optional<double> NdsCalculation::calculate(
     }
 }
 
-
-NdsCalculation::NdsCalculation(math::SquareMatrix lowerCovariance) : _lowerCovariance(std::move(lowerCovariance))
+NdsCalculation::NdsCalculation(math::SquareMatrix lowerCovariance)
+  : _lowerCovariance(std::move(lowerCovariance))
 {
 }
 

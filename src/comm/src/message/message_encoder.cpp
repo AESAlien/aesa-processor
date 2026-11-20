@@ -93,14 +93,14 @@ protocol::ST_BeamTx encodeBeam(
     const beam::TransmitBeamCommand& command
 ) {
     protocol::ST_BeamTx encodedBeam{};
-    encodedBeam.beamType =      static_cast<uint8_t>(command.beamType);
-    encodedBeam.beamID =        command.beamId;
-    encodedBeam.commandCount =  command.commandCount;
-    encodedBeam.timestamp =     convertTimestamp(command.transmitTime);
-    encodedBeam.beam_az_deg =   convertFloat(command.direction_ant.azimuth.deg());
-    encodedBeam.beam_el_deg =   convertFloat(command.direction_ant.elevation.deg());
-    encodedBeam.az_width_deg =  convertFloat(command.beamWidth.azimuth.deg());
-    encodedBeam.el_width_deg =  convertFloat(command.beamWidth.elevation.deg());
+    encodedBeam.beamType = static_cast<uint8_t>(command.beamType);
+    encodedBeam.beamID = command.beamId;
+    encodedBeam.commandCount = command.commandCount;
+    encodedBeam.timestamp = convertTimestamp(command.transmitTime);
+    encodedBeam.beam_az_deg = convertFloat(command.direction_ant.azimuth.deg());
+    encodedBeam.beam_el_deg = convertFloat(command.direction_ant.elevation.deg());
+    encodedBeam.az_width_deg = convertFloat(command.beamWidth.azimuth.deg());
+    encodedBeam.el_width_deg = convertFloat(command.beamWidth.elevation.deg());
 
     return encodedBeam;
 }
@@ -109,20 +109,20 @@ protocol::ST_Trk encodeTrack(
     const target::TrackEvent& event
 ) {
     protocol::ST_Trk encodedTrack{};
-    encodedTrack.ID =           event.id;
-    encodedTrack.type =         static_cast<uint8_t>(event.state);
-    encodedTrack.slantR_km =    convertFloat(event.slantRange.km());
-    encodedTrack.groundR_km =   convertFloat(event.groundRange.km());
-    encodedTrack.azi_deg =      convertFloat(event.azimuth.deg());
-    encodedTrack.elv_deg =      convertFloat(event.elevation.deg());
-    encodedTrack.doppler_mps =  convertFloat(event.dopplerVelocity.mps());
-    encodedTrack.lat_deg =      convertFloat(event.latitude.deg());
-    encodedTrack.lon_deg =      convertFloat(event.longitude.deg());
-    encodedTrack.alt_km =       convertFloat(event.altitude.km());
+    encodedTrack.ID = event.id;
+    encodedTrack.type = static_cast<uint8_t>(event.state);
+    encodedTrack.slantR_km = convertFloat(event.slantRange.km());
+    encodedTrack.groundR_km = convertFloat(event.groundRange.km());
+    encodedTrack.azi_deg = convertFloat(event.azimuth.deg());
+    encodedTrack.elv_deg = convertFloat(event.elevation.deg());
+    encodedTrack.doppler_mps = convertFloat(event.dopplerVelocity.mps());
+    encodedTrack.lat_deg = convertFloat(event.latitude.deg());
+    encodedTrack.lon_deg = convertFloat(event.longitude.deg());
+    encodedTrack.alt_km = convertFloat(event.altitude.km());
     encodedTrack.velocity_mps = convertFloat(event.speed.mps());
-    encodedTrack.heading_deg =  convertFloat(event.heading.deg());
-    encodedTrack.fpa_deg =      convertFloat(event.flightPathAngle.deg());
-    encodedTrack.timeStamp =    convertTimestamp(event.timestamp);
+    encodedTrack.heading_deg = convertFloat(event.heading.deg());
+    encodedTrack.fpa_deg = convertFloat(event.flightPathAngle.deg());
+    encodedTrack.timeStamp = convertTimestamp(event.timestamp);
 
     return encodedTrack;
 }
@@ -232,10 +232,10 @@ EncodeResult encodeRadarAttitude(
     );
     message.radar_lat_deg = command.latitude.deg();
     message.radar_lon_deg = command.longitude.deg();
-    message.radar_alt_km =  command.altitude.km();
-    message.roll_deg =      command.roll.deg();
-    message.pitch_deg =     command.pitch.deg();
-    message.yaw_deg =       command.yaw.deg();
+    message.radar_alt_km = command.altitude.km();
+    message.roll_deg = command.roll.deg();
+    message.pitch_deg = command.pitch.deg();
+    message.yaw_deg = command.yaw.deg();
 
     return encoded(toBytes(message));
 }

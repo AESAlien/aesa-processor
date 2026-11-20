@@ -14,8 +14,8 @@ namespace app
 {
 
 ConfigValueReader::ConfigValueReader(
-    std::unordered_map<std::string, std::string> configValues)
-    : _configValues(std::move(configValues))
+    std::unordered_map<std::string, std::string> configValues
+) : _configValues(std::move(configValues))
 {
 }
 
@@ -26,7 +26,8 @@ const std::string& ConfigValueReader::requireString(const char* key)
     {
         throw std::runtime_error(
             "Missing required configuration key: " +
-            std::string(key));
+            std::string(key)
+        );
     }
 
     _consumedKeys.emplace(key);
@@ -40,8 +41,8 @@ double ConfigValueReader::requireDouble(const char* key)
 
 double ConfigValueReader::parseDouble(
     const std::string& text,
-    const char* key) const
-{
+    const char* key
+) const {
     std::size_t parsedLength = 0;
     double value = 0.0;
     try
@@ -52,27 +53,30 @@ double ConfigValueReader::parseDouble(
     {
         throw std::runtime_error(
             "Invalid floating-point value for " +
-            std::string(key));
+            std::string(key)
+        );
     }
 
     if (parsedLength != text.size() || !std::isfinite(value))
     {
         throw std::runtime_error(
             "Invalid floating-point value for " +
-            std::string(key));
+            std::string(key)
+        );
     }
     return value;
 }
 
 math::SquareMatrix ConfigValueReader::requireSquareMatrix(
     const char* key,
-    std::size_t size)
-{
+    std::size_t size
+) {
     if (size != 0 && size > std::numeric_limits<std::size_t>::max() / size)
     {
         throw std::runtime_error(
             "Square matrix size is out of range for " +
-            std::string(key));
+            std::string(key)
+        );
     }
 
     const std::size_t expectedElementCount = size * size;
@@ -94,14 +98,16 @@ math::SquareMatrix ConfigValueReader::requireSquareMatrix(
         catch (const std::exception&)
         {
             throw std::runtime_error(
-                "Invalid matrix value for " + std::string(key));
+                "Invalid matrix value for " + std::string(key)
+            );
         }
     }
 
     if (elements.size() != expectedElementCount)
     {
         throw std::runtime_error(
-            "Unexpected matrix element count for " + std::string(key));
+            "Unexpected matrix element count for " + std::string(key)
+        );
     }
 
     math::Matrix matrix(size, size);
@@ -119,7 +125,8 @@ unsigned long long ConfigValueReader::requireUnsignedValue(const char* key)
     {
         throw std::runtime_error(
             "Invalid unsigned integer value for " +
-            std::string(key));
+            std::string(key)
+        );
     }
 
     std::size_t parsedLength = 0;
@@ -132,14 +139,16 @@ unsigned long long ConfigValueReader::requireUnsignedValue(const char* key)
     {
         throw std::runtime_error(
             "Invalid unsigned integer value for " +
-            std::string(key));
+            std::string(key)
+        );
     }
 
     if (parsedLength != text.size())
     {
         throw std::runtime_error(
             "Invalid unsigned integer value for " +
-            std::string(key));
+            std::string(key)
+        );
     }
     return value;
 }
@@ -152,7 +161,8 @@ void ConfigValueReader::ensureAllConsumed() const
         {
             throw std::runtime_error(
                 "Unknown configuration key: " +
-                configValue.first);
+                configValue.first
+            );
         }
     }
 }

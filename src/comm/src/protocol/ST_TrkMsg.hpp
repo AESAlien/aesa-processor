@@ -14,6 +14,7 @@ struct ST_TrkHeader
     uint8_t padding[2];
 };
 
+// NOLINTBEGIN(readability-identifier-naming)
 struct ST_Trk
 {
     uint16_t ID;
@@ -35,6 +36,7 @@ struct ST_Trk
     uint32_t commandCount;
     uint8_t padding[28];
 };
+// NOLINTEND(readability-identifier-naming)
 
 struct ST_TrkMsg
 {

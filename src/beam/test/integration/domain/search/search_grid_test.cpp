@@ -179,7 +179,9 @@ TEST(SearchGridTest, GridMatchesAnglesConvertedToEnuFrame)
         const auto direction_enu = transform.antToEnu(
             math::SphericalDirection(
                 gridAzimuth(beamIndex),
-                gridElevation(beamIndex)));
+                gridElevation(beamIndex)
+            )
+        );
 
         // Then: 격자는 각 셀의 안테나 방향을 ENU 방향으로 변환한다.
         EXPECT_TRUE(beams[beamIndex].direction_enu.azimuth.isEquivalentTo(direction_enu.azimuth)) << "beamIndex=" << beamIndex;

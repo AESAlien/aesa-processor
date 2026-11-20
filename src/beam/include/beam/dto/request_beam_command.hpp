@@ -51,7 +51,8 @@ struct RequestBeamCommand
                 _beamType.value(),
                 _transmitTime.value(),
                 _requestId.value(),
-                _direction_ant.value());
+                _direction_ant.value()
+            );
         }
 
     private:

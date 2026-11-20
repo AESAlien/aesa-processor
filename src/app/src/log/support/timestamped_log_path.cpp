@@ -57,7 +57,7 @@ std::filesystem::path reserveTimestampedLogPath(
         std::filesystem::create_directories(basePath.parent_path());
     }
 
-    for (std::size_t index = 0; ; ++index)
+    for (std::size_t index = 0;; ++index)
     {
         const auto suffix = index == 0 ? std::string{} : '_' + std::to_string(index);
         const auto path = basePath.parent_path() / (stem + suffix + extension);

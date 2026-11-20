@@ -29,16 +29,28 @@ beam::AttitudeFrame makeZeroAttitudeFrame()
 
 const TickRecord& tickAt(const Result& result, long long tick_ms)
 {
-    const auto found = std::find_if(result.ticks.begin(), result.ticks.end(),
-                                    [tick_ms](const TickRecord& tick) { return tick.tick_ms == tick_ms; });
+    const auto found = std::find_if(
+        result.ticks.begin(),
+        result.ticks.end(),
+        [tick_ms](const TickRecord& tick)
+        {
+            return tick.tick_ms == tick_ms;
+        }
+    );
     EXPECT_NE(found, result.ticks.end()) << "no tick at " << tick_ms << "ms";
     return *found;
 }
 
 const schedule_scenario::RequestSpec& requestNamed(const Result& result, const std::string& name)
 {
-    const auto found = std::find_if(result.requests.begin(), result.requests.end(),
-                                    [&name](const schedule_scenario::RequestSpec& spec) { return spec.name == name; });
+    const auto found = std::find_if(
+        result.requests.begin(),
+        result.requests.end(),
+        [&name](const schedule_scenario::RequestSpec& spec)
+        {
+            return spec.name == name;
+        }
+    );
     EXPECT_NE(found, result.requests.end()) << "no request named " << name;
     return *found;
 }
@@ -291,7 +303,8 @@ TEST(BeamSchedulerScenarioTest, AttitudeChangesAnglesButNotTheSchedule)
 {
     const Result zero = schedule_scenario::run(schedule_scenario::makeMixedScenario(), makeZeroAttitudeFrame());
     const Result rotated = schedule_scenario::run(
-        schedule_scenario::makeMixedScenario(), schedule_scenario::makeAttitudeFrame(10_deg, 20_deg, 30_deg));
+        schedule_scenario::makeMixedScenario(), schedule_scenario::makeAttitudeFrame(10_deg, 20_deg, 30_deg)
+    );
 
     ASSERT_EQ(zero.ticks.size(), rotated.ticks.size());
     bool anySearchAngleDiffers = false;

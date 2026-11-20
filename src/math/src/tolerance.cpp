@@ -15,7 +15,7 @@ bool isFiniteAndNonnegative(double value) noexcept
     return value >= 0.0 && value <= std::numeric_limits<double>::max();
 }
 
-}  // namespace
+} // namespace
 
 const Tolerance DEFAULT_TOLERANCE{
     1e-12,
@@ -25,8 +25,8 @@ const Tolerance DEFAULT_TOLERANCE{
 const Tolerance NONE_TOLERANCE{0.0, 0.0};
 
 Tolerance::Tolerance(double absoluteTolerance, double relativeTolerance)
-    : _absolute(absoluteTolerance),
-      _relative(relativeTolerance)
+  : _absolute(absoluteTolerance),
+    _relative(relativeTolerance)
 {
     validate();
 }
@@ -44,8 +44,8 @@ double Tolerance::relative() const noexcept
 void Tolerance::validate() const
 {
     if (!isFiniteAndNonnegative(_absolute) ||
-        !isFiniteAndNonnegative(_relative)
-    ) {
+        !isFiniteAndNonnegative(_relative))
+    {
         throw std::invalid_argument("Tolerance values must be finite and non-negative");
     }
 }
@@ -56,8 +56,7 @@ bool Tolerance::isWithin(double left, double right) const noexcept
     {
         return false;
     }
-    return isWithinAbsoluteTolerance(left, right)
-        || isWithinRelativeTolerance(left, right);
+    return isWithinAbsoluteTolerance(left, right) || isWithinRelativeTolerance(left, right);
 }
 
 bool Tolerance::isWithinAbsoluteTolerance(double left, double right) const noexcept

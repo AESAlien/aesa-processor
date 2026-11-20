@@ -27,7 +27,7 @@ double LinearVelocity::mps() const noexcept
 }
 
 LinearVelocity::LinearVelocity(double metersPerSecond)
-    : Quantity<LinearVelocity>(metersPerSecond)
+  : Quantity<LinearVelocity>(metersPerSecond)
 {
 }
 

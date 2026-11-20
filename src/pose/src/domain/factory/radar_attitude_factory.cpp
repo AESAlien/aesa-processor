@@ -7,7 +7,8 @@ namespace pose
 {
 using namespace math::literals;
 
-RadarAttitudeFactory::RadarAttitudeFactory(RadarAttitudeFactoryConfig config) : _config(config)
+RadarAttitudeFactory::RadarAttitudeFactory(RadarAttitudeFactoryConfig config)
+  : _config(config)
 {
 }
 

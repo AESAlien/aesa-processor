@@ -124,9 +124,7 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
         );
         ASSERT_TRUE(tracking.has_value());
         EXPECT_TRUE(controller.getTrackEvents().empty());
-        controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-            pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(127_deg), 100_m))
-        ));
+        controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(127_deg), 100_m))));
         const auto events = controller.getTrackEvents();
         ASSERT_EQ(events.size(), 1u);
         EXPECT_DOUBLE_EQ(events[0].speed.mps(), displacement);
@@ -151,9 +149,7 @@ TEST(ImmutableGeometryTest, ReportsNormalizedWestboundHeadingAndSignedFlightPath
                 target::TrackManagementConfig(100ms, 1000ms, 3, 100)
             )
         );
-        controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-            pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-        ));
+        controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
         const auto confirmation = controller.handleDetection(
             target::DetectionEvent(
                 BeamType::SEARCH,

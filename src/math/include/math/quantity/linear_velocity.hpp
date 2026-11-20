@@ -29,7 +29,8 @@ public:
     {
         const auto seconds = std::chrono::duration<long double>(duration).count();
         return Length::fromMeters(
-            static_cast<double>(static_cast<long double>(mps()) * seconds));
+            static_cast<double>(static_cast<long double>(mps()) * seconds)
+        );
     }
 
 private:
@@ -54,7 +55,8 @@ LinearVelocity operator/(
     }
 
     return LinearVelocity::fromMetersPerSecond(
-        static_cast<double>(static_cast<long double>(length.m()) / seconds));
+        static_cast<double>(static_cast<long double>(length.m()) / seconds)
+    );
 }
 
 namespace literals

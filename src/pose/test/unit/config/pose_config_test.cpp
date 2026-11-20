@@ -26,7 +26,8 @@ TEST(AntEnuTransformConfigTest, AcceptsRotationMount)
     const auto mount = math::SquareMatrix({{0, -1, 0}, {1, 0, 0}, {0, 0, 1}});
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
-    const auto build = [&] {
+    const auto build = [&]
+    {
         return pose::AntEnuTransformConfig::Builder().mountAntToBodyRotation(mount).build();
     };
 
@@ -47,7 +48,8 @@ TEST(AntEnuTransformConfigTest, AcceptsRotationMountWithFloatingPointEntries)
     const auto s = math::sin(angle);
 
     // When: 부동소수점 성분의 장착행렬로 설정을 생성한다.
-    const auto build = [&] {
+    const auto build = [&]
+    {
         return pose::AntEnuTransformConfig(math::SquareMatrix({{c, -s, 0}, {s, c, 0}, {0, 0, 1}}));
     };
 
@@ -68,14 +70,15 @@ TEST(AntEnuTransformConfigTest, NonRotationMountThrows)
 {
     // Given: 검증할 입력과 설정을 준비한다.
     const math::SquareMatrix invalidMounts[] = {
-        {{2, 0, 0}, {0, 1, 0}, {0, 0, 1}}, // 스케일
+        {{2, 0, 0}, {0, 1, 0}, {0, 0, 1}},  // 스케일
         {{1, 0, 0}, {0, 1, 0}, {0, 0, -1}}, // 반사
-        {{1, 0, 0}, {0, 1, 0}, {0, 0, 0}}, // 특이 행렬
+        {{1, 0, 0}, {0, 1, 0}, {0, 0, 0}},  // 특이 행렬
         math::SquareMatrix::identity(2)
     };
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
-    const auto build = [&](const math::SquareMatrix& mount) {
+    const auto build = [&](const math::SquareMatrix& mount)
+    {
         return pose::AntEnuTransformConfig(mount);
     };
 
@@ -96,7 +99,8 @@ TEST(AntEnuTransformConfigTest, NonFiniteMountEntriesAndOverflowThrow)
     };
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
-    const auto build = [](const math::SquareMatrix& mount) {
+    const auto build = [](const math::SquareMatrix& mount)
+    {
         return pose::AntEnuTransformConfig(mount);
     };
 
@@ -114,7 +118,8 @@ TEST(RadarAttitudeFactoryConfigTest, MaxAbsPitchMustBeInZeroToNinetyDegrees)
     const math::Angle invalidPitches[] = {0_deg, -1_deg, 91_deg};
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
-    const auto build = [&](math::Angle pitch) {
+    const auto build = [&](math::Angle pitch)
+    {
         return pose::RadarAttitudeFactoryConfig::Builder().maxAbsPitch(pitch).build();
     };
 
@@ -140,7 +145,8 @@ TEST(RadarAttitudeFactoryConfigTest, MaxAbsPitchRejectsAnglesEquivalentToNinetyD
     const math::Angle pitches[] = {450_deg, 810_deg, -270_deg};
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
-    const auto build = [](math::Angle pitch) { return pose::RadarAttitudeFactoryConfig(pitch); };
+    const auto build = [](math::Angle pitch)
+    { return pose::RadarAttitudeFactoryConfig(pitch); };
 
     // Then: 최대 피치는 주기상 90도와 같아도 실제 값이 범위 밖이면 거부한다.
     for (const auto pitch : pitches)

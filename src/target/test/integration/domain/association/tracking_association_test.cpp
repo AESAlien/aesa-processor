@@ -28,8 +28,8 @@ namespace
 using namespace math::literals;
 using namespace std::chrono_literals;
 using test_support::CovarianceAlgorithm;
-using test_support::selectTracking;
 using test_support::isDuplicate;
+using test_support::selectTracking;
 using Time = std::chrono::milliseconds;
 using BeamType = beam::BeamType;
 
@@ -56,7 +56,8 @@ struct PreparationCounts
 class InjectedCalculation final : public IAssociationCalculation
 {
 public:
-    explicit InjectedCalculation(std::shared_ptr<PreparationCounts> counts) : _counts(std::move(counts))
+    explicit InjectedCalculation(std::shared_ptr<PreparationCounts> counts)
+      : _counts(std::move(counts))
     {
     }
 
@@ -64,7 +65,8 @@ public:
         const math::SphericalPosition& observation,
         const math::SphericalPosition&,
         std::optional<math::Distance>
-    ) const override {
+    ) const override
+    {
         ++_counts->evaluations;
         return observation.radius.m() == 1020.0 ? 1.0 : 100.0;
     }
@@ -81,7 +83,8 @@ private:
 class InjectedAssociationAlgorithm final : public IAssociationAlgorithm
 {
 public:
-    explicit InjectedAssociationAlgorithm(std::shared_ptr<PreparationCounts> counts) : _counts(std::move(counts))
+    explicit InjectedAssociationAlgorithm(std::shared_ptr<PreparationCounts> counts)
+      : _counts(std::move(counts))
     {
     }
 
@@ -155,21 +158,24 @@ private:
 class CountingPredictionAlgorithm final : public ITrackingAlgorithm
 {
 public:
-    explicit CountingPredictionAlgorithm(bool predictionAvailable = true) : _predictionAvailable(predictionAvailable)
+    explicit CountingPredictionAlgorithm(bool predictionAvailable = true)
+      : _predictionAvailable(predictionAvailable)
     {
     }
 
     std::optional<TrackingResult> initialize(
         const Observation& first,
         const Observation& second
-    ) const override {
+    ) const override
+    {
         return _algorithm.initialize(first, second);
     }
 
     std::optional<TrackingResult> update(
         const ConfirmedTrack& current,
         const Observation& incoming
-    ) const override {
+    ) const override
+    {
         return _algorithm.update(current, incoming);
     }
 
@@ -497,8 +503,7 @@ TEST_F(TrackingAssociationTest, ValidatesCovarianceProvidedForPrediction)
     EXPECT_THROW(prepare(math::SquareMatrix(3)), std::invalid_argument);
     covariance(0, 0) = -1.0;
     EXPECT_THROW(prepare(covariance), std::invalid_argument);
-    for (auto invalid : {std::numeric_limits<double>::quiet_NaN(),
-             std::numeric_limits<double>::infinity()})
+    for (auto invalid : {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity()})
     {
         covariance(0, 0) = invalid;
         EXPECT_THROW(prepare(covariance), std::invalid_argument);
@@ -545,11 +550,9 @@ TEST_F(TrackingAssociationTest, SelectsMinimumScoreIncludingZeroAndKeepsFirstTie
     const auto exact = _selector.selectTrackingObservation(
         *_repository.findConfirmedTrack(id),
         1100ms,
-        {
-            observation(1010_m, 1100ms),
-            observation(1000_m, 1100ms),
-            Observation(position(1000_m), 0_mps, -20.0f, 1100ms)
-        }
+        {observation(1010_m, 1100ms),
+         observation(1000_m, 1100ms),
+         Observation(position(1000_m), 0_mps, -20.0f, 1100ms)}
     );
     ASSERT_TRUE(exact);
     EXPECT_EQ(exact->slantRange(), 1000_m);
@@ -633,11 +636,7 @@ TEST_F(TrackingAssociationTest, DoesNotRetryFailedPredictionUntilTheNextBatch)
     const auto id = addTracking(1000_m, 1000_m, algorithm);
     const auto& track = *_repository.findConfirmedTrack(id);
     const auto previousState = track.state();
-    const auto observations = std::vector<Observation>({
-        observation(1000_m, 1100ms),
-        observation(1001_m, 1100ms),
-        observation(1002_m, 1100ms)
-    });
+    const auto observations = std::vector<Observation>({observation(1000_m, 1100ms), observation(1001_m, 1100ms), observation(1002_m, 1100ms)});
 
     EXPECT_FALSE(_selector.selectTrackingObservation(track, 1100ms, observations));
     EXPECT_EQ(algorithm->predictionCount(), 1u);
@@ -666,9 +665,7 @@ TEST(TrackingAssociationControllerTest, OutOfGatePlotsKeepRetryingUntilThreeMiss
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     const auto confirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 0ms, {1000_m}));
     ASSERT_TRUE(confirmation);
     const auto tracking = controller.handleDetection(
@@ -722,9 +719,7 @@ TEST(TrackingAssociationControllerTest, NearestSuccessResetsMissesAndPreservesOt
             TrackManagementConfig(100ms, 1000ms, 3, 100)
         )
     );
-    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(
-        pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-    ));
+    controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     const auto firstConfirmation = controller.handleDetection(result(BeamType::SEARCH, 1, 0ms, {1000_m}));
     ASSERT_TRUE(firstConfirmation);
     ASSERT_TRUE(

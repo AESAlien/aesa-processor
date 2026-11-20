@@ -53,20 +53,20 @@ DecodeResult failed(DecodingError error)
 bool isFinite(const protocol::ST_RadarAttMsg& message)
 {
     return std::isfinite(message.radar_lat_deg) &&
-        std::isfinite(message.radar_lon_deg) &&
-        std::isfinite(message.radar_alt_km) &&
-        std::isfinite(message.roll_deg) &&
-        std::isfinite(message.pitch_deg) &&
-        std::isfinite(message.yaw_deg);
+           std::isfinite(message.radar_lon_deg) &&
+           std::isfinite(message.radar_alt_km) &&
+           std::isfinite(message.roll_deg) &&
+           std::isfinite(message.pitch_deg) &&
+           std::isfinite(message.yaw_deg);
 }
 
 bool isFinite(const protocol::ST_Plot& plot)
 {
     return std::isfinite(plot.slantR_km) &&
-        std::isfinite(plot.azi_deg) &&
-        std::isfinite(plot.elv_deg) &&
-        std::isfinite(plot.doppler_mps) &&
-        std::isfinite(plot.pwr_DB);
+           std::isfinite(plot.azi_deg) &&
+           std::isfinite(plot.elv_deg) &&
+           std::isfinite(plot.doppler_mps) &&
+           std::isfinite(plot.pwr_DB);
 }
 
 std::optional<beam::BeamType> decodeBeamType(

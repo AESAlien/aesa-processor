@@ -10,12 +10,8 @@
 using namespace math::literals;
 
 // 단위를 명시하는 팩터리를 거치도록 기본 생성과 double 직접 생성을 금지한다.
-static_assert(!std::is_default_constructible<math::LinearVelocity>::value,
-    "Velocities must be created through a unit factory");
-static_assert(!std::is_constructible<math::LinearVelocity, double>::value,
-    "Velocities must be created through a unit factory");
-
-
+static_assert(!std::is_default_constructible<math::LinearVelocity>::value, "Velocities must be created through a unit factory");
+static_assert(!std::is_constructible<math::LinearVelocity, double>::value, "Velocities must be created through a unit factory");
 
 // 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(LinearVelocityTest, PreservesSignedMetersPerSecond)
@@ -35,10 +31,8 @@ TEST(LinearVelocityTest, CreatesVelocitiesFromMetersPerSecondLiterals)
 {
     using namespace math::literals;
 
-    static_assert(std::is_same<decltype(2_mps), math::LinearVelocity>::value,
-        "Integer meters per second literals must produce a LinearVelocity");
-    static_assert(std::is_same<decltype(2.5_mps), math::LinearVelocity>::value,
-        "Floating-point meters per second literals must produce a LinearVelocity");
+    static_assert(std::is_same<decltype(2_mps), math::LinearVelocity>::value, "Integer meters per second literals must produce a LinearVelocity");
+    static_assert(std::is_same<decltype(2.5_mps), math::LinearVelocity>::value, "Floating-point meters per second literals must produce a LinearVelocity");
     EXPECT_DOUBLE_EQ((2_mps).mps(), 2.0);
     EXPECT_DOUBLE_EQ((2.5_mps).mps(), 2.5);
 }
@@ -49,15 +43,13 @@ TEST(LinearVelocityTest, CreatesLinearVelocityByDividingLengthByChronoDurations)
     using namespace math::literals;
     using namespace std::chrono_literals;
 
-    static_assert(std::is_same<decltype(1_km / 1s), math::LinearVelocity>::value,
-        "Length divided by a duration must produce a LinearVelocity");
+    static_assert(std::is_same<decltype(1_km / 1s), math::LinearVelocity>::value, "Length divided by a duration must produce a LinearVelocity");
     EXPECT_DOUBLE_EQ((1_km / 2s).mps(), 500.0);
     EXPECT_DOUBLE_EQ((1000_m / 2s).mps(), 500.0);
     EXPECT_DOUBLE_EQ((0.25_m / 500ms).mps(), 0.5);
     EXPECT_DOUBLE_EQ((36_km / 1h).mps(), 10.0);
     EXPECT_DOUBLE_EQ((1_km / 2.5s).mps(), 400.0);
-    EXPECT_DOUBLE_EQ((1_km / std::chrono::duration<double, std::ratio<1, 4>>(2.0)).mps(),
-        2000.0);
+    EXPECT_DOUBLE_EQ((1_km / std::chrono::duration<double, std::ratio<1, 4>>(2.0)).mps(), 2000.0);
 }
 
 // 계산 결과와 수치적 안정성을 검증한다.
@@ -128,8 +120,7 @@ TEST(LinearVelocityTest, AbsPreservesLinearVelocityTypeAndReturnsNonnegativeValu
 {
     using namespace math::literals;
 
-    static_assert(std::is_same<decltype(math::abs(-2_mps)), math::LinearVelocity>::value,
-        "Absolute value of a velocity must remain a LinearVelocity");
+    static_assert(std::is_same<decltype(math::abs(-2_mps)), math::LinearVelocity>::value, "Absolute value of a velocity must remain a LinearVelocity");
     EXPECT_DOUBLE_EQ(math::abs(-2_mps).mps(), 2.0);
     EXPECT_DOUBLE_EQ(math::abs(2_mps).mps(), 2.0);
     EXPECT_DOUBLE_EQ(math::abs(0_mps).mps(), 0.0);
@@ -195,10 +186,10 @@ TEST(LinearVelocityTest, RejectsInvalidVelocityDurationProducts)
     using namespace math::literals;
 
     const auto maximum = math::LinearVelocity::fromMetersPerSecond(
-        std::numeric_limits<double>::max());
+        std::numeric_limits<double>::max()
+    );
     EXPECT_THROW(maximum * std::chrono::seconds{2}, std::invalid_argument);
-    EXPECT_THROW(1_mps * std::chrono::duration<double>{
-        std::numeric_limits<double>::quiet_NaN()}, std::invalid_argument);
+    EXPECT_THROW(1_mps * std::chrono::duration<double>{std::numeric_limits<double>::quiet_NaN()}, std::invalid_argument);
 }
 
 TEST(LinearVelocityTest, RejectsZeroDuration)
@@ -219,20 +210,19 @@ TEST(LinearVelocityTest, EqualsRejectsInvalidRelativeTolerance)
 
     for (const double relativeTolerance : {-0.01, infinity, nan})
     {
-        EXPECT_THROW((math::QuantityTolerance<math::LinearVelocity>{
-            0.0_mps, relativeTolerance}), std::invalid_argument);
+        EXPECT_THROW((math::QuantityTolerance<math::LinearVelocity>{0.0_mps, relativeTolerance}), std::invalid_argument);
     }
 }
 
 TEST(LinearVelocityTest, RejectsNonFiniteValues)
 {
-    const double INVALID_VALUES[] =
+    const double invalidValues[] =
     {
         std::numeric_limits<double>::infinity(),
         -std::numeric_limits<double>::infinity(),
         std::numeric_limits<double>::quiet_NaN()
     };
-    for (double value : INVALID_VALUES)
+    for (double value : invalidValues)
     {
         EXPECT_THROW(math::LinearVelocity::fromMetersPerSecond(value), std::invalid_argument);
         EXPECT_THROW(math::literals::operator""_mps(static_cast<long double>(value)), std::invalid_argument);
@@ -245,8 +235,7 @@ TEST(LinearVelocityTest, RejectsNonFiniteResultsFromDurationDivision)
     const auto length = math::Length::fromMeters(std::numeric_limits<double>::max());
     EXPECT_THROW(length / std::chrono::duration<double>(0.5), std::invalid_argument);
     EXPECT_THROW(length / std::chrono::duration<double>(-0.5), std::invalid_argument);
-    EXPECT_THROW(1_m / std::chrono::duration<double>(std::numeric_limits<double>::quiet_NaN()),
-        std::invalid_argument);
+    EXPECT_THROW(1_m / std::chrono::duration<double>(std::numeric_limits<double>::quiet_NaN()), std::invalid_argument);
 }
 
 TEST(SpeedTest, AcceptsOnlyFiniteNonnegativeVelocities)
@@ -266,10 +255,8 @@ TEST(SpeedTest, AcceptsOnlyFiniteNonnegativeVelocities)
     EXPECT_GT(speed, zero);
 
     EXPECT_THROW(math::Speed(-1_mps), std::invalid_argument);
-    EXPECT_THROW(math::Speed::fromMetersPerSecond(std::numeric_limits<double>::infinity()),
-        std::invalid_argument);
-    EXPECT_THROW(math::Speed::fromMetersPerSecond(std::numeric_limits<double>::quiet_NaN()),
-        std::invalid_argument);
+    EXPECT_THROW(math::Speed::fromMetersPerSecond(std::numeric_limits<double>::infinity()), std::invalid_argument);
+    EXPECT_THROW(math::Speed::fromMetersPerSecond(std::numeric_limits<double>::quiet_NaN()), std::invalid_argument);
 }
 
 TEST(SpeedTest, ComparesWithSpeedsAndSignedVelocities)

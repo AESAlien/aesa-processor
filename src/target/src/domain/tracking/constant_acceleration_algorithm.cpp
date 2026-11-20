@@ -29,17 +29,7 @@ constexpr auto STATE_DIMENSION = TrackState::STATE_DIMENSION;
 
 math::Vector stateVectorFrom(const TrackState& state)
 {
-    return math::Vector({
-        state.position().x.m(),
-        state.position().y.m(),
-        state.position().z.m(),
-        state.velocity().x.mps(),
-        state.velocity().y.mps(),
-        state.velocity().z.mps(),
-        state.acceleration().x.mps2(),
-        state.acceleration().y.mps2(),
-        state.acceleration().z.mps2()
-    });
+    return math::Vector({state.position().x.m(), state.position().y.m(), state.position().z.m(), state.velocity().x.mps(), state.velocity().y.mps(), state.velocity().z.mps(), state.acceleration().x.mps2(), state.acceleration().y.mps2(), state.acceleration().z.mps2()});
 }
 
 math::Vector measurementVectorFrom(const Observation& observation)
@@ -71,11 +61,7 @@ math::Matrix kalmanGain(
     auto gain = math::Matrix(STATE_DIMENSION, POSITION_DIMENSION);
     for (std::size_t row = 0; row < STATE_DIMENSION; ++row)
     {
-        const auto rightHandSide = math::Vector({
-            crossCovariance(row, 0),
-            crossCovariance(row, 1),
-            crossCovariance(row, 2)
-        });
+        const auto rightHandSide = math::Vector({crossCovariance(row, 0), crossCovariance(row, 1), crossCovariance(row, 2)});
         const auto solved = upper.solveUpperTriangular(lower.solveLowerTriangular(rightHandSide));
         for (std::size_t column = 0; column < POSITION_DIMENSION; ++column)
         {
@@ -116,8 +102,7 @@ math::SquareMatrix initialStateCovariance(
     // 두 번째 관측이 초기 위치와 속도에 모두 쓰이므로 위치와 속도 사이에 공분산이 생긴다.
     // 두 관측 사이의 평균 속도를 두 번째 시각의 속도로 옮길 때 가속도 불확실성도 반영한다.
     const auto positionVelocityCovariance = measurementVariance / seconds;
-    const auto velocityVariance = 2.0 * measurementVariance / seconds / seconds
-        + 0.25 * seconds * seconds * accelerationVariance;
+    const auto velocityVariance = 2.0 * measurementVariance / seconds / seconds + 0.25 * seconds * seconds * accelerationVariance;
     const auto velocityAccelerationCovariance = 0.5 * seconds * accelerationVariance;
 
     auto covariance = math::SquareMatrix(STATE_DIMENSION);
@@ -162,8 +147,7 @@ std::optional<math::SquareMatrix> symmetrizeCovariance(math::SquareMatrix covari
         for (std::size_t column = 0; column < row; ++column)
         {
             // 반올림 오차로 어긋난 대칭을 복원한다.
-            const auto entry = 0.5 * covariance(row, column)
-                + 0.5 * covariance(column, row);
+            const auto entry = 0.5 * covariance(row, column) + 0.5 * covariance(column, row);
             covariance(row, column) = entry;
             covariance(column, row) = entry;
         }
@@ -196,11 +180,9 @@ math::SquareMatrix processNoiseCovariance(
         disturbanceMapping(axis + ACCELERATION_OFFSET, axis) = 1.0;
     }
     const auto sigma = standardDeviation.mps2();
-    const auto disturbanceCovariance = math::SquareMatrix::identity(POSITION_DIMENSION)
-        * (sigma * sigma);
+    const auto disturbanceCovariance = math::SquareMatrix::identity(POSITION_DIMENSION) * (sigma * sigma);
     return math::SquareMatrix(
-        disturbanceMapping * disturbanceCovariance.asMatrix()
-            * math::transpose(disturbanceMapping)
+        disturbanceMapping * disturbanceCovariance.asMatrix() * math::transpose(disturbanceMapping)
     );
 }
 
@@ -233,8 +215,7 @@ std::optional<PredictedState> predictState(
     auto stateVector = transition * stateVectorFrom(state);
     // 기존 오차를 F로 전파한 뒤 이 구간의 공정 잡음 Q를 더해 P^- = F P F^T + Q를 구한다.
     auto covariance = symmetrizeCovariance(
-        transition * *errorCovariance * math::transpose(transition)
-        + processNoiseCovariance(seconds, processAccelerationStandardDeviation)
+        transition * *errorCovariance * math::transpose(transition) + processNoiseCovariance(seconds, processAccelerationStandardDeviation)
     );
     if (!stateVector.isFinite() || !covariance)
     {
@@ -409,12 +390,10 @@ std::optional<TrackingResult> ConstantAccelerationAlgorithm::update(
     const auto residual = measurement - measurementMapping * predicted->stateVector;
     const auto stateVector = predicted->stateVector + gain * residual;
     // 조지프 형태는 전파된 상태 오차와 관측 잡음의 기여를 따로 계산해 반올림 오차에 더 안정적이다.
-    const auto remaining = math::SquareMatrix::identity(STATE_DIMENSION).asMatrix()
-        - gain * measurementMapping;
+    const auto remaining = math::SquareMatrix::identity(STATE_DIMENSION).asMatrix() - gain * measurementMapping;
     auto covariance = symmetrizeCovariance(
         math::SquareMatrix(
-            remaining * predicted->covariance.asMatrix() * math::transpose(remaining)
-            + gain * measurementNoise.asMatrix() * math::transpose(gain)
+            remaining * predicted->covariance.asMatrix() * math::transpose(remaining) + gain * measurementNoise.asMatrix() * math::transpose(gain)
         )
     );
     if (!stateVector.isFinite() || !covariance)

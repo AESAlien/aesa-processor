@@ -14,7 +14,8 @@ constexpr int TRACKING_PRIORITY = 0;
 
 } // namespace
 
-BeamRequestFactory::BeamRequestFactory(const RequestBeamConfig& config) : _config(config)
+BeamRequestFactory::BeamRequestFactory(const RequestBeamConfig& config)
+  : _config(config)
 {
 }
 
@@ -30,7 +31,8 @@ BeamRequest BeamRequestFactory::from(const RequestBeamCommand& command) const
             CONFIRMATION_PRIORITY,
             command.transmitTime,
             command.requestId,
-            command.direction_ant);
+            command.direction_ant
+        );
 
     case RequestBeamType::TRACKING:
         return BeamRequest(
@@ -39,7 +41,8 @@ BeamRequest BeamRequestFactory::from(const RequestBeamCommand& command) const
             TRACKING_PRIORITY,
             command.transmitTime,
             command.requestId,
-            command.direction_ant);
+            command.direction_ant
+        );
     }
 
     std::ostringstream message;

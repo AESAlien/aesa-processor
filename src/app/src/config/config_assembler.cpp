@@ -18,7 +18,7 @@ namespace app
 {
 
 ConfigAssembler::ConfigAssembler(ConfigValueReader values)
-    : _reader(std::move(values))
+  : _reader(std::move(values))
 {
 }
 
@@ -34,25 +34,27 @@ Config ConfigAssembler::assemble()
         std::move(poseConfig),
         std::move(beamConfig),
         std::move(targetConfig),
-        std::move(commConfig));
+        std::move(commConfig)
+    );
 }
 
 pose::PoseConfig ConfigAssembler::createPoseConfig()
 {
     try
     {
-        const pose::RadarAttitudeFactoryConfig attitude(
-            math::Angle::fromDegrees(_reader.requireDouble("POSE_MAX_ABS_PITCH_DEG"))
-        );
+        const double maxAbsPitch_deg = _reader.requireDouble("POSE_MAX_ABS_PITCH_DEG");
+        const auto maxAbsPitch = math::Angle::fromDegrees(maxAbsPitch_deg);
+        const auto attitudeConfig = pose::RadarAttitudeFactoryConfig(maxAbsPitch);
         pose::AntEnuTransformConfig antEnuTransformConfig(
             _reader.requireSquareMatrix("POSE_MOUNT_ANT_TO_BODY_ROTATION", 3)
         );
-        return pose::PoseConfig(attitude, std::move(antEnuTransformConfig));
+        return pose::PoseConfig(attitudeConfig, std::move(antEnuTransformConfig));
     }
     catch (const std::invalid_argument& error)
     {
         throw std::runtime_error(
-            "Invalid Pose configuration: " + std::string(error.what()));
+            "Invalid Pose configuration: " + std::string(error.what())
+        );
     }
 }
 
@@ -60,63 +62,75 @@ beam::BeamConfig ConfigAssembler::createBeamConfig()
 {
     try
     {
-        const std::size_t SEARCH_AZIMUTH_COUNT =
+        const std::size_t searchAzimuthCount =
             _reader.requireUnsigned<std::size_t>("BEAM_SEARCH_AZIMUTH_COUNT");
-        const std::size_t SEARCH_ELEVATION_COUNT =
+        const std::size_t searchElevationCount =
             _reader.requireUnsigned<std::size_t>("BEAM_SEARCH_ELEVATION_COUNT");
-        const double SEARCH_AZIMUTH_START_DEG =
+        const double searchAzimuthStart_deg =
             _reader.requireDouble("BEAM_SEARCH_AZIMUTH_START_DEG");
-        const double SEARCH_AZIMUTH_STEP_DEG =
+        const double searchAzimuthStep_deg =
             _reader.requireDouble("BEAM_SEARCH_AZIMUTH_STEP_DEG");
-        const double SEARCH_ELEVATION_START_DEG =
+        const double searchElevationStart_deg =
             _reader.requireDouble("BEAM_SEARCH_ELEVATION_START_DEG");
-        const double SEARCH_ELEVATION_STEP_DEG =
+        const double searchElevationStep_deg =
             _reader.requireDouble("BEAM_SEARCH_ELEVATION_STEP_DEG");
-        const double SEARCH_WIDTH_DEG =
+        const double searchWidth_deg =
             _reader.requireDouble("BEAM_SEARCH_WIDTH_DEG");
-        const double CONFIRMATION_WIDTH_DEG =
+        const double confirmationWidth_deg =
             _reader.requireDouble("BEAM_CONFIRMATION_WIDTH_DEG");
-        const double TRACKING_WIDTH_DEG =
+        const double trackingWidth_deg =
             _reader.requireDouble("BEAM_TRACKING_WIDTH_DEG");
-        const double REQUEST_COVERAGE_AZIMUTH_MIN_DEG =
+        const double requestCoverageAzimuthMin_deg =
             _reader.requireDouble("BEAM_REQUEST_COVERAGE_AZIMUTH_MIN_DEG");
-        const double REQUEST_COVERAGE_AZIMUTH_MAX_DEG =
+        const double requestCoverageAzimuthMax_deg =
             _reader.requireDouble("BEAM_REQUEST_COVERAGE_AZIMUTH_MAX_DEG");
-        const double REQUEST_COVERAGE_ELEVATION_MIN_DEG =
+        const double requestCoverageElevationMin_deg =
             _reader.requireDouble("BEAM_REQUEST_COVERAGE_ELEVATION_MIN_DEG");
-        const double REQUEST_COVERAGE_ELEVATION_MAX_DEG =
+        const double requestCoverageElevationMax_deg =
             _reader.requireDouble("BEAM_REQUEST_COVERAGE_ELEVATION_MAX_DEG");
 
+        const auto searchWidth = math::Angle::fromDegrees(searchWidth_deg);
+        const auto confirmationWidth = math::Angle::fromDegrees(confirmationWidth_deg);
+        const auto trackingWidth = math::Angle::fromDegrees(trackingWidth_deg);
+        const auto searchBeamWidth = beam::BeamWidth(searchWidth, searchWidth);
+        const auto confirmationBeamWidth = beam::BeamWidth(confirmationWidth, confirmationWidth);
+        const auto trackingBeamWidth = beam::BeamWidth(trackingWidth, trackingWidth);
+
+        auto searchGridConfig = beam::SearchGridConfig(
+            searchAzimuthCount,
+            searchElevationCount,
+            math::CircularAngle::fromDegrees(searchAzimuthStart_deg),
+            math::Angle::fromDegrees(searchAzimuthStep_deg),
+            math::TiltAngle::fromDegrees(searchElevationStart_deg),
+            math::Angle::fromDegrees(searchElevationStep_deg),
+            searchBeamWidth
+        );
+        auto requestBeamConfig = beam::RequestBeamConfig(
+            confirmationBeamWidth,
+            trackingBeamWidth
+        );
+
+        const auto azimuthRange = math::CircularAngleRange(
+            math::Angle::fromDegrees(requestCoverageAzimuthMin_deg),
+            math::Angle::fromDegrees(requestCoverageAzimuthMax_deg)
+        );
+        const auto elevationRange = math::AngleRange(
+            math::Angle::fromDegrees(requestCoverageElevationMin_deg),
+            math::Angle::fromDegrees(requestCoverageElevationMax_deg)
+        );
+        auto requestCoverageConfig = beam::RequestCoverageConfig(azimuthRange, elevationRange);
+
         return beam::BeamConfig(
-            beam::SearchGridConfig(
-                SEARCH_AZIMUTH_COUNT,
-                SEARCH_ELEVATION_COUNT,
-                math::CircularAngle::fromDegrees(SEARCH_AZIMUTH_START_DEG),
-                math::Angle::fromDegrees(SEARCH_AZIMUTH_STEP_DEG),
-                math::TiltAngle::fromDegrees(SEARCH_ELEVATION_START_DEG),
-                math::Angle::fromDegrees(SEARCH_ELEVATION_STEP_DEG),
-                beam::BeamWidth(
-                    math::Angle::fromDegrees(SEARCH_WIDTH_DEG),
-                    math::Angle::fromDegrees(SEARCH_WIDTH_DEG))),
-            beam::RequestBeamConfig(
-                beam::BeamWidth(
-                    math::Angle::fromDegrees(CONFIRMATION_WIDTH_DEG),
-                    math::Angle::fromDegrees(CONFIRMATION_WIDTH_DEG)),
-                beam::BeamWidth(
-                    math::Angle::fromDegrees(TRACKING_WIDTH_DEG),
-                    math::Angle::fromDegrees(TRACKING_WIDTH_DEG))),
-            beam::RequestCoverageConfig(
-                math::CircularAngleRange(
-                    math::Angle::fromDegrees(REQUEST_COVERAGE_AZIMUTH_MIN_DEG),
-                    math::Angle::fromDegrees(REQUEST_COVERAGE_AZIMUTH_MAX_DEG)),
-                math::AngleRange(
-                    math::Angle::fromDegrees(REQUEST_COVERAGE_ELEVATION_MIN_DEG),
-                    math::Angle::fromDegrees(REQUEST_COVERAGE_ELEVATION_MAX_DEG))));
+            std::move(searchGridConfig),
+            std::move(requestBeamConfig),
+            std::move(requestCoverageConfig)
+        );
     }
     catch (const std::invalid_argument& error)
     {
         throw std::runtime_error(
-            "Invalid Beam configuration: " + std::string(error.what()));
+            "Invalid Beam configuration: " + std::string(error.what())
+        );
     }
 }
 
@@ -124,83 +138,110 @@ target::TargetConfig ConfigAssembler::createTargetConfig()
 {
     try
     {
-        const double MAX_ASSOCIATION_SPEED_MPS =
+        const double maxAssociationSpeed_mps =
             _reader.requireDouble("TARGET_MAX_ASSOCIATION_SPEED_MPS");
-        const double MAX_INITIAL_DOPPLER_DIFFERENCE_MPS =
+        const double maxInitialDopplerDifference_mps =
             _reader.requireDouble(
-                "TARGET_MAX_INITIAL_DOPPLER_DIFFERENCE_MPS");
-        const double MEASUREMENT_STANDARD_DEVIATION_M =
+                "TARGET_MAX_INITIAL_DOPPLER_DIFFERENCE_MPS"
+            );
+        const double measurementStandardDeviation_m =
             _reader.requireDouble(
-                "TARGET_MEASUREMENT_STANDARD_DEVIATION_M");
-        const double POSITION_NDS_THRESHOLD =
+                "TARGET_MEASUREMENT_STANDARD_DEVIATION_M"
+            );
+        const double positionNdsThreshold =
             _reader.requireDouble("TARGET_POSITION_NDS_THRESHOLD");
-        const std::chrono::milliseconds CONFIRMATION_DELAY =
+        const std::chrono::milliseconds confirmationDelay =
             _reader.requireDuration<std::chrono::milliseconds>(
-                "TARGET_CONFIRMATION_DELAY_MS");
-        const std::chrono::milliseconds TRACKING_INTERVAL =
+                "TARGET_CONFIRMATION_DELAY_MS"
+            );
+        const std::chrono::milliseconds trackingInterval =
             _reader.requireDuration<std::chrono::milliseconds>(
-                "TARGET_TRACKING_INTERVAL_MS");
-        const std::uint32_t MAX_CONSECUTIVE_TRACKING_MISSES =
+                "TARGET_TRACKING_INTERVAL_MS"
+            );
+        const std::uint32_t maxConsecutiveTrackingMisses =
             _reader.requireUnsigned<std::uint32_t>(
-                "TARGET_MAX_CONSECUTIVE_TRACKING_MISSES");
-        const double INITIAL_ACCELERATION_STANDARD_DEVIATION_MPS2 =
+                "TARGET_MAX_CONSECUTIVE_TRACKING_MISSES"
+            );
+        const double initialAccelerationStandardDeviation_mps2 =
             _reader.requireDouble(
-                "TARGET_INITIAL_ACCELERATION_STANDARD_DEVIATION_MPS2");
-        const std::size_t MAX_REPORTED_TRACK_COUNT =
+                "TARGET_INITIAL_ACCELERATION_STANDARD_DEVIATION_MPS2"
+            );
+        const std::size_t maxReportedTrackCount =
             _reader.requireUnsigned<std::size_t>(
-                "TARGET_MAX_REPORTED_TRACK_COUNT");
-        const double PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2 =
+                "TARGET_MAX_REPORTED_TRACK_COUNT"
+            );
+        const double processAccelerationStandardDeviation_mps2 =
             _reader.requireDouble(
-                "TARGET_PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2");
+                "TARGET_PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2"
+            );
+
+        auto associationConfig = target::AssociationConfig(
+            math::Speed::fromMetersPerSecond(maxAssociationSpeed_mps),
+            math::Speed::fromMetersPerSecond(maxInitialDopplerDifference_mps),
+            positionNdsThreshold
+        );
+        const auto measurementDeviation = math::Length::fromMeters(measurementStandardDeviation_m);
+        auto measurementConfig = target::MeasurementConfig(measurementDeviation);
+        const auto initialAccelerationDeviation = math::LinearAcceleration::fromMetersPerSecondSquared(
+            initialAccelerationStandardDeviation_mps2
+        );
+        const auto processAccelerationDeviation = math::LinearAcceleration::fromMetersPerSecondSquared(
+            processAccelerationStandardDeviation_mps2
+        );
+        auto trackingConfig = target::TrackingConfig(
+            initialAccelerationDeviation,
+            processAccelerationDeviation
+        );
+        auto trackManagementConfig = target::TrackManagementConfig(
+            confirmationDelay,
+            trackingInterval,
+            maxConsecutiveTrackingMisses,
+            maxReportedTrackCount
+        );
 
         return target::TargetConfig(
-            target::AssociationConfig(
-                math::Speed::fromMetersPerSecond(MAX_ASSOCIATION_SPEED_MPS),
-                math::Speed::fromMetersPerSecond(MAX_INITIAL_DOPPLER_DIFFERENCE_MPS),
-                POSITION_NDS_THRESHOLD),
-            target::MeasurementConfig(
-                math::Length::fromMeters(MEASUREMENT_STANDARD_DEVIATION_M)),
-            target::TrackingConfig(
-                math::LinearAcceleration::fromMetersPerSecondSquared(
-                    INITIAL_ACCELERATION_STANDARD_DEVIATION_MPS2),
-                math::LinearAcceleration::fromMetersPerSecondSquared(
-                    PROCESS_ACCELERATION_STANDARD_DEVIATION_MPS2)),
-            target::TrackManagementConfig(
-                CONFIRMATION_DELAY,
-                TRACKING_INTERVAL,
-                MAX_CONSECUTIVE_TRACKING_MISSES,
-                MAX_REPORTED_TRACK_COUNT));
+            std::move(associationConfig),
+            std::move(measurementConfig),
+            std::move(trackingConfig),
+            std::move(trackManagementConfig)
+        );
     }
     catch (const std::invalid_argument& error)
     {
         throw std::runtime_error(
-            "Invalid Target configuration: " + std::string(error.what()));
+            "Invalid Target configuration: " + std::string(error.what())
+        );
     }
 }
 
 comm::CommConfig ConfigAssembler::createCommConfig()
 {
-    const std::string& SERVER_ADDRESS =
+    const std::string& serverAddress =
         _reader.requireString("COMM_SERVER_ADDRESS");
-    const std::uint16_t SERVER_PORT =
+    const std::uint16_t serverPort =
         _reader.requireUnsigned<std::uint16_t>("COMM_SERVER_PORT");
-    const std::string& OPERATOR_CONSOLE_ADDRESS =
+    const std::string& operatorConsoleAddress =
         _reader.requireString("COMM_OPERATOR_CONSOLE_ADDRESS");
-    const std::uint16_t OPERATOR_CONSOLE_PORT =
+    const std::uint16_t operatorConsolePort =
         _reader.requireUnsigned<std::uint16_t>(
-            "COMM_OPERATOR_CONSOLE_PORT");
-    const std::string& SCENARIO_SIMULATOR_ADDRESS =
+            "COMM_OPERATOR_CONSOLE_PORT"
+        );
+    const std::string& scenarioSimulatorAddress =
         _reader.requireString("COMM_SCENARIO_SIMULATOR_ADDRESS");
-    const std::uint16_t SCENARIO_SIMULATOR_PORT =
+    const std::uint16_t scenarioSimulatorPort =
         _reader.requireUnsigned<std::uint16_t>(
-            "COMM_SCENARIO_SIMULATOR_PORT");
+            "COMM_SCENARIO_SIMULATOR_PORT"
+        );
+
+    auto serverEndpoint = comm::CommEndpoint(serverAddress, serverPort);
+    auto operatorConsoleEndpoint = comm::CommEndpoint(operatorConsoleAddress, operatorConsolePort);
+    auto scenarioSimulatorEndpoint = comm::CommEndpoint(scenarioSimulatorAddress, scenarioSimulatorPort);
 
     return comm::CommConfig(
-        comm::CommEndpoint(SERVER_ADDRESS, SERVER_PORT),
-        comm::CommEndpoint(
-            OPERATOR_CONSOLE_ADDRESS, OPERATOR_CONSOLE_PORT),
-        comm::CommEndpoint(
-            SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT));
+        std::move(serverEndpoint),
+        std::move(operatorConsoleEndpoint),
+        std::move(scenarioSimulatorEndpoint)
+    );
 }
 
 } // namespace app

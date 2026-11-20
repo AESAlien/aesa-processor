@@ -10,8 +10,8 @@ namespace pose
 struct PoseConfig
 {
     PoseConfig(RadarAttitudeFactoryConfig attitude, AntEnuTransformConfig transform)
-        : attitude(attitude),
-          transform(std::move(transform))
+      : attitude(attitude),
+        transform(std::move(transform))
     {
     }
 

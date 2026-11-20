@@ -73,12 +73,14 @@ void startWorker(
     std::thread& thread,
     WorkerType& worker
 ) {
-    thread = std::thread([&worker]
-    {
-        worker.run();
-        // 워커가 종료되면 현재 종료 정책에 따라 프로세스를 종료한다.
-        std::exit(EXIT_FAILURE);
-    });
+    thread = std::thread(
+        [&worker]
+        {
+            worker.run();
+            // 워커가 종료되면 현재 종료 정책에 따라 프로세스를 종료한다.
+            std::exit(EXIT_FAILURE);
+        }
+    );
 }
 
 } // namespace

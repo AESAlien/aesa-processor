@@ -57,9 +57,7 @@ TEST(NdsAlgorithmTest, PreparedCalculationsRemainIndependentAcrossPreparations)
     const auto fallback = fallbackPrediction->second->calculate(residual);
     ASSERT_TRUE(fallback);
     EXPECT_DOUBLE_EQ(*fallback, 2.0);
-    const auto withCovariance = stationaryTrack(std::make_shared<test_support::CovarianceAlgorithm>(
-        math::SquareMatrix::identity(3) * 12.0
-    ));
+    const auto withCovariance = stationaryTrack(std::make_shared<test_support::CovarianceAlgorithm>(math::SquareMatrix::identity(3) * 12.0));
     const auto knownPrediction = algorithm.predictAndPrepare(withCovariance, 1100ms);
     ASSERT_TRUE(knownPrediction);
     const auto known = knownPrediction->second->calculate(residual);
@@ -97,9 +95,7 @@ TEST(NdsAlgorithmTest, PreparedCalculationSurvivesFailedPreparationAndAlgorithmD
         EXPECT_DOUBLE_EQ(*originalScore, 2.0);
         const auto track = stationaryTrack(std::make_shared<ConstantVelocityAlgorithm>());
         EXPECT_FALSE(algorithm.predictAndPrepare(track, 0ms));
-        const auto invalidTrack = stationaryTrack(std::make_shared<test_support::CovarianceAlgorithm>(
-            math::SquareMatrix(3)
-        ));
+        const auto invalidTrack = stationaryTrack(std::make_shared<test_support::CovarianceAlgorithm>(math::SquareMatrix(3)));
         EXPECT_THROW(algorithm.prepareFromLastObservation(invalidTrack), std::invalid_argument);
         EXPECT_EQ(calculation->calculate(residual), originalScore);
     }
@@ -109,11 +105,7 @@ TEST(NdsAlgorithmTest, PreparedCalculationSurvivesFailedPreparationAndAlgorithmD
 TEST(NdsCalculationTest, CalculatesSquaredDistanceWithCrossAxisCorrelations)
 {
     const auto residual = math::Vector({10.0, 10.0, 30.0});
-    const auto covariance = math::SquareMatrix({
-        {100.0, 50.0, 0.0},
-        {50.0, 200.0, 0.0},
-        {0.0, 0.0, 300.0}
-    });
+    const auto covariance = math::SquareMatrix({{100.0, 50.0, 0.0}, {50.0, 200.0, 0.0}, {0.0, 0.0, 300.0}});
     const auto score = NdsCalculation::calculate(residual, covariance);
     ASSERT_TRUE(score);
     // 서로 상관된 x축과 y축의 기여는 8/7이고, 독립인 z축의 기여는 30^2/300이다.
@@ -179,9 +171,7 @@ TEST(NdsCalculationTest, RejectsNonfiniteResidualsAndCovariance)
 {
     const auto algorithm = NdsCalculation::from(math::SquareMatrix::identity(3));
     ASSERT_TRUE(algorithm);
-    for (auto invalid : {std::numeric_limits<double>::quiet_NaN(),
-             std::numeric_limits<double>::infinity(),
-             -std::numeric_limits<double>::infinity()})
+    for (auto invalid : {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()})
     {
         const auto residual = math::Vector({invalid, 0.0, 0.0});
         EXPECT_FALSE(algorithm->calculate(residual));
@@ -210,11 +200,7 @@ TEST(NdsCalculationTest, RejectsSingularNegativeAndIndefiniteCovariance)
 
 TEST(NdsCalculationTest, RepairsOnlyAcceptedSymmetryRoundoffWithoutChangingTheInput)
 {
-    auto covariance = math::SquareMatrix({
-        {2.0, 1.0 + 5e-10, 0.0},
-        {1.0, 2.0, 0.0},
-        {0.0, 0.0, 3.0}
-    });
+    auto covariance = math::SquareMatrix({{2.0, 1.0 + 5e-10, 0.0}, {1.0, 2.0, 0.0}, {0.0, 0.0, 3.0}});
     const auto original = covariance;
     const auto score = NdsCalculation::calculate(math::Vector({1.0, 1.0, 0.0}), covariance);
     ASSERT_TRUE(score);

@@ -43,12 +43,13 @@ std::string parseValue(const std::string& text, std::size_t lineNumber)
 
     if (value.front() == '\'' || value.front() == '"')
     {
-        const char QUOTE = value.front();
-        if (value.size() < 2 || value.back() != QUOTE)
+        const char quote = value.front();
+        if (value.size() < 2 || value.back() != quote)
         {
             throw std::runtime_error(
                 "Invalid quoted value at line " +
-                std::to_string(lineNumber));
+                std::to_string(lineNumber)
+            );
         }
         return value.substr(1, value.size() - 2);
     }
@@ -74,36 +75,40 @@ std::unordered_map<std::string, std::string> parse(std::istream& input)
     while (std::getline(input, line))
     {
         ++lineNumber;
-        const std::string CONTENT = trim(line);
-        if (CONTENT.empty() || CONTENT.front() == '#')
+        const std::string content = trim(line);
+        if (content.empty() || content.front() == '#')
         {
             continue;
         }
 
-        const std::size_t SEPARATOR = CONTENT.find('=');
-        if (SEPARATOR == std::string::npos)
+        const std::size_t separator = content.find('=');
+        if (separator == std::string::npos)
         {
             throw std::runtime_error(
                 "Expected KEY=VALUE at line " +
-                std::to_string(lineNumber));
+                std::to_string(lineNumber)
+            );
         }
 
-        const std::string KEY = trim(CONTENT.substr(0, SEPARATOR));
-        if (KEY.empty())
+        const std::string key = trim(content.substr(0, separator));
+        if (key.empty())
         {
             throw std::runtime_error(
                 "Configuration key is empty at line " +
-                std::to_string(lineNumber));
+                std::to_string(lineNumber)
+            );
         }
 
-        const std::string VALUE = parseValue(
-            CONTENT.substr(SEPARATOR + 1),
-            lineNumber);
-        const auto INSERTED = variables.emplace(KEY, VALUE);
-        if (!INSERTED.second)
+        const std::string value = parseValue(
+            content.substr(separator + 1),
+            lineNumber
+        );
+        const auto inserted = variables.emplace(key, value);
+        if (!inserted.second)
         {
             throw std::runtime_error(
-                "Duplicate configuration key: " + KEY);
+                "Duplicate configuration key: " + key
+            );
         }
     }
 
@@ -118,7 +123,7 @@ std::unordered_map<std::string, std::string> parse(std::istream& input)
 } // namespace
 
 EnvFileReader::EnvFileReader(std::filesystem::path path)
-    : _path(std::move(path))
+  : _path(std::move(path))
 {
 }
 
@@ -129,7 +134,8 @@ std::unordered_map<std::string, std::string> EnvFileReader::read() const
     {
         throw std::runtime_error(
             "Unable to open configuration file: " +
-            _path.string());
+            _path.string()
+        );
     }
 
     return parse(file);

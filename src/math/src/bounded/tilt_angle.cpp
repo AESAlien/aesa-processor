@@ -9,7 +9,7 @@ namespace math
 using namespace literals;
 
 TiltAngle::TiltAngle(Angle angle)
-    : _angle(angle)
+  : _angle(angle)
 {
     validate();
 }
@@ -45,14 +45,16 @@ double TiltAngle::rad() const noexcept
 bool TiltAngle::equals(
     const TiltAngle& other,
     const QuantityTolerance<Angle>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _angle.equals(other._angle, tolerance);
 }
 
 bool TiltAngle::equals(
     Angle other,
     const QuantityTolerance<Angle>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _angle.equals(other, tolerance);
 }
 

@@ -39,7 +39,8 @@ TEST(SearchGridConfigTest, ZeroCountThrowsWithoutDividingByZero)
     const auto zeroAzimuth = validConfigBuilder().azimuthCount(0);
     const auto zeroElevation = validConfigBuilder().elevationCount(0);
     const auto bothZero = validConfigBuilder().azimuthCount(0).elevationCount(0);
-    const auto build = [](const beam::SearchGridConfig::Builder& builder) { return builder.build(); };
+    const auto build = [](const beam::SearchGridConfig::Builder& builder)
+    { return builder.build(); };
 
     // When & Then: 0인 축의 조합과 무관하게 나눗셈 전에 거부한다.
     EXPECT_THROW(build(zeroAzimuth), std::invalid_argument);
@@ -53,7 +54,8 @@ TEST(SearchGridConfigTest, BeamCountBeyondUint32Throws)
     const auto builder = validConfigBuilder().azimuthCount(70000).elevationCount(70000);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
-    const auto build = [&builder] { return builder.build(); };
+    const auto build = [&builder]
+    { return builder.build(); };
 
     // Then: 빔 ID 범위를 초과하는 격자 크기를 거부한다.
     EXPECT_THROW(build(), std::invalid_argument);
@@ -83,7 +85,8 @@ TEST(SearchGridConfigTest, GridAngleOverflowThrows)
         .elevationStep(MAX_ANGLE);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
-    const auto build = [](const beam::SearchGridConfig::Builder& builder) { return builder.build(); };
+    const auto build = [](const beam::SearchGridConfig::Builder& builder)
+    { return builder.build(); };
 
     // Then: 격자의 마지막 각도를 계산할 때 발생하는 오버플로를 거부한다.
     EXPECT_THROW(build(azimuthOverflow), std::invalid_argument);
@@ -97,7 +100,8 @@ TEST(SearchGridConfigTest, LargeStepWithSingleBeamPerAxisIsAccepted)
     const auto builder = validConfigBuilder().azimuthCount(1).elevationCount(1).azimuthStep(MAX_ANGLE).elevationStep(MAX_ANGLE);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
-    const auto build = [&builder] { return builder.build(); };
+    const auto build = [&builder]
+    { return builder.build(); };
 
     // Then: 단일 빔 격자는 사용하지 않는 큰 각도 간격을 허용한다.
     EXPECT_NO_THROW(build());
@@ -112,7 +116,8 @@ TEST(SearchGridConfigTest, ElevationOutsideSphericalRangeThrows)
         .elevationCount(3).elevationStart(0_deg).elevationStep(-50_deg);
 
     // When: 준비한 입력으로 대상 객체의 동작을 시도한다.
-    const auto build = [](const beam::SearchGridConfig::Builder& builder) { return builder.build(); };
+    const auto build = [](const beam::SearchGridConfig::Builder& builder)
+    { return builder.build(); };
 
     // Then: 격자에서 계산된 끝 고각이 물리 범위를 벗어나면 거부한다.
     EXPECT_THROW(build(rising), std::invalid_argument);
@@ -128,7 +133,8 @@ TEST(SearchGridConfigTest, ElevationEquivalentByPeriodToValidRangeThrows)
         .elevationStep(360_deg);
 
     // When: 격자 설정 생성을 시도한다.
-    const auto build = [&builder] { return builder.build(); };
+    const auto build = [&builder]
+    { return builder.build(); };
 
     // Then: 주기상 동치여도 끝 고각이 물리 범위 밖이므로 거부한다.
     EXPECT_THROW(build(), std::invalid_argument);

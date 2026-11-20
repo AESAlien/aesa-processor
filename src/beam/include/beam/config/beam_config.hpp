@@ -20,6 +20,7 @@ public:
         Builder& requestCoverageConfig(RequestCoverageConfig value) { _requestCoverage.emplace(std::move(value)); return *this; }
 
         BeamConfig build() const;
+
     private:
         std::optional<SearchGridConfig> _searchGrid;
         std::optional<RequestBeamConfig> _requestBeam;

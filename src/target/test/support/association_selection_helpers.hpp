@@ -41,7 +41,8 @@ public:
         const ConfirmedTrack& current,
         std::chrono::milliseconds time,
         std::optional<math::SquareMatrix>& covariance
-    ) const override {
+    ) const override
+    {
         const auto prediction = predict(current, time);
         if (prediction)
         {

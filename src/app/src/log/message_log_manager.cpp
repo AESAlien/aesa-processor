@@ -90,9 +90,7 @@ void MessageLogManager::configureLogger(
         // 로거마다 콘솔 레벨이 달라 sink를 따로 만든다. 콘솔 sink끼리는 spdlog의 전역 콘솔 뮤텍스를 공유한다.
         auto console = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
         console->set_level(consoleLevel);
-        console->set_formatter(std::make_unique<spdlog::pattern_formatter>(
-            "%H:%M:%S.%e [%n] [%^%l%$] %v"
-        ));
+        console->set_formatter(std::make_unique<spdlog::pattern_formatter>("%H:%M:%S.%e [%n] [%^%l%$] %v"));
         logger.sinks().push_back(console);
     }
 

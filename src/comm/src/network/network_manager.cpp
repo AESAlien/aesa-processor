@@ -61,7 +61,7 @@ std::optional<ReceivedFrames> NetworkManager::poll(std::chrono::milliseconds tim
         return std::nullopt;
 
     case ServerEventKind::NONE:
-        return std::nullopt; 
+        return std::nullopt;
     }
 
     return std::nullopt;

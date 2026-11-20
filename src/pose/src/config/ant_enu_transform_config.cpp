@@ -7,7 +7,7 @@ namespace pose
 {
 
 AntEnuTransformConfig::AntEnuTransformConfig(math::SquareMatrix mountAntToBodyRotation)
-    : _mountAntToBodyRotation(std::move(mountAntToBodyRotation))
+  : _mountAntToBodyRotation(std::move(mountAntToBodyRotation))
 {
     validate();
 }
@@ -29,8 +29,7 @@ void AntEnuTransformConfig::validate() const
 
 AntEnuTransformConfig::Builder& AntEnuTransformConfig::Builder::mountAntToBodyRotation(
     math::SquareMatrix value
-)
-{
+) {
     _mountAntToBodyRotation.emplace(std::move(value));
     return *this;
 }

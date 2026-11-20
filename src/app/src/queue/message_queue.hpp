@@ -33,10 +33,13 @@ public:
     {
         std::unique_lock<std::mutex> lock(_mutex);
 
-        _condition.wait(lock, [this]
-        {
-            return _closed || !_queue.empty();
-        });
+        _condition.wait(
+            lock,
+            [this]
+            {
+                return _closed || !_queue.empty();
+            }
+        );
 
         if (_closed)
         {

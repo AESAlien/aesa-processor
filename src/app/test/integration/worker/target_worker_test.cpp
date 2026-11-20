@@ -62,9 +62,7 @@ protected:
     void SetUp() override
     {
         // 트랙을 위경도로 보고할 수 있도록 지리 변환을 먼저 반영한다.
-        step(pose::SetEnuGeoTransformCommand(
-            pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))
-        ));
+        step(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     }
 
     // 입력 하나를 넣고 워커가 한 번 처리하게 한다.

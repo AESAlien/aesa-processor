@@ -39,10 +39,7 @@ public:
         std::optional<BeamWidth> _beamWidth;
     }; // class Builder
 
-    SearchGridConfig(std::size_t azimuthCount, std::size_t elevationCount,
-                     math::CircularAngle azimuthStart, math::Angle azimuthStep,
-                     math::TiltAngle elevationStart, math::Angle elevationStep,
-                     BeamWidth beamWidth);
+    SearchGridConfig(std::size_t azimuthCount, std::size_t elevationCount, math::CircularAngle azimuthStart, math::Angle azimuthStep, math::TiltAngle elevationStart, math::Angle elevationStep, BeamWidth beamWidth);
 
     std::size_t azimuthCount() const noexcept;
     std::size_t elevationCount() const noexcept;

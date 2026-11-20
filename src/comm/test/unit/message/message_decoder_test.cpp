@@ -190,7 +190,8 @@ TEST(MessageDecoderTest, RejectsUnsupportedAndUnknownMessageIds)
              comm::protocol::MessageId::RADAR_ATTITUDE_TO_CONSOLE,
              comm::protocol::MessageId::TRACK_DELETION,
              comm::protocol::MessageId::BEAM_TRANSMIT,
-             static_cast<comm::protocol::MessageId>(0xFFFF)})
+             static_cast<comm::protocol::MessageId>(0xFFFF)
+         })
     {
         SCOPED_TRACE(static_cast<uint16_t>(messageId));
         const auto frame = makeFrame(comm::protocol::ST_OperatorMsg{}, messageId);
@@ -233,7 +234,7 @@ TEST(MessageDecoderTest, RejectsNonFiniteRadarAttitudeFields)
     // 준비: 자세의 모든 실수 필드와 유효하지 않은 실수 값을 준비한다.
     const comm::MessageDecoder decoder;
     using Message = comm::protocol::ST_RadarAttMsg;
-    double Message::* const fields[] =
+    double Message::*const fields[] =
     {
         &Message::radar_lat_deg,
         &Message::radar_lon_deg,
@@ -248,7 +249,8 @@ TEST(MessageDecoderTest, RejectsNonFiniteRadarAttitudeFields)
         for (double value : {
                  std::numeric_limits<double>::quiet_NaN(),
                  std::numeric_limits<double>::infinity(),
-                 -std::numeric_limits<double>::infinity()})
+                 -std::numeric_limits<double>::infinity()
+             })
         {
             SCOPED_TRACE(value);
             auto message = makeAttitudeMessage();
@@ -384,7 +386,8 @@ TEST(MessageDecoderTest, RejectsPlotPayloadSizeMismatch)
     for (std::size_t byteCount : {
              PLOT_DATA_OFFSET + sizeof(comm::protocol::ST_Plot),
              PLOT_DATA_OFFSET + 2 * sizeof(comm::protocol::ST_Plot) - 1,
-             PLOT_DATA_OFFSET + 2 * sizeof(comm::protocol::ST_Plot) + 1})
+             PLOT_DATA_OFFSET + 2 * sizeof(comm::protocol::ST_Plot) + 1
+         })
     {
         SCOPED_TRACE(byteCount);
         const auto frame = makeFrame(message, comm::protocol::MessageId::PLOT_INFORMATION, byteCount);
@@ -425,7 +428,7 @@ TEST(MessageDecoderTest, RejectsNonFinitePlotFieldsWithoutReturningPartialMessag
     // 준비: 두 번째 플롯의 실수 필드 하나만 유효하지 않은 메시지를 준비한다.
     const comm::MessageDecoder decoder;
     using Plot = comm::protocol::ST_Plot;
-    float Plot::* const fields[] =
+    float Plot::*const fields[] =
     {
         &Plot::slantR_km,
         &Plot::azi_deg,
@@ -439,7 +442,8 @@ TEST(MessageDecoderTest, RejectsNonFinitePlotFieldsWithoutReturningPartialMessag
         for (float value : {
                  std::numeric_limits<float>::quiet_NaN(),
                  std::numeric_limits<float>::infinity(),
-                 -std::numeric_limits<float>::infinity()})
+                 -std::numeric_limits<float>::infinity()
+             })
         {
             SCOPED_TRACE(value);
             auto message = makePlotMessage(2);

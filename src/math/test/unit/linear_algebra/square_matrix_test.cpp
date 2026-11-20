@@ -17,8 +17,6 @@ static_assert(std::is_assignable_v<decltype(std::declval<math::SquareMatrix&>()(
 static_assert(std::is_same_v<decltype(std::declval<const math::SquareMatrix&>().at(0, 0)), const double&>);
 static_assert(std::is_same_v<decltype(std::declval<const math::SquareMatrix&>()(0, 0)), const double&>);
 
-
-
 // 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(SquareMatrixTest, ConstructsWithSquareShape)
 {
@@ -198,12 +196,8 @@ TEST(SquareMatrixTest, EmptySquareMatrixHasUnitDeterminant)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(SquareMatrixTest, ComputesCholeskyDecomposition)
 {
-    const math::SquareMatrix matrix{{4.0, 12.0, -16.0},
-                                    {12.0, 37.0, -43.0},
-                                    {-16.0, -43.0, 98.0}};
-    const math::SquareMatrix expected{{2.0, 0.0, 0.0},
-                                      {6.0, 1.0, 0.0},
-                                      {-8.0, 5.0, 3.0}};
+    const math::SquareMatrix matrix{{4.0, 12.0, -16.0}, {12.0, 37.0, -43.0}, {-16.0, -43.0, 98.0}};
+    const math::SquareMatrix expected{{2.0, 0.0, 0.0}, {6.0, 1.0, 0.0}, {-8.0, 5.0, 3.0}};
 
     const math::SquareMatrix lower = math::cholesky(matrix);
 
@@ -214,10 +208,7 @@ TEST(SquareMatrixTest, ComputesCholeskyDecomposition)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(SquareMatrixTest, ComputesCholeskyDecompositionForArbitrarySize)
 {
-    const math::SquareMatrix expected{{2.0, 0.0, 0.0, 0.0},
-                                      {1.0, 3.0, 0.0, 0.0},
-                                      {-1.0, 2.0, 4.0, 0.0},
-                                      {3.0, 0.5, -2.0, 5.0}};
+    const math::SquareMatrix expected{{2.0, 0.0, 0.0, 0.0}, {1.0, 3.0, 0.0, 0.0}, {-1.0, 2.0, 4.0, 0.0}, {3.0, 0.5, -2.0, 5.0}};
     const math::SquareMatrix matrix = expected * math::transpose(expected);
 
     const math::SquareMatrix lower = math::cholesky(matrix);
@@ -244,9 +235,7 @@ TEST(SquareMatrixTest, HandlesSmallAndEmptyCholeskyDecompositions)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(SquareMatrixTest, SolvesLowerTriangularSystems)
 {
-    const math::SquareMatrix lower{{2.0, 0.0, 0.0},
-                                   {3.0, 1.0, 0.0},
-                                   {1.0, -1.0, 2.0}};
+    const math::SquareMatrix lower{{2.0, 0.0, 0.0}, {3.0, 1.0, 0.0}, {1.0, -1.0, 2.0}};
     const math::Vector rhs{2.0, 5.0, 5.0};
 
     const math::Vector solution = lower.solveLowerTriangular(rhs);
@@ -267,9 +256,7 @@ TEST(SquareMatrixTest, SolvesSmallAndEmptyLowerTriangularSystems)
 // 계산 결과와 수치적 안정성을 검증한다.
 TEST(SquareMatrixTest, SolvesUpperTriangularSystems)
 {
-    const math::SquareMatrix upper{{2.0, 3.0, 1.0},
-                                   {0.0, 1.0, -1.0},
-                                   {0.0, 0.0, 2.0}};
+    const math::SquareMatrix upper{{2.0, 3.0, 1.0}, {0.0, 1.0, -1.0}, {0.0, 0.0, 2.0}};
     const math::Vector rhs{11.0, -1.0, 6.0};
 
     const math::Vector solution = upper.solveUpperTriangular(rhs);
@@ -330,9 +317,10 @@ TEST(SquareMatrixTest, ChecksOrthogonality)
     EXPECT_TRUE(math::SquareMatrix::identity(3).isOrthogonal(math::Tolerance{0.0, 0.0}));
     EXPECT_TRUE((math::SquareMatrix{{1.0, 1e-4}, {0.0, 1.0}}).isOrthogonal(math::Tolerance{1e-3, 0.0}));
     EXPECT_FALSE((math::SquareMatrix{{1.0, 1.0}, {0.0, 1.0}}).isOrthogonal(math::Tolerance{1e-6, 0.0}));
-    EXPECT_FALSE((math::SquareMatrix{{1.0, 0.0},
-                                    {0.0, std::numeric_limits<double>::infinity()}})
-        .isOrthogonal(math::Tolerance{1e-6, 0.0}));
+    EXPECT_FALSE(
+        (math::SquareMatrix{{1.0, 0.0}, {0.0, std::numeric_limits<double>::infinity()}})
+            .isOrthogonal(math::Tolerance{1e-6, 0.0})
+    );
 
     EXPECT_THROW(math::SquareMatrix::identity(2).isOrthogonal(math::Tolerance{-1.0, 0.0}), std::invalid_argument);
     EXPECT_THROW(math::SquareMatrix::identity(2).isOrthogonal(math::Tolerance{std::numeric_limits<double>::infinity(), 0.0}), std::invalid_argument);
@@ -342,25 +330,21 @@ TEST(SquareMatrixTest, ChecksOrthogonality)
 // 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TEST(SquareMatrixTest, ChecksRotationMatrices)
 {
-    const math::SquareMatrix rotation{{0.0, -1.0, 0.0},
-                                      {1.0, 0.0, 0.0},
-                                      {0.0, 0.0, 1.0}};
+    const math::SquareMatrix rotation{{0.0, -1.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}};
     EXPECT_TRUE(rotation.isRotation());
     EXPECT_TRUE(rotation.isRotation(math::Tolerance{1e-12, 0.0}));
-    EXPECT_FALSE((math::SquareMatrix{{1.0, 0.0, 0.0},
-                                     {0.0, 1.0, 0.0},
-                                     {0.0, 0.0, -1.0}})
-        .isRotation(math::Tolerance{1e-12, 0.0}));
-    EXPECT_FALSE((math::SquareMatrix{{2.0, 0.0, 0.0},
-                                     {0.0, 1.0, 0.0},
-                                     {0.0, 0.0, 1.0}})
-        .isRotation(math::Tolerance{1e-12, 0.0}));
+    EXPECT_FALSE(
+        (math::SquareMatrix{{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, -1.0}})
+            .isRotation(math::Tolerance{1e-12, 0.0})
+    );
+    EXPECT_FALSE(
+        (math::SquareMatrix{{2.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}})
+            .isRotation(math::Tolerance{1e-12, 0.0})
+    );
     EXPECT_TRUE((math::SquareMatrix{{0.0, -1.0}, {1.0, 0.0}}).isRotation(math::Tolerance{1e-12, 0.0}));
     EXPECT_TRUE(math::SquareMatrix::identity(4).isRotation(math::Tolerance{1e-12, 0.0}));
     EXPECT_THROW(math::SquareMatrix::identity(3).isRotation(math::Tolerance{-1.0, 0.0}), std::invalid_argument);
-    const math::SquareMatrix nonfinite{{1.0, 0.0, 0.0},
-                                       {0.0, 1.0, 0.0},
-                                       {0.0, 0.0, std::numeric_limits<double>::infinity()}};
+    const math::SquareMatrix nonfinite{{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, std::numeric_limits<double>::infinity()}};
     EXPECT_FALSE(nonfinite.isRotation(math::Tolerance{1e-12, 0.0}));
 }
 
@@ -394,8 +378,7 @@ TEST(SquareMatrixTest, RejectsNonSquareInputs)
 
 TEST(SquareMatrixTest, RejectsInvalidPolicyBeforeInspectingValues)
 {
-    for (double invalid : {-1.0, std::numeric_limits<double>::infinity(),
-                           std::numeric_limits<double>::quiet_NaN()})
+    for (double invalid : {-1.0, std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN()})
     {
         EXPECT_THROW((math::Tolerance{invalid, 1e-3}), std::invalid_argument);
         EXPECT_THROW((math::Tolerance{1.0, invalid}), std::invalid_argument);
@@ -407,30 +390,34 @@ TEST(SquareMatrixTest, RejectsInvalidCholeskyInputs)
     EXPECT_THROW(math::cholesky(math::SquareMatrix{{1.0, 2.0}, {0.0, 1.0}}), std::domain_error);
     EXPECT_THROW(math::cholesky(math::SquareMatrix{{1.0, 1.0}, {1.0, 1.0}}), std::domain_error);
     EXPECT_THROW(math::cholesky(math::SquareMatrix{{1.0, 2.0}, {2.0, 1.0}}), std::domain_error);
-    EXPECT_THROW(math::cholesky(math::SquareMatrix{{1.0, 0.0},
-                                                    {0.0, std::numeric_limits<double>::infinity()}}),
-        std::domain_error);
+    EXPECT_THROW(math::cholesky(math::SquareMatrix{{1.0, 0.0}, {0.0, std::numeric_limits<double>::infinity()}}), std::domain_error);
 }
 
 TEST(SquareMatrixTest, RejectsInvalidLowerTriangularSystems)
 {
     EXPECT_THROW(
         math::SquareMatrix::identity(2).solveLowerTriangular(math::Vector{1.0}),
-        std::invalid_argument);
+        std::invalid_argument
+    );
     EXPECT_THROW(
         (math::SquareMatrix{{1.0, 2.0}, {0.0, 1.0}}).solveLowerTriangular(math::Vector{1.0, 2.0}),
-        std::domain_error);
+        std::domain_error
+    );
     EXPECT_THROW(
         (math::SquareMatrix{{1.0, 0.0}, {2.0, 0.0}}).solveLowerTriangular(math::Vector{1.0, 2.0}),
-        std::domain_error);
+        std::domain_error
+    );
     EXPECT_THROW(
         (math::SquareMatrix{{1.0, 0.0}, {2.0, std::numeric_limits<double>::infinity()}})
             .solveLowerTriangular(math::Vector{1.0, 2.0}),
-        std::domain_error);
+        std::domain_error
+    );
     EXPECT_THROW(
         math::SquareMatrix::identity(2).solveLowerTriangular(
-            math::Vector{1.0, std::numeric_limits<double>::quiet_NaN()}),
-        std::domain_error);
+            math::Vector{1.0, std::numeric_limits<double>::quiet_NaN()}
+        ),
+        std::domain_error
+    );
 }
 
 TEST(SquareMatrixTest, RejectsNonfiniteLowerTriangularSolutions)
@@ -440,28 +427,35 @@ TEST(SquareMatrixTest, RejectsNonfiniteLowerTriangularSolutions)
 
     EXPECT_THROW(
         lower.solveLowerTriangular(math::Vector{maximum, 0.0}),
-        std::domain_error);
+        std::domain_error
+    );
 }
 
 TEST(SquareMatrixTest, RejectsInvalidUpperTriangularSystems)
 {
     EXPECT_THROW(
         math::SquareMatrix::identity(2).solveUpperTriangular(math::Vector{1.0}),
-        std::invalid_argument);
+        std::invalid_argument
+    );
     EXPECT_THROW(
         (math::SquareMatrix{{1.0, 0.0}, {2.0, 1.0}}).solveUpperTriangular(math::Vector{1.0, 2.0}),
-        std::domain_error);
+        std::domain_error
+    );
     EXPECT_THROW(
         (math::SquareMatrix{{0.0, 2.0}, {0.0, 1.0}}).solveUpperTriangular(math::Vector{1.0, 2.0}),
-        std::domain_error);
+        std::domain_error
+    );
     EXPECT_THROW(
         (math::SquareMatrix{{std::numeric_limits<double>::infinity(), 2.0}, {0.0, 1.0}})
             .solveUpperTriangular(math::Vector{1.0, 2.0}),
-        std::domain_error);
+        std::domain_error
+    );
     EXPECT_THROW(
         math::SquareMatrix::identity(2).solveUpperTriangular(
-            math::Vector{1.0, std::numeric_limits<double>::quiet_NaN()}),
-        std::domain_error);
+            math::Vector{1.0, std::numeric_limits<double>::quiet_NaN()}
+        ),
+        std::domain_error
+    );
 }
 
 TEST(SquareMatrixTest, RejectsNonfiniteUpperTriangularSolutions)
@@ -471,5 +465,6 @@ TEST(SquareMatrixTest, RejectsNonfiniteUpperTriangularSolutions)
 
     EXPECT_THROW(
         upper.solveUpperTriangular(math::Vector{0.0, maximum}),
-        std::domain_error);
+        std::domain_error
+    );
 }

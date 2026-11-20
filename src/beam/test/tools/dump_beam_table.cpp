@@ -43,14 +43,16 @@ int main(int argc, char** argv)
         return 2;
     }
 
-    auto xform = [&]() {
+    auto xform = [&]()
+    {
         try
         {
             const pose::RadarAttitudeFactory factory(pose::RadarAttitudeFactoryConfig(89_deg));
             const auto att = factory.create(roll, math::TiltAngle(pitch), yaw);
             return pose::AntEnuTransform(
                 att,
-                pose::AntEnuTransformConfig(math::SquareMatrix::identity(3)));
+                pose::AntEnuTransformConfig(math::SquareMatrix::identity(3))
+            );
         }
         catch (const std::invalid_argument& e)
         {
@@ -83,16 +85,15 @@ int main(int argc, char** argv)
             4.2_deg,
             math::TiltAngle(3_deg),
             4.4_deg,
-            beam::BeamWidth(6_deg, 6_deg));
+            beam::BeamWidth(6_deg, 6_deg)
+        );
         auto grid = beam::SearchGrid(xform, config);
         const auto beamCount = config.azimuthCount() * config.elevationCount();
         std::printf("idx,beamID,az_deg,el_deg,az_width_deg,el_width_deg\n");
         for (std::size_t i = 0; i < beamCount; ++i)
         {
             const auto& b = grid.nextBeam();
-            std::printf("%zu,%u,%.6f,%.6f,%.2f,%.2f\n",
-                        i, b.beamId, b.direction_enu.azimuth.deg(), b.direction_enu.elevation.deg(),
-                        b.beamWidth.azimuth.deg(), b.beamWidth.elevation.deg());
+            std::printf("%zu,%u,%.6f,%.6f,%.2f,%.2f\n", i, b.beamId, b.direction_enu.azimuth.deg(), b.direction_enu.elevation.deg(), b.beamWidth.azimuth.deg(), b.beamWidth.elevation.deg());
         }
     }
     catch (const std::exception& e)

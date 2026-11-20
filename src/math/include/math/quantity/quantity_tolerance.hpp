@@ -9,7 +9,7 @@
 namespace math
 {
 
-template<typename T>
+template <typename T>
 class QuantityTolerance
 {
     static_assert(std::is_base_of_v<Quantity<T>, T>, "T must derive from Quantity<T>");
@@ -17,8 +17,8 @@ class QuantityTolerance
 public:
     // 오차가 음수·무한대·NaN이면 std::invalid_argument를 던진다.
     QuantityTolerance(T absoluteTolerance, double relativeTolerance)
-        : _absoluteTolerance(std::move(absoluteTolerance)),
-          _numericTolerance(_absoluteTolerance.value(), relativeTolerance)
+      : _absoluteTolerance(std::move(absoluteTolerance)),
+        _numericTolerance(_absoluteTolerance.value(), relativeTolerance)
     {
     }
 

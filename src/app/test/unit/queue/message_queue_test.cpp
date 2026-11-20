@@ -15,9 +15,11 @@ namespace app
 namespace
 {
 // 운용 명령은 OFF 시 트랙을 지울 수 있도록 타겟 큐에도 전달된다.
-static_assert(std::is_invocable_v<
-    decltype(&MessageQueue<TargetInput>::write), MessageQueue<TargetInput>&, beam::SetOperationStateCommand
->);
+static_assert(
+    std::is_invocable_v<
+        decltype(&MessageQueue<TargetInput>::write), MessageQueue<TargetInput>&, beam::SetOperationStateCommand
+    >
+);
 
 TEST(MessageQueueTest, ReadsDifferentMessageTypesInWriteOrder)
 {
@@ -26,33 +28,39 @@ TEST(MessageQueueTest, ReadsDifferentMessageTypesInWriteOrder)
     input.write(TickEvent{std::chrono::milliseconds{10}});
     input.write(beam::SetOperationStateCommand{beam::OperationState::OFF});
 
-    EXPECT_EQ(std::get<beam::SetOperationStateCommand>(input.read()).powerState,
-        beam::OperationState::ON);
+    EXPECT_EQ(std::get<beam::SetOperationStateCommand>(input.read()).powerState, beam::OperationState::ON);
     EXPECT_EQ(std::get<TickEvent>(input.read()).currentTime.count(), 10);
-    EXPECT_EQ(std::get<beam::SetOperationStateCommand>(input.read()).powerState,
-        beam::OperationState::OFF);
+    EXPECT_EQ(std::get<beam::SetOperationStateCommand>(input.read()).powerState, beam::OperationState::OFF);
 }
 
 TEST(MessageQueueTest, ConcurrentProducersDoNotLoseOrReorderTheirMessages)
 {
     MessageQueue<BeamInput> input;
     constexpr int MESSAGE_COUNT = 1000;
-    auto ticks = std::async(std::launch::async, [&input]
-    {
-        for (int index = 0; index < MESSAGE_COUNT; ++index)
+    auto ticks = std::async(
+        std::launch::async,
+        [&input]
         {
-            input.write(TickEvent{std::chrono::milliseconds{index}});
+            for (int index = 0; index < MESSAGE_COUNT; ++index)
+            {
+                input.write(TickEvent{std::chrono::milliseconds{index}});
+            }
         }
-    });
-    auto commands = std::async(std::launch::async, [&input]
-    {
-        for (int index = 0; index < MESSAGE_COUNT; ++index)
+    );
+    auto commands = std::async(
+        std::launch::async,
+        [&input]
         {
-            input.write(beam::SetOperationStateCommand{
-                index % 2 == 0 ? beam::OperationState::ON : beam::OperationState::OFF
-            });
+            for (int index = 0; index < MESSAGE_COUNT; ++index)
+            {
+                input.write(
+                    beam::SetOperationStateCommand{
+                        index % 2 == 0 ? beam::OperationState::ON : beam::OperationState::OFF
+                    }
+                );
+            }
         }
-    });
+    );
 
     int tickCount = 0;
     int commandCount = 0;
@@ -65,8 +73,7 @@ TEST(MessageQueueTest, ConcurrentProducersDoNotLoseOrReorderTheirMessages)
         }
         else
         {
-            EXPECT_EQ(std::get<beam::SetOperationStateCommand>(message).powerState,
-                commandCount % 2 == 0 ? beam::OperationState::ON : beam::OperationState::OFF);
+            EXPECT_EQ(std::get<beam::SetOperationStateCommand>(message).powerState, commandCount % 2 == 0 ? beam::OperationState::ON : beam::OperationState::OFF);
             ++commandCount;
         }
     }
@@ -79,7 +86,13 @@ TEST(MessageQueueTest, ConcurrentProducersDoNotLoseOrReorderTheirMessages)
 TEST(MessageQueueTest, WriteWakesWaitingWorker)
 {
     MessageQueue<BeamInput> input;
-    auto received = std::async(std::launch::async, [&input] { return input.read(); });
+    auto received = std::async(
+        std::launch::async,
+        [&input]
+        {
+            return input.read();
+        }
+    );
     input.write(TickEvent{std::chrono::milliseconds{10}});
 
     const auto status = received.wait_for(std::chrono::seconds{2});
@@ -94,7 +107,13 @@ TEST(MessageQueueTest, WriteWakesWaitingWorker)
 TEST(MessageQueueTest, ClosingInputWakesReaderAndRejectsWrites)
 {
     MessageQueue<BeamInput> input;
-    auto received = std::async(std::launch::async, [&input] { return input.read(); });
+    auto received = std::async(
+        std::launch::async,
+        [&input]
+        {
+            return input.read();
+        }
+    );
     input.close();
 
     ASSERT_EQ(received.wait_for(std::chrono::seconds{2}), std::future_status::ready);

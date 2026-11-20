@@ -31,10 +31,7 @@ ListenSocket::ListenSocket(const CommEndpoint& endpoint, int backlog)
 try
 {
     checkResult(native_socket::setReuseAddress(_handle), "set-reuse-address");
-    checkResult(native_socket::bindSocket(
-        _handle, endpoint.getIntAddress(), endpoint.getPort()
-    ), "bind"
-    );
+    checkResult(native_socket::bindSocket(_handle, endpoint.getIntAddress(), endpoint.getPort()), "bind");
     checkResult(native_socket::listenSocket(_handle, backlog), "listen");
     checkResult(native_socket::setNonBlocking(_handle), "set-non-blocking");
 }

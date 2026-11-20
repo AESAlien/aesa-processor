@@ -14,8 +14,6 @@ static_assert(std::is_same_v<decltype(std::declval<math::Matrix&>()(0, 0)), doub
 static_assert(std::is_same_v<decltype(std::declval<const math::Matrix&>().at(0, 0)), const double&>);
 static_assert(std::is_same_v<decltype(std::declval<const math::Matrix&>()(0, 0)), const double&>);
 
-
-
 // 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(MatrixTest, DefaultAndZeroDimensionMatricesAreEmpty)
 {

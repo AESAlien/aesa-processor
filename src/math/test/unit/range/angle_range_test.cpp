@@ -96,8 +96,10 @@ TEST(AngleRangeTest, AcceptsRadiansAndRejectsNonfiniteInputThroughAngle)
 
     EXPECT_THROW(
         math::AngleRange(0_deg, math::Angle::fromDegrees(std::numeric_limits<double>::infinity())),
-        std::invalid_argument);
+        std::invalid_argument
+    );
     EXPECT_THROW(
         math::AngleRange(math::Angle::fromDegrees(std::numeric_limits<double>::quiet_NaN()), 1_deg),
-        std::invalid_argument);
+        std::invalid_argument
+    );
 }

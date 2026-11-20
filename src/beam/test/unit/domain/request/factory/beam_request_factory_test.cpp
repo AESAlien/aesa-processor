@@ -77,9 +77,11 @@ TEST(BeamRequestFactoryTest, CreatesRequestMatchingBeamType)
 
     // When: 각 종류의 요청을 생성한다.
     const auto confirmation = factory.from(
-        beam::RequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 1, makeDirection()));
+        beam::RequestBeamCommand(beam::RequestBeamType::CONFIRMATION, 0ms, 1, makeDirection())
+    );
     const auto tracking = factory.from(
-        beam::RequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 2, makeDirection()));
+        beam::RequestBeamCommand(beam::RequestBeamType::TRACKING, 0ms, 2, makeDirection())
+    );
 
     // Then: 요청 팩토리는 빔 종류에 맞는 폭과 우선순위를 지정한다.
     EXPECT_EQ(confirmation.transmitBeamType(), beam::BeamType::CONFIRMATION);
@@ -101,7 +103,8 @@ TEST(BeamRequestFactoryTest, RejectsInvalidCommand)
     const auto zeroType = beam::RequestBeamCommand(static_cast<beam::RequestBeamType>(0), 0ms, 1, makeDirection());
     const auto unknownType = beam::RequestBeamCommand(static_cast<beam::RequestBeamType>(9), 0ms, 1, makeDirection());
     const auto searchType = beam::RequestBeamCommand(
-        static_cast<beam::RequestBeamType>(beam::BeamType::SEARCH), 0ms, 1, makeDirection());
+        static_cast<beam::RequestBeamType>(beam::BeamType::SEARCH), 0ms, 1, makeDirection()
+    );
 
     // When: 각 명령으로 요청 생성을 시도한다.
     const auto from = [&](const beam::RequestBeamCommand& command)
@@ -124,7 +127,12 @@ TEST(BeamRequestFactoryTest, UnknownTypeMessageIncludesTypeValueAndRequestId)
     const auto command = beam::RequestBeamCommand(static_cast<beam::RequestBeamType>(9), 0ms, 3, makeDirection());
 
     // When: 요청 생성을 시도한다.
-    const auto message = invalidArgumentMessage([&] { factory.from(command); });
+    const auto message = invalidArgumentMessage(
+        [&]
+        {
+            factory.from(command);
+        }
+    );
 
     // Then: 메시지에 원인과 빔 종류의 정수값(문자가 아닌 숫자), 요청 ID가 담긴다.
     EXPECT_NE(message.find("unknown request beam type"), std::string::npos) << message;

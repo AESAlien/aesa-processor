@@ -8,7 +8,7 @@ namespace math
 using namespace literals;
 
 Distance::Distance(Length length)
-    : _length(length)
+  : _length(length)
 {
     validate();
 }
@@ -64,84 +64,96 @@ bool Distance::isNonnegative() const noexcept
 bool Distance::equals(
     const Distance& other,
     const QuantityTolerance<Length>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _length.equals(other._length, tolerance);
 }
 
 bool Distance::equals(
     Length other,
     const QuantityTolerance<Length>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _length.equals(other, tolerance);
 }
 
 bool Distance::notEquals(
     const Distance& other,
     const QuantityTolerance<Length>& tolerance
-) const noexcept {
+) const noexcept
+{
     return !equals(other, tolerance);
 }
 
 bool Distance::notEquals(
     Length other,
     const QuantityTolerance<Length>& tolerance
-) const noexcept {
+) const noexcept
+{
     return !equals(other, tolerance);
 }
 
 bool Distance::lessThan(
     const Distance& other,
     const QuantityTolerance<Length>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _length.lessThan(other._length, tolerance);
 }
 
 bool Distance::lessThan(
     Length other,
     const QuantityTolerance<Length>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _length.lessThan(other, tolerance);
 }
 
 bool Distance::lessThanOrEqual(
     const Distance& other,
     const QuantityTolerance<Length>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _length.lessThanOrEqual(other._length, tolerance);
 }
 
 bool Distance::lessThanOrEqual(
     Length other,
     const QuantityTolerance<Length>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _length.lessThanOrEqual(other, tolerance);
 }
 
 bool Distance::greaterThan(
     const Distance& other,
     const QuantityTolerance<Length>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _length.greaterThan(other._length, tolerance);
 }
 
 bool Distance::greaterThan(
     Length other,
     const QuantityTolerance<Length>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _length.greaterThan(other, tolerance);
 }
 
 bool Distance::greaterThanOrEqual(
     const Distance& other,
     const QuantityTolerance<Length>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _length.greaterThanOrEqual(other._length, tolerance);
 }
 
 bool Distance::greaterThanOrEqual(
     Length other,
     const QuantityTolerance<Length>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _length.greaterThanOrEqual(other, tolerance);
 }
 

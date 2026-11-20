@@ -16,11 +16,11 @@ static_assert(std::is_copy_constructible_v<math::CartesianDisplacement>);
 static_assert(std::is_copy_assignable_v<math::CartesianDisplacement>);
 static_assert(std::is_move_assignable_v<math::CartesianDisplacement>);
 static_assert(!std::is_aggregate_v<math::CartesianDisplacement>);
-static_assert(std::is_same_v<
-    decltype(std::declval<const math::CartesianDisplacement&>().distance()),
-    math::Distance>);
-
-
+static_assert(
+    std::is_same_v<
+        decltype(std::declval<const math::CartesianDisplacement&>().distance()),
+        math::Distance>
+);
 
 // 값의 변환과 정규화 결과를 검증한다.
 TEST(CartesianDisplacementTest, ExportsMeterComponentsInAxisOrder)
@@ -139,7 +139,8 @@ TEST(CartesianDisplacementTest, CalculatesDistanceAtExtremeFiniteScales)
         const math::CartesianDisplacement displacement(
             3_m * scale,
             -4_m * scale,
-            12_m * scale);
+            12_m * scale
+        );
 
         EXPECT_NEAR(displacement.distance().m() / scale, 13.0, 1e-12);
     }
@@ -175,19 +176,18 @@ TEST(CartesianDisplacementTest, RejectsDisplacementAdditionOverflow)
 TEST(CartesianDisplacementTest, RejectsInvalidVelocityTimeProduct)
 {
     const auto maximum = math::LinearVelocity::fromMetersPerSecond(
-        std::numeric_limits<double>::max());
+        std::numeric_limits<double>::max()
+    );
     const math::CartesianVelocity velocity(maximum, 0_mps, 0_mps);
 
     EXPECT_THROW(velocity * std::chrono::seconds{2}, std::invalid_argument);
-    EXPECT_THROW(velocity * std::chrono::duration<double>{
-        std::numeric_limits<double>::quiet_NaN()}, std::invalid_argument);
+    EXPECT_THROW(velocity * std::chrono::duration<double>{std::numeric_limits<double>::quiet_NaN()}, std::invalid_argument);
 }
 
 TEST(CartesianDisplacementTest, RejectsInvalidElapsedTime)
 {
     const math::CartesianDisplacement displacement(1_m, 0_m, 0_m);
-    for (double seconds : {0.0, -1.0, std::numeric_limits<double>::infinity(),
-        -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN()})
+    for (double seconds : {0.0, -1.0, std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN()})
     {
         EXPECT_THROW(displacement / std::chrono::duration<double>{seconds}, std::invalid_argument);
     }
@@ -197,7 +197,8 @@ TEST(CartesianDisplacementTest, DividesSubnormalComponentsWithoutReciprocalOverf
 {
     const double smallest = std::numeric_limits<double>::denorm_min();
     const math::CartesianDisplacement displacement(
-        math::Length::fromMeters(smallest), math::Length::fromMeters(-smallest), 0_m);
+        math::Length::fromMeters(smallest), math::Length::fromMeters(-smallest), 0_m
+    );
     const auto velocity = displacement / std::chrono::duration<double>{smallest};
 
     EXPECT_EQ(velocity.x, 1_mps);
@@ -209,8 +210,7 @@ TEST(CartesianDisplacementTest, RejectsVelocityOverflow)
 {
     const math::CartesianDisplacement displacement(1_m, 0_m, 0_m);
 
-    EXPECT_THROW(displacement /
-        std::chrono::duration<double>{std::numeric_limits<double>::denorm_min()}, std::invalid_argument);
+    EXPECT_THROW(displacement / std::chrono::duration<double>{std::numeric_limits<double>::denorm_min()}, std::invalid_argument);
 }
 
 TEST(CartesianDisplacementTest, RejectsSubtractionOverflow)

@@ -111,12 +111,8 @@ TEST(RequestQueueTest, SameTransmitTimeHigherPriorityComesFirst)
 {
     // Given: 같은 시각에 송신할 요청들의 우선순위를 빔 종류와 독립적으로 지정한다.
     beam::RequestQueue queue;
-    queue.add(beam::BeamRequest(
-        beam::BeamType::CONFIRMATION, beam::BeamWidth(3_deg, 3_deg), 0,
-        1000ms, 1, math::SphericalDirection(1_deg, 0_deg)));
-    queue.add(beam::BeamRequest(
-        beam::BeamType::TRACKING, beam::BeamWidth(3_deg, 3_deg), 2,
-        1000ms, 2, math::SphericalDirection(2_deg, 0_deg)));
+    queue.add(beam::BeamRequest(beam::BeamType::CONFIRMATION, beam::BeamWidth(3_deg, 3_deg), 0, 1000ms, 1, math::SphericalDirection(1_deg, 0_deg)));
+    queue.add(beam::BeamRequest(beam::BeamType::TRACKING, beam::BeamWidth(3_deg, 3_deg), 2, 1000ms, 2, math::SphericalDirection(2_deg, 0_deg)));
 
     // When: 같은 예정 시각의 두 요청을 꺼낸다.
     const auto first = queue.popNextDue(1000ms);

@@ -25,7 +25,8 @@ public:
     {
         const auto seconds = std::chrono::duration<long double>(duration).count();
         return LinearVelocity::fromMetersPerSecond(
-            static_cast<double>(static_cast<long double>(mps2()) * seconds));
+            static_cast<double>(static_cast<long double>(mps2()) * seconds)
+        );
     }
 
 private:

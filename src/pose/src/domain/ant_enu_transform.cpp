@@ -32,10 +32,9 @@ math::SquareMatrix bodyToEnu(math::CircularAngle roll, math::TiltAngle pitch, ma
 } // namespace
 
 AntEnuTransform::AntEnuTransform(const RadarAttitude& attitude, const AntEnuTransformConfig& config)
-    : _rotationMatrix(
+  : _rotationMatrix(
         bodyToEnu(attitude.roll(), attitude.pitch(), attitude.yaw()) * config.mountAntToBodyRotation()
-    )
-{
+    ) {
 }
 
 math::SphericalDirection AntEnuTransform::antToEnu(const math::SphericalDirection& direction_ant) const

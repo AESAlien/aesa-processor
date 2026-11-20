@@ -17,6 +17,7 @@ public:
         Builder& trackingBeamWidth(BeamWidth value) { _trackingBeamWidth = value; return *this; }
 
         RequestBeamConfig build() const;
+
     private:
         std::optional<BeamWidth> _confirmationBeamWidth;
         std::optional<BeamWidth> _trackingBeamWidth;
@@ -24,7 +25,8 @@ public:
 
     RequestBeamConfig(
         BeamWidth confirmationBeamWidth,
-        BeamWidth trackingBeamWidth);
+        BeamWidth trackingBeamWidth
+    );
 
     BeamWidth confirmationBeamWidth;
     BeamWidth trackingBeamWidth;

@@ -62,11 +62,13 @@ inline beam::AttitudeFrame makeAttitudeFrame(math::Angle roll, math::Angle pitch
     const pose::RadarAttitudeFactory factory(pose::RadarAttitudeFactoryConfig(89_deg));
     const pose::AntEnuTransform transform(
         factory.create(roll, math::TiltAngle(pitch), yaw),
-        pose::AntEnuTransformConfig(math::SquareMatrix::identity(3)));
+        pose::AntEnuTransformConfig(math::SquareMatrix::identity(3))
+    );
     return beam::AttitudeFrame(
         transform,
         validSearchGridConfigBuilder().build(),
-        openRequestCoverageConfigBuilder().build());
+        openRequestCoverageConfigBuilder().build()
+    );
 }
 
 enum class Status
@@ -113,19 +115,15 @@ inline RequestSpec makeRequestSpec(
     double elevation_deg
 ) {
     // 요청 빔 폭은 기본 설정(3도)을 쓴다.
-    static const beam::BeamRequestFactory factory{
+    static const beam::BeamRequestFactory FACTORY{
         beam::RequestBeamConfig(
             beam::BeamWidth(3_deg, 3_deg),
-            beam::BeamWidth(3_deg, 3_deg))};
+            beam::BeamWidth(3_deg, 3_deg)
+        )
+    };
     return RequestSpec{
         name,
-        factory.from(beam::RequestBeamCommand(
-            beamType,
-            transmitTime,
-            REQUEST_ID,
-            math::SphericalDirection(
-                math::Angle::fromDegrees(azimuth_deg),
-                math::Angle::fromDegrees(elevation_deg))))
+        FACTORY.from(beam::RequestBeamCommand(beamType, transmitTime, REQUEST_ID, math::SphericalDirection(math::Angle::fromDegrees(azimuth_deg), math::Angle::fromDegrees(elevation_deg))))
     };
 }
 
@@ -181,7 +179,8 @@ inline Scenario makeTracksScenario()
             const auto elevation_deg = 3.0 + 5.0 * (track % 10) + 0.1 * round;
             scenario.requests.push_back(makeRequestSpec(
                 "T" + std::to_string(track + 1) + "." + std::to_string(round + 1),
-                Type::TRACKING, transmitTime, azimuth_deg, elevation_deg));
+                Type::TRACKING, transmitTime, azimuth_deg, elevation_deg
+            ));
         }
     }
     return scenario;

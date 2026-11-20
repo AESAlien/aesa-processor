@@ -7,7 +7,7 @@ namespace math
 using namespace literals;
 
 AngularWidth::AngularWidth(Angle angle)
-    : _angle(angle)
+  : _angle(angle)
 {
     validate();
 }
@@ -33,14 +33,16 @@ double AngularWidth::rad() const noexcept
 bool AngularWidth::equals(
     const AngularWidth& other,
     const QuantityTolerance<Angle>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _angle.equals(other._angle, tolerance);
 }
 
 bool AngularWidth::equals(
     Angle other,
     const QuantityTolerance<Angle>& tolerance
-) const noexcept {
+) const noexcept
+{
     return _angle.equals(other, tolerance);
 }
 

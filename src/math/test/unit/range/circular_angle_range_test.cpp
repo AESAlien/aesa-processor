@@ -41,8 +41,7 @@ TEST(CircularAngleRangeTest, IncludesEquivalentRearBoundaries)
 
 TEST(CircularAngleRangeTest, DistinguishesFullCircleFromEqualBounds)
 {
-    for (const auto& range : {math::CircularAngleRange::fullCircle(),
-        math::CircularAngleRange(-180_deg, 180_deg), math::CircularAngleRange(360_deg, 0_deg)})
+    for (const auto& range : {math::CircularAngleRange::fullCircle(), math::CircularAngleRange(-180_deg, 180_deg), math::CircularAngleRange(360_deg, 0_deg)})
     {
         EXPECT_TRUE(range.isFullCircle());
         EXPECT_TRUE(range.contains(0_deg));
@@ -87,6 +86,5 @@ TEST(CircularAngleRangeTest, RejectsMoreThanOneTurnAndNonfiniteInput)
     EXPECT_THROW(math::CircularAngleRange(360.1_deg, 0_deg), std::invalid_argument);
     const auto largest = math::Angle::fromDegrees(std::numeric_limits<double>::max());
     EXPECT_THROW(math::CircularAngleRange(-largest, largest), std::invalid_argument);
-    EXPECT_THROW(math::CircularAngleRange(0_deg, math::Angle::fromDegrees(
-        std::numeric_limits<double>::infinity())), std::invalid_argument);
+    EXPECT_THROW(math::CircularAngleRange(0_deg, math::Angle::fromDegrees(std::numeric_limits<double>::infinity())), std::invalid_argument);
 }

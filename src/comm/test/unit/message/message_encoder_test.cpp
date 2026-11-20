@@ -278,8 +278,7 @@ TEST(MessageEncoderTest, KeepsAzimuthAlreadyInRangeOnWire)
 TEST(MessageEncoderTest, EncodesTrackEventsUsingActualMessageSize)
 {
     // 준비: 각 필드를 구분할 수 있는 추적 이벤트 하나를 준비한다.
-    const std::vector<target::TrackEvent> events
-    {
+    const std::vector<target::TrackEvent> events{
         makeTrackEvent()
     };
 
@@ -421,7 +420,9 @@ TEST(MessageEncoderTest, RejectsTimestampOutsideProtocolRange)
     const auto invalidTimestamp = std::chrono::milliseconds{
         static_cast<std::chrono::milliseconds::rep>(
             std::numeric_limits<uint32_t>::max()
-        ) + 1};
+        ) +
+        1
+    };
     const auto command = makeBeamCommand(invalidTimestamp);
     const std::vector<target::TrackEvent> events{makeTrackEvent(-1ms)};
 

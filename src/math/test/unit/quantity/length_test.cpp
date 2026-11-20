@@ -11,8 +11,6 @@ using namespace math::literals;
 static_assert(!std::is_default_constructible_v<math::Length>);
 static_assert(!std::is_constructible_v<math::Length, double>);
 
-
-
 // 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(LengthTest, StoresSignedMeters)
 {
@@ -110,15 +108,18 @@ TEST(LengthTest, ComparesSignedValues)
     EXPECT_LT(zero, positive);
     EXPECT_TRUE(negative.equals(
         -1.25_m,
-        math::QuantityTolerance{0.25_m, 0.0}));
+        math::QuantityTolerance{0.25_m, 0.0}
+    ));
 }
 
 // 비교 정책과 판정 경계가 일관되게 적용되는지 검증한다.
 TEST(LengthTest, AbsPreservesLengthTypeAndReturnsNonnegativeValue)
 {
-    static_assert(std::is_same_v<
-        decltype(math::abs(-1.0_m)),
-        math::Length>);
+    static_assert(
+        std::is_same_v<
+            decltype(math::abs(-1.0_m)),
+            math::Length>
+    );
     EXPECT_DOUBLE_EQ(math::abs(-2.0_km).km(), 2.0);
 }
 
@@ -159,7 +160,8 @@ TEST(LengthTest, RejectsNonFiniteValues)
     for (double value : {
              std::numeric_limits<double>::infinity(),
              -std::numeric_limits<double>::infinity(),
-             std::numeric_limits<double>::quiet_NaN()})
+             std::numeric_limits<double>::quiet_NaN()
+         })
     {
         EXPECT_THROW(math::Length::fromMeters(value), std::invalid_argument);
         EXPECT_THROW(math::Length::fromKilometers(value), std::invalid_argument);

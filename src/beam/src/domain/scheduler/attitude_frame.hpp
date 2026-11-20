@@ -17,7 +17,8 @@ public:
     AttitudeFrame(
         const pose::AntEnuTransform& transform,
         const SearchGridConfig& searchGridConfig,
-        const RequestCoverageConfig& requestCoverageConfig);
+        const RequestCoverageConfig& requestCoverageConfig
+    );
 
     // 탐색 빔을 꺼낼 때 커서가 움직이므로 수정 가능한 참조를 반환한다.
     SearchGrid& searchGrid() noexcept;

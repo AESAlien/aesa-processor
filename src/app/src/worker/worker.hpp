@@ -67,7 +67,9 @@ protected:
 
     virtual Input readInput() = 0;
     virtual std::optional<Output> process(Input input) = 0;
-    virtual void writeOutput(Output output) {}
+    virtual void writeOutput(Output output)
+    {
+    }
 
 private:
     std::shared_ptr<spdlog::logger> _logger;

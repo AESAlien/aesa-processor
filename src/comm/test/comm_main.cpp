@@ -52,8 +52,7 @@ const char* beamTypeName(beam::BeamType beamType)
 
 comm::CommConfig makeConfiguration()
 {
-    return
-    {
+    return {
         {SERVER_ADDRESS, SERVER_PORT},
         {OPERATOR_CONSOLE_ADDRESS, OPERATOR_CONSOLE_PORT},
         {SCENARIO_SIMULATOR_ADDRESS, SCENARIO_SIMULATOR_PORT}

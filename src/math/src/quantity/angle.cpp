@@ -42,7 +42,8 @@ double Angle::rad() const noexcept
 bool Angle::isEquivalentTo(
     const Angle& other,
     const QuantityTolerance<Angle>& tolerance
-) const noexcept {
+) const noexcept
+{
     if (tolerance.isWithin(*this, other))
     {
         return true;
@@ -85,7 +86,7 @@ Angle wrap360(Angle angle) noexcept
 }
 
 Angle::Angle(double degrees)
-    : Quantity<Angle>(degrees)
+  : Quantity<Angle>(degrees)
 {
 }
 

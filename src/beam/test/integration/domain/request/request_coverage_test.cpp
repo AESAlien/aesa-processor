@@ -15,7 +15,8 @@ pose::AntEnuTransform makeTransform(math::Angle roll, math::Angle pitch, math::A
     const pose::RadarAttitudeFactory factory(pose::RadarAttitudeFactoryConfig(89_deg));
     return pose::AntEnuTransform(
         factory.create(roll, math::TiltAngle(pitch), yaw),
-        pose::AntEnuTransformConfig(math::SquareMatrix::identity(3)));
+        pose::AntEnuTransformConfig(math::SquareMatrix::identity(3))
+    );
 }
 
 // 기본 추적 영역: 안테나 기준 방위각 -60~60도, 고각 -10~60도
@@ -105,7 +106,8 @@ TEST(RequestCoverageTest, RearBoundaryUsesAntennaFrameAfterYaw)
     // yaw 30도: ENU 방위각 210도가 안테나 기준 180도(후방)이다.
     const auto coverage = beam::RequestCoverage(
         makeTransform(0_deg, 0_deg, 30_deg),
-        beam::RequestCoverageConfig(math::CircularAngleRange(170_deg, 180_deg), math::AngleRange(-10_deg, 20_deg)));
+        beam::RequestCoverageConfig(math::CircularAngleRange(170_deg, 180_deg), math::AngleRange(-10_deg, 20_deg))
+    );
 
     // When: 각 입력 방향이 요청 영역에 포함되는지 판정한다.
     const auto containsRotatedRear = coverage.contains(direction(210_deg, 0_deg));

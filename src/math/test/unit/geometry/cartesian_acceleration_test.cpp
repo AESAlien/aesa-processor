@@ -9,15 +9,15 @@
 using namespace math::literals;
 using namespace std::chrono_literals;
 
-static_assert(std::is_same_v<
-    decltype(math::CartesianAcceleration::x),
-    math::LinearAcceleration>);
+static_assert(
+    std::is_same_v<
+        decltype(math::CartesianAcceleration::x),
+        math::LinearAcceleration>
+);
 static_assert(std::is_copy_constructible_v<math::CartesianAcceleration>);
 static_assert(std::is_copy_assignable_v<math::CartesianAcceleration>);
 static_assert(std::is_move_assignable_v<math::CartesianAcceleration>);
 static_assert(!std::is_aggregate_v<math::CartesianAcceleration>);
-
-
 
 // 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(CartesianAccelerationTest, StoresCoordinatesAndSupportsCopyConstruction)
@@ -69,7 +69,8 @@ TEST(CartesianAccelerationTest, CalculatesMagnitude)
         const math::CartesianAcceleration scaled(
             math::LinearAcceleration::fromMetersPerSecondSquared(3.0 * scale),
             math::LinearAcceleration::fromMetersPerSecondSquared(4.0 * scale),
-            math::LinearAcceleration::fromMetersPerSecondSquared(12.0 * scale));
+            math::LinearAcceleration::fromMetersPerSecondSquared(12.0 * scale)
+        );
         EXPECT_NEAR(scaled.horizontalAcceleration().mps2() / scale, 5.0, 1e-12);
         EXPECT_NEAR(scaled.acceleration().mps2() / scale, 13.0, 1e-12);
     }
@@ -78,16 +79,21 @@ TEST(CartesianAccelerationTest, CalculatesMagnitude)
 TEST(CartesianAccelerationTest, RejectsInvalidVelocityResult)
 {
     const auto maximum = math::LinearAcceleration::fromMetersPerSecondSquared(
-        std::numeric_limits<double>::max());
+        std::numeric_limits<double>::max()
+    );
     const math::CartesianAcceleration acceleration(maximum, 0_mps2, 0_mps2);
 
     EXPECT_THROW(acceleration * 2s, std::invalid_argument);
     EXPECT_THROW(
         acceleration * std::chrono::duration<double>{
-            std::numeric_limits<double>::infinity()},
-        std::invalid_argument);
+                           std::numeric_limits<double>::infinity()
+                       },
+        std::invalid_argument
+    );
     EXPECT_THROW(
         acceleration * std::chrono::duration<double>{
-            std::numeric_limits<double>::quiet_NaN()},
-        std::invalid_argument);
+                           std::numeric_limits<double>::quiet_NaN()
+                       },
+        std::invalid_argument
+    );
 }

@@ -43,7 +43,7 @@ const ConnectedSocket& Session::getSocket() const noexcept
 std::string Session::remoteDescription() const
 {
     return _remoteEndpoint.getAddress() + ":" +
-        std::to_string(_remoteEndpoint.getPort());
+           std::to_string(_remoteEndpoint.getPort());
 }
 
 std::vector<MessageFrame> Session::receive()

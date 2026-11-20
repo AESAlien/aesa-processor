@@ -14,7 +14,8 @@ struct Config
         pose::PoseConfig poseConfig,
         beam::BeamConfig beamConfig,
         target::TargetConfig targetConfig,
-        comm::CommConfig commConfig);
+        comm::CommConfig commConfig
+    );
 
     pose::PoseConfig poseConfig;
     beam::BeamConfig beamConfig;

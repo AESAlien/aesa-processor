@@ -8,7 +8,8 @@ namespace pose
 {
 struct SetAntEnuTransformCommand
 {
-    explicit SetAntEnuTransformCommand(AntEnuTransform transform) : transform(std::move(transform))
+    explicit SetAntEnuTransformCommand(AntEnuTransform transform)
+      : transform(std::move(transform))
     {
     }
 

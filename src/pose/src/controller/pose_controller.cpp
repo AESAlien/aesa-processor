@@ -5,8 +5,8 @@
 namespace pose
 {
 PoseController::PoseController(PoseConfig config)
-    : _attitudeFactory(config.attitude),
-      _antEnuTransformConfig(std::move(config.transform))
+  : _attitudeFactory(config.attitude),
+    _antEnuTransformConfig(std::move(config.transform))
 {
 }
 

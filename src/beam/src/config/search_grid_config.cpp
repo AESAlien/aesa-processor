@@ -108,7 +108,8 @@ SearchGridConfig SearchGridConfig::Builder::build() const
         *_azimuthStep,
         *_elevationStart,
         *_elevationStep,
-        *_beamWidth);
+        *_beamWidth
+    );
 }
 
 } // namespace beam

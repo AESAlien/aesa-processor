@@ -9,20 +9,15 @@
 using namespace math::literals;
 
 // 단위를 명시하는 팩터리를 거치도록 기본 생성과 double 직접 생성을 금지한다.
-static_assert(!std::is_default_constructible<math::Angle>::value,
-    "Angles must be created through a unit factory");
-static_assert(!std::is_constructible<math::Angle, double>::value,
-    "Angles must be created through a unit factory");
-
-
+static_assert(!std::is_default_constructible<math::Angle>::value, "Angles must be created through a unit factory");
+static_assert(!std::is_constructible<math::Angle, double>::value, "Angles must be created through a unit factory");
 
 // 객체 생성과 상태 보존 규칙을 검증한다.
 TEST(AngleTest, CreatesAnglesFromDegreeLiterals)
 {
     using namespace math::literals;
 
-    static_assert(std::is_same<decltype(30_deg), math::Angle>::value,
-        "Degree literals must produce an Angle");
+    static_assert(std::is_same<decltype(30_deg), math::Angle>::value, "Degree literals must produce an Angle");
     EXPECT_DOUBLE_EQ((30_deg).deg(), 30.0);
     EXPECT_DOUBLE_EQ((30.5_deg).deg(), 30.5);
 }
@@ -32,8 +27,7 @@ TEST(AngleTest, CreatesAnglesFromRadianLiterals)
 {
     using namespace math::literals;
 
-    static_assert(std::is_same<decltype(1_rad), math::Angle>::value,
-        "Radian literals must produce an Angle");
+    static_assert(std::is_same<decltype(1_rad), math::Angle>::value, "Radian literals must produce an Angle");
     EXPECT_DOUBLE_EQ((1_rad).rad(), 1.0);
     EXPECT_DOUBLE_EQ((0.37_rad).rad(), 0.37);
 }
@@ -160,22 +154,20 @@ TEST(AngleTest, PeriodicEquivalenceWrapsFullTurnsWhileDefaultComparisonUsesStore
     EXPECT_FALSE(zero.equals(fullTurn, math::QuantityTolerance{0.0_deg, 0.0}));
     EXPECT_TRUE(zero.isEquivalentTo(
         fullTurn,
-        math::QuantityTolerance{0.0_deg, 0.0}));
+        math::QuantityTolerance{0.0_deg, 0.0}
+    ));
     EXPECT_TRUE(zero.isEquivalentTo(
         negativeFullTurn,
-        math::QuantityTolerance{0.0_deg, 0.0}));
+        math::QuantityTolerance{0.0_deg, 0.0}
+    ));
     EXPECT_FALSE(zero == fullTurn);
     EXPECT_FALSE(zero == negativeFullTurn);
     EXPECT_TRUE(zero.notEquals(fullTurn, math::QuantityTolerance{0.0_deg, 0.0}));
     EXPECT_TRUE(zero != fullTurn);
     EXPECT_TRUE(zero.notEquals(negative, math::QuantityTolerance{0.0_deg, 0.0}));
     EXPECT_TRUE(zero != negative);
-    EXPECT_FALSE((359.75_deg).equals(
-        0.25_deg,
-        math::QuantityTolerance{0.5_deg, 0.0}));
-    EXPECT_TRUE((359.75_deg).isEquivalentTo(
-        0.25_deg,
-        math::QuantityTolerance{0.5_deg, 0.0}));
+    EXPECT_FALSE((359.75_deg).equals(0.25_deg, math::QuantityTolerance{0.5_deg, 0.0}));
+    EXPECT_TRUE((359.75_deg).isEquivalentTo(0.25_deg, math::QuantityTolerance{0.5_deg, 0.0}));
     EXPECT_TRUE(calculated.equals(expected));
     EXPECT_TRUE(calculated == expected);
     EXPECT_TRUE(negative < zero);
@@ -246,8 +238,7 @@ TEST(AngleTest, AbsPreservesAngleTypeAndReturnsNonnegativeValue)
 {
     using namespace math::literals;
 
-    static_assert(std::is_same<decltype(math::abs(-30_deg)), math::Angle>::value,
-        "Absolute value of an angle must remain an Angle");
+    static_assert(std::is_same<decltype(math::abs(-30_deg)), math::Angle>::value, "Absolute value of an angle must remain an Angle");
     EXPECT_DOUBLE_EQ(math::abs(-30_deg).deg(), 30.0);
     EXPECT_DOUBLE_EQ(math::abs(30_deg).deg(), 30.0);
     EXPECT_DOUBLE_EQ(math::abs(0_deg).deg(), 0.0);
@@ -268,39 +259,37 @@ TEST(AngleTest, EqualsRejectsInvalidRelativeTolerance)
 
     for (const double relativeTolerance : {-0.01, infinity, nan})
     {
-        EXPECT_THROW((math::QuantityTolerance<math::Angle>{
-            0.0_deg, relativeTolerance}), std::invalid_argument);
+        EXPECT_THROW((math::QuantityTolerance<math::Angle>{0.0_deg, relativeTolerance}), std::invalid_argument);
     }
-
 }
 
 TEST(AngleTest, RejectsNonFiniteInputsAndConvertedValues)
 {
-    const double INVALID_VALUES[] =
+    const double invalidValues[] =
     {
         std::numeric_limits<double>::infinity(),
         -std::numeric_limits<double>::infinity(),
         std::numeric_limits<double>::quiet_NaN()
     };
-    for (double value : INVALID_VALUES)
+    for (double value : invalidValues)
     {
         EXPECT_THROW(math::Angle::fromDegrees(value), std::invalid_argument);
         EXPECT_THROW(math::Angle::fromRadians(value), std::invalid_argument);
         EXPECT_THROW(math::literals::operator""_deg(static_cast<long double>(value)), std::invalid_argument);
         EXPECT_THROW(math::literals::operator""_rad(static_cast<long double>(value)), std::invalid_argument);
     }
-    const double MAX_VALUE = std::numeric_limits<double>::max();
-    EXPECT_THROW(math::Angle::fromRadians(MAX_VALUE), std::invalid_argument);
-    EXPECT_THROW(math::Angle::fromRadians(-MAX_VALUE), std::invalid_argument);
-    EXPECT_THROW(math::literals::operator""_rad(static_cast<long double>(MAX_VALUE)), std::invalid_argument);
-    EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(MAX_VALUE).deg(), MAX_VALUE);
-    EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(-MAX_VALUE).deg(), -MAX_VALUE);
+    const double maxValue = std::numeric_limits<double>::max();
+    EXPECT_THROW(math::Angle::fromRadians(maxValue), std::invalid_argument);
+    EXPECT_THROW(math::Angle::fromRadians(-maxValue), std::invalid_argument);
+    EXPECT_THROW(math::literals::operator""_rad(static_cast<long double>(maxValue)), std::invalid_argument);
+    EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(maxValue).deg(), maxValue);
+    EXPECT_DOUBLE_EQ(math::Angle::fromDegrees(-maxValue).deg(), -maxValue);
 }
 
 TEST(AngleTest, RejectsArithmeticOverflowWithoutChangingValue)
 {
-    const double MAX_VALUE = std::numeric_limits<double>::max();
-    const auto maximum = math::Angle::fromDegrees(MAX_VALUE);
+    const double maxValue = std::numeric_limits<double>::max();
+    const auto maximum = math::Angle::fromDegrees(maxValue);
     auto angle = maximum;
     EXPECT_THROW(angle + maximum, std::invalid_argument);
     EXPECT_THROW(angle - (-maximum), std::invalid_argument);
@@ -308,25 +297,25 @@ TEST(AngleTest, RejectsArithmeticOverflowWithoutChangingValue)
     EXPECT_THROW(2.0 * angle, std::invalid_argument);
     EXPECT_THROW(angle / 0.5, std::invalid_argument);
     EXPECT_THROW(angle += maximum, std::invalid_argument);
-    EXPECT_DOUBLE_EQ(angle.deg(), MAX_VALUE);
+    EXPECT_DOUBLE_EQ(angle.deg(), maxValue);
     EXPECT_THROW(angle -= -maximum, std::invalid_argument);
-    EXPECT_DOUBLE_EQ(angle.deg(), MAX_VALUE);
+    EXPECT_DOUBLE_EQ(angle.deg(), maxValue);
     EXPECT_THROW(angle *= 2.0, std::invalid_argument);
-    EXPECT_DOUBLE_EQ(angle.deg(), MAX_VALUE);
+    EXPECT_DOUBLE_EQ(angle.deg(), maxValue);
     EXPECT_THROW(angle /= 0.5, std::invalid_argument);
-    EXPECT_DOUBLE_EQ(angle.deg(), MAX_VALUE);
+    EXPECT_DOUBLE_EQ(angle.deg(), maxValue);
 }
 
 TEST(AngleTest, RejectsNonFiniteArithmeticResultsWithoutChangingValue)
 {
     auto angle = 1.0_deg;
-    const double INVALID_VALUES[] =
+    const double invalidValues[] =
     {
         std::numeric_limits<double>::infinity(),
         -std::numeric_limits<double>::infinity(),
         std::numeric_limits<double>::quiet_NaN()
     };
-    for (double value : INVALID_VALUES)
+    for (double value : invalidValues)
     {
         EXPECT_THROW(angle *= value, std::invalid_argument);
         EXPECT_DOUBLE_EQ(angle.deg(), 1.0);

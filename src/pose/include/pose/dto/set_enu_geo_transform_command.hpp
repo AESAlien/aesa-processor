@@ -9,7 +9,7 @@ namespace pose
 struct SetEnuGeoTransformCommand
 {
     explicit SetEnuGeoTransformCommand(EnuGeoTransform transform)
-        : transform(std::move(transform))
+      : transform(std::move(transform))
     {
     }
 

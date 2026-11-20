@@ -58,7 +58,8 @@ struct TransmitBeamCommand
                 _beamId.value(),
                 _commandCount.value(),
                 _direction_ant.value(),
-                _beamWidth.value());
+                _beamWidth.value()
+            );
         }
 
     private:
