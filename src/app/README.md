@@ -4,8 +4,6 @@
 
 ```text
 app/
-├── include/
-│   └── app/                 # .gitkeep만 있음
 ├── src/
 │   ├── config/
 │   ├── dto/
