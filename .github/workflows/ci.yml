@@ -15,7 +15,7 @@ permissions:
 jobs:
   build-and-test:
     name: Build and Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
@@ -26,12 +26,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtest-dev
 
+      - name: Install C++ lint tools
+        if: github.event_name == 'pull_request'
+        run: sudo apt-get install -y clang-format-18 clang-tidy-18
+
       - name: Configure
         run: |
           cmake \
             -S . \
             -B build \
-            -DCMAKE_BUILD_TYPE=Debug
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
       - name: Build
         run: |
@@ -42,3 +47,15 @@ jobs:
           ctest \
             --test-dir build \
             --output-on-failure
+
+      - name: Check C++ formatting
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: node tools/check_cpp_format.cjs clang-format-18
+
+      - name: Check C++ naming
+        if: github.event_name == 'pull_request'
+        run: |
+          /usr/lib/llvm-18/bin/run-clang-tidy \
+            -clang-tidy-binary /usr/lib/llvm-18/bin/clang-tidy \
+            -p build -quiet '/src/.*\.cpp$'

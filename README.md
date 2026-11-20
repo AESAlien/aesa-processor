@@ -288,3 +288,32 @@ cmake --build --preset windows-release
 ```powershell
 ctest --preset windows-release
 ```
+
+### C++ 린트 실행 방법
+
+#### 1. 저장소 루트로 이동합니다
+
+```powershell
+cd "C:\path\to\aesa-processor"
+```
+
+#### 2. 컴파일 명령을 생성합니다
+
+```powershell
+cmake --preset windows-ninja -B build/lint -DCMAKE_EXPORT_COMPILE_COMMANDS=ON `
+    "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+```
+
+#### 3. 전체 서식을 검사합니다
+
+```powershell
+node tools/check_cpp_format.cjs
+```
+
+#### 4. 전체 네이밍을 검사합니다
+
+```powershell
+git ls-files -- 'src/*.cpp' | ForEach-Object {
+    clang-tidy -p build/lint $_
+}
+```

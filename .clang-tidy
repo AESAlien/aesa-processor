@@ -1,0 +1,30 @@
+Checks: '-*,readability-identifier-naming'
+HeaderFilterRegex: '(^|[/\\])src[/\\].*\.hpp$'
+CheckOptions:
+  readability-identifier-naming.NamespaceCase: lower_case
+  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.StructIgnoredRegexp: 'ST_.*'
+  readability-identifier-naming.EnumCase: CamelCase
+  readability-identifier-naming.EnumConstantCase: UPPER_CASE
+  # Allow coordinate and unit suffixes on camelCase identifiers.
+  readability-identifier-naming.FunctionCase: camelBack
+  readability-identifier-naming.FunctionIgnoredRegexp: '[a-z][a-zA-Z0-9]*_((ant|ecef|enu)(_(db|deg|km|m|mps|mps2|ms|rad|s))?|db|deg|km|m|mps|mps2|ms|rad|s)'
+  readability-identifier-naming.MethodCase: camelBack
+  readability-identifier-naming.MethodIgnoredRegexp: '[a-z][a-zA-Z0-9]*_((ant|ecef|enu)(_(db|deg|km|m|mps|mps2|ms|rad|s))?|db|deg|km|m|mps|mps2|ms|rad|s)'
+  readability-identifier-naming.PrivateMemberCase: camelBack
+  readability-identifier-naming.PrivateMemberPrefix: '_'
+  readability-identifier-naming.PrivateMemberIgnoredRegexp: '_[a-z][a-zA-Z0-9]*_((ant|ecef|enu)(_(db|deg|km|m|mps|mps2|ms|rad|s))?|db|deg|km|m|mps|mps2|ms|rad|s)'
+  readability-identifier-naming.PublicMemberCase: camelBack
+  readability-identifier-naming.PublicMemberIgnoredRegexp: '[a-z][a-zA-Z0-9]*_((ant|ecef|enu)(_(db|deg|km|m|mps|mps2|ms|rad|s))?|db|deg|km|m|mps|mps2|ms|rad|s)'
+  readability-identifier-naming.ParameterCase: camelBack
+  readability-identifier-naming.ParameterIgnoredRegexp: '[a-z][a-zA-Z0-9]*_((ant|ecef|enu)(_(db|deg|km|m|mps|mps2|ms|rad|s))?|db|deg|km|m|mps|mps2|ms|rad|s)'
+  readability-identifier-naming.LocalVariableCase: camelBack
+  readability-identifier-naming.LocalVariableIgnoredRegexp: '[a-z][a-zA-Z0-9]*_((ant|ecef|enu)(_(db|deg|km|m|mps|mps2|ms|rad|s))?|db|deg|km|m|mps|mps2|ms|rad|s)'
+  readability-identifier-naming.LocalConstantCase: camelBack
+  readability-identifier-naming.LocalConstantIgnoredRegexp: '[a-z][a-zA-Z0-9]*_((ant|ecef|enu)(_(db|deg|km|m|mps|mps2|ms|rad|s))?|db|deg|km|m|mps|mps2|ms|rad|s)'
+  readability-identifier-naming.ConstexprVariableCase: UPPER_CASE
+  # Keep const instance fields under their access-specific member rules.
+  readability-identifier-naming.ClassConstantCase: UPPER_CASE
+  readability-identifier-naming.GlobalConstantCase: UPPER_CASE
+  readability-identifier-naming.StaticConstantCase: UPPER_CASE
