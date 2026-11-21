@@ -24,6 +24,7 @@ public:
     bool canProcessResult(std::chrono::milliseconds resultTime) const;
     // 확인 결과의 응답 대기 한도를 넘었는지 판단한다. 한도 시각까지는 유효하다.
     bool isExpired(std::chrono::milliseconds currentTime) const;
+
     std::optional<TrackingResult> initialize(const Observation& observation) const;
     std::optional<ConfirmedTrack> confirm(const Observation& observation) const;
 

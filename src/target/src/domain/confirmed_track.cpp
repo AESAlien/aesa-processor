@@ -4,6 +4,7 @@
 
 #include <limits>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 namespace target
@@ -17,10 +18,9 @@ ConfirmedTrack::ConfirmedTrack(
     std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm,
     std::any algorithmState
 ) : _id(id),
-    _initialTime(initialTime),
     _lifecycleConfig(std::move(lifecycleConfig)),
     _lastResultTime(state.timestamp()),
-    _state(std::make_shared<const TrackState>(std::move(state))),
+    _state(std::move(state)),
     _algorithmState(std::move(algorithmState)),
     _trackingAlgorithm(std::move(trackingAlgorithm))
 {
@@ -28,7 +28,7 @@ ConfirmedTrack::ConfirmedTrack(
     {
         throw std::invalid_argument("Confirmed target requires a nonzero ID and tracking algorithm");
     }
-    if (_initialTime.count() < 0 || _lastResultTime <= _initialTime)
+    if (initialTime.count() < 0 || _lastResultTime <= initialTime)
     {
         throw std::invalid_argument("Confirmed target requires a state after its nonnegative initial time");
     }
@@ -39,52 +39,7 @@ std::uint32_t ConfirmedTrack::id() const
     return _id;
 }
 
-math::Distance ConfirmedTrack::slantRange() const
-{
-    return sphericalPosition().radius;
-}
-
-math::CircularAngle ConfirmedTrack::azimuth() const
-{
-    return sphericalPosition().direction.azimuth;
-}
-
-math::TiltAngle ConfirmedTrack::elevation() const
-{
-    return sphericalPosition().direction.elevation;
-}
-
-const math::SphericalPosition& ConfirmedTrack::sphericalPosition() const
-{
-    return _state->sphericalPosition();
-}
-
-math::LinearVelocity ConfirmedTrack::dopplerVelocity() const
-{
-    return _state->dopplerVelocity();
-}
-
-float ConfirmedTrack::power_db() const
-{
-    return _state->power_db();
-}
-
-std::chrono::milliseconds ConfirmedTrack::initialTime() const
-{
-    return _initialTime;
-}
-
-std::chrono::milliseconds ConfirmedTrack::lastObservationTime() const
-{
-    return _state->timestamp();
-}
-
-std::uint32_t ConfirmedTrack::consecutiveMissCount() const
-{
-    return _consecutiveMissCount;
-}
-
-const std::shared_ptr<const TrackState>& ConfirmedTrack::state() const noexcept
+const TrackState& ConfirmedTrack::state() const noexcept
 {
     return _state;
 }
@@ -134,9 +89,10 @@ bool ConfirmedTrack::update(const Observation& observation)
         throw std::invalid_argument("Tracking state must use the observation time");
     }
 
-    // 메모리 할당에 실패해도 기존 추적 상태와 처리 이력을 보존한다.
-    auto nextState = std::make_shared<const TrackState>(std::move(state));
-    _state = std::move(nextState);
+    // 계산과 검증이 끝난 결과를 예외 없이 반영해 기존 상태와 처리 이력의 일관성을 보장한다.
+    static_assert(std::is_nothrow_move_assignable_v<TrackState>);
+    static_assert(std::is_nothrow_move_assignable_v<std::any>);
+    _state = std::move(state);
     _algorithmState = std::move(nextAlgorithmState);
     _lastResultTime = time;
     _consecutiveMissCount = 0;
@@ -161,10 +117,11 @@ bool ConfirmedTrack::recordTrackingMiss(std::chrono::milliseconds time)
 
 std::optional<TrackPrediction> ConfirmedTrack::predict(std::chrono::milliseconds time) const
 {
-    if (time < lastObservationTime())
+    if (time < _state.timestamp())
     {
         return std::nullopt;
     }
+
     return validatePrediction(_trackingAlgorithm->predict(*this, time), time);
 }
 
@@ -176,6 +133,7 @@ std::optional<TrackPrediction> ConfirmedTrack::validatePrediction(
     {
         throw std::invalid_argument("Prediction must use the requested time");
     }
+    
     return prediction;
 }
 

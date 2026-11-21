@@ -1,3 +1,4 @@
+#include "track_state_assertions.hpp"
 #include "domain/association/nds_algorithm.hpp"
 #include "domain/tracking/constant_velocity_algorithm.hpp"
 #include "domain/factory/detection_result_factory.hpp"
@@ -77,8 +78,8 @@ TEST_F(DetectionHandlerTest, ProcessesLifecycleAndExpiresOnlyTheRequestedTrack)
     EXPECT_EQ(tracking->transmitTime, 1100ms);
     ASSERT_TRUE(_handler.handle(result(BeamType::CONFIRMATION, second->requestId, 100ms, 2000_m)));
     ASSERT_TRUE(_handler.handle(result(BeamType::TRACKING, first->requestId, 1100ms, 1010_m)));
-    EXPECT_EQ(_repository->findConfirmedTrack(first->requestId)->lastObservationTime(), 1100ms);
-    EXPECT_EQ(_repository->findConfirmedTrack(second->requestId)->lastObservationTime(), 100ms);
+    EXPECT_EQ(_repository->findConfirmedTrack(first->requestId)->state().timestamp(), 1100ms);
+    EXPECT_EQ(_repository->findConfirmedTrack(second->requestId)->state().timestamp(), 100ms);
 
     for (auto miss = 0; miss < 3; ++miss)
     {
@@ -104,7 +105,7 @@ TEST_F(DetectionHandlerTest, ProcessesLifecycleAndExpiresOnlyTheRequestedTrack)
     }
     EXPECT_EQ(_repository->findConfirmedTrack(first->requestId), nullptr);
     ASSERT_NE(_repository->findConfirmedTrack(second->requestId), nullptr);
-    EXPECT_EQ(_repository->findConfirmedTrack(second->requestId)->lastObservationTime(), 100ms);
+    EXPECT_EQ(_repository->findConfirmedTrack(second->requestId)->state().timestamp(), 100ms);
     const auto next = _handler.handle(result(BeamType::SEARCH, 52, 4200ms, 3000_m));
     ASSERT_TRUE(next);
     EXPECT_GT(next->requestId, second->requestId);
@@ -129,10 +130,11 @@ TEST_F(DetectionHandlerTest, IgnoresWrongPhaseAndStaleResults)
     EXPECT_FALSE(_handler.handle(result(BeamType::CONFIRMATION, id, 200ms)));
     EXPECT_FALSE(_handler.handle(result(BeamType::TRACKING, id, 100ms)));
     EXPECT_EQ(_repository->findConfirmedTrack(id), track);
-    EXPECT_EQ(track->state(), state);
+    test_support::expectTrackStateEquals(track->state(), state);
     EXPECT_FALSE(track->canProcessResult(100ms));
     EXPECT_TRUE(track->canProcessResult(101ms));
-    EXPECT_EQ(track->consecutiveMissCount(), 0u);
+    EXPECT_FALSE(track->willExpireOnNextMiss());
+    EXPECT_FALSE(track->hasReachedMissLimit());
 }
 
 TEST_F(DetectionHandlerTest, EmptySearchesAdvanceHistoryWithoutConsumingIdentity)

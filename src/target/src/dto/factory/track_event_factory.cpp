@@ -16,9 +16,10 @@ TrackEvent TrackEventFactory::from(const ConfirmedTrack& confirmedTrack, const p
         throw std::overflow_error("Target ID cannot be represented by TrackEvent");
     }
 
-    const auto& state = *confirmedTrack.state();
+    const auto& state = confirmedTrack.state();
     using namespace math::literals;
 
+    const auto& sphericalPosition = state.sphericalPosition();
     const auto& position = state.position();
     const auto& velocity = state.velocity();
     const auto horizontalRange = position.horizontalDistance();
@@ -37,18 +38,18 @@ TrackEvent TrackEventFactory::from(const ConfirmedTrack& confirmedTrack, const p
     return TrackEvent::Builder()
         .id(static_cast<std::uint16_t>(confirmedTrack.id()))
         .state(TrackEvent::TrackStatus::TRACKING)
-        .slantRange(confirmedTrack.slantRange())
+        .slantRange(sphericalPosition.radius)
         .groundRange(horizontalRange)
-        .azimuth(confirmedTrack.azimuth())
-        .elevation(confirmedTrack.elevation())
-        .dopplerVelocity(confirmedTrack.dopplerVelocity())
+        .azimuth(sphericalPosition.direction.azimuth)
+        .elevation(sphericalPosition.direction.elevation)
+        .dopplerVelocity(state.dopplerVelocity())
         .latitude(geodeticPosition.latitude)
         .longitude(geodeticPosition.longitude)
         .altitude(geodeticPosition.altitude)
         .speed(speed)
         .heading(heading)
         .flightPathAngle(flightPathAngle)
-        .timestamp(confirmedTrack.lastObservationTime())
+        .timestamp(state.timestamp())
         .build();
 }
 

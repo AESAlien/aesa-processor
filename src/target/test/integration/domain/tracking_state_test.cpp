@@ -1,3 +1,4 @@
+#include "track_state_assertions.hpp"
 #include "domain/tracking/constant_velocity_algorithm.hpp"
 #include "domain/track_state.hpp"
 #include "domain/track_factory.hpp"
@@ -137,11 +138,15 @@ TEST(TrackResultProcessingTest, ConfirmedTrackRejectsResultsAlreadyCoveredByATra
     EXPECT_TRUE(track->canProcessResult(1101ms));
     EXPECT_FALSE(track->update(observation(1020_m, 1000ms)));
     EXPECT_FALSE(track->recordTrackingMiss(1100ms));
-    EXPECT_EQ(track->state(), savedState);
-    EXPECT_EQ(track->lastObservationTime(), 100ms);
-    EXPECT_EQ(track->consecutiveMissCount(), 1u);
+    test_support::expectTrackStateEquals(track->state(), savedState);
+    EXPECT_EQ(track->state().timestamp(), 100ms);
+    EXPECT_FALSE(track->willExpireOnNextMiss());
+    EXPECT_FALSE(track->hasReachedMissLimit());
     EXPECT_FALSE(track->canProcessResult(1100ms));
     EXPECT_TRUE(track->canProcessResult(1101ms));
+    ASSERT_TRUE(track->recordTrackingMiss(2100ms));
+    EXPECT_TRUE(track->willExpireOnNextMiss());
+    EXPECT_FALSE(track->hasReachedMissLimit());
 }
 
 TEST(TrackMissLimitTest, DistinguishesNextMissFromAnAlreadyReachedLimit)
@@ -198,6 +203,13 @@ TEST(TrackMissLimitTest, SuccessfulUpdateResetsMissLimitJudgments)
     ASSERT_TRUE(track->update(observation(1310_m, 3100ms)));
     EXPECT_FALSE(track->willExpireOnNextMiss());
     EXPECT_FALSE(track->hasReachedMissLimit());
+    ASSERT_TRUE(track->recordTrackingMiss(4100ms));
+    EXPECT_FALSE(track->willExpireOnNextMiss());
+    ASSERT_TRUE(track->recordTrackingMiss(5100ms));
+    EXPECT_TRUE(track->willExpireOnNextMiss());
+    EXPECT_FALSE(track->hasReachedMissLimit());
+    ASSERT_TRUE(track->recordTrackingMiss(6100ms));
+    EXPECT_TRUE(track->hasReachedMissLimit());
 }
 
 TEST(TrackMissLimitTest, FactoryAndTracksKeepTheLifecycleSnapshotFromConstruction)
@@ -271,8 +283,8 @@ TEST(TrackExpirationTest, TrackingMissMovesDeadlineWithoutChangingLastObservatio
     ASSERT_TRUE(track->recordTrackingMiss(1600ms));
 
     // 실행 및 검증: 관측 상태는 보존하고 응답 대기 한도는 미탐 결과 시각을 기준으로 갱신한다.
-    EXPECT_EQ(track->state(), savedState);
-    EXPECT_EQ(track->lastObservationTime(), 600ms);
+    test_support::expectTrackStateEquals(track->state(), savedState);
+    EXPECT_EQ(track->state().timestamp(), 600ms);
     EXPECT_FALSE(track->isExpired(4601ms));
     EXPECT_FALSE(track->isExpired(5600ms));
     EXPECT_TRUE(track->isExpired(5601ms));
@@ -298,9 +310,9 @@ TEST(TrackingStateTest, ExistingConstructorAndConstantVelocityUseZeroAcceleratio
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
     auto& target = *repository.findConfirmedTrack(id);
-    EXPECT_EQ(target.state()->acceleration().acceleration(), 0_mps2);
+    EXPECT_EQ(target.state().acceleration().acceleration(), 0_mps2);
     ASSERT_TRUE(target.update(observation(1020_m, 200ms)));
-    EXPECT_EQ(target.state()->acceleration().acceleration(), 0_mps2);
+    EXPECT_EQ(target.state().acceleration().acceleration(), 0_mps2);
 }
 
 TEST(ConstantVelocityAlgorithmTest, TreatsVelocityWithinDefaultToleranceAsStationary)
@@ -351,29 +363,33 @@ TEST(TrackingStateTest, StoresAlgorithmStateAcrossUpdatesAndPreservesItDuringMis
     auto& target = *repository.findConfirmedTrack(id);
     const auto initialTrack = target;
     const auto initialSnapshot = target.state();
-    EXPECT_EQ(initialSnapshot->acceleration().x, 1_mps2);
-    EXPECT_EQ(initialSnapshot->acceleration().y, 2_mps2);
-    EXPECT_EQ(initialSnapshot->acceleration().z, 3_mps2);
+    EXPECT_EQ(initialSnapshot.acceleration().x, 1_mps2);
+    EXPECT_EQ(initialSnapshot.acceleration().y, 2_mps2);
+    EXPECT_EQ(initialSnapshot.acceleration().z, 3_mps2);
     EXPECT_EQ(EnrichedAlgorithm::data(target), 25);
 
     ASSERT_TRUE(target.update(observation(1020_m, 200ms)));
     const auto updatedSnapshot = target.state();
-    EXPECT_NE(updatedSnapshot.get(), initialSnapshot.get());
-    EXPECT_EQ(updatedSnapshot->acceleration().x, 4_mps2);
-    EXPECT_EQ(updatedSnapshot->acceleration().y, 5_mps2);
-    EXPECT_EQ(updatedSnapshot->acceleration().z, 6_mps2);
+    EXPECT_NE(updatedSnapshot.timestamp(), initialSnapshot.timestamp());
+    EXPECT_EQ(updatedSnapshot.acceleration().x, 4_mps2);
+    EXPECT_EQ(updatedSnapshot.acceleration().y, 5_mps2);
+    EXPECT_EQ(updatedSnapshot.acceleration().z, 6_mps2);
     EXPECT_EQ(EnrichedAlgorithm::data(target), 50);
-    EXPECT_EQ(initialSnapshot->acceleration().x, 1_mps2);
+    EXPECT_EQ(initialSnapshot.acceleration().x, 1_mps2);
     EXPECT_EQ(EnrichedAlgorithm::data(initialTrack), 25);
+    test_support::expectTrackStateEquals(initialTrack.state(), initialSnapshot);
+    EXPECT_TRUE(initialTrack.canProcessResult(200ms));
+    EXPECT_FALSE(target.canProcessResult(200ms));
 
     ASSERT_TRUE(target.recordTrackingMiss(1200ms));
     ASSERT_TRUE(target.recordTrackingMiss(2200ms));
-    EXPECT_EQ(target.state().get(), updatedSnapshot.get());
+    test_support::expectTrackStateEquals(target.state(), updatedSnapshot);
     EXPECT_EQ(EnrichedAlgorithm::data(target), 50);
-    EXPECT_EQ(target.lastObservationTime(), 200ms);
+    EXPECT_EQ(target.state().timestamp(), 200ms);
     EXPECT_FALSE(target.canProcessResult(2200ms));
     EXPECT_TRUE(target.canProcessResult(2201ms));
-    EXPECT_EQ(target.consecutiveMissCount(), 2u);
+    EXPECT_TRUE(target.willExpireOnNextMiss());
+    EXPECT_FALSE(target.hasReachedMissLimit());
 }
 
 TEST(TrackingStateTest, RejectedUpdatesPreserveAccelerationStrategyDataAndMissHistory)
@@ -386,34 +402,39 @@ TEST(TrackingStateTest, RejectedUpdatesPreserveAccelerationStrategyDataAndMissHi
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
     auto& target = *repository.findConfirmedTrack(id);
     ASSERT_TRUE(target.recordTrackingMiss(1100ms));
+    ASSERT_TRUE(target.recordTrackingMiss(1200ms));
     const auto saved = target.state();
 
     algorithm->fault = EnrichedAlgorithm::Fault::NO_RESULT;
     EXPECT_FALSE(target.update(observation(1020_m, 2100ms)));
-    EXPECT_EQ(target.state(), saved);
+    test_support::expectTrackStateEquals(target.state(), saved);
     EXPECT_EQ(EnrichedAlgorithm::data(target), 25);
+    EXPECT_TRUE(target.willExpireOnNextMiss());
+    EXPECT_FALSE(target.hasReachedMissLimit());
 
     for (auto fault : {EnrichedAlgorithm::Fault::INVALID_DATA, EnrichedAlgorithm::Fault::WRONG_TIME})
     {
         algorithm->fault = fault;
         EXPECT_THROW(target.update(observation(1020_m, 2100ms)), std::invalid_argument);
-        EXPECT_EQ(target.state().get(), saved.get());
-        EXPECT_EQ(target.state()->acceleration().x, 1_mps2);
-        EXPECT_EQ(target.state()->acceleration().y, 2_mps2);
-        EXPECT_EQ(target.state()->acceleration().z, 3_mps2);
+        test_support::expectTrackStateEquals(target.state(), saved);
+        EXPECT_EQ(target.state().acceleration().x, 1_mps2);
+        EXPECT_EQ(target.state().acceleration().y, 2_mps2);
+        EXPECT_EQ(target.state().acceleration().z, 3_mps2);
         EXPECT_EQ(EnrichedAlgorithm::data(target), 25);
-        EXPECT_EQ(target.lastObservationTime(), 100ms);
-        EXPECT_FALSE(target.canProcessResult(1100ms));
-        EXPECT_TRUE(target.canProcessResult(1101ms));
-        EXPECT_EQ(target.consecutiveMissCount(), 1u);
+        EXPECT_EQ(target.state().timestamp(), 100ms);
+        EXPECT_FALSE(target.canProcessResult(1200ms));
+        EXPECT_TRUE(target.canProcessResult(1201ms));
+        EXPECT_TRUE(target.willExpireOnNextMiss());
+        EXPECT_FALSE(target.hasReachedMissLimit());
     }
     algorithm->fault = EnrichedAlgorithm::Fault::NONE;
     ASSERT_TRUE(target.update(observation(1020_m, 2100ms)));
-    EXPECT_EQ(target.state()->acceleration().x, 4_mps2);
-    EXPECT_EQ(target.state()->acceleration().y, 5_mps2);
-    EXPECT_EQ(target.state()->acceleration().z, 6_mps2);
+    EXPECT_EQ(target.state().acceleration().x, 4_mps2);
+    EXPECT_EQ(target.state().acceleration().y, 5_mps2);
+    EXPECT_EQ(target.state().acceleration().z, 6_mps2);
     EXPECT_EQ(EnrichedAlgorithm::data(target), 50);
-    EXPECT_EQ(target.consecutiveMissCount(), 0u);
+    EXPECT_FALSE(target.willExpireOnNextMiss());
+    EXPECT_FALSE(target.hasReachedMissLimit());
 }
 
 TEST(TrackingStateTest, RemovingTracksPreservesRemainingAccelerationAndStrategyData)
@@ -452,14 +473,14 @@ TEST(TrackingStateTest, RemovingTracksPreservesRemainingAccelerationAndStrategyD
     ASSERT_EQ(repository.tracks().size(), 2u);
     EXPECT_EQ(std::get<ConfirmedTrack>(repository.tracks().front()).id(), firstId);
     EXPECT_EQ(std::get<ConfirmedTrack>(repository.tracks().back()).id(), lastId);
-    EXPECT_EQ(repository.findConfirmedTrack(firstId)->state()->acceleration().x, 1_mps2);
-    EXPECT_EQ(repository.findConfirmedTrack(firstId)->state()->acceleration().y, 2_mps2);
-    EXPECT_EQ(repository.findConfirmedTrack(firstId)->state()->acceleration().z, 3_mps2);
+    EXPECT_EQ(repository.findConfirmedTrack(firstId)->state().acceleration().x, 1_mps2);
+    EXPECT_EQ(repository.findConfirmedTrack(firstId)->state().acceleration().y, 2_mps2);
+    EXPECT_EQ(repository.findConfirmedTrack(firstId)->state().acceleration().z, 3_mps2);
     EXPECT_EQ(EnrichedAlgorithm::data(*repository.findConfirmedTrack(firstId)), 25);
-    EXPECT_EQ(repository.findConfirmedTrack(lastId)->state().get(), saved.get());
-    EXPECT_EQ(saved->acceleration().x, 4_mps2);
-    EXPECT_EQ(saved->acceleration().y, 5_mps2);
-    EXPECT_EQ(saved->acceleration().z, 6_mps2);
+    test_support::expectTrackStateEquals(repository.findConfirmedTrack(lastId)->state(), saved);
+    EXPECT_EQ(saved.acceleration().x, 4_mps2);
+    EXPECT_EQ(saved.acceleration().y, 5_mps2);
+    EXPECT_EQ(saved.acceleration().z, 6_mps2);
     EXPECT_EQ(EnrichedAlgorithm::data(*repository.findConfirmedTrack(lastId)), 50);
 }
 

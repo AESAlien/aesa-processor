@@ -46,7 +46,7 @@ public:
         const auto prediction = predict(current, time);
         if (prediction)
         {
-            const auto seconds = std::chrono::duration<double>(time - current.lastObservationTime()).count();
+            const auto seconds = std::chrono::duration<double>(time - current.state().timestamp()).count();
             covariance = _covariance * (1.0 + _growthPerSecond * seconds);
         }
         return prediction;

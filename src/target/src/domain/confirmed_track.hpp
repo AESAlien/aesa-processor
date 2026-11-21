@@ -17,7 +17,7 @@ namespace target
 class ITrackingAlgorithm;
 class IPositionUncertainty;
 
-// 확정 트랙은 항상 유효한 불변 추적 상태를 보유한다.
+// 확정 트랙은 항상 검증된 추적 상태를 값으로 보유한다.
 class ConfirmedTrack
 {
 public:
@@ -31,16 +31,7 @@ public:
     );
 
     std::uint32_t id() const;
-    math::Distance slantRange() const;
-    math::CircularAngle azimuth() const;
-    math::TiltAngle elevation() const;
-    const math::SphericalPosition& sphericalPosition() const;
-    math::LinearVelocity dopplerVelocity() const;
-    float power_db() const;
-    std::chrono::milliseconds initialTime() const;
-    std::chrono::milliseconds lastObservationTime() const;
-    std::uint32_t consecutiveMissCount() const;
-    const std::shared_ptr<const TrackState>& state() const noexcept;
+    const TrackState& state() const noexcept;
 
     // 미탐을 포함한 마지막 처리 시각보다 새로운 결과만 처리할 수 있다.
     bool canProcessResult(std::chrono::milliseconds resultTime) const;
@@ -50,6 +41,7 @@ public:
     bool willExpireOnNextMiss() const;
     // 이미 기록한 연속 미탐 횟수가 한도에 도달했는지 판단한다.
     bool hasReachedMissLimit() const;
+
     bool update(const Observation& observation);
     bool recordTrackingMiss(std::chrono::milliseconds time);
     std::optional<TrackPrediction> predict(std::chrono::milliseconds time) const;
@@ -64,11 +56,10 @@ private:
     );
 
     const std::uint32_t _id;
-    const std::chrono::milliseconds _initialTime;
     const TrackLifecycleConfig _lifecycleConfig;
     std::chrono::milliseconds _lastResultTime;
     std::uint32_t _consecutiveMissCount = 0;
-    std::shared_ptr<const TrackState> _state;
+    TrackState _state;
     std::any _algorithmState;
     std::shared_ptr<const ITrackingAlgorithm> _trackingAlgorithm;
 };

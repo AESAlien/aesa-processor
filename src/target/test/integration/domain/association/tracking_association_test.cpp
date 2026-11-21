@@ -1,3 +1,4 @@
+#include "track_state_assertions.hpp"
 #include "domain/association/nds_algorithm.hpp"
 #include "association_selection_helpers.hpp"
 #include "domain/tracking/constant_velocity_algorithm.hpp"
@@ -32,12 +33,6 @@ using test_support::isDuplicate;
 using test_support::selectTracking;
 using Time = std::chrono::milliseconds;
 using BeamType = beam::BeamType;
-
-static_assert(
-    std::is_same_v<
-        decltype(std::declval<const ConfirmedTrack&>().slantRange()),
-        math::Distance>
-);
 
 math::SphericalPosition position(math::Length range)
 {
@@ -371,11 +366,12 @@ TEST_F(TrackingAssociationTest, UsesReceiveTimePredictionWithoutTentativeMotionA
     EXPECT_EQ(selected->slantRange(), 1120_m);
     EXPECT_FALSE(selectTracking(observation(1000_m, 1100ms), tracking));
     EXPECT_FALSE(selectTracking(observation(1150_m, 1100ms), tracking));
-    EXPECT_EQ(tracking.slantRange(), 1010_m);
-    EXPECT_EQ(tracking.lastObservationTime(), 100ms);
+    EXPECT_EQ(tracking.state().sphericalPosition().radius, 1010_m);
+    EXPECT_EQ(tracking.state().timestamp(), 100ms);
     EXPECT_FALSE(tracking.canProcessResult(100ms));
     EXPECT_TRUE(tracking.canProcessResult(101ms));
-    EXPECT_EQ(tracking.consecutiveMissCount(), 0u);
+    EXPECT_FALSE(tracking.willExpireOnNextMiss());
+    EXPECT_FALSE(tracking.hasReachedMissLimit());
 }
 
 TEST_F(TrackingAssociationTest, SharesConfiguredNdsGateAndAcceptsTheBoundary)
@@ -462,7 +458,7 @@ TEST_F(TrackingAssociationTest, PredictionUncertaintyChangesTheGateAtTheRequeste
     EXPECT_TRUE(selectTracking(incoming, tracking, AssociationConfig(1000_mps, 30_mps, 10.0 + 1e-12)));
     EXPECT_FALSE(selectTracking(incoming, tracking, AssociationConfig(1000_mps, 30_mps, 10.0 - 1e-12)));
     EXPECT_TRUE(isDuplicate(observation(1050_m, 2100ms), tracking));
-    EXPECT_EQ(tracking.lastObservationTime(), 100ms);
+    EXPECT_EQ(tracking.state().timestamp(), 100ms);
 }
 
 TEST_F(TrackingAssociationTest, PastSearchUsesStoredPositionCovarianceAndMotionAllowance)
@@ -478,7 +474,7 @@ TEST_F(TrackingAssociationTest, PastSearchUsesStoredPositionCovarianceAndMotionA
     const auto incoming = observation(1070_m, 50ms);
     EXPECT_TRUE(isDuplicate(incoming, tracking, AssociationConfig(1000_mps, 30_mps, 1.0 + 1e-12)));
     EXPECT_FALSE(isDuplicate(incoming, tracking, AssociationConfig(1000_mps, 30_mps, 1.0 - 1e-12)));
-    EXPECT_EQ(tracking.lastObservationTime(), 100ms);
+    EXPECT_EQ(tracking.state().timestamp(), 100ms);
 }
 
 TEST_F(TrackingAssociationTest, ValidatesCovarianceProvidedForPrediction)
@@ -527,7 +523,11 @@ TEST_F(TrackingAssociationTest, RejectsStaleOrDuplicateResults)
     EXPECT_FALSE(selectTracking(observation(1000_m, 1000ms), tracking));
     EXPECT_FALSE(selectTracking(observation(1000_m, 1100ms), tracking));
     EXPECT_FALSE(_selector.selectTrackingObservation(*_repository.findConfirmedTrack(id), 1100ms, {observation(1000_m, 1100ms)}));
-    EXPECT_EQ(tracking.consecutiveMissCount(), 1u);
+    EXPECT_FALSE(tracking.willExpireOnNextMiss());
+    EXPECT_FALSE(tracking.hasReachedMissLimit());
+    ASSERT_TRUE(tracking.recordTrackingMiss(2100ms));
+    EXPECT_TRUE(tracking.willExpireOnNextMiss());
+    EXPECT_FALSE(tracking.hasReachedMissLimit());
 }
 
 TEST_F(TrackingAssociationTest, ReturnsNoMatchWhenPredictionIsUnavailable)
@@ -567,7 +567,7 @@ TEST_F(TrackingAssociationTest, SelectsMinimumScoreIncludingZeroAndKeepsFirstTie
     );
     ASSERT_TRUE(tied);
     EXPECT_EQ(tied->slantRange(), 1010_m);
-    EXPECT_EQ(_repository.findConfirmedTrack(id)->lastObservationTime(), 100ms);
+    EXPECT_EQ(_repository.findConfirmedTrack(id)->state().timestamp(), 100ms);
 }
 
 TEST_F(TrackingAssociationTest, ComparesOnlyTheSuppliedTrackAndMatchingResultTime)
@@ -600,7 +600,7 @@ TEST_F(TrackingAssociationTest, ReusesOnePredictionPerBatchAndRefreshesAfterAnUp
     ASSERT_TRUE(selected);
     EXPECT_EQ(selected->slantRange(), 1005_m);
     EXPECT_EQ(algorithm->predictionCount(), 1u);
-    EXPECT_EQ(track.state(), previousState);
+    test_support::expectTrackStateEquals(track.state(), previousState);
     EXPECT_FALSE(track.canProcessResult(100ms));
     EXPECT_TRUE(track.canProcessResult(101ms));
 
@@ -613,7 +613,7 @@ TEST_F(TrackingAssociationTest, ReusesOnePredictionPerBatchAndRefreshesAfterAnUp
     ASSERT_TRUE(next);
     EXPECT_EQ(next->slantRange(), 1020_m);
     EXPECT_EQ(algorithm->predictionCount(), 2u);
-    EXPECT_EQ(track.lastObservationTime(), 1100ms);
+    EXPECT_EQ(track.state().timestamp(), 1100ms);
 }
 
 TEST_F(TrackingAssociationTest, SkipsPredictionWithoutEligibleObservations)
@@ -646,10 +646,11 @@ TEST_F(TrackingAssociationTest, DoesNotRetryFailedPredictionUntilTheNextBatch)
     EXPECT_EQ(algorithm->predictionCount(), 1u);
     EXPECT_FALSE(_selector.selectTrackingObservation(track, 1100ms, observations));
     EXPECT_EQ(algorithm->predictionCount(), 2u);
-    EXPECT_EQ(track.state(), previousState);
+    test_support::expectTrackStateEquals(track.state(), previousState);
     EXPECT_FALSE(track.canProcessResult(100ms));
     EXPECT_TRUE(track.canProcessResult(101ms));
-    EXPECT_EQ(track.consecutiveMissCount(), 0u);
+    EXPECT_FALSE(track.willExpireOnNextMiss());
+    EXPECT_FALSE(track.hasReachedMissLimit());
 }
 
 TEST_F(TrackingAssociationTest, RejectsIndefiniteCovarianceProvidedForObservedState)

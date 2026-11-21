@@ -1,3 +1,4 @@
+#include "track_state_assertions.hpp"
 #include "domain/association/nds_algorithm.hpp"
 #include "domain/tracking/constant_velocity_algorithm.hpp"
 #include "domain/factory/detection_result_factory.hpp"
@@ -188,7 +189,7 @@ TEST(TrackRepositoryTest, ReplacementRequiresAnExistingIdentity)
     EXPECT_TRUE(repository.replace(*replacement));
     ASSERT_EQ(repository.tracks().size(), 1u);
     ASSERT_NE(repository.findConfirmedTrack(tentative.id()), nullptr);
-    EXPECT_EQ(repository.findConfirmedTrack(tentative.id())->state(), replacement->state());
+    test_support::expectTrackStateEquals(repository.findConfirmedTrack(tentative.id())->state(), replacement->state());
 }
 
 TEST(TrackRepositoryTest, AddsPreparedTracksAndTentativeTracksInOrder)
@@ -213,10 +214,9 @@ TEST(TrackRepositoryTest, AddsPreparedTracksAndTentativeTracksInOrder)
     EXPECT_EQ(repository.findTentativeTrack(second), nullptr);
     const auto* stored = repository.findConfirmedTrack(second);
     ASSERT_NE(stored, nullptr);
-    EXPECT_EQ(stored->state(), state);
-    EXPECT_EQ(stored->initialTime(), 10ms);
-    EXPECT_EQ(stored->lastObservationTime(), 110ms);
-    EXPECT_EQ(stored->slantRange(), 2001_m);
+    test_support::expectTrackStateEquals(stored->state(), state);
+    EXPECT_EQ(stored->state().timestamp(), 110ms);
+    EXPECT_EQ(stored->state().sphericalPosition().radius, 2001_m);
 }
 
 TEST(TrackRepositoryTest, RejectsDuplicateIdsAcrossBothTrackTypes)
@@ -240,7 +240,7 @@ TEST(TrackRepositoryTest, RejectsDuplicateIdsAcrossBothTrackTypes)
     EXPECT_THROW(repository.add(*track), std::invalid_argument);
     EXPECT_EQ(repository.tracks().size(), 1u);
     EXPECT_EQ(repository.findConfirmedTrack(tentative.id()), stored);
-    EXPECT_EQ(stored->state(), track->state());
+    test_support::expectTrackStateEquals(stored->state(), track->state());
     EXPECT_EQ(repository.add(factory.createTentative(observation(200ms))), 2u);
 }
 
@@ -283,12 +283,12 @@ TEST(TrackFactoryTest, TrackRetainsAlgorithmAfterFactoryAndTentativeAreDestroyed
         ASSERT_TRUE(track);
         EXPECT_FALSE(algorithm.expired());
         EXPECT_EQ(track->id(), 1u);
-        EXPECT_EQ(track->initialTime(), 10ms);
-        EXPECT_EQ(track->lastObservationTime(), 110ms);
+        EXPECT_EQ(track->state().timestamp(), 110ms);
         EXPECT_FALSE(track->canProcessResult(110ms));
         EXPECT_TRUE(track->canProcessResult(111ms));
-        EXPECT_EQ(track->consecutiveMissCount(), 0u);
-        EXPECT_EQ(track->slantRange(), 1001_m);
+        EXPECT_FALSE(track->willExpireOnNextMiss());
+        EXPECT_FALSE(track->hasReachedMissLimit());
+        EXPECT_EQ(track->state().sphericalPosition().radius, 1001_m);
         const auto prediction = track->predict(210ms);
         ASSERT_TRUE(prediction);
         EXPECT_EQ(prediction->sphericalPosition().radius, 1002_m);
@@ -318,8 +318,7 @@ TEST(TargetLifecycleTest, ConfirmationPreservesIdentityAndRegistrationOrder)
     EXPECT_EQ(std::get<ConfirmedTrack>(*current).id(), third);
     EXPECT_EQ(repository.findTentativeTrack(first), nullptr);
     ASSERT_NE(repository.findConfirmedTrack(first), nullptr);
-    EXPECT_EQ(repository.findConfirmedTrack(first)->initialTime(), 0ms);
-    EXPECT_EQ(repository.findConfirmedTrack(first)->lastObservationTime(), 100ms);
+    EXPECT_EQ(repository.findConfirmedTrack(first)->state().timestamp(), 100ms);
     EXPECT_TRUE(repository.removeById(second));
     EXPECT_EQ(repository.findTentativeTrack(second), nullptr);
     EXPECT_EQ(repository.findConfirmedTrack(third)->id(), third);

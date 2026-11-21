@@ -1,3 +1,4 @@
+#include "track_state_assertions.hpp"
 #include "domain/association/nds_algorithm.hpp"
 #include "association_selection_helpers.hpp"
 #include "domain/tracking/constant_velocity_algorithm.hpp"
@@ -45,10 +46,7 @@ static_assert(std::is_copy_assignable_v<TargetController>);
 static_assert(std::is_copy_assignable_v<TrackPrediction>);
 static_assert(std::is_copy_assignable_v<TrackState>);
 static_assert(
-    std::is_same_v<decltype(std::declval<const ConfirmedTrack&>().sphericalPosition()), const math::SphericalPosition&>
-);
-static_assert(
-    std::is_same_v<decltype(std::declval<const ConfirmedTrack&>().state()), const std::shared_ptr<const TrackState>&>
+    std::is_same_v<decltype(std::declval<const ConfirmedTrack&>().state()), const TrackState&>
 );
 
 math::SphericalPosition position(math::Length range = 1000_m)
@@ -237,13 +235,12 @@ TEST(ConfirmedTrackTest, OwnsValidatedStateWithoutFactoryAccess)
     const auto algorithm = std::make_shared<ConstantVelocityAlgorithm>();
     const auto track = ConfirmedTrack(7, 0ms, state(), TrackLifecycleConfig(100ms, 1000ms, 3), algorithm);
     EXPECT_EQ(track.id(), 7u);
-    EXPECT_EQ(track.initialTime(), 0ms);
-    EXPECT_EQ(track.lastObservationTime(), 100ms);
+    EXPECT_EQ(track.state().timestamp(), 100ms);
     EXPECT_FALSE(track.canProcessResult(100ms));
     EXPECT_TRUE(track.canProcessResult(101ms));
-    EXPECT_EQ(track.consecutiveMissCount(), 0u);
-    EXPECT_EQ(track.slantRange(), 1000_m);
-    ASSERT_TRUE(track.state());
+    EXPECT_FALSE(track.willExpireOnNextMiss());
+    EXPECT_FALSE(track.hasReachedMissLimit());
+    EXPECT_EQ(track.state().sphericalPosition().radius, 1000_m);
 }
 
 TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingTheFirstObservation)
@@ -265,14 +262,12 @@ TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingThe
     ASSERT_TRUE(track);
     EXPECT_EQ(algorithm->initializationCount(), 2u);
     EXPECT_EQ(track->id(), tentative.id());
-    EXPECT_EQ(track->initialTime(), 100ms);
-    EXPECT_EQ(track->lastObservationTime(), 200ms);
+    EXPECT_EQ(track->state().timestamp(), 200ms);
 
     const auto confirmed = tentative.confirm(observation(300ms, 1020_m));
     ASSERT_TRUE(confirmed);
     EXPECT_EQ(algorithm->initializationCount(), 3u);
-    EXPECT_EQ(confirmed->initialTime(), 100ms);
-    EXPECT_EQ(confirmed->lastObservationTime(), 300ms);
+    EXPECT_EQ(confirmed->state().timestamp(), 300ms);
     EXPECT_EQ(tentative.id(), 1u);
     EXPECT_FALSE(tentative.canProcessResult(100ms));
     EXPECT_TRUE(tentative.canProcessResult(101ms));
@@ -352,8 +347,7 @@ TEST(TrackFactoryTest, RejectedCreationPreservesTentativeForRetry)
     const auto track = tentative.confirm(observation(100ms));
     ASSERT_TRUE(track);
     EXPECT_EQ(track->id(), tentative.id());
-    EXPECT_EQ(track->initialTime(), 0ms);
-    EXPECT_EQ(track->lastObservationTime(), 100ms);
+    EXPECT_EQ(track->state().timestamp(), 100ms);
     EXPECT_FALSE(tentative.canProcessResult(0ms));
     EXPECT_TRUE(tentative.canProcessResult(1ms));
 }
@@ -370,22 +364,25 @@ TEST(DomainValidationTest, RejectedUpdatePreservesStateAndMissHistory)
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
     auto& target = *repository.findConfirmedTrack(id);
     ASSERT_TRUE(target.recordTrackingMiss(1100ms));
-    const auto* saved = target.state().get();
+    ASSERT_TRUE(target.recordTrackingMiss(1200ms));
+    const auto saved = target.state();
     for (auto fault : {FaultAlgorithm::Fault::INVALID_STATE, FaultAlgorithm::Fault::WRONG_TIME})
     {
         algorithm->fault = fault;
         EXPECT_THROW(target.update(observation(2100ms)), std::invalid_argument);
-        EXPECT_EQ(target.state().get(), saved);
-        EXPECT_EQ(target.lastObservationTime(), 100ms);
-        EXPECT_FALSE(target.canProcessResult(1100ms));
-        EXPECT_TRUE(target.canProcessResult(1101ms));
-        EXPECT_EQ(target.consecutiveMissCount(), 1u);
-        EXPECT_EQ(target.sphericalPosition().radius, 1000_m);
+        test_support::expectTrackStateEquals(target.state(), saved);
+        EXPECT_EQ(target.state().timestamp(), 100ms);
+        EXPECT_FALSE(target.canProcessResult(1200ms));
+        EXPECT_TRUE(target.canProcessResult(1201ms));
+        EXPECT_TRUE(target.willExpireOnNextMiss());
+        EXPECT_FALSE(target.hasReachedMissLimit());
+        EXPECT_EQ(target.state().sphericalPosition().radius, 1000_m);
     }
     algorithm->fault = FaultAlgorithm::Fault::NONE;
     ASSERT_TRUE(target.update(observation(2100ms)));
-    EXPECT_EQ(target.consecutiveMissCount(), 0u);
-    EXPECT_EQ(target.lastObservationTime(), 2100ms);
+    EXPECT_FALSE(target.willExpireOnNextMiss());
+    EXPECT_FALSE(target.hasReachedMissLimit());
+    EXPECT_EQ(target.state().timestamp(), 2100ms);
 }
 
 TEST(DomainValidationTest, PredictionContractErrorsThrowAndComputationFailuresRemainOptional)
@@ -405,7 +402,7 @@ TEST(DomainValidationTest, PredictionContractErrorsThrowAndComputationFailuresRe
         EXPECT_THROW(target.predict(1100ms), std::invalid_argument);
         EXPECT_FALSE(target.canProcessResult(100ms));
         EXPECT_TRUE(target.canProcessResult(101ms));
-        EXPECT_EQ(target.lastObservationTime(), 100ms);
+        EXPECT_EQ(target.state().timestamp(), 100ms);
     }
     algorithm->fault = FaultAlgorithm::Fault::NO_RESULT;
     EXPECT_FALSE(target.predict(1100ms));

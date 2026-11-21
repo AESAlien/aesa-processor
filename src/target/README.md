@@ -82,7 +82,7 @@ classDiagram
 
     TentativeTrack *-- Observation
     Observation "0..*" --* DetectionResult
-    ConfirmedTrack o-- TrackState : 공유 소유
+    ConfirmedTrack *-- TrackState
     TentativeTrack ..> ConfirmedTrack : 생성
 
     TentativeTrack o-- ITrackingAlgorithm : 공유 소유

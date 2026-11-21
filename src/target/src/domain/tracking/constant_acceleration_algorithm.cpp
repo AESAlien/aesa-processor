@@ -353,7 +353,7 @@ std::optional<TrackingResult> ConstantAccelerationAlgorithm::update(
     const ConfirmedTrack& current,
     const Observation& observation
 ) const {
-    const auto& state = *current.state();
+    const auto& state = current.state();
     const auto time = observation.observationTime();
     if (time <= state.timestamp())
     {
@@ -453,7 +453,7 @@ std::optional<TrackPrediction> ConstantAccelerationAlgorithm::predictPosition(
     std::optional<math::SquareMatrix>* covariance
 ) const {
     const auto predicted = predictState(
-        *current.state(),
+        current.state(),
         stateCovariance(algorithmState(current)),
         time,
         _config.processAccelerationStandardDeviation()

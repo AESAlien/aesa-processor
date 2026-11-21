@@ -40,7 +40,7 @@ std::vector<TrackEvent> TrackReporter::getTrackEvents() const
     events.reserve(confirmedTracks.size());
     for (const auto* confirmedTrack : confirmedTracks)
     {
-        const auto position = _enuGeoTransform->enuToGeo(confirmedTrack->state()->position());
+        const auto position = _enuGeoTransform->enuToGeo(confirmedTrack->state().position());
         events.push_back(TrackEventFactory::from(*confirmedTrack, position));
     }
     return events;

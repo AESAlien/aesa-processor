@@ -100,7 +100,8 @@ std::optional<double> TentativeSelector::matchingPositionScore(
     const ConfirmedTrack& other
 ) const {
     const auto time = observation.observationTime();
-    const auto referenceTime = other.lastObservationTime();
+    const auto& currentState = other.state();
+    const auto referenceTime = currentState.timestamp();
     if (time >= referenceTime)
     {
         const auto prediction = _algorithm->predictAndPrepare(other, time);
@@ -120,7 +121,7 @@ std::optional<double> TentativeSelector::matchingPositionScore(
 
     const auto calculation = _algorithm->prepareFromLastObservation(other);
     return calculation
-        ? positionScore(*calculation, observation, other.sphericalPosition(), referenceTime, true)
+        ? positionScore(*calculation, observation, currentState.sphericalPosition(), referenceTime, true)
         : std::nullopt;
 }
 

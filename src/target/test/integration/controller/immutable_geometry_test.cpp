@@ -48,10 +48,10 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     ASSERT_TRUE(repository.replace(std::move(confirmedLastTrack).value()));
     auto* tracked = repository.findConfirmedTrack(lastId);
     ASSERT_TRUE(tracked->update(target::Observation(position(302_m), 1_mps, 1.0f, 2000ms)));
-    EXPECT_EQ(tracked->state()->position().x, 0_m);
-    EXPECT_EQ(tracked->state()->position().y, 302_m);
-    EXPECT_EQ(tracked->state()->velocity().x, 0_mps);
-    EXPECT_EQ(tracked->state()->velocity().y, 1_mps);
+    EXPECT_EQ(tracked->state().position().x, 0_m);
+    EXPECT_EQ(tracked->state().position().y, 302_m);
+    EXPECT_EQ(tracked->state().velocity().x, 0_mps);
+    EXPECT_EQ(tracked->state().velocity().y, 1_mps);
 
     EXPECT_FALSE(repository.removeById(0));
     ASSERT_TRUE(repository.removeById(middleId));
@@ -78,10 +78,9 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     );
     EXPECT_EQ(repository.findConfirmedTrack(middleId), nullptr);
     tracked = repository.findConfirmedTrack(lastId);
-    ASSERT_TRUE(tracked->state());
-    EXPECT_EQ(tracked->state()->position().y, 302_m);
+    EXPECT_EQ(tracked->state().position().y, 302_m);
     ASSERT_TRUE(tracked->update(target::Observation(position(303_m), 1_mps, 1.0f, 3000ms)));
-    EXPECT_EQ(tracked->state()->position().y, 303_m);
+    EXPECT_EQ(tracked->state().position().y, 303_m);
 
     EXPECT_TRUE(repository.removeById(firstId));
     EXPECT_TRUE(repository.removeById(lastId));
