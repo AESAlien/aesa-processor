@@ -33,6 +33,8 @@ comm/
 
 ## 클래스 다이어그램
 
+[Notion 원문](https://app.notion.com/p/TCP-419261646eaa80f3a9efcf0402cc84e4?source=copy_link)
+
 ```mermaid
 classDiagram
     direction TB
@@ -48,13 +50,15 @@ classDiagram
     Session *-- ConnectedSocket
     Session *-- MessageFramer
     Socket <|-- ListenSocket
-    Socket <|-- ConnectedSocket
     Socket ..> NativeSocket : 호출
+    Socket <|-- ConnectedSocket
 ```
 
 ## 시퀀스 다이어그램
 
 ### 외부 메시지 수신
+
+[Notion 원문](https://app.notion.com/p/3e9261646eaa8046ac1df109e1c148a1?source=copy_link)
 
 ```mermaid
 sequenceDiagram
@@ -82,6 +86,8 @@ sequenceDiagram
 ```
 
 ### 외부 메시지 송신
+
+[Notion 원문](https://app.notion.com/p/3e9261646eaa80fe88e8e9dc880d4b3a?source=copy_link)
 
 ```mermaid
 sequenceDiagram

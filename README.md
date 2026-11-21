@@ -33,6 +33,8 @@ flowchart LR
 
 ### 모듈 구성
 
+[Notion 원문](https://app.notion.com/p/3e5261646eaa808d9dabe9a3e212e6c6?source=copy_link)
+
 ```mermaid
 flowchart BT
     app[실행 제어 모듈<br/>app]
@@ -62,6 +64,8 @@ flowchart BT
 ```
 
 ### 전체 데이터 흐름
+
+[Notion 원문](https://app.notion.com/p/3f2261646eaa8034b7fbf8480ba0c3f2?source=copy_link)
 
 ```mermaid
 block-beta

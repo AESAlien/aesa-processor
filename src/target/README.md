@@ -73,6 +73,8 @@ flowchart LR
 
 ## 클래스 다이어그램
 
+[Notion 원문](https://app.notion.com/p/419261646eaa8019a344e691039f03e5?source=copy_link)
+
 ```mermaid
 classDiagram
     direction TB
@@ -113,6 +115,8 @@ classDiagram
 
 ### 탐색 결과 처리
 
+[Notion 원문](https://app.notion.com/p/41e261646eaa80b59652fa1934e77d36?source=copy_link)
+
 ```mermaid
 sequenceDiagram
     actor app
@@ -149,6 +153,8 @@ sequenceDiagram
 ```
 
 ### 확인 결과 처리
+
+[Notion 원문](https://app.notion.com/p/41e261646eaa80aeaa63c6cd57bec25d?source=copy_link)
 
 ```mermaid
 sequenceDiagram
@@ -212,6 +218,8 @@ sequenceDiagram
 ```
 
 ### 추적 결과 처리
+
+[Notion 원문](https://app.notion.com/p/41f261646eaa80c9819dda60ca675f0f?source=copy_link)
 
 ```mermaid
 sequenceDiagram
@@ -278,6 +286,8 @@ sequenceDiagram
 
 ### 트랙 만료
 
+[Notion 원문](https://app.notion.com/p/41f261646eaa80f29ab8d5c623cdca39?source=copy_link)
+
 ```mermaid
 sequenceDiagram
     actor app
@@ -306,7 +316,9 @@ sequenceDiagram
     TargetController-->>app: 만료 처리 완료
 ```
 
-### 트랙 보고
+### 트랙 리포트
+
+[Notion 원문](https://app.notion.com/p/41f261646eaa80bcba9ddd2d52e2d472?source=copy_link)
 
 ```mermaid
 sequenceDiagram
@@ -316,14 +328,14 @@ sequenceDiagram
     participant TrackRepository
     participant EnuGeoTransform
 
-    Note over app: TargetWorker가 같은 TickEvent에서 만료 처리 후 보고 목록 요청
+    Note over app: TargetWorker가 같은 TickEvent에서 만료 처리 후 리포트 목록 요청
     app->>TargetController: getTrackEvents()
     TargetController->>TrackReporter: getTrackEvents()
     alt ENU와 지리 좌표 간 변환이 설정되지 않음
         TrackReporter-->>TargetController: 빈 목록
     else 좌표 변환이 설정됨
         TrackReporter->>TrackRepository: confirmedTracks(maxReportedTrackCount)
-        TrackRepository-->>TrackReporter: 보고 상한 내의 확정 트랙 목록
+        TrackRepository-->>TrackReporter: 리포트 상한 내의 확정 트랙 목록
         loop 각 확정 트랙
             TrackReporter->>EnuGeoTransform: enuToGeo(track.state().position())
             EnuGeoTransform-->>TrackReporter: 위도와 경도, 타원체고
@@ -346,8 +358,6 @@ sequenceDiagram
 | `TrackingConfig` | 추적 알고리즘의 초기 가속도 오차와 과정 잡음 |
 | `TrackLifecycleConfig` | 확인 지연, 추적 주기, 최대 연속 미탐 횟수 |
 | `TrackReportingConfig` | 전시기 보고 개수와 프로토콜 상한 검증 |
-
-`TrackFactory`는 수명주기 설정을 트랙 생성 시 전달한다. 잠정 트랙이 확정 트랙으로 전환되어도 같은 설정을 유지하며, `isExpired(currentTime)`은 보관한 설정으로 만료 여부를 판단한다. `TrackReporter`는 보고 설정만 전달받는다.
 
 ## 환경 설정
 

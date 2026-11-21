@@ -48,6 +48,8 @@ flowchart TB
 
 ## 클래스 다이어그램
 
+[Notion 원문](https://app.notion.com/p/419261646eaa8098ad03fcb817618db3?source=copy_link)
+
 ```mermaid
 classDiagram
     direction TB

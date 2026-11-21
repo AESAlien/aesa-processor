@@ -71,6 +71,8 @@ flowchart LR
 
 ## 클래스 다이어그램
 
+[Notion 원문](https://app.notion.com/p/419261646eaa806d9cc2def6948407b4?source=copy_link)
+
 ```mermaid
 classDiagram
     direction TB
@@ -93,7 +95,7 @@ classDiagram
 
 ### 자세 갱신
 
-[Notion 원문](https://app.notion.com/p/3e2261646eaa80958ddad09ebd489a13)
+[Notion 원문](https://app.notion.com/p/3e2261646eaa80958ddad09ebd489a13?source=copy_link)
 
 ```mermaid
 sequenceDiagram
@@ -126,7 +128,7 @@ sequenceDiagram
 
 ### 탐색 빔 송신
 
-[Notion 원문](https://app.notion.com/p/3e4261646eaa80f686a7d8c47293ec28)
+[Notion 원문](https://app.notion.com/p/3e4261646eaa80f686a7d8c47293ec28?source=copy_link)
 
 ```mermaid
 sequenceDiagram
@@ -151,7 +153,7 @@ sequenceDiagram
 
 ### 요청 빔 송신
 
-[Notion 원문](https://app.notion.com/p/3e5261646eaa8006ba81dbb5709f1fc4)
+[Notion 원문](https://app.notion.com/p/3e5261646eaa8006ba81dbb5709f1fc4?source=copy_link)
 
 ```mermaid
 sequenceDiagram

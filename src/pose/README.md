@@ -49,6 +49,8 @@ flowchart LR
 
 ## 클래스 다이어그램
 
+[Notion 원문](https://app.notion.com/p/419261646eaa800ab984f02705c4049d?source=copy_link)
+
 ```mermaid
 classDiagram
     direction TB
