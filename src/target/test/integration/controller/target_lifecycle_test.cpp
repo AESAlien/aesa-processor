@@ -317,7 +317,7 @@ TEST(TargetLifecycleTest, ConfirmationPreservesIdentityAndRegistrationOrder)
     ASSERT_NE(repository.findConfirmedTrack(first), nullptr);
     EXPECT_EQ(repository.findConfirmedTrack(first)->initialTime(), 0ms);
     EXPECT_EQ(repository.findConfirmedTrack(first)->lastObservationTime(), 100ms);
-    EXPECT_TRUE(repository.remove(second));
+    EXPECT_TRUE(repository.removeById(second));
     EXPECT_EQ(repository.findTentativeTrack(second), nullptr);
     EXPECT_EQ(repository.findConfirmedTrack(third)->id(), third);
     const auto fourth = repository.add(factory.createTentative(repository.nextId(), observation(200ms, 4000_m)));

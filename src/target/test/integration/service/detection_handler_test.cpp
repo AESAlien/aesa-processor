@@ -167,7 +167,7 @@ TEST_F(DetectionHandlerTest, PreexistingTargetsDoNotCollideWithNewRegistrations)
     EXPECT_EQ(_repository->findTentativeTrack(1), original);
     EXPECT_EQ(_repository->tracks().size(), 2u);
 
-    ASSERT_TRUE(_repository->remove(1));
+    ASSERT_TRUE(_repository->removeById(1));
     EXPECT_FALSE(_handler.handle(result(BeamType::SEARCH, 5, 0ms)));
     const auto next = _handler.handle(result(BeamType::SEARCH, 6, 0ms, 3000_m));
     ASSERT_TRUE(next);

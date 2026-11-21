@@ -101,7 +101,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     );
     if (!observation)
     {
-        _trackRepository->remove(result.requestId);
+        _trackRepository->removeById(result.requestId);
         return std::nullopt;
     }
 
@@ -109,7 +109,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     auto confirmedTrack = tentativeTrack->confirm(*observation);
     if (!confirmedTrack)
     {
-        _trackRepository->remove(result.requestId);
+        _trackRepository->removeById(result.requestId);
         return std::nullopt;
     }
     // 기존 저장 위치에서 잠정 트랙을 확정 트랙으로 바꿔 ID와 등록 순서를 보존한다.
@@ -123,7 +123,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     const auto prediction = storedTrack->predict(transmitTime);
     if (!prediction)
     {
-        _trackRepository->remove(result.requestId);
+        _trackRepository->removeById(result.requestId);
         return std::nullopt;
     }
 
@@ -148,7 +148,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     if (!observation &&
         confirmedTrack->consecutiveMissCount() >= _config.maxConsecutiveTrackingMisses() - 1)
     {
-        _trackRepository->remove(result.requestId);
+        _trackRepository->removeById(result.requestId);
         return std::nullopt;
     }
 
@@ -160,7 +160,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
         confirmedTrack->recordTrackingMiss(result.transmitTime);
         if (confirmedTrack->consecutiveMissCount() >= _config.maxConsecutiveTrackingMisses())
         {
-            _trackRepository->remove(result.requestId);
+            _trackRepository->removeById(result.requestId);
             return std::nullopt;
         }
     }
@@ -169,7 +169,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     const auto prediction = confirmedTrack->predict(transmitTime);
     if (!prediction)
     {
-        _trackRepository->remove(result.requestId);
+        _trackRepository->removeById(result.requestId);
         return std::nullopt;
     }
 

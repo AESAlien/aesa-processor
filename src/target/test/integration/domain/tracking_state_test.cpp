@@ -276,7 +276,7 @@ TEST(TrackingStateTest, RemovingTracksPreservesRemainingAccelerationAndStrategyD
     ASSERT_TRUE(repository.findConfirmedTrack(lastId)->update(observation(3002_m, 200ms)));
     const auto saved = repository.findConfirmedTrack(lastId)->state();
 
-    ASSERT_TRUE(repository.remove(middleId));
+    ASSERT_TRUE(repository.removeById(middleId));
     ASSERT_EQ(repository.tracks().size(), 2u);
     EXPECT_EQ(std::get<ConfirmedTrack>(repository.tracks().front()).id(), firstId);
     EXPECT_EQ(std::get<ConfirmedTrack>(repository.tracks().back()).id(), lastId);

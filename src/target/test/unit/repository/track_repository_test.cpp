@@ -48,7 +48,7 @@ TEST(TrackRepositoryTest, ExhaustionDoesNotWrapOrReuseDeletedIds)
     {
         ASSERT_EQ(repository.nextId(), id);
         ASSERT_EQ(repository.add(factory.createTentative(repository.nextId(), observation())), id);
-        ASSERT_TRUE(repository.remove(id));
+        ASSERT_TRUE(repository.removeById(id));
     }
     EXPECT_TRUE(repository.tracks().empty());
     EXPECT_THROW(repository.nextId(), std::overflow_error);
@@ -113,7 +113,7 @@ TEST(TrackRepositoryTest, PreparedIdentitiesAdvanceTheSequenceWithoutMovingItBac
     ASSERT_TRUE(track);
     EXPECT_EQ(repository.add(*track), 7u);
     EXPECT_EQ(repository.nextId(), 43u);
-    ASSERT_TRUE(repository.remove(42));
+    ASSERT_TRUE(repository.removeById(42));
     EXPECT_EQ(repository.add(factory.createTentative(repository.nextId(), observation())), 43u);
 }
 

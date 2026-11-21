@@ -306,7 +306,7 @@ TEST_F(TrackingAssociationTest, SelectorsUseInjectedScoresForEveryComparisonMode
     );
     ASSERT_TRUE(confirmation);
     EXPECT_EQ(confirmation->slantRange(), 1020_m);
-    ASSERT_TRUE(_repository.remove(id));
+    ASSERT_TRUE(_repository.removeById(id));
     _repository.add(tentative);
     EXPECT_FALSE(tentativeSelector.selectNewCandidate({observation(1020_m, 0ms)}, _repository.tracks()));
 }

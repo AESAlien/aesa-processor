@@ -56,8 +56,8 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     EXPECT_EQ(tracked->state()->velocity().x, 0_mps);
     EXPECT_EQ(tracked->state()->velocity().y, 1_mps);
 
-    EXPECT_FALSE(repository.remove(0));
-    ASSERT_TRUE(repository.remove(middleId));
+    EXPECT_FALSE(repository.removeById(0));
+    ASSERT_TRUE(repository.removeById(middleId));
     ASSERT_EQ(repository.tracks().size(), 2u);
     EXPECT_EQ(
         std::visit(
@@ -86,10 +86,10 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     ASSERT_TRUE(tracked->update(target::Observation(position(303_m), 1_mps, 1.0f, 3000ms)));
     EXPECT_EQ(tracked->state()->position().y, 303_m);
 
-    EXPECT_TRUE(repository.remove(firstId));
-    EXPECT_TRUE(repository.remove(lastId));
+    EXPECT_TRUE(repository.removeById(firstId));
+    EXPECT_TRUE(repository.removeById(lastId));
     EXPECT_TRUE(repository.tracks().empty());
-    EXPECT_FALSE(repository.remove(lastId));
+    EXPECT_FALSE(repository.removeById(lastId));
 }
 
 TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)

@@ -23,7 +23,7 @@ public:
     ConfirmedTrack* findConfirmedTrack(std::uint32_t id);
     const ConfirmedTrack* findConfirmedTrack(std::uint32_t id) const;
     bool replace(ConfirmedTrack confirmedTrack);
-    bool remove(std::uint32_t id);
+    bool removeById(std::uint32_t id);
     // 잠정-확정 트랙을 모두 삭제하고 삭제한 개수를 반환한다.
     // 새 ID 순번은 유지해 삭제 전에 송신한 빔의 늦은 결과가 새 트랙에 연결되지 않게 한다.
     std::size_t clear();

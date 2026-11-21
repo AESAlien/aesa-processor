@@ -129,7 +129,7 @@ bool TrackRepository::replace(ConfirmedTrack confirmedTrack)
     return true;
 }
 
-bool TrackRepository::remove(std::uint32_t id)
+bool TrackRepository::removeById(std::uint32_t id)
 {
     const auto track = findTrackById(_tracks, id);
     if (track == _tracks.end())

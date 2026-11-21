@@ -175,7 +175,7 @@ sequenceDiagram
     DetectionHandler->>TrackSelector: selectConfirmationObservation(track, transmitTime, observations)
     TrackSelector-->>DetectionHandler: 연관 관측 또는 관측 없음
     break 연관된 확인 관측이 없음
-        DetectionHandler->>TrackRepository: remove(requestId)
+        DetectionHandler->>TrackRepository: removeById(requestId)
         DetectionHandler-->>TargetController: 빔 요청 없음
         TargetController-->>app: 빔 요청 없음
     end
@@ -184,7 +184,7 @@ sequenceDiagram
     Note over TentativeTrack: 두 관측으로 추적 상태 초기화
     TentativeTrack-->>DetectionHandler: 확정 트랙 또는 초기화 실패
     break 추적 상태 초기화 실패
-        DetectionHandler->>TrackRepository: remove(requestId)
+        DetectionHandler->>TrackRepository: removeById(requestId)
         DetectionHandler-->>TargetController: 빔 요청 없음
         TargetController-->>app: 빔 요청 없음
     end
@@ -204,7 +204,7 @@ sequenceDiagram
     alt 예측 성공
         DetectionHandler-->>TargetController: RequestBeamCommand(TRACKING)
     else 예측 실패
-        DetectionHandler->>TrackRepository: remove(requestId)
+        DetectionHandler->>TrackRepository: removeById(requestId)
         DetectionHandler-->>TargetController: 빔 요청 없음
     end
     TargetController-->>app: 첫 추적 빔 요청 또는 요청 없음
@@ -233,7 +233,7 @@ sequenceDiagram
     DetectionHandler->>TrackSelector: selectTrackingObservation(track, transmitTime, observations)
     TrackSelector-->>DetectionHandler: 연관 관측 또는 관측 없음
     break 관측이 없고 이번 미탐으로 연속 미탐 한도에 도달
-        DetectionHandler->>TrackRepository: remove(requestId)
+        DetectionHandler->>TrackRepository: removeById(requestId)
         DetectionHandler-->>TargetController: 빔 요청 없음
         TargetController-->>app: 빔 요청 없음
     end
@@ -247,7 +247,7 @@ sequenceDiagram
         DetectionHandler->>ConfirmedTrack: recordTrackingMiss(transmitTime)
         Note over ConfirmedTrack: 마지막 유효 상태 유지<br/>결과 시각과 연속 미탐 횟수 갱신
         break 연속 미탐 한도에 도달
-            DetectionHandler->>TrackRepository: remove(requestId)
+            DetectionHandler->>TrackRepository: removeById(requestId)
             DetectionHandler-->>TargetController: 빔 요청 없음
             TargetController-->>app: 빔 요청 없음
         end
@@ -259,7 +259,7 @@ sequenceDiagram
         Note over DetectionHandler: 미탐 허용 중에도 마지막 유효 상태로 다음 빔 방향 예측
         DetectionHandler-->>TargetController: RequestBeamCommand(TRACKING)
     else 예측 실패
-        DetectionHandler->>TrackRepository: remove(requestId)
+        DetectionHandler->>TrackRepository: removeById(requestId)
         DetectionHandler-->>TargetController: 빔 요청 없음
     end
     TargetController-->>app: 다음 추적 빔 요청 또는 요청 없음
@@ -286,7 +286,7 @@ sequenceDiagram
         end
     end
     loop 수집한 ID마다
-        TrackExpirationHandler->>TrackRepository: remove(id)
+        TrackExpirationHandler->>TrackRepository: removeById(id)
     end
     TrackExpirationHandler-->>TargetController: 삭제된 트랙 ID 목록
     TargetController-->>app: 만료 처리 완료

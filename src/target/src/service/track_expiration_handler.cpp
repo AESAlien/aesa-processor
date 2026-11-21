@@ -45,7 +45,7 @@ std::vector<std::uint32_t> TrackExpirationHandler::removeExpiredTracks(std::chro
     // 순회 중에 삭제하면 반복자가 무효가 되므로 ID를 모은 뒤 삭제한다.
     for (const auto id : expiredIds)
     {
-        _trackRepository->remove(id);
+        _trackRepository->removeById(id);
     }
     return expiredIds;
 }
