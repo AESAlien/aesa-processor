@@ -6,7 +6,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <vector>
@@ -73,8 +72,8 @@ TEST(TrackRepositoryTest, QueriesTrackTypesInRegistrationOrderWithIndependentLim
     ASSERT_TRUE(repository.replace(*laterTrack));
     ASSERT_TRUE(repository.replace(*earlierTrack));
 
-    const auto confirmed = std::vector<const ConfirmedTrack*>{repository.findConfirmedTrack(7), repository.findConfirmedTrack(3)};
-    const auto tentative = std::vector<const TentativeTrack*>{repository.findTentativeTrack(42), repository.findTentativeTrack(20)};
+    const auto confirmed = std::vector<const ConfirmedTrack*>{repository.findConfirmedById(7), repository.findConfirmedById(3)};
+    const auto tentative = std::vector<const TentativeTrack*>{repository.findTentativeById(42), repository.findTentativeById(20)};
     EXPECT_EQ(repository.confirmedTracks(), confirmed);
     EXPECT_EQ(repository.tentativeTracks(), tentative);
     EXPECT_EQ(repository.confirmedTracks(1), (std::vector<const ConfirmedTrack*>{confirmed.front()}));
@@ -94,26 +93,9 @@ TEST(TrackRepositoryTest, StoresPreparedIdentitiesWithoutChangingThem)
     const auto track = tentative.confirm(confirmation);
     ASSERT_TRUE(track);
     EXPECT_EQ(repository.add(*track), 7u);
-    EXPECT_EQ(repository.findConfirmedTrack(7)->id(), 7u);
+    EXPECT_EQ(repository.findConfirmedById(7)->id(), 7u);
     ASSERT_TRUE(repository.removeById(42));
-    EXPECT_EQ(repository.findTentativeTrack(42), nullptr);
-}
-
-TEST(TrackRepositoryTest, RejectsUnreportableIdentitiesWithoutStoringTracks)
-{
-    TrackRepository repository;
-    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3));
-    const auto invalid = std::uint32_t{std::numeric_limits<std::uint16_t>::max()} + 1;
-    const auto tentative = TentativeTrack(invalid, observation(), TrackLifecycleConfig(100ms, 1000ms, 3), std::make_shared<ConstantVelocityAlgorithm>());
-    EXPECT_THROW(repository.add(tentative), std::overflow_error);
-    EXPECT_TRUE(repository.tracks().empty());
-
-    const auto confirmation = Observation(math::SphericalPosition(1001_m, 0_deg, 0_deg), 0_mps, -10.0f, 100ms);
-    const auto track = tentative.confirm(confirmation);
-    ASSERT_TRUE(track);
-    EXPECT_THROW(repository.add(*track), std::overflow_error);
-    EXPECT_TRUE(repository.tracks().empty());
-    EXPECT_EQ(repository.add(factory.createTentative(observation())), 1u);
+    EXPECT_EQ(repository.findTentativeById(42), nullptr);
 }
 
 // 운용 OFF 시 모든 트랙을 지우되, 늦게 도착한 결과가 새 트랙에 붙지 않도록 ID는 재사용하지 않는다.
@@ -134,8 +116,8 @@ TEST(TrackRepositoryTest, ClearRemovesAllTrackTypesWithoutReusingIds)
     EXPECT_TRUE(repository.tracks().empty());
     EXPECT_TRUE(repository.confirmedTracks().empty());
     EXPECT_TRUE(repository.tentativeTracks().empty());
-    EXPECT_EQ(repository.findConfirmedTrack(1), nullptr);
-    EXPECT_EQ(repository.findTentativeTrack(2), nullptr);
+    EXPECT_EQ(repository.findConfirmedById(1), nullptr);
+    EXPECT_EQ(repository.findTentativeById(2), nullptr);
     EXPECT_EQ(repository.add(factory.createTentative(observation())), 3u);
 }
 

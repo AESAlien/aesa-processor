@@ -306,10 +306,10 @@ TEST(TrackingStateTest, ExistingConstructorAndConstantVelocityUseZeroAcceleratio
     const auto id = repository.add(
         TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(1000_m, 0ms))
     );
-    auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(1010_m, 100ms));
+    auto confirmedTrack = repository.findTentativeById(id)->confirm(observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
-    auto& target = *repository.findConfirmedTrack(id);
+    auto& target = *repository.findConfirmedById(id);
     EXPECT_EQ(target.state().acceleration().acceleration(), 0_mps2);
     ASSERT_TRUE(target.update(observation(1020_m, 200ms)));
     EXPECT_EQ(target.state().acceleration().acceleration(), 0_mps2);
@@ -357,10 +357,10 @@ TEST(TrackingStateTest, StoresAlgorithmStateAcrossUpdatesAndPreservesItDuringMis
     const auto algorithm = std::make_shared<EnrichedAlgorithm>();
     TrackRepository repository;
     const auto id = repository.add(TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(1000_m, 0ms)));
-    auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(1010_m, 100ms));
+    auto confirmedTrack = repository.findTentativeById(id)->confirm(observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
-    auto& target = *repository.findConfirmedTrack(id);
+    auto& target = *repository.findConfirmedById(id);
     const auto initialTrack = target;
     const auto initialSnapshot = target.state();
     EXPECT_EQ(initialSnapshot.acceleration().x, 1_mps2);
@@ -397,10 +397,10 @@ TEST(TrackingStateTest, RejectedUpdatesPreserveAccelerationStrategyDataAndMissHi
     const auto algorithm = std::make_shared<EnrichedAlgorithm>();
     TrackRepository repository;
     const auto id = repository.add(TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(1000_m, 0ms)));
-    auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(1010_m, 100ms));
+    auto confirmedTrack = repository.findTentativeById(id)->confirm(observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
-    auto& target = *repository.findConfirmedTrack(id);
+    auto& target = *repository.findConfirmedById(id);
     ASSERT_TRUE(target.recordTrackingMiss(1100ms));
     ASSERT_TRUE(target.recordTrackingMiss(1200ms));
     const auto saved = target.state();
@@ -457,31 +457,31 @@ TEST(TrackingStateTest, RemovingTracksPreservesRemainingAccelerationAndStrategyD
             observation(3000_m, 0ms)
         )
     );
-    auto confirmedFirstTrack = repository.findTentativeTrack(firstId)->confirm(observation(1001_m, 100ms));
+    auto confirmedFirstTrack = repository.findTentativeById(firstId)->confirm(observation(1001_m, 100ms));
     ASSERT_TRUE(confirmedFirstTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedFirstTrack).value()));
-    auto confirmedMiddleTrack = repository.findTentativeTrack(middleId)->confirm(observation(2001_m, 100ms));
+    auto confirmedMiddleTrack = repository.findTentativeById(middleId)->confirm(observation(2001_m, 100ms));
     ASSERT_TRUE(confirmedMiddleTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedMiddleTrack).value()));
-    auto confirmedLastTrack = repository.findTentativeTrack(lastId)->confirm(observation(3001_m, 100ms));
+    auto confirmedLastTrack = repository.findTentativeById(lastId)->confirm(observation(3001_m, 100ms));
     ASSERT_TRUE(confirmedLastTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedLastTrack).value()));
-    ASSERT_TRUE(repository.findConfirmedTrack(lastId)->update(observation(3002_m, 200ms)));
-    const auto saved = repository.findConfirmedTrack(lastId)->state();
+    ASSERT_TRUE(repository.findConfirmedById(lastId)->update(observation(3002_m, 200ms)));
+    const auto saved = repository.findConfirmedById(lastId)->state();
 
     ASSERT_TRUE(repository.removeById(middleId));
     ASSERT_EQ(repository.tracks().size(), 2u);
     EXPECT_EQ(std::get<ConfirmedTrack>(repository.tracks().front()).id(), firstId);
     EXPECT_EQ(std::get<ConfirmedTrack>(repository.tracks().back()).id(), lastId);
-    EXPECT_EQ(repository.findConfirmedTrack(firstId)->state().acceleration().x, 1_mps2);
-    EXPECT_EQ(repository.findConfirmedTrack(firstId)->state().acceleration().y, 2_mps2);
-    EXPECT_EQ(repository.findConfirmedTrack(firstId)->state().acceleration().z, 3_mps2);
-    EXPECT_EQ(EnrichedAlgorithm::data(*repository.findConfirmedTrack(firstId)), 25);
-    test_support::expectTrackStateEquals(repository.findConfirmedTrack(lastId)->state(), saved);
+    EXPECT_EQ(repository.findConfirmedById(firstId)->state().acceleration().x, 1_mps2);
+    EXPECT_EQ(repository.findConfirmedById(firstId)->state().acceleration().y, 2_mps2);
+    EXPECT_EQ(repository.findConfirmedById(firstId)->state().acceleration().z, 3_mps2);
+    EXPECT_EQ(EnrichedAlgorithm::data(*repository.findConfirmedById(firstId)), 25);
+    test_support::expectTrackStateEquals(repository.findConfirmedById(lastId)->state(), saved);
     EXPECT_EQ(saved.acceleration().x, 4_mps2);
     EXPECT_EQ(saved.acceleration().y, 5_mps2);
     EXPECT_EQ(saved.acceleration().z, 6_mps2);
-    EXPECT_EQ(EnrichedAlgorithm::data(*repository.findConfirmedTrack(lastId)), 50);
+    EXPECT_EQ(EnrichedAlgorithm::data(*repository.findConfirmedById(lastId)), 50);
 }
 
 } // namespace

@@ -88,7 +88,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
 std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     const ConfirmationDetectionResult& result
 ) {
-    const auto* tentativeTrack = _trackRepository->findTentativeTrack(result.requestId);
+    const auto* tentativeTrack = _trackRepository->findTentativeById(result.requestId);
     if (!tentativeTrack || !tentativeTrack->canProcessResult(result.transmitTime))
     {
         return std::nullopt;
@@ -118,7 +118,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
         return std::nullopt;
     }
 
-    const auto* storedTrack = _trackRepository->findConfirmedTrack(result.requestId);
+    const auto* storedTrack = _trackRepository->findConfirmedById(result.requestId);
     // 확인 관측으로 초기화한 상태를 다음 추적 빔의 송신 시각까지 예측해 조향 방향을 구한다.
     const auto prediction = storedTrack->predict(transmitTime);
     if (!prediction)
@@ -133,7 +133,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
 std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     const TrackingDetectionResult& result
 ) {
-    auto* confirmedTrack = _trackRepository->findConfirmedTrack(result.requestId);
+    auto* confirmedTrack = _trackRepository->findConfirmedById(result.requestId);
     if (!confirmedTrack || !confirmedTrack->canProcessResult(result.transmitTime))
     {
         return std::nullopt;

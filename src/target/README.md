@@ -120,7 +120,6 @@ sequenceDiagram
     participant DetectionHandler
     participant TrackRepository
     participant TentativeSelector
-    participant TrackFactory
 
     app->>TargetController: handleDetection(event)
     TargetController->>DetectionHandler: handle(SearchDetectionResult)
@@ -137,9 +136,7 @@ sequenceDiagram
     TentativeSelector-->>DetectionHandler: 후보 관측 또는 후보 없음
 
     alt 새 후보가 있음
-        DetectionHandler->>TrackFactory: createTentative(candidate)
-        Note over TrackFactory: 새 ID를 발급해 잠정 트랙 생성<br/>팩터리 생성 시 받은 수명주기 설정 전달
-        TrackFactory-->>DetectionHandler: ID가 부여된 TentativeTrack
+        Note over DetectionHandler: ID와 수명주기 설정을 가진 잠정 트랙 준비
         DetectionHandler->>TrackRepository: add(tentativeTrack)
         TrackRepository-->>DetectionHandler: id
         Note over DetectionHandler: 마지막 탐색 결과 시각 기록<br/>transmitTime + confirmationDelay에 확인 빔 요청
@@ -165,7 +162,7 @@ sequenceDiagram
 
     app->>TargetController: handleDetection(event)
     TargetController->>DetectionHandler: handle(ConfirmationDetectionResult)
-    DetectionHandler->>TrackRepository: findTentativeTrack(requestId)
+    DetectionHandler->>TrackRepository: findTentativeById(requestId)
     TrackRepository-->>DetectionHandler: 잠정 트랙 또는 트랙 없음
     opt 잠정 트랙이 있음
         DetectionHandler->>TentativeTrack: canProcessResult(transmitTime)
@@ -201,7 +198,7 @@ sequenceDiagram
         TargetController-->>app: 빔 요청 없음
     end
 
-    DetectionHandler->>TrackRepository: findConfirmedTrack(requestId)
+    DetectionHandler->>TrackRepository: findConfirmedById(requestId)
     TrackRepository-->>DetectionHandler: confirmedTrack
     DetectionHandler->>ConfirmedTrack: predict(transmitTime + trackingInterval)
     ConfirmedTrack-->>DetectionHandler: 예측 결과 또는 예측 실패
@@ -227,7 +224,7 @@ sequenceDiagram
 
     app->>TargetController: handleDetection(event)
     TargetController->>DetectionHandler: handle(TrackingDetectionResult)
-    DetectionHandler->>TrackRepository: findConfirmedTrack(requestId)
+    DetectionHandler->>TrackRepository: findConfirmedById(requestId)
     TrackRepository-->>DetectionHandler: 확정 트랙 또는 트랙 없음
     opt 확정 트랙이 있음
         DetectionHandler->>ConfirmedTrack: canProcessResult(transmitTime)

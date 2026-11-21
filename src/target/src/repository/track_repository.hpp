@@ -16,10 +16,8 @@ class TrackRepository
 public:
     std::uint32_t add(TentativeTrack tentativeTrack);
     std::uint32_t add(ConfirmedTrack confirmedTrack);
-    TentativeTrack* findTentativeTrack(std::uint32_t id);
-    const TentativeTrack* findTentativeTrack(std::uint32_t id) const;
-    ConfirmedTrack* findConfirmedTrack(std::uint32_t id);
-    const ConfirmedTrack* findConfirmedTrack(std::uint32_t id) const;
+    TentativeTrack* findTentativeById(std::uint32_t id);
+    ConfirmedTrack* findConfirmedById(std::uint32_t id);
     bool replace(ConfirmedTrack confirmedTrack);
     bool removeById(std::uint32_t id);
     // 잠정-확정 트랙을 모두 삭제하고 삭제한 개수를 반환한다.

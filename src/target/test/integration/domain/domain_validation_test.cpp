@@ -307,19 +307,19 @@ TEST(DomainValidationTest, RejectedInitializationPreservesTentativeAndCanBeRetri
     const auto id = repository.add(
         TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(0ms, 1000_m, 0_mps))
     );
-    const auto& target = *repository.findTentativeTrack(id);
+    const auto& target = *repository.findTentativeById(id);
     for (auto fault : {FaultAlgorithm::Fault::INVALID_STATE, FaultAlgorithm::Fault::WRONG_TIME})
     {
         algorithm->fault = fault;
         EXPECT_THROW(target.confirm(observation(100ms)), std::invalid_argument);
-        EXPECT_EQ(repository.findTentativeTrack(id), &target);
-        EXPECT_EQ(repository.findConfirmedTrack(id), nullptr);
+        EXPECT_EQ(repository.findTentativeById(id), &target);
+        EXPECT_EQ(repository.findConfirmedById(id), nullptr);
         EXPECT_FALSE(target.canProcessResult(0ms));
         EXPECT_TRUE(target.canProcessResult(1ms));
         EXPECT_EQ(target.observation().observationTime(), 0ms);
     }
     algorithm->fault = FaultAlgorithm::Fault::NONE;
-    auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(100ms));
+    auto confirmedTrack = repository.findTentativeById(id)->confirm(observation(100ms));
     EXPECT_TRUE(confirmedTrack);
     EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
 }
@@ -359,10 +359,10 @@ TEST(DomainValidationTest, RejectedUpdatePreservesStateAndMissHistory)
     const auto id = repository.add(
         TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(0ms, 1000_m, 0_mps))
     );
-    auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(100ms));
+    auto confirmedTrack = repository.findTentativeById(id)->confirm(observation(100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
-    auto& target = *repository.findConfirmedTrack(id);
+    auto& target = *repository.findConfirmedById(id);
     ASSERT_TRUE(target.recordTrackingMiss(1100ms));
     ASSERT_TRUE(target.recordTrackingMiss(1200ms));
     const auto saved = target.state();
@@ -392,10 +392,10 @@ TEST(DomainValidationTest, PredictionContractErrorsThrowAndComputationFailuresRe
     const auto id = repository.add(
         TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(0ms, 1000_m, 0_mps))
     );
-    auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(100ms));
+    auto confirmedTrack = repository.findTentativeById(id)->confirm(observation(100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
-    auto& target = *repository.findConfirmedTrack(id);
+    auto& target = *repository.findConfirmedById(id);
     for (auto fault : {FaultAlgorithm::Fault::INVALID_STATE, FaultAlgorithm::Fault::WRONG_TIME})
     {
         algorithm->fault = fault;
@@ -482,7 +482,7 @@ TEST(TargetConfigTest, SelectorsUseInjectedSpeedDopplerNoiseAndGate)
     const auto id = repository.add(
         TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation())
     );
-    const auto& tentative = *repository.findTentativeTrack(id);
+    const auto& tentative = *repository.findTentativeById(id);
     const auto association = AssociationConfig(1000_mps, 30_mps, 11.345);
     const auto speedRestricted = AssociationConfig(100_mps, 30_mps, 11.345);
     const auto measurement = MeasurementConfig(7_m);

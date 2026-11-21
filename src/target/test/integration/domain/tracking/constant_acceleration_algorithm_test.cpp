@@ -127,10 +127,10 @@ ConfirmedTrack seededTarget(
     );
     TrackRepository repository;
     const auto id = repository.add(TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(point, 0ms)));
-    auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(point, time));
+    auto confirmedTrack = repository.findTentativeById(id)->confirm(observation(point, time));
     EXPECT_TRUE(confirmedTrack);
     EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
-    auto& target = *repository.findConfirmedTrack(id);
+    auto& target = *repository.findConfirmedById(id);
     return target;
 }
 
@@ -152,10 +152,10 @@ protected:
         const auto id = repository.add(
             TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(first, firstTime))
         );
-        auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(second, secondTime));
+        auto confirmedTrack = repository.findTentativeById(id)->confirm(observation(second, secondTime));
         EXPECT_TRUE(confirmedTrack);
         EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
-        auto& target = *repository.findConfirmedTrack(id);
+        auto& target = *repository.findConfirmedById(id);
         return target;
     }
 

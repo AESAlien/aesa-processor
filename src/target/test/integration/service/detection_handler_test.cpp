@@ -70,7 +70,7 @@ TEST_F(DetectionHandlerTest, ProcessesLifecycleAndExpiresOnlyTheRequestedTrack)
     EXPECT_EQ(first->beamType, beam::RequestBeamType::CONFIRMATION);
     EXPECT_EQ(first->transmitTime, 100ms);
     EXPECT_NE(first->requestId, second->requestId);
-    EXPECT_NE(_repository->findTentativeTrack(first->requestId), nullptr);
+    EXPECT_NE(_repository->findTentativeById(first->requestId), nullptr);
 
     const auto tracking = _handler.handle(result(BeamType::CONFIRMATION, first->requestId, 100ms));
     ASSERT_TRUE(tracking);
@@ -78,8 +78,8 @@ TEST_F(DetectionHandlerTest, ProcessesLifecycleAndExpiresOnlyTheRequestedTrack)
     EXPECT_EQ(tracking->transmitTime, 1100ms);
     ASSERT_TRUE(_handler.handle(result(BeamType::CONFIRMATION, second->requestId, 100ms, 2000_m)));
     ASSERT_TRUE(_handler.handle(result(BeamType::TRACKING, first->requestId, 1100ms, 1010_m)));
-    EXPECT_EQ(_repository->findConfirmedTrack(first->requestId)->state().timestamp(), 1100ms);
-    EXPECT_EQ(_repository->findConfirmedTrack(second->requestId)->state().timestamp(), 100ms);
+    EXPECT_EQ(_repository->findConfirmedById(first->requestId)->state().timestamp(), 1100ms);
+    EXPECT_EQ(_repository->findConfirmedById(second->requestId)->state().timestamp(), 100ms);
 
     for (auto miss = 0; miss < 3; ++miss)
     {
@@ -103,9 +103,9 @@ TEST_F(DetectionHandlerTest, ProcessesLifecycleAndExpiresOnlyTheRequestedTrack)
             EXPECT_FALSE(retry);
         }
     }
-    EXPECT_EQ(_repository->findConfirmedTrack(first->requestId), nullptr);
-    ASSERT_NE(_repository->findConfirmedTrack(second->requestId), nullptr);
-    EXPECT_EQ(_repository->findConfirmedTrack(second->requestId)->state().timestamp(), 100ms);
+    EXPECT_EQ(_repository->findConfirmedById(first->requestId), nullptr);
+    ASSERT_NE(_repository->findConfirmedById(second->requestId), nullptr);
+    EXPECT_EQ(_repository->findConfirmedById(second->requestId)->state().timestamp(), 100ms);
     const auto next = _handler.handle(result(BeamType::SEARCH, 52, 4200ms, 3000_m));
     ASSERT_TRUE(next);
     EXPECT_GT(next->requestId, second->requestId);
@@ -116,20 +116,20 @@ TEST_F(DetectionHandlerTest, IgnoresWrongPhaseAndStaleResults)
     const auto confirmation = _handler.handle(result(BeamType::SEARCH, 5, 0ms));
     ASSERT_TRUE(confirmation);
     const auto id = confirmation->requestId;
-    const auto* tentative = _repository->findTentativeTrack(id);
+    const auto* tentative = _repository->findTentativeById(id);
     EXPECT_FALSE(_handler.handle(result(BeamType::TRACKING, id, 100ms)));
     EXPECT_FALSE(_handler.handle(result(BeamType::CONFIRMATION, id, 0ms)));
     EXPECT_FALSE(_handler.handle(result(BeamType::CONFIRMATION, 999, 100ms)));
     EXPECT_FALSE(_handler.handle(result(BeamType::SEARCH, 5, 0ms, 2000_m)));
-    EXPECT_EQ(_repository->findTentativeTrack(id), tentative);
+    EXPECT_EQ(_repository->findTentativeById(id), tentative);
     EXPECT_EQ(_repository->tracks().size(), 1u);
 
     ASSERT_TRUE(_handler.handle(result(BeamType::CONFIRMATION, id, 100ms)));
-    const auto* track = _repository->findConfirmedTrack(id);
+    const auto* track = _repository->findConfirmedById(id);
     const auto state = track->state();
     EXPECT_FALSE(_handler.handle(result(BeamType::CONFIRMATION, id, 200ms)));
     EXPECT_FALSE(_handler.handle(result(BeamType::TRACKING, id, 100ms)));
-    EXPECT_EQ(_repository->findConfirmedTrack(id), track);
+    EXPECT_EQ(_repository->findConfirmedById(id), track);
     test_support::expectTrackStateEquals(track->state(), state);
     EXPECT_FALSE(track->canProcessResult(100ms));
     EXPECT_TRUE(track->canProcessResult(101ms));
@@ -162,12 +162,12 @@ TEST_F(DetectionHandlerTest, PreexistingTargetsDoNotCollideWithNewRegistrations)
     const auto existing = _handler.handle(result(BeamType::SEARCH, 4, 0ms, 9000_m));
     ASSERT_TRUE(existing);
     ASSERT_EQ(existing->requestId, 1u);
-    const auto* original = _repository->findTentativeTrack(1);
+    const auto* original = _repository->findTentativeById(1);
 
     const auto registered = _handler.handle(result(BeamType::SEARCH, 5, 0ms));
     ASSERT_TRUE(registered);
     EXPECT_EQ(registered->requestId, 2u);
-    EXPECT_EQ(_repository->findTentativeTrack(1), original);
+    EXPECT_EQ(_repository->findTentativeById(1), original);
     EXPECT_EQ(_repository->tracks().size(), 2u);
 
     ASSERT_TRUE(_repository->removeById(1));
@@ -190,7 +190,7 @@ TEST_F(DetectionHandlerTest, ClearingSearchHistoryForgetsPreviousSearchResultTim
     const auto confirmation = _handler.handle(result(BeamType::SEARCH, 50, 400ms));
     ASSERT_TRUE(confirmation);
     EXPECT_EQ(confirmation->beamType, beam::RequestBeamType::CONFIRMATION);
-    EXPECT_NE(_repository->findTentativeTrack(confirmation->requestId), nullptr);
+    EXPECT_NE(_repository->findTentativeById(confirmation->requestId), nullptr);
 }
 
 } // namespace

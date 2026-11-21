@@ -6,6 +6,13 @@
 
 namespace target
 {
+namespace
+{
+
+constexpr std::uint32_t MAX_TRACK_ID = std::numeric_limits<std::uint16_t>::max();
+
+} // namespace
+
 TrackFactory::TrackFactory(
     std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm,
     TrackLifecycleConfig lifecycleConfig
@@ -20,7 +27,7 @@ TrackFactory::TrackFactory(
 
 TentativeTrack TrackFactory::createTentative(Observation observation)
 {
-    if (_nextId > std::numeric_limits<std::uint16_t>::max())
+    if (_nextId > MAX_TRACK_ID)
     {
         throw std::overflow_error("Track ID exceeds the console ID range");
     }
