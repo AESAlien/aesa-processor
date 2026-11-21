@@ -1,19 +1,15 @@
 #pragma once
 
 #include <chrono>
-#include <cstddef>
 #include <cstdint>
 #include <optional>
 
 namespace target
 {
 
-class TrackManagementConfig
+class TrackLifecycleConfig
 {
 public:
-    // 콘솔 메시지 한 건에 담을 수 있는 최대 트랙 수다.
-    static constexpr std::size_t MAXIMUM_REPORTED_TRACK_COUNT = 100;
-
     class Builder
     {
     public:
@@ -35,39 +31,29 @@ public:
             return *this;
         }
 
-        Builder& maxReportedTrackCount(std::size_t value)
-        {
-            _maxReportedTrackCount = value;
-            return *this;
-        }
-
-        TrackManagementConfig build() const;
+        TrackLifecycleConfig build() const;
 
     private:
         std::optional<std::chrono::milliseconds> _confirmationDelay;
         std::optional<std::chrono::milliseconds> _trackingInterval;
         std::optional<std::uint32_t> _maxConsecutiveTrackingMisses;
-        std::optional<std::size_t> _maxReportedTrackCount;
     };
 
-    TrackManagementConfig(
+    TrackLifecycleConfig(
         std::chrono::milliseconds confirmationDelay,
         std::chrono::milliseconds trackingInterval,
-        std::uint32_t maxConsecutiveTrackingMisses,
-        std::size_t maxReportedTrackCount
+        std::uint32_t maxConsecutiveTrackingMisses
     );
 
     std::chrono::milliseconds confirmationDelay() const noexcept;
     std::chrono::milliseconds trackingInterval() const noexcept;
     std::uint32_t maxConsecutiveTrackingMisses() const noexcept;
-    std::size_t maxReportedTrackCount() const noexcept;
+    std::chrono::milliseconds responseTimeout() const noexcept;
 
 private:
     std::chrono::milliseconds _confirmationDelay;
     std::chrono::milliseconds _trackingInterval;
     std::uint32_t _maxConsecutiveTrackingMisses;
-    std::size_t _maxReportedTrackCount;
-    void validate() const;
 };
 
 } // namespace target

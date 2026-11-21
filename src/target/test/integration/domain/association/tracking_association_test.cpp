@@ -214,7 +214,7 @@ protected:
             algorithm = _algorithm;
         }
         const auto id = _repository.add(
-            TentativeTrack(_nextTrackId++, observation(firstRange, 0ms), std::move(algorithm))
+            TentativeTrack(_nextTrackId++, observation(firstRange, 0ms), TrackLifecycleConfig(100ms, 1000ms, 3), std::move(algorithm))
         );
         auto confirmedTrack = _repository.findTentativeTrack(id)->confirm(observation(secondRange, 100ms));
         EXPECT_TRUE(confirmedTrack);
@@ -244,7 +244,7 @@ TEST_F(TrackingAssociationTest, ReturnsSquaredCartesianDistanceScore)
 TEST(TentativeSelectorTest, UsesOnlyTheSuppliedTracksWithoutARepository)
 {
     const auto selector = TentativeSelector(AssociationConfig(1000_mps, 30_mps, 11.345), std::make_unique<NdsAlgorithm>(MeasurementConfig(7_m)));
-    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
+    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3));
     const auto observation = [](math::Length range, Time time)
     {
         return Observation(position(range), 0_mps, -10.0f, time);
@@ -301,7 +301,7 @@ TEST_F(TrackingAssociationTest, SelectorsUseInjectedScoresForEveryComparisonMode
     EXPECT_FALSE(tentativeSelector.selectNewCandidate({observation(1020_m, 50ms)}, _repository.tracks()));
     EXPECT_EQ(counts->states, 1);
 
-    const auto tentative = TentativeTrack(_nextTrackId++, observation(1000_m, 0ms), _algorithm);
+    const auto tentative = TentativeTrack(_nextTrackId++, observation(1000_m, 0ms), TrackLifecycleConfig(100ms, 1000ms, 3), _algorithm);
     const auto confirmation = trackSelector.selectConfirmationObservation(
         tentative, 100ms, {observation(1000_m, 100ms), observation(1020_m, 100ms)}
     );
@@ -373,7 +373,8 @@ TEST_F(TrackingAssociationTest, UsesReceiveTimePredictionWithoutTentativeMotionA
     EXPECT_FALSE(selectTracking(observation(1150_m, 1100ms), tracking));
     EXPECT_EQ(tracking.slantRange(), 1010_m);
     EXPECT_EQ(tracking.lastObservationTime(), 100ms);
-    EXPECT_EQ(tracking.lastResultTime(), 100ms);
+    EXPECT_FALSE(tracking.canProcessResult(100ms));
+    EXPECT_TRUE(tracking.canProcessResult(101ms));
     EXPECT_EQ(tracking.consecutiveMissCount(), 0u);
 }
 
@@ -514,7 +515,7 @@ TEST_F(TrackingAssociationTest, ValidatesCovarianceProvidedForPrediction)
 TEST_F(TrackingAssociationTest, RejectsStaleOrDuplicateResults)
 {
     const auto tentativeId = _repository.add(
-        TentativeTrack(_nextTrackId++, observation(1000_m, 0ms), _algorithm)
+        TentativeTrack(_nextTrackId++, observation(1000_m, 0ms), TrackLifecycleConfig(100ms, 1000ms, 3), _algorithm)
     );
     EXPECT_EQ(_repository.findConfirmedTrack(tentativeId), nullptr);
 
@@ -535,7 +536,8 @@ TEST_F(TrackingAssociationTest, ReturnsNoMatchWhenPredictionIsUnavailable)
     const auto incoming = observation(1000_m, 1100ms);
     EXPECT_FALSE(selectTracking(incoming, *_repository.findConfirmedTrack(id)));
     EXPECT_FALSE(_selector.selectTrackingObservation(*_repository.findConfirmedTrack(id), 1100ms, {incoming}));
-    EXPECT_EQ(_repository.findConfirmedTrack(id)->lastResultTime(), 100ms);
+    EXPECT_FALSE(_repository.findConfirmedTrack(id)->canProcessResult(100ms));
+    EXPECT_TRUE(_repository.findConfirmedTrack(id)->canProcessResult(101ms));
 }
 
 TEST_F(TrackingAssociationTest, SelectsMinimumScoreIncludingZeroAndKeepsFirstTie)
@@ -599,7 +601,8 @@ TEST_F(TrackingAssociationTest, ReusesOnePredictionPerBatchAndRefreshesAfterAnUp
     EXPECT_EQ(selected->slantRange(), 1005_m);
     EXPECT_EQ(algorithm->predictionCount(), 1u);
     EXPECT_EQ(track.state(), previousState);
-    EXPECT_EQ(track.lastResultTime(), 100ms);
+    EXPECT_FALSE(track.canProcessResult(100ms));
+    EXPECT_TRUE(track.canProcessResult(101ms));
 
     ASSERT_TRUE(track.update(observation(1010_m, 1100ms)));
     const auto next = _selector.selectTrackingObservation(
@@ -644,7 +647,8 @@ TEST_F(TrackingAssociationTest, DoesNotRetryFailedPredictionUntilTheNextBatch)
     EXPECT_FALSE(_selector.selectTrackingObservation(track, 1100ms, observations));
     EXPECT_EQ(algorithm->predictionCount(), 2u);
     EXPECT_EQ(track.state(), previousState);
-    EXPECT_EQ(track.lastResultTime(), 100ms);
+    EXPECT_FALSE(track.canProcessResult(100ms));
+    EXPECT_TRUE(track.canProcessResult(101ms));
     EXPECT_EQ(track.consecutiveMissCount(), 0u);
 }
 
@@ -663,7 +667,8 @@ TEST(TrackingAssociationControllerTest, OutOfGatePlotsKeepRetryingUntilThreeMiss
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         )
     );
     controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
@@ -717,7 +722,8 @@ TEST(TrackingAssociationControllerTest, NearestSuccessResetsMissesAndPreservesOt
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         )
     );
     controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));

@@ -30,7 +30,7 @@ Observation observation(std::chrono::milliseconds time = 0ms)
 TEST(TrackFactoryTest, AssignsIdsAtCreationWithoutReusingDiscardedTracks)
 {
     // 준비: 저장소 없이 팩터리만 생성한다.
-    TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>());
+    TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3));
 
     // 실행 및 검증: 생성 순간 ID를 결정하고, 저장하지 않은 트랙의 ID도 재사용하지 않는다.
     {
@@ -46,7 +46,7 @@ TEST(TrackFactoryTest, AssignsIdsAtCreationWithoutReusingDiscardedTracks)
 TEST(TrackFactoryTest, MovingFactoryPreservesIssuedIdentitySequence)
 {
     // 준비: ID 하나를 발급한 팩터리를 이동한다.
-    TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>());
+    TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3));
     ASSERT_EQ(factory.createTentative(observation()).id(), 1u);
     auto movedFactory = std::move(factory);
 
@@ -57,7 +57,7 @@ TEST(TrackFactoryTest, MovingFactoryPreservesIssuedIdentitySequence)
 TEST(TrackFactoryTest, ConfirmationPreservesIdentityWithoutIssuingAnotherId)
 {
     // 준비: 팩터리가 생성한 잠정 트랙을 확정한다.
-    TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>());
+    TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3));
     const auto tentative = factory.createTentative(observation());
     const auto confirmed = tentative.confirm(observation(100ms));
     ASSERT_TRUE(confirmed);
@@ -67,10 +67,25 @@ TEST(TrackFactoryTest, ConfirmationPreservesIdentityWithoutIssuingAnotherId)
     EXPECT_EQ(factory.createTentative(observation()).id(), 2u);
 }
 
+TEST(TrackFactoryTest, ConfirmationRetainsTheFactoryMissLimit)
+{
+    // 준비: 첫 미탐에 만료하도록 설정한 팩터리에서 트랙을 생성한다.
+    TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 1));
+    const auto tentative = factory.createTentative(observation());
+    auto confirmed = tentative.confirm(observation(100ms));
+    ASSERT_TRUE(confirmed);
+
+    // 실행 및 검증: 확정 전환 후에도 생성 시 지정한 미탐 한도를 유지한다.
+    EXPECT_TRUE(confirmed->willExpireOnNextMiss());
+    EXPECT_FALSE(confirmed->hasReachedMissLimit());
+    ASSERT_TRUE(confirmed->recordTrackingMiss(1100ms));
+    EXPECT_TRUE(confirmed->hasReachedMissLimit());
+}
+
 TEST(TrackFactoryTest, ExhaustionDoesNotWrapOrReuseIssuedIds)
 {
     // 준비: 전시기 프로토콜이 허용하는 최대 ID까지 발급한다.
-    TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>());
+    TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3));
     const auto maximum = std::numeric_limits<std::uint16_t>::max();
     for (std::uint32_t id = 1; id <= maximum; ++id)
     {

@@ -355,7 +355,7 @@ std::optional<TrackingResult> ConstantAccelerationAlgorithm::update(
 ) const {
     const auto& state = *current.state();
     const auto time = observation.observationTime();
-    if (time <= state.timestamp() || time <= current.lastResultTime())
+    if (time <= state.timestamp())
     {
         return std::nullopt;
     }

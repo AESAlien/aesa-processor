@@ -23,7 +23,7 @@ std::optional<Observation> selectBestObservation(
     const Prepare& prepare,
     const Match& match
 ) {
-    if (resultTime <= target.lastResultTime())
+    if (!target.canProcessResult(resultTime))
     {
         return std::nullopt;
     }
@@ -134,17 +134,12 @@ std::optional<double> TrackSelector::confirmationScore(
     const TentativeTrack& tentative
 ) const {
     const auto time = observation.observationTime();
-    if (time <= tentative.lastResultTime())
-    {
-        return std::nullopt;
-    }
-
     const auto position = observation.sphericalPosition().toCartesian();
     const auto initialPosition = tentative.observation().sphericalPosition().toCartesian();
     try
     {
         const auto displacement = position - initialPosition;
-        const auto elapsed = std::chrono::duration<double>(time - tentative.lastResultTime());
+        const auto elapsed = std::chrono::duration<double>(time - tentative.observation().observationTime());
 
         const auto speed = (displacement / elapsed).speed();
         if (speed > _config.maxAssociationSpeed())

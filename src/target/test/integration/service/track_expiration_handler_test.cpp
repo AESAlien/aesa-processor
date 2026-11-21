@@ -44,12 +44,12 @@ class TrackExpirationHandlerTest : public ::testing::Test
 {
 protected:
     // 확인 지연 100ms, 추적 주기 1000ms, 연속 미탐 한도 3 → 응답 대기 한도 3000ms
-    TrackManagementConfig _config = TrackManagementConfig(100ms, 1000ms, 3, 100);
+    TrackLifecycleConfig _config = TrackLifecycleConfig(100ms, 1000ms, 3);
     std::shared_ptr<TrackRepository> _repository = std::make_shared<TrackRepository>();
     DetectionHandler _detectionHandler = DetectionHandler(
         _config,
         _repository,
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()),
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), _config),
         std::make_unique<TentativeSelector>(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             std::make_unique<NdsAlgorithm>(MeasurementConfig(7_m))
@@ -59,7 +59,7 @@ protected:
             std::make_unique<NdsAlgorithm>(MeasurementConfig(7_m))
         )
     );
-    TrackExpirationHandler _expirationHandler = TrackExpirationHandler(_config, _repository);
+    TrackExpirationHandler _expirationHandler = TrackExpirationHandler(_repository);
 };
 
 TEST_F(TrackExpirationHandlerTest, RemovesConfirmedTrackWhoseTrackingResultNeverArrives)

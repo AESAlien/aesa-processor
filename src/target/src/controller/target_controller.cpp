@@ -29,7 +29,7 @@ TargetController::TargetController(
         config.tracking,
         config.measurement
     );
-    auto trackFactory = TrackFactory(std::move(trackingAlgorithm));
+    auto trackFactory = TrackFactory(std::move(trackingAlgorithm), config.trackLifecycle);
 
     auto tentativeAssociationAlgorithm = std::make_unique<NdsAlgorithm>(config.measurement);
     auto tentativeSelector = std::make_unique<TentativeSelector>(
@@ -44,19 +44,18 @@ TargetController::TargetController(
     );
 
     _detectionHandler = std::make_shared<DetectionHandler>(
-        config.trackManagement,
+        config.trackLifecycle,
         _trackRepository,
         std::move(trackFactory),
         std::move(tentativeSelector),
         std::move(trackSelector)
     );
     _trackExpirationHandler = std::make_shared<TrackExpirationHandler>(
-        config.trackManagement,
         _trackRepository
     );
     _trackReporter = std::make_shared<TrackReporter>(
         _trackRepository,
-        config.trackManagement.maxReportedTrackCount()
+        config.trackReporting
     );
 }
 

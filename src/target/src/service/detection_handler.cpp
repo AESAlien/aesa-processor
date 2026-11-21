@@ -26,7 +26,7 @@ beam::RequestBeamCommand trackingCommandFrom(std::uint32_t requestId, const Trac
 } // namespace
 
 DetectionHandler::DetectionHandler(
-    TrackManagementConfig config,
+    TrackLifecycleConfig config,
     std::shared_ptr<TrackRepository> repository,
     TrackFactory trackFactory,
     std::unique_ptr<const TentativeSelector> tentativeSelector,
@@ -89,7 +89,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     const ConfirmationDetectionResult& result
 ) {
     const auto* tentativeTrack = _trackRepository->findTentativeTrack(result.requestId);
-    if (!tentativeTrack || result.transmitTime <= tentativeTrack->lastResultTime())
+    if (!tentativeTrack || !tentativeTrack->canProcessResult(result.transmitTime))
     {
         return std::nullopt;
     }
@@ -134,7 +134,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     const TrackingDetectionResult& result
 ) {
     auto* confirmedTrack = _trackRepository->findConfirmedTrack(result.requestId);
-    if (!confirmedTrack || result.transmitTime <= confirmedTrack->lastResultTime())
+    if (!confirmedTrack || !confirmedTrack->canProcessResult(result.transmitTime))
     {
         return std::nullopt;
     }
@@ -145,8 +145,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
         result.observations
     );
     // 연관된 관측이 없고 이번 미탐으로 한도에 도달하면 다음 빔을 계산하기 전에 만료한다.
-    if (!observation &&
-        confirmedTrack->consecutiveMissCount() >= _config.maxConsecutiveTrackingMisses() - 1)
+    if (!observation && confirmedTrack->willExpireOnNextMiss())
     {
         _trackRepository->removeById(result.requestId);
         return std::nullopt;
@@ -158,7 +157,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     {
         // 마지막 유효 상태는 보존하고 결과 시각과 연속 미탐 횟수를 갱신한다.
         confirmedTrack->recordTrackingMiss(result.transmitTime);
-        if (confirmedTrack->consecutiveMissCount() >= _config.maxConsecutiveTrackingMisses())
+        if (confirmedTrack->hasReachedMissLimit())
         {
             _trackRepository->removeById(result.requestId);
             return std::nullopt;

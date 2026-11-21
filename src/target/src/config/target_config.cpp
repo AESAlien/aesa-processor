@@ -10,17 +10,19 @@ TargetConfig::TargetConfig(
     AssociationConfig association,
     MeasurementConfig measurement,
     TrackingConfig tracking,
-    TrackManagementConfig trackManagement
+    TrackLifecycleConfig trackLifecycle,
+    TrackReportingConfig trackReporting
 ) : association(std::move(association)),
     measurement(std::move(measurement)),
     tracking(std::move(tracking)),
-    trackManagement(std::move(trackManagement))
+    trackLifecycle(std::move(trackLifecycle)),
+    trackReporting(std::move(trackReporting))
 {
 }
 
 TargetConfig TargetConfig::Builder::build() const
 {
-    if (!_association || !_measurement || !_tracking || !_trackManagement)
+    if (!_association || !_measurement || !_tracking || !_trackLifecycle || !_trackReporting)
     {
         throw std::logic_error("TargetConfig::Builder requires every value");
     }
@@ -29,7 +31,8 @@ TargetConfig TargetConfig::Builder::build() const
         *_association,
         *_measurement,
         *_tracking,
-        *_trackManagement
+        *_trackLifecycle,
+        *_trackReporting
     );
 }
 

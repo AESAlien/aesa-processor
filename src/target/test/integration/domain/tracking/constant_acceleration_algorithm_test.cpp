@@ -125,7 +125,7 @@ ConfirmedTrack seededTarget(
         std::move(state), covariance ? KalmanStateAccess::makeState(std::move(*covariance)) : std::any{}
     );
     TrackRepository repository;
-    const auto id = repository.add(TrackFactory(algorithm).createTentative(observation(point, 0ms)));
+    const auto id = repository.add(TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(point, 0ms)));
     auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(point, time));
     EXPECT_TRUE(confirmedTrack);
     EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
@@ -149,9 +149,7 @@ protected:
         }
         TrackRepository repository;
         const auto id = repository.add(
-            TrackFactory(algorithm).createTentative(
-                observation(first, firstTime)
-            )
+            TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(first, firstTime))
         );
         auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(second, secondTime));
         EXPECT_TRUE(confirmedTrack);
@@ -164,7 +162,8 @@ protected:
         AssociationConfig(1000_mps, 30_mps, 11.345),
         MeasurementConfig(7_m),
         TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)
+        TrackLifecycleConfig(100ms, 1000ms, 3),
+        TrackReportingConfig(100)
     );
     const std::shared_ptr<const ConstantAccelerationAlgorithm> _algorithm =
         std::make_shared<ConstantAccelerationAlgorithm>(_config.tracking, _config.measurement);
@@ -248,7 +247,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, PredictsCaPositionAndPositionCovarianc
     ));
     EXPECT_EQ(target.state(), saved);
     EXPECT_EQ(target.lastObservationTime(), 100ms);
-    EXPECT_EQ(target.lastResultTime(), 100ms);
+    EXPECT_FALSE(target.canProcessResult(100ms));
+    EXPECT_TRUE(target.canProcessResult(101ms));
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, UsesStoredAccelerationAndUnequalPredictionInterval)
@@ -518,7 +518,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, ZeroElapsedPredictionAddsNoProcessNois
     ));
     EXPECT_EQ(target.state(), saved);
     EXPECT_EQ(target.lastObservationTime(), 100ms);
-    EXPECT_EQ(target.lastResultTime(), 100ms);
+    EXPECT_FALSE(target.canProcessResult(100ms));
+    EXPECT_TRUE(target.canProcessResult(101ms));
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, MissesAndRepeatedPredictionsUseFullElapsedProcessNoise)
@@ -558,7 +559,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, MissesAndRepeatedPredictionsUseFullEla
     ));
     EXPECT_EQ(target.state(), saved);
     EXPECT_EQ(target.lastObservationTime(), 100ms);
-    EXPECT_EQ(target.lastResultTime(), 2100ms);
+    EXPECT_FALSE(target.canProcessResult(2100ms));
+    EXPECT_TRUE(target.canProcessResult(2101ms));
     EXPECT_EQ(target.consecutiveMissCount(), 2u);
 
     const auto incoming = observation(position(0.0, 1041.0, 0.0), 3100ms);
@@ -609,7 +611,8 @@ TEST_F(ConstantAccelerationAlgorithmTest, ProcessNoiseReachesRealTrackingAndSear
     EXPECT_FALSE(test_support::selectTracking(outside, withNoise, _config.association, _config.measurement));
     EXPECT_FALSE(test_support::isDuplicate(outside, withNoise, _config.association, _config.measurement));
     EXPECT_EQ(withNoise.lastObservationTime(), 1000ms);
-    EXPECT_EQ(withNoise.lastResultTime(), 1000ms);
+    EXPECT_FALSE(withNoise.canProcessResult(1000ms));
+    EXPECT_TRUE(withNoise.canProcessResult(1001ms));
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, LearnsAccelerationWithZeroProcessNoise)
@@ -652,8 +655,33 @@ TEST_F(ConstantAccelerationAlgorithmTest, MissesDoNotShortenElapsedTimeFromTheLa
     );
     EXPECT_EQ(target.state(), saved);
     EXPECT_EQ(target.lastObservationTime(), 100ms);
-    EXPECT_EQ(target.lastResultTime(), 2100ms);
+    EXPECT_FALSE(target.canProcessResult(2100ms));
+    EXPECT_TRUE(target.canProcessResult(2101ms));
     EXPECT_EQ(target.consecutiveMissCount(), 2u);
+}
+
+TEST_F(ConstantAccelerationAlgorithmTest, TrackRejectsResultsCoveredByAMissBeforeApplyingTheCalculation)
+{
+    auto target = makeTracking();
+    ASSERT_TRUE(target.recordTrackingMiss(1100ms));
+    const auto saved = target.state();
+    ASSERT_TRUE(KalmanStateAccess::covariance(target));
+    const auto savedCovariance = *KalmanStateAccess::covariance(target);
+
+    for (auto time : {1000ms, 1100ms})
+    {
+        SCOPED_TRACE(time.count());
+        const auto incoming = observation(position(0.0, 1010.0, 0.0), time);
+        EXPECT_TRUE(_algorithm->update(target, incoming));
+        EXPECT_FALSE(target.update(incoming));
+        EXPECT_EQ(target.state(), saved);
+        EXPECT_TRUE(KalmanStateAccess::covariance(target)->equals(savedCovariance, math::NONE_TOLERANCE));
+        EXPECT_EQ(target.consecutiveMissCount(), 1u);
+    }
+
+    ASSERT_TRUE(target.update(observation(position(0.0, 1010.0, 0.0), 1200ms)));
+    EXPECT_EQ(target.lastObservationTime(), 1200ms);
+    EXPECT_EQ(target.consecutiveMissCount(), 0u);
 }
 
 TEST_F(ConstantAccelerationAlgorithmTest, RejectsUnavailableCovarianceAndNonIncreasingTimes)
@@ -777,7 +805,8 @@ TEST(ConstantAccelerationConfigTest, ValidatesInitialAccelerationVarianceAndSing
                 AssociationConfig(1000_mps, 30_mps, 11.345),
                 MeasurementConfig(7_m),
                 TrackingConfig(math::LinearAcceleration::fromMetersPerSecondSquared(sigma), 0_mps2),
-                TrackManagementConfig(100ms, 1000ms, 3, 100)
+                TrackLifecycleConfig(100ms, 1000ms, 3),
+                TrackReportingConfig(100)
             ),
             std::invalid_argument
         );
@@ -787,7 +816,8 @@ TEST(ConstantAccelerationConfigTest, ValidatesInitialAccelerationVarianceAndSing
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(1.2e-162_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         ),
         std::invalid_argument
     );
@@ -795,7 +825,8 @@ TEST(ConstantAccelerationConfigTest, ValidatesInitialAccelerationVarianceAndSing
         AssociationConfig(1000_mps, 30_mps, 11.345),
         MeasurementConfig(7_m),
         TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)
+        TrackLifecycleConfig(100ms, 1000ms, 3),
+        TrackReportingConfig(100)
     );
     EXPECT_EQ(compatible.tracking.initialAccelerationStandardDeviation(), 10_mps2);
 }
@@ -822,12 +853,11 @@ TEST(ConstantAccelerationConfigTest, UsesInjectedInitialAccelerationUncertainty)
         AssociationConfig(1000_mps, 30_mps, 11.345),
         MeasurementConfig(7_m),
         TrackingConfig(2_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)
+        TrackLifecycleConfig(100ms, 1000ms, 3),
+        TrackReportingConfig(100)
     );
     const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(config.tracking, config.measurement);
-    const auto tentative = TrackFactory(algorithm).createTentative(
-        observation(position(0.0, 1000.0, 0.0), 0ms)
-    );
+    const auto tentative = TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(position(0.0, 1000.0, 0.0), 0ms));
     const auto state = tentative.initialize(
         observation(position(0.0, 1000.0, 0.0), 100ms)
     );

@@ -13,10 +13,12 @@ ConfirmedTrack::ConfirmedTrack(
     std::uint32_t id,
     std::chrono::milliseconds initialTime,
     TrackState state,
+    TrackLifecycleConfig lifecycleConfig,
     std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm,
     std::any algorithmState
 ) : _id(id),
     _initialTime(initialTime),
+    _lifecycleConfig(std::move(lifecycleConfig)),
     _lastResultTime(state.timestamp()),
     _state(std::make_shared<const TrackState>(std::move(state))),
     _algorithmState(std::move(algorithmState)),
@@ -77,11 +79,6 @@ std::chrono::milliseconds ConfirmedTrack::lastObservationTime() const
     return _state->timestamp();
 }
 
-std::chrono::milliseconds ConfirmedTrack::lastResultTime() const
-{
-    return _lastResultTime;
-}
-
 std::uint32_t ConfirmedTrack::consecutiveMissCount() const
 {
     return _consecutiveMissCount;
@@ -97,10 +94,30 @@ const std::any& ITrackingAlgorithm::algorithmState(const ConfirmedTrack& current
     return current._algorithmState;
 }
 
+bool ConfirmedTrack::canProcessResult(std::chrono::milliseconds resultTime) const
+{
+    return resultTime > _lastResultTime;
+}
+
+bool ConfirmedTrack::isExpired(std::chrono::milliseconds currentTime) const
+{
+    return currentTime > _lastResultTime + _lifecycleConfig.trackingInterval() + _lifecycleConfig.responseTimeout();
+}
+
+bool ConfirmedTrack::willExpireOnNextMiss() const
+{
+    return _consecutiveMissCount >= _lifecycleConfig.maxConsecutiveTrackingMisses() - 1;
+}
+
+bool ConfirmedTrack::hasReachedMissLimit() const
+{
+    return _consecutiveMissCount >= _lifecycleConfig.maxConsecutiveTrackingMisses();
+}
+
 bool ConfirmedTrack::update(const Observation& observation)
 {
     const auto time = observation.observationTime();
-    if (time <= _lastResultTime || time <= _state->timestamp())
+    if (!canProcessResult(time))
     {
         return false;
     }
@@ -110,6 +127,7 @@ bool ConfirmedTrack::update(const Observation& observation)
     {
         return false;
     }
+
     auto& [state, nextAlgorithmState] = *result;
     if (state.timestamp() != time)
     {
@@ -127,15 +145,17 @@ bool ConfirmedTrack::update(const Observation& observation)
 
 bool ConfirmedTrack::recordTrackingMiss(std::chrono::milliseconds time)
 {
-    if (time <= _lastResultTime)
+    if (!canProcessResult(time))
     {
         return false;
     }
+
     _lastResultTime = time;
     if (_consecutiveMissCount < std::numeric_limits<std::uint32_t>::max())
     {
         ++_consecutiveMissCount;
     }
+
     return true;
 }
 

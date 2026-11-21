@@ -3,6 +3,8 @@
 #include "domain/track_factory.hpp"
 #include "repository/track_repository.hpp"
 
+#include <target/config/track_lifecycle_config.hpp>
+
 #include <gtest/gtest.h>
 
 #include <chrono>
@@ -106,6 +108,176 @@ private:
     ConstantVelocityAlgorithm _algorithm;
 };
 
+TEST(TrackResultProcessingTest, TentativeTrackAcceptsOnlyResultsAfterInitialObservation)
+{
+    // 준비: 최초 관측 시각이 100ms인 잠정 트랙을 만든다.
+    const TentativeTrack track(1, observation(1000_m, 100ms), TrackLifecycleConfig(100ms, 1000ms, 3), std::make_shared<ConstantVelocityAlgorithm>());
+
+    // 실행 및 검증: 같은 시각과 이전 시각은 거부하고, 새로운 시각만 처리한다.
+    EXPECT_FALSE(track.canProcessResult(99ms));
+    EXPECT_FALSE(track.canProcessResult(100ms));
+    EXPECT_TRUE(track.canProcessResult(101ms));
+}
+
+TEST(TrackResultProcessingTest, ConfirmedTrackRejectsResultsAlreadyCoveredByATrackingMiss)
+{
+    // 준비: 100ms에 확정한 트랙에 1100ms 미탐 결과를 기록한다.
+    const TentativeTrack tentative(1, observation(1000_m, 0ms), TrackLifecycleConfig(100ms, 1000ms, 3), std::make_shared<ConstantVelocityAlgorithm>());
+    auto track = tentative.confirm(observation(1010_m, 100ms));
+    ASSERT_TRUE(track);
+    EXPECT_FALSE(track->canProcessResult(99ms));
+    EXPECT_FALSE(track->canProcessResult(100ms));
+    EXPECT_TRUE(track->canProcessResult(101ms));
+    ASSERT_TRUE(track->recordTrackingMiss(1100ms));
+    const auto savedState = track->state();
+
+    // 실행 및 검증: 마지막 관측보다 새로워도 미탐 시각 이하인 결과는 다시 처리하지 않는다.
+    EXPECT_FALSE(track->canProcessResult(1000ms));
+    EXPECT_FALSE(track->canProcessResult(1100ms));
+    EXPECT_TRUE(track->canProcessResult(1101ms));
+    EXPECT_FALSE(track->update(observation(1020_m, 1000ms)));
+    EXPECT_FALSE(track->recordTrackingMiss(1100ms));
+    EXPECT_EQ(track->state(), savedState);
+    EXPECT_EQ(track->lastObservationTime(), 100ms);
+    EXPECT_EQ(track->consecutiveMissCount(), 1u);
+    EXPECT_FALSE(track->canProcessResult(1100ms));
+    EXPECT_TRUE(track->canProcessResult(1101ms));
+}
+
+TEST(TrackMissLimitTest, DistinguishesNextMissFromAnAlreadyReachedLimit)
+{
+    // 준비: 연속 미탐 한도가 3인 확정 트랙을 만든다.
+    const TrackLifecycleConfig config(100ms, 1000ms, 3);
+    const TentativeTrack tentative(1, observation(1000_m, 0ms), config, std::make_shared<ConstantVelocityAlgorithm>());
+    auto track = tentative.confirm(observation(1010_m, 100ms));
+    ASSERT_TRUE(track);
+    EXPECT_FALSE(track->willExpireOnNextMiss());
+    EXPECT_FALSE(track->hasReachedMissLimit());
+
+    // 실행 및 검증: 한도 직전에는 다음 미탐만 만료를 유발하고, 기록 후에는 한도 도달로 판단한다.
+    ASSERT_TRUE(track->recordTrackingMiss(1100ms));
+    EXPECT_FALSE(track->willExpireOnNextMiss());
+    EXPECT_FALSE(track->hasReachedMissLimit());
+    ASSERT_TRUE(track->recordTrackingMiss(2100ms));
+    EXPECT_TRUE(track->willExpireOnNextMiss());
+    EXPECT_FALSE(track->hasReachedMissLimit());
+    ASSERT_TRUE(track->recordTrackingMiss(3100ms));
+    EXPECT_TRUE(track->willExpireOnNextMiss());
+    EXPECT_TRUE(track->hasReachedMissLimit());
+    ASSERT_TRUE(track->recordTrackingMiss(4100ms));
+    EXPECT_TRUE(track->hasReachedMissLimit());
+}
+
+TEST(TrackMissLimitTest, SingleMissLimitExpiresOnTheFirstMiss)
+{
+    // 준비: 연속 미탐 한도가 1인 확정 트랙을 만든다.
+    const TrackLifecycleConfig config(100ms, 1000ms, 1);
+    const TentativeTrack tentative(1, observation(1000_m, 0ms), config, std::make_shared<ConstantVelocityAlgorithm>());
+    auto track = tentative.confirm(observation(1010_m, 100ms));
+    ASSERT_TRUE(track);
+
+    // 실행 및 검증: 첫 미탐 전후의 판단을 구분한다.
+    EXPECT_TRUE(track->willExpireOnNextMiss());
+    EXPECT_FALSE(track->hasReachedMissLimit());
+    ASSERT_TRUE(track->recordTrackingMiss(1100ms));
+    EXPECT_TRUE(track->hasReachedMissLimit());
+}
+
+TEST(TrackMissLimitTest, SuccessfulUpdateResetsMissLimitJudgments)
+{
+    // 준비: 두 번 미탐해 다음 미탐으로 만료될 확정 트랙을 만든다.
+    const TrackLifecycleConfig config(100ms, 1000ms, 3);
+    const TentativeTrack tentative(1, observation(1000_m, 0ms), config, std::make_shared<ConstantVelocityAlgorithm>());
+    auto track = tentative.confirm(observation(1010_m, 100ms));
+    ASSERT_TRUE(track);
+    ASSERT_TRUE(track->recordTrackingMiss(1100ms));
+    ASSERT_TRUE(track->recordTrackingMiss(2100ms));
+    ASSERT_TRUE(track->willExpireOnNextMiss());
+
+    // 실행 및 검증: 유효 관측으로 갱신하면 연속 미탐 이력이 초기화된다.
+    ASSERT_TRUE(track->update(observation(1310_m, 3100ms)));
+    EXPECT_FALSE(track->willExpireOnNextMiss());
+    EXPECT_FALSE(track->hasReachedMissLimit());
+}
+
+TEST(TrackMissLimitTest, FactoryAndTracksKeepTheLifecycleSnapshotFromConstruction)
+{
+    // 준비: 팩터리를 생성한 뒤 원본 설정의 시간과 미탐 한도를 모두 교체한다.
+    auto config = TrackLifecycleConfig(100ms, 1000ms, 1);
+    TrackFactory factory(std::make_shared<ConstantVelocityAlgorithm>(), config);
+    config = TrackLifecycleConfig(500ms, 5000ms, 3);
+    const auto tentative = factory.createTentative(observation(1000_m, 500ms));
+    const auto confirmed = tentative.confirm(observation(1010_m, 600ms));
+    ASSERT_TRUE(confirmed);
+
+    // 실행 및 검증: 잠정과 확정 트랙 모두 원래 설정으로 판단하고, 확정 시 미탐 정책도 유지한다.
+    EXPECT_FALSE(tentative.isExpired(1600ms));
+    EXPECT_TRUE(tentative.isExpired(1601ms));
+    EXPECT_FALSE(confirmed->isExpired(2600ms));
+    EXPECT_TRUE(confirmed->isExpired(2601ms));
+    EXPECT_TRUE(confirmed->willExpireOnNextMiss());
+}
+
+TEST(TrackExpirationTest, TentativeTrackExpiresOnlyAfterConfirmationResponseDeadline)
+{
+    // 준비: 500ms 탐색 결과와 100ms 확인 지연, 3000ms 응답 대기 한도를 사용한다.
+    const TrackLifecycleConfig config(100ms, 1000ms, 3);
+    const TentativeTrack track(1, observation(1000_m, 500ms), config, std::make_shared<ConstantVelocityAlgorithm>());
+
+    // 실행 및 검증: 3600ms 경계까지 유지하고, 이를 넘으면 만료한다.
+    EXPECT_FALSE(track.isExpired(3599ms));
+    EXPECT_FALSE(track.isExpired(3600ms));
+    EXPECT_TRUE(track.isExpired(3601ms));
+}
+
+TEST(TrackExpirationTest, ConfirmedTrackUsesTrackingIntervalInsteadOfConfirmationDelay)
+{
+    // 준비: 600ms에 확정하고 다음 추적 결과를 1600ms에 기다리는 트랙을 만든다.
+    const TrackLifecycleConfig config(100ms, 1000ms, 3);
+    const TentativeTrack tentative(1, observation(1000_m, 500ms), config, std::make_shared<ConstantVelocityAlgorithm>());
+    const auto track = tentative.confirm(observation(1010_m, 600ms));
+    ASSERT_TRUE(track);
+
+    // 실행 및 검증: 잠정 트랙의 한도를 지난 뒤에도 유지하고 4600ms를 넘으면 만료한다.
+    EXPECT_FALSE(track->isExpired(3601ms));
+    EXPECT_FALSE(track->isExpired(4599ms));
+    EXPECT_FALSE(track->isExpired(4600ms));
+    EXPECT_TRUE(track->isExpired(4601ms));
+}
+
+TEST(TrackExpirationTest, SuccessfulUpdateMovesResponseDeadline)
+{
+    // 준비: 확정 후 1600ms의 추적 결과로 갱신한다.
+    const TrackLifecycleConfig config(100ms, 1000ms, 3);
+    const TentativeTrack tentative(1, observation(1000_m, 500ms), config, std::make_shared<ConstantVelocityAlgorithm>());
+    auto track = tentative.confirm(observation(1010_m, 600ms));
+    ASSERT_TRUE(track);
+    ASSERT_TRUE(track->update(observation(1110_m, 1600ms)));
+
+    // 실행 및 검증: 이전 한도 이후에도 유지하고 새 한도인 5600ms를 넘으면 만료한다.
+    EXPECT_FALSE(track->isExpired(4601ms));
+    EXPECT_FALSE(track->isExpired(5600ms));
+    EXPECT_TRUE(track->isExpired(5601ms));
+}
+
+TEST(TrackExpirationTest, TrackingMissMovesDeadlineWithoutChangingLastObservation)
+{
+    // 준비: 새 관측 없이 1600ms의 미탐 결과만 기록한다.
+    const TrackLifecycleConfig config(100ms, 1000ms, 3);
+    const TentativeTrack tentative(1, observation(1000_m, 500ms), config, std::make_shared<ConstantVelocityAlgorithm>());
+    auto track = tentative.confirm(observation(1010_m, 600ms));
+    ASSERT_TRUE(track);
+    const auto savedState = track->state();
+    ASSERT_TRUE(track->recordTrackingMiss(1600ms));
+
+    // 실행 및 검증: 관측 상태는 보존하고 응답 대기 한도는 미탐 결과 시각을 기준으로 갱신한다.
+    EXPECT_EQ(track->state(), savedState);
+    EXPECT_EQ(track->lastObservationTime(), 600ms);
+    EXPECT_FALSE(track->isExpired(4601ms));
+    EXPECT_FALSE(track->isExpired(5600ms));
+    EXPECT_TRUE(track->isExpired(5601ms));
+}
+
 TEST(TrackingStateTest, ExistingConstructorAndConstantVelocityUseZeroAcceleration)
 {
     const auto legacy = TrackState(
@@ -120,7 +292,7 @@ TEST(TrackingStateTest, ExistingConstructorAndConstantVelocityUseZeroAcceleratio
 
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).createTentative(observation(1000_m, 0ms))
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(1000_m, 0ms))
     );
     auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
@@ -144,6 +316,7 @@ TEST(ConstantVelocityAlgorithmTest, TreatsVelocityWithinDefaultToleranceAsStatio
             math::CartesianPosition(0_m, 1000_m, 0_m),
             math::CartesianVelocity(0_mps, 5e-13_mps, 0_mps)
         ),
+        TrackLifecycleConfig(100ms, 1000ms, 3),
         std::make_shared<ConstantVelocityAlgorithm>()
     );
 
@@ -171,7 +344,7 @@ TEST(TrackingStateTest, StoresAlgorithmStateAcrossUpdatesAndPreservesItDuringMis
 {
     const auto algorithm = std::make_shared<EnrichedAlgorithm>();
     TrackRepository repository;
-    const auto id = repository.add(TrackFactory(algorithm).createTentative(observation(1000_m, 0ms)));
+    const auto id = repository.add(TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(1000_m, 0ms)));
     auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
@@ -198,7 +371,8 @@ TEST(TrackingStateTest, StoresAlgorithmStateAcrossUpdatesAndPreservesItDuringMis
     EXPECT_EQ(target.state().get(), updatedSnapshot.get());
     EXPECT_EQ(EnrichedAlgorithm::data(target), 50);
     EXPECT_EQ(target.lastObservationTime(), 200ms);
-    EXPECT_EQ(target.lastResultTime(), 2200ms);
+    EXPECT_FALSE(target.canProcessResult(2200ms));
+    EXPECT_TRUE(target.canProcessResult(2201ms));
     EXPECT_EQ(target.consecutiveMissCount(), 2u);
 }
 
@@ -206,7 +380,7 @@ TEST(TrackingStateTest, RejectedUpdatesPreserveAccelerationStrategyDataAndMissHi
 {
     const auto algorithm = std::make_shared<EnrichedAlgorithm>();
     TrackRepository repository;
-    const auto id = repository.add(TrackFactory(algorithm).createTentative(observation(1000_m, 0ms)));
+    const auto id = repository.add(TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(1000_m, 0ms)));
     auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
@@ -229,7 +403,8 @@ TEST(TrackingStateTest, RejectedUpdatesPreserveAccelerationStrategyDataAndMissHi
         EXPECT_EQ(target.state()->acceleration().z, 3_mps2);
         EXPECT_EQ(EnrichedAlgorithm::data(target), 25);
         EXPECT_EQ(target.lastObservationTime(), 100ms);
-        EXPECT_EQ(target.lastResultTime(), 1100ms);
+        EXPECT_FALSE(target.canProcessResult(1100ms));
+        EXPECT_TRUE(target.canProcessResult(1101ms));
         EXPECT_EQ(target.consecutiveMissCount(), 1u);
     }
     algorithm->fault = EnrichedAlgorithm::Fault::NONE;
@@ -244,7 +419,7 @@ TEST(TrackingStateTest, RejectedUpdatesPreserveAccelerationStrategyDataAndMissHi
 TEST(TrackingStateTest, RemovingTracksPreservesRemainingAccelerationAndStrategyData)
 {
     const auto algorithm = std::make_shared<EnrichedAlgorithm>();
-    auto factory = TrackFactory(algorithm);
+    auto factory = TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3));
     TrackRepository repository;
     const auto firstId = repository.add(
         factory.createTentative(

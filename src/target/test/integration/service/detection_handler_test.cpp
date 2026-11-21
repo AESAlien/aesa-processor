@@ -46,9 +46,9 @@ class DetectionHandlerTest : public ::testing::Test
 protected:
     std::shared_ptr<TrackRepository> _repository = std::make_shared<TrackRepository>();
     DetectionHandler _handler = DetectionHandler(
-        TrackManagementConfig(100ms, 1000ms, 3, 100),
+        TrackLifecycleConfig(100ms, 1000ms, 3),
         _repository,
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()),
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3)),
         std::make_unique<TentativeSelector>(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             std::make_unique<NdsAlgorithm>(MeasurementConfig(7_m))
@@ -130,7 +130,8 @@ TEST_F(DetectionHandlerTest, IgnoresWrongPhaseAndStaleResults)
     EXPECT_FALSE(_handler.handle(result(BeamType::TRACKING, id, 100ms)));
     EXPECT_EQ(_repository->findConfirmedTrack(id), track);
     EXPECT_EQ(track->state(), state);
-    EXPECT_EQ(track->lastResultTime(), 100ms);
+    EXPECT_FALSE(track->canProcessResult(100ms));
+    EXPECT_TRUE(track->canProcessResult(101ms));
     EXPECT_EQ(track->consecutiveMissCount(), 0u);
 }
 

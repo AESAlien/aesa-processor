@@ -11,9 +11,11 @@ namespace target
 TentativeTrack::TentativeTrack(
     std::uint32_t id,
     Observation observation,
+    TrackLifecycleConfig lifecycleConfig,
     std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm
 ) : _id(id),
     _observation(std::move(observation)),
+    _lifecycleConfig(std::move(lifecycleConfig)),
     _trackingAlgorithm(std::move(trackingAlgorithm))
 {
     if (_id == 0 || !_trackingAlgorithm)
@@ -32,15 +34,20 @@ const Observation& TentativeTrack::observation() const
     return _observation;
 }
 
-std::chrono::milliseconds TentativeTrack::lastResultTime() const
+bool TentativeTrack::canProcessResult(std::chrono::milliseconds resultTime) const
 {
-    return _observation.observationTime();
+    return resultTime > _observation.observationTime();
+}
+
+bool TentativeTrack::isExpired(std::chrono::milliseconds currentTime) const
+{
+    return currentTime > _observation.observationTime() + _lifecycleConfig.confirmationDelay() + _lifecycleConfig.responseTimeout();
 }
 
 std::optional<TrackingResult> TentativeTrack::initialize(const Observation& observation) const
 {
     const auto time = observation.observationTime();
-    if (time <= lastResultTime())
+    if (!canProcessResult(time))
     {
         return std::nullopt;
     }
@@ -61,7 +68,7 @@ std::optional<ConfirmedTrack> TentativeTrack::confirm(const Observation& observa
         return std::nullopt;
     }
     auto& [state, algorithmState] = *result;
-    return ConfirmedTrack(_id, lastResultTime(), std::move(state), _trackingAlgorithm, std::move(algorithmState));
+    return ConfirmedTrack(_id, _observation.observationTime(), std::move(state), _lifecycleConfig, _trackingAlgorithm, std::move(algorithmState));
 }
 
 } // namespace target

@@ -104,7 +104,8 @@ TEST(TrackReportingLimitTest, HandlesZeroNinetyNineOneHundredAndOneHundredOneTra
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         )
     );
     controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
@@ -128,7 +129,8 @@ TEST(TrackReportingLimitTest, UnreportedTargetCanUpdateAndExpireWithoutAffecting
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         )
     );
     controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
@@ -157,7 +159,8 @@ TEST(TrackReportingLimitTest, RevealsTheNextStoredTrackingTargetWhenAReportedTar
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         )
     );
     controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
@@ -175,7 +178,8 @@ TEST(TrackReportingLimitTest, UsesInjectedLimitWithoutLimitingTentativeOrHiddenT
         AssociationConfig(1000_mps, 30_mps, 11.345),
         MeasurementConfig(7_m),
         TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 2)
+        TrackLifecycleConfig(100ms, 1000ms, 3),
+        TrackReportingConfig(2)
     );
     auto controller = TargetController(config);
     controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
@@ -195,16 +199,17 @@ TEST(TrackReportingLimitTest, UsesInjectedLimitWithoutLimitingTentativeOrHiddenT
 
 TEST(TrackReportingLimitTest, ValidatesConfiguredCountAgainstTheMessageMaximum)
 {
-    EXPECT_EQ(TrackManagementConfig::MAXIMUM_REPORTED_TRACK_COUNT, 100u);
+    EXPECT_EQ(TrackReportingConfig::MAXIMUM_REPORTED_TRACK_COUNT, 100u);
     for (auto count : {std::size_t(1), std::size_t(100)})
     {
         const auto config = TargetConfig(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, count)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(count)
         );
-        EXPECT_EQ(config.trackManagement.maxReportedTrackCount(), count);
+        EXPECT_EQ(config.trackReporting.maxReportedTrackCount(), count);
     }
     for (auto count : {std::size_t(0), std::size_t(101), std::numeric_limits<std::size_t>::max()})
     {
@@ -213,7 +218,8 @@ TEST(TrackReportingLimitTest, ValidatesConfiguredCountAgainstTheMessageMaximum)
                 AssociationConfig(1000_mps, 30_mps, 11.345),
                 MeasurementConfig(7_m),
                 TrackingConfig(10_mps2, 0_mps2),
-                TrackManagementConfig(100ms, 1000ms, 3, count)
+                TrackLifecycleConfig(100ms, 1000ms, 3),
+                TrackReportingConfig(count)
             ),
             std::invalid_argument
         );

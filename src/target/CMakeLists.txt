@@ -2,7 +2,8 @@ add_library(target STATIC
     src/config/association_config.cpp
     src/config/measurement_config.cpp
     src/config/tracking_config.cpp
-    src/config/track_management_config.cpp
+    src/config/track_lifecycle_config.cpp
+    src/config/track_reporting_config.cpp
     src/config/target_config.cpp
     src/controller/target_controller.cpp
     src/service/detection_handler.cpp

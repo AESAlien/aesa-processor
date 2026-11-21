@@ -25,7 +25,8 @@ target::TargetConfig targetConfig()
         target::AssociationConfig(1000_mps, 30_mps, 11.345),
         target::MeasurementConfig(7_m),
         target::TrackingConfig(10_mps2, 0_mps2),
-        target::TrackManagementConfig(100ms, 1000ms, 3, 100)
+        target::TrackLifecycleConfig(100ms, 1000ms, 3),
+        target::TrackReportingConfig(100)
     );
 }
 

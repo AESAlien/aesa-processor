@@ -137,7 +137,7 @@ sequenceDiagram
 
     alt 새 후보가 있음
         DetectionHandler->>TrackFactory: createTentative(candidate)
-        Note over TrackFactory: 새 ID를 발급해 잠정 트랙 생성
+        Note over TrackFactory: 새 ID를 발급해 잠정 트랙 생성<br/>팩터리 생성 시 받은 수명주기 설정 전달
         TrackFactory-->>DetectionHandler: ID가 부여된 TentativeTrack
         DetectionHandler->>TrackRepository: add(tentativeTrack)
         TrackRepository-->>DetectionHandler: id
@@ -166,7 +166,11 @@ sequenceDiagram
     TargetController->>DetectionHandler: handle(ConfirmationDetectionResult)
     DetectionHandler->>TrackRepository: findTentativeTrack(requestId)
     TrackRepository-->>DetectionHandler: 잠정 트랙 또는 트랙 없음
-    break 잠정 트랙이 없거나 결과 시각이 마지막 처리 시각 이하
+    opt 잠정 트랙이 있음
+        DetectionHandler->>TentativeTrack: canProcessResult(transmitTime)
+        TentativeTrack-->>DetectionHandler: 결과 처리 가능 여부
+    end
+    break 잠정 트랙이 없거나 결과를 처리할 수 없음
         DetectionHandler-->>TargetController: 빔 요청 없음
         TargetController-->>app: 빔 요청 없음
     end
@@ -180,7 +184,7 @@ sequenceDiagram
     end
 
     DetectionHandler->>TentativeTrack: confirm(observation)
-    Note over TentativeTrack: 두 관측으로 추적 상태 초기화
+    Note over TentativeTrack: 두 관측으로 추적 상태 초기화<br/>생성 시 받은 수명주기 설정 유지
     TentativeTrack-->>DetectionHandler: 확정 트랙 또는 초기화 실패
     break 추적 상태 초기화 실패
         DetectionHandler->>TrackRepository: removeById(requestId)
@@ -224,13 +228,21 @@ sequenceDiagram
     TargetController->>DetectionHandler: handle(TrackingDetectionResult)
     DetectionHandler->>TrackRepository: findConfirmedTrack(requestId)
     TrackRepository-->>DetectionHandler: 확정 트랙 또는 트랙 없음
-    break 확정 트랙이 없거나 결과 시각이 마지막 처리 시각 이하
+    opt 확정 트랙이 있음
+        DetectionHandler->>ConfirmedTrack: canProcessResult(transmitTime)
+        ConfirmedTrack-->>DetectionHandler: 결과 처리 가능 여부
+    end
+    break 확정 트랙이 없거나 결과를 처리할 수 없음
         DetectionHandler-->>TargetController: 빔 요청 없음
         TargetController-->>app: 빔 요청 없음
     end
 
     DetectionHandler->>TrackSelector: selectTrackingObservation(track, transmitTime, observations)
     TrackSelector-->>DetectionHandler: 연관 관측 또는 관측 없음
+    opt 연관된 관측이 없음
+        DetectionHandler->>ConfirmedTrack: willExpireOnNextMiss()
+        ConfirmedTrack-->>DetectionHandler: 이번 미탐으로 한도에 도달할지 여부
+    end
     break 관측이 없고 이번 미탐으로 연속 미탐 한도에 도달
         DetectionHandler->>TrackRepository: removeById(requestId)
         DetectionHandler-->>TargetController: 빔 요청 없음
@@ -245,6 +257,8 @@ sequenceDiagram
     opt 관측이 없거나 상태 갱신 실패
         DetectionHandler->>ConfirmedTrack: recordTrackingMiss(transmitTime)
         Note over ConfirmedTrack: 마지막 유효 상태 유지<br/>결과 시각과 연속 미탐 횟수 갱신
+        DetectionHandler->>ConfirmedTrack: hasReachedMissLimit()
+        ConfirmedTrack-->>DetectionHandler: 연속 미탐 한도 도달 여부
         break 연속 미탐 한도에 도달
             DetectionHandler->>TrackRepository: removeById(requestId)
             DetectionHandler-->>TargetController: 빔 요청 없음
@@ -272,6 +286,7 @@ sequenceDiagram
     participant TargetController
     participant TrackExpirationHandler
     participant TrackRepository
+    participant Track as TentativeTrack / ConfirmedTrack
 
     Note over app: TargetWorker가 TickEvent에서 먼저 만료 처리
     app->>TargetController: removeExpiredTracks(currentTime)
@@ -279,8 +294,10 @@ sequenceDiagram
     TrackExpirationHandler->>TrackRepository: tracks()
     TrackRepository-->>TrackExpirationHandler: 잠정 트랙과 확정 트랙 목록
     loop 각 트랙
-        TrackExpirationHandler->>TrackExpirationHandler: expectedResultTime(track)
-        opt currentTime > 결과 예상 시각 + 응답 대기 한도
+        TrackExpirationHandler->>Track: isExpired(currentTime)
+        Note over Track: 자신의 마지막 결과 시각과 트랙 종류에 따른 대기 한도로 판단
+        Track-->>TrackExpirationHandler: 만료 여부
+        opt 트랙이 만료됨
             Note over TrackExpirationHandler: 만료된 트랙 ID 수집
         end
     end
@@ -319,6 +336,20 @@ sequenceDiagram
     TargetController-->>app: TrackEvent 목록
     Note over app: 빈 목록도 전시기 입력 큐에 전달<br/>ConsoleSendWorker가 sendTrackEvents() 호출
 ```
+
+## 설정 구성
+
+`TargetConfig`는 다음 설정을 조립한다.
+
+| 설정 | 책임 |
+|---|---|
+| `AssociationConfig` | 관측과 트랙의 연관 판정 기준 |
+| `MeasurementConfig` | 연관 계산과 추적 알고리즘이 공유하는 측정 오차 |
+| `TrackingConfig` | 추적 알고리즘의 초기 가속도 오차와 과정 잡음 |
+| `TrackLifecycleConfig` | 확인 지연, 추적 주기, 최대 연속 미탐 횟수 |
+| `TrackReportingConfig` | 전시기 보고 개수와 프로토콜 상한 검증 |
+
+`TrackFactory`는 수명주기 설정을 트랙 생성 시 전달한다. 잠정 트랙이 확정 트랙으로 전환되어도 같은 설정을 유지하며, `isExpired(currentTime)`은 보관한 설정으로 만료 여부를 판단한다. `TrackReporter`는 보고 설정만 전달받는다.
 
 ## 환경 설정
 

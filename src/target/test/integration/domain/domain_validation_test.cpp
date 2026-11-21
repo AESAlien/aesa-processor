@@ -167,9 +167,9 @@ TEST(DomainValidationTest, MathOriginIsAllowedButObservationOriginIsRejectedAtCr
     EXPECT_EQ(position(0_m).radius, 0_m);
     EXPECT_THROW(observation(0ms, 0_m), std::invalid_argument);
     EXPECT_THROW(observation(-1ms), std::invalid_argument);
-    EXPECT_THROW(TentativeTrack(1, observation(), nullptr), std::invalid_argument);
+    EXPECT_THROW(TentativeTrack(1, observation(), TrackLifecycleConfig(100ms, 1000ms, 3), nullptr), std::invalid_argument);
     EXPECT_THROW(
-        TentativeTrack(0, observation(), std::make_shared<ConstantVelocityAlgorithm>()),
+        TentativeTrack(0, observation(), TrackLifecycleConfig(100ms, 1000ms, 3), std::make_shared<ConstantVelocityAlgorithm>()),
         std::invalid_argument
     );
     EXPECT_NO_THROW(observation());
@@ -220,26 +220,27 @@ TEST(DomainValidationTest, PredictionAndTrackingStateValidateTheirOwnConstructio
 TEST(ConfirmedTrackTest, RejectsInvalidIdentityAndTrackingAlgorithm)
 {
     const auto algorithm = std::make_shared<ConstantVelocityAlgorithm>();
-    EXPECT_THROW(ConfirmedTrack(0, 0ms, state(), algorithm), std::invalid_argument);
-    EXPECT_THROW(ConfirmedTrack(1, 0ms, state(), nullptr), std::invalid_argument);
+    EXPECT_THROW(ConfirmedTrack(0, 0ms, state(), TrackLifecycleConfig(100ms, 1000ms, 3), algorithm), std::invalid_argument);
+    EXPECT_THROW(ConfirmedTrack(1, 0ms, state(), TrackLifecycleConfig(100ms, 1000ms, 3), nullptr), std::invalid_argument);
 }
 
 TEST(ConfirmedTrackTest, RequiresStateTimeAfterNonnegativeInitialTime)
 {
     const auto algorithm = std::make_shared<ConstantVelocityAlgorithm>();
-    EXPECT_THROW(ConfirmedTrack(1, -1ms, state(), algorithm), std::invalid_argument);
-    EXPECT_THROW(ConfirmedTrack(1, 100ms, state(), algorithm), std::invalid_argument);
-    EXPECT_THROW(ConfirmedTrack(1, 101ms, state(), algorithm), std::invalid_argument);
+    EXPECT_THROW(ConfirmedTrack(1, -1ms, state(), TrackLifecycleConfig(100ms, 1000ms, 3), algorithm), std::invalid_argument);
+    EXPECT_THROW(ConfirmedTrack(1, 100ms, state(), TrackLifecycleConfig(100ms, 1000ms, 3), algorithm), std::invalid_argument);
+    EXPECT_THROW(ConfirmedTrack(1, 101ms, state(), TrackLifecycleConfig(100ms, 1000ms, 3), algorithm), std::invalid_argument);
 }
 
 TEST(ConfirmedTrackTest, OwnsValidatedStateWithoutFactoryAccess)
 {
     const auto algorithm = std::make_shared<ConstantVelocityAlgorithm>();
-    const auto track = ConfirmedTrack(7, 0ms, state(), algorithm);
+    const auto track = ConfirmedTrack(7, 0ms, state(), TrackLifecycleConfig(100ms, 1000ms, 3), algorithm);
     EXPECT_EQ(track.id(), 7u);
     EXPECT_EQ(track.initialTime(), 0ms);
     EXPECT_EQ(track.lastObservationTime(), 100ms);
-    EXPECT_EQ(track.lastResultTime(), 100ms);
+    EXPECT_FALSE(track.canProcessResult(100ms));
+    EXPECT_TRUE(track.canProcessResult(101ms));
     EXPECT_EQ(track.consecutiveMissCount(), 0u);
     EXPECT_EQ(track.slantRange(), 1000_m);
     ASSERT_TRUE(track.state());
@@ -248,7 +249,7 @@ TEST(ConfirmedTrackTest, OwnsValidatedStateWithoutFactoryAccess)
 TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingTheFirstObservation)
 {
     const auto algorithm = std::make_shared<FaultAlgorithm>();
-    auto factory = TrackFactory(algorithm);
+    auto factory = TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3));
     const auto tentative = factory.createTentative(observation(100ms));
     EXPECT_FALSE(tentative.initialize(observation(0ms)));
     EXPECT_FALSE(tentative.initialize(observation(100ms)));
@@ -273,14 +274,15 @@ TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingThe
     EXPECT_EQ(confirmed->initialTime(), 100ms);
     EXPECT_EQ(confirmed->lastObservationTime(), 300ms);
     EXPECT_EQ(tentative.id(), 1u);
-    EXPECT_EQ(tentative.lastResultTime(), 100ms);
+    EXPECT_FALSE(tentative.canProcessResult(100ms));
+    EXPECT_TRUE(tentative.canProcessResult(101ms));
     EXPECT_EQ(tentative.observation().slantRange(), 1000_m);
 }
 
 TEST(TentativeTrackTest, InitializationFailuresPreserveTheSourceAndAllowRetry)
 {
     const auto algorithm = std::make_shared<FaultAlgorithm>();
-    const auto tentative = TrackFactory(algorithm).createTentative(observation(0ms));
+    const auto tentative = TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(0ms));
     algorithm->fault = FaultAlgorithm::Fault::NO_RESULT;
     EXPECT_FALSE(tentative.initialize(observation(100ms)));
     EXPECT_EQ(algorithm->initializationCount(), 1u);
@@ -292,13 +294,15 @@ TEST(TentativeTrackTest, InitializationFailuresPreserveTheSourceAndAllowRetry)
         EXPECT_THROW(tentative.initialize(observation(100ms)), std::invalid_argument);
         EXPECT_EQ(algorithm->initializationCount(), ++expectedCalls);
         EXPECT_EQ(tentative.id(), 1u);
-        EXPECT_EQ(tentative.lastResultTime(), 0ms);
+        EXPECT_FALSE(tentative.canProcessResult(0ms));
+        EXPECT_TRUE(tentative.canProcessResult(1ms));
         EXPECT_EQ(tentative.observation().slantRange(), 1000_m);
     }
     algorithm->fault = FaultAlgorithm::Fault::NONE;
     EXPECT_TRUE(tentative.initialize(observation(100ms)));
     EXPECT_EQ(algorithm->initializationCount(), expectedCalls + 1);
-    EXPECT_EQ(tentative.lastResultTime(), 0ms);
+    EXPECT_FALSE(tentative.canProcessResult(0ms));
+    EXPECT_TRUE(tentative.canProcessResult(1ms));
 }
 
 TEST(DomainValidationTest, RejectedInitializationPreservesTentativeAndCanBeRetried)
@@ -306,9 +310,7 @@ TEST(DomainValidationTest, RejectedInitializationPreservesTentativeAndCanBeRetri
     const auto algorithm = std::make_shared<FaultAlgorithm>();
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(algorithm).createTentative(
-            observation(0ms, 1000_m, 0_mps)
-        )
+        TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(0ms, 1000_m, 0_mps))
     );
     const auto& target = *repository.findTentativeTrack(id);
     for (auto fault : {FaultAlgorithm::Fault::INVALID_STATE, FaultAlgorithm::Fault::WRONG_TIME})
@@ -317,7 +319,8 @@ TEST(DomainValidationTest, RejectedInitializationPreservesTentativeAndCanBeRetri
         EXPECT_THROW(target.confirm(observation(100ms)), std::invalid_argument);
         EXPECT_EQ(repository.findTentativeTrack(id), &target);
         EXPECT_EQ(repository.findConfirmedTrack(id), nullptr);
-        EXPECT_EQ(target.lastResultTime(), 0ms);
+        EXPECT_FALSE(target.canProcessResult(0ms));
+        EXPECT_TRUE(target.canProcessResult(1ms));
         EXPECT_EQ(target.observation().observationTime(), 0ms);
     }
     algorithm->fault = FaultAlgorithm::Fault::NONE;
@@ -329,7 +332,7 @@ TEST(DomainValidationTest, RejectedInitializationPreservesTentativeAndCanBeRetri
 TEST(TrackFactoryTest, RejectedCreationPreservesTentativeForRetry)
 {
     const auto algorithm = std::make_shared<FaultAlgorithm>();
-    auto factory = TrackFactory(algorithm);
+    auto factory = TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3));
     const auto tentative = factory.createTentative(observation(0ms));
 
     for (auto fault : {FaultAlgorithm::Fault::INVALID_STATE, FaultAlgorithm::Fault::WRONG_TIME})
@@ -338,7 +341,8 @@ TEST(TrackFactoryTest, RejectedCreationPreservesTentativeForRetry)
         EXPECT_FALSE(tentative.confirm(observation(0ms)));
         EXPECT_THROW(tentative.confirm(observation(100ms)), std::invalid_argument);
         EXPECT_EQ(tentative.id(), 1u);
-        EXPECT_EQ(tentative.lastResultTime(), 0ms);
+        EXPECT_FALSE(tentative.canProcessResult(0ms));
+        EXPECT_TRUE(tentative.canProcessResult(1ms));
         EXPECT_EQ(tentative.observation().slantRange(), 1000_m);
     }
 
@@ -350,7 +354,8 @@ TEST(TrackFactoryTest, RejectedCreationPreservesTentativeForRetry)
     EXPECT_EQ(track->id(), tentative.id());
     EXPECT_EQ(track->initialTime(), 0ms);
     EXPECT_EQ(track->lastObservationTime(), 100ms);
-    EXPECT_EQ(tentative.lastResultTime(), 0ms);
+    EXPECT_FALSE(tentative.canProcessResult(0ms));
+    EXPECT_TRUE(tentative.canProcessResult(1ms));
 }
 
 TEST(DomainValidationTest, RejectedUpdatePreservesStateAndMissHistory)
@@ -358,9 +363,7 @@ TEST(DomainValidationTest, RejectedUpdatePreservesStateAndMissHistory)
     const auto algorithm = std::make_shared<FaultAlgorithm>();
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(algorithm).createTentative(
-            observation(0ms, 1000_m, 0_mps)
-        )
+        TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(0ms, 1000_m, 0_mps))
     );
     auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(100ms));
     ASSERT_TRUE(confirmedTrack);
@@ -374,7 +377,8 @@ TEST(DomainValidationTest, RejectedUpdatePreservesStateAndMissHistory)
         EXPECT_THROW(target.update(observation(2100ms)), std::invalid_argument);
         EXPECT_EQ(target.state().get(), saved);
         EXPECT_EQ(target.lastObservationTime(), 100ms);
-        EXPECT_EQ(target.lastResultTime(), 1100ms);
+        EXPECT_FALSE(target.canProcessResult(1100ms));
+        EXPECT_TRUE(target.canProcessResult(1101ms));
         EXPECT_EQ(target.consecutiveMissCount(), 1u);
         EXPECT_EQ(target.sphericalPosition().radius, 1000_m);
     }
@@ -389,9 +393,7 @@ TEST(DomainValidationTest, PredictionContractErrorsThrowAndComputationFailuresRe
     const auto algorithm = std::make_shared<FaultAlgorithm>();
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(algorithm).createTentative(
-            observation(0ms, 1000_m, 0_mps)
-        )
+        TrackFactory(algorithm, TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation(0ms, 1000_m, 0_mps))
     );
     auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(100ms));
     ASSERT_TRUE(confirmedTrack);
@@ -401,13 +403,15 @@ TEST(DomainValidationTest, PredictionContractErrorsThrowAndComputationFailuresRe
     {
         algorithm->fault = fault;
         EXPECT_THROW(target.predict(1100ms), std::invalid_argument);
-        EXPECT_EQ(target.lastResultTime(), 100ms);
+        EXPECT_FALSE(target.canProcessResult(100ms));
+        EXPECT_TRUE(target.canProcessResult(101ms));
         EXPECT_EQ(target.lastObservationTime(), 100ms);
     }
     algorithm->fault = FaultAlgorithm::Fault::NO_RESULT;
     EXPECT_FALSE(target.predict(1100ms));
     EXPECT_FALSE(target.update(observation(1100ms)));
-    EXPECT_EQ(target.lastResultTime(), 100ms);
+    EXPECT_FALSE(target.canProcessResult(100ms));
+    EXPECT_TRUE(target.canProcessResult(101ms));
 }
 
 TEST(TargetConfigTest, RejectsInvalidSettingsDuringConstruction)
@@ -418,15 +422,16 @@ TEST(TargetConfigTest, RejectsInvalidSettingsDuringConstruction)
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         );
         auto maxAssociationSpeed = defaults.association.maxAssociationSpeed().asLinearVelocity();
         auto maxInitialDopplerDifference = defaults.association.maxInitialDopplerDifference().asLinearVelocity();
         auto measurementStandardDeviation = defaults.measurement.standardDeviation();
         auto positionNdsThreshold = defaults.association.positionNdsThreshold();
-        auto confirmationDelay = defaults.trackManagement.confirmationDelay();
-        auto trackingInterval = defaults.trackManagement.trackingInterval();
-        auto maxConsecutiveTrackingMisses = defaults.trackManagement.maxConsecutiveTrackingMisses();
+        auto confirmationDelay = defaults.trackLifecycle.confirmationDelay();
+        auto trackingInterval = defaults.trackLifecycle.trackingInterval();
+        auto maxConsecutiveTrackingMisses = defaults.trackLifecycle.maxConsecutiveTrackingMisses();
         switch (option)
         {
         case 0:
@@ -466,7 +471,8 @@ TEST(TargetConfigTest, RejectsInvalidSettingsDuringConstruction)
                 AssociationConfig(maxAssociationSpeed, maxInitialDopplerDifference, positionNdsThreshold),
                 MeasurementConfig(measurementStandardDeviation),
                 TrackingConfig(10_mps2, 0_mps2),
-                TrackManagementConfig(confirmationDelay, trackingInterval, maxConsecutiveTrackingMisses, 100)
+                TrackLifecycleConfig(confirmationDelay, trackingInterval, maxConsecutiveTrackingMisses),
+                TrackReportingConfig(100)
             )),
             std::invalid_argument
         );
@@ -477,7 +483,7 @@ TEST(TargetConfigTest, SelectorsUseInjectedSpeedDopplerNoiseAndGate)
 {
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).createTentative(observation())
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3)).createTentative(observation())
     );
     const auto& tentative = *repository.findTentativeTrack(id);
     const auto association = AssociationConfig(1000_mps, 30_mps, 11.345);
@@ -509,7 +515,8 @@ TEST(TargetConfigTest, ControllerOwnsTemporaryConfigAndUsesInjectedIntervalsAndM
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(250ms, 400ms, 2, 100)
+            TrackLifecycleConfig(250ms, 400ms, 2),
+            TrackReportingConfig(100)
         )
     );
     controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
@@ -561,7 +568,8 @@ TEST(TargetConfigTest, ControllerPassesInjectedSpeedLimitToConfirmationMatcher)
             AssociationConfig(restricted ? 100_mps : 1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         );
         auto controller = TargetController(config);
         controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
@@ -589,7 +597,8 @@ TEST(DomainValidationTest, InvalidPlotBatchDoesNotPartiallyRegisterCandidates)
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         )
     );
     EXPECT_THROW(

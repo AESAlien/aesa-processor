@@ -11,7 +11,7 @@ namespace target
 class TrackFactory
 {
 public:
-    explicit TrackFactory(std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm);
+    TrackFactory(std::shared_ptr<const ITrackingAlgorithm> trackingAlgorithm, TrackLifecycleConfig lifecycleConfig);
 
     TrackFactory(const TrackFactory&) = delete;
     TrackFactory& operator=(const TrackFactory&) = delete;
@@ -23,6 +23,7 @@ public:
 
 private:
     std::shared_ptr<const ITrackingAlgorithm> _trackingAlgorithm;
+    TrackLifecycleConfig _lifecycleConfig;
     std::uint32_t _nextId = 1;
 };
 

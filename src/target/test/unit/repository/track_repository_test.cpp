@@ -27,7 +27,7 @@ Observation observation()
 TEST(TrackRepositoryTest, StoresFactoryAssignedIdentitiesAndRejectsDuplicates)
 {
     TrackRepository repository;
-    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
+    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3));
     const auto tentative = factory.createTentative(observation());
     EXPECT_EQ(tentative.id(), 1u);
     EXPECT_TRUE(repository.tracks().empty());
@@ -41,7 +41,7 @@ TEST(TrackRepositoryTest, StoresFactoryAssignedIdentitiesAndRejectsDuplicates)
 TEST(TrackRepositoryTest, ConfirmationPreservesIdentityWithoutConsumingAnotherId)
 {
     TrackRepository repository;
-    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
+    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3));
     const auto tentative = factory.createTentative(observation());
     repository.add(tentative);
 
@@ -58,11 +58,11 @@ TEST(TrackRepositoryTest, QueriesTrackTypesInRegistrationOrderWithIndependentLim
 {
     TrackRepository repository;
     const auto algorithm = std::make_shared<ConstantVelocityAlgorithm>();
-    const auto earlier = TentativeTrack(7, observation(), algorithm);
-    const auto later = TentativeTrack(3, observation(), algorithm);
-    repository.add(TentativeTrack(42, observation(), algorithm));
+    const auto earlier = TentativeTrack(7, observation(), TrackLifecycleConfig(100ms, 1000ms, 3), algorithm);
+    const auto later = TentativeTrack(3, observation(), TrackLifecycleConfig(100ms, 1000ms, 3), algorithm);
+    repository.add(TentativeTrack(42, observation(), TrackLifecycleConfig(100ms, 1000ms, 3), algorithm));
     repository.add(earlier);
-    repository.add(TentativeTrack(20, observation(), algorithm));
+    repository.add(TentativeTrack(20, observation(), TrackLifecycleConfig(100ms, 1000ms, 3), algorithm));
     repository.add(later);
 
     const auto confirmation = Observation(math::SphericalPosition(1001_m, 0_deg, 0_deg), 0_mps, -10.0f, 100ms);
@@ -87,9 +87,9 @@ TEST(TrackRepositoryTest, StoresPreparedIdentitiesWithoutChangingThem)
 {
     TrackRepository repository;
     const auto algorithm = std::make_shared<ConstantVelocityAlgorithm>();
-    EXPECT_EQ(repository.add(TentativeTrack(42, observation(), algorithm)), 42u);
+    EXPECT_EQ(repository.add(TentativeTrack(42, observation(), TrackLifecycleConfig(100ms, 1000ms, 3), algorithm)), 42u);
 
-    const auto tentative = TentativeTrack(7, observation(), algorithm);
+    const auto tentative = TentativeTrack(7, observation(), TrackLifecycleConfig(100ms, 1000ms, 3), algorithm);
     const auto confirmation = Observation(math::SphericalPosition(1001_m, 0_deg, 0_deg), 0_mps, -10.0f, 100ms);
     const auto track = tentative.confirm(confirmation);
     ASSERT_TRUE(track);
@@ -102,9 +102,9 @@ TEST(TrackRepositoryTest, StoresPreparedIdentitiesWithoutChangingThem)
 TEST(TrackRepositoryTest, RejectsUnreportableIdentitiesWithoutStoringTracks)
 {
     TrackRepository repository;
-    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
+    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3));
     const auto invalid = std::uint32_t{std::numeric_limits<std::uint16_t>::max()} + 1;
-    const auto tentative = TentativeTrack(invalid, observation(), std::make_shared<ConstantVelocityAlgorithm>());
+    const auto tentative = TentativeTrack(invalid, observation(), TrackLifecycleConfig(100ms, 1000ms, 3), std::make_shared<ConstantVelocityAlgorithm>());
     EXPECT_THROW(repository.add(tentative), std::overflow_error);
     EXPECT_TRUE(repository.tracks().empty());
 
@@ -120,7 +120,7 @@ TEST(TrackRepositoryTest, RejectsUnreportableIdentitiesWithoutStoringTracks)
 TEST(TrackRepositoryTest, ClearRemovesAllTrackTypesWithoutReusingIds)
 {
     TrackRepository repository;
-    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
+    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3));
     const auto tentative = factory.createTentative(observation());
     repository.add(tentative);
     repository.add(factory.createTentative(observation()));
@@ -142,7 +142,7 @@ TEST(TrackRepositoryTest, ClearRemovesAllTrackTypesWithoutReusingIds)
 TEST(TrackRepositoryTest, ClearIsRepeatableOnEmptyRepository)
 {
     TrackRepository repository;
-    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
+    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>(), TrackLifecycleConfig(100ms, 1000ms, 3));
     repository.add(factory.createTentative(observation()));
 
     EXPECT_EQ(repository.clear(), 1u);

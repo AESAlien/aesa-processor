@@ -4,7 +4,7 @@
 #include "domain/track_factory.hpp"
 
 #include <beam/dto/request_beam_command.hpp>
-#include <target/config/track_management_config.hpp>
+#include <target/config/track_lifecycle_config.hpp>
 
 #include <chrono>
 #include <cstdint>
@@ -23,7 +23,7 @@ class DetectionHandler
 {
 public:
     DetectionHandler(
-        TrackManagementConfig config,
+        TrackLifecycleConfig config,
         std::shared_ptr<TrackRepository> repository,
         TrackFactory trackFactory,
         std::unique_ptr<const TentativeSelector> tentativeSelector,
@@ -41,7 +41,7 @@ private:
     std::optional<beam::RequestBeamCommand> handle(const ConfirmationDetectionResult& result);
     std::optional<beam::RequestBeamCommand> handle(const TrackingDetectionResult& result);
 
-    const TrackManagementConfig _config;
+    const TrackLifecycleConfig _config;
     std::shared_ptr<TrackRepository> _trackRepository;
     TrackFactory _trackFactory;
     std::unique_ptr<const TentativeSelector> _tentativeSelector;

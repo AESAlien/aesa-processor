@@ -25,7 +25,7 @@ math::SphericalPosition position(math::Length range)
 TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
 {
     const auto algorithm = std::make_shared<target::ConstantVelocityAlgorithm>();
-    target::TrackFactory factory(algorithm);
+    target::TrackFactory factory(algorithm, target::TrackLifecycleConfig(100ms, 1000ms, 3));
     target::TrackRepository repository;
     const auto firstId = repository.add(
         factory.createTentative(
@@ -99,7 +99,8 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
                 target::AssociationConfig(1000_mps, 30_mps, 11.345),
                 target::MeasurementConfig(7_m),
                 target::TrackingConfig(10_mps2, 0_mps2),
-                target::TrackManagementConfig(100ms, 1000ms, 3, 100)
+                target::TrackLifecycleConfig(100ms, 1000ms, 3),
+                target::TrackReportingConfig(100)
             )
         );
         const auto confirmation = controller.handleDetection(
@@ -143,7 +144,8 @@ TEST(ImmutableGeometryTest, ReportsNormalizedWestboundHeadingAndSignedFlightPath
                 target::AssociationConfig(1000_mps, 30_mps, 11.345),
                 target::MeasurementConfig(7_m),
                 target::TrackingConfig(10_mps2, 0_mps2),
-                target::TrackManagementConfig(100ms, 1000ms, 3, 100)
+                target::TrackLifecycleConfig(100ms, 1000ms, 3),
+                target::TrackReportingConfig(100)
             )
         );
         controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));

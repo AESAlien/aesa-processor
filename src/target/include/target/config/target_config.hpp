@@ -3,7 +3,8 @@
 #include <target/config/association_config.hpp>
 #include <target/config/measurement_config.hpp>
 #include <target/config/tracking_config.hpp>
-#include <target/config/track_management_config.hpp>
+#include <target/config/track_lifecycle_config.hpp>
+#include <target/config/track_reporting_config.hpp>
 
 #include <optional>
 #include <utility>
@@ -34,9 +35,15 @@ struct TargetConfig
             return *this;
         }
 
-        Builder& trackManagementConfig(TrackManagementConfig value)
+        Builder& trackLifecycleConfig(TrackLifecycleConfig value)
         {
-            _trackManagement.emplace(std::move(value));
+            _trackLifecycle.emplace(std::move(value));
+            return *this;
+        }
+
+        Builder& trackReportingConfig(TrackReportingConfig value)
+        {
+            _trackReporting.emplace(std::move(value));
             return *this;
         }
 
@@ -46,20 +53,23 @@ struct TargetConfig
         std::optional<AssociationConfig> _association;
         std::optional<MeasurementConfig> _measurement;
         std::optional<TrackingConfig> _tracking;
-        std::optional<TrackManagementConfig> _trackManagement;
+        std::optional<TrackLifecycleConfig> _trackLifecycle;
+        std::optional<TrackReportingConfig> _trackReporting;
     };
 
     TargetConfig(
         AssociationConfig association,
         MeasurementConfig measurement,
         TrackingConfig tracking,
-        TrackManagementConfig trackManagement
+        TrackLifecycleConfig trackLifecycle,
+        TrackReportingConfig trackReporting
     );
 
     AssociationConfig association;
     MeasurementConfig measurement;
     TrackingConfig tracking;
-    TrackManagementConfig trackManagement;
+    TrackLifecycleConfig trackLifecycle;
+    TrackReportingConfig trackReporting;
 };
 
 } // namespace target
