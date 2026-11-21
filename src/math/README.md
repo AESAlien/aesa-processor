@@ -26,7 +26,9 @@ math/
         └── geometry/
 ```
 
-## 도메인 클래스 구성
+## 클래스 다이어그램
+
+[Notion 원문](https://app.notion.com/p/419261646eaa80d78d69f37940d0d489?source=copy_link)
 
 ```mermaid
 classDiagram

@@ -31,7 +31,9 @@ comm/
     └── comm_sender.cpp      # 수동 송신 테스트
 ```
 
-## 네트워크 클래스 구성
+## 클래스 다이어그램
+
+[Notion 원문](https://app.notion.com/p/TCP-419261646eaa80f3a9efcf0402cc84e4?source=copy_link)
 
 ```mermaid
 classDiagram
@@ -48,8 +50,72 @@ classDiagram
     Session *-- ConnectedSocket
     Session *-- MessageFramer
     Socket <|-- ListenSocket
-    Socket <|-- ConnectedSocket
     Socket ..> NativeSocket : 호출
+    Socket <|-- ConnectedSocket
+```
+
+## 시퀀스 다이어그램
+
+### 외부 메시지 수신
+
+[Notion 원문](https://app.notion.com/p/3e9261646eaa8046ac1df109e1c148a1?source=copy_link)
+
+```mermaid
+sequenceDiagram
+    actor app
+    participant CommController
+    participant NetworkManager
+    participant PeerConnection
+    participant MessageDecoder
+    app->>CommController: receiveData()
+    loop 대기열이 비어 있는 동안
+        CommController->>NetworkManager: poll(timeout)
+        opt 읽을 수 있는 연결이 있을 때
+            NetworkManager->>PeerConnection: receive()
+            Note over PeerConnection: Session.receive()에서 소켓 바이트를 읽고 프레임 조립
+            PeerConnection-->>NetworkManager: 완성된 프레임 목록
+        end
+        NetworkManager-->>CommController: 완성된 프레임 묶음
+        loop 완성된 프레임마다
+            CommController->>MessageDecoder: decode(frame)
+            MessageDecoder-->>CommController: DecodeResult
+            CommController->>CommController: 디코딩한 메시지를 대기열에 추가
+        end
+    end
+    CommController-->>app: 대기열의 첫 IncomingDto
+```
+
+### 외부 메시지 송신
+
+[Notion 원문](https://app.notion.com/p/3e9261646eaa80fe88e8e9dc880d4b3a?source=copy_link)
+
+```mermaid
+sequenceDiagram
+    actor app
+    participant CommController
+    participant NetworkManager
+    participant PeerConnection
+    participant Session
+    participant ConnectedSocket
+    participant SocketSelector
+
+    app->>CommController: send...(...)
+    Note over CommController: 메시지 종류에 맞게 바이트로 인코딩
+    CommController->>NetworkManager: sendTo...(bytes)
+    NetworkManager->>PeerConnection: send(data, timeout)
+    PeerConnection->>Session: send(data, timeout)
+
+    loop 보낼 바이트가 남아 있는 동안
+        Session->>ConnectedSocket: sendBytes(data, bytesSent)
+        alt 바이트를 보냈을 때
+            ConnectedSocket-->>Session: 이번에 보낸 바이트 수
+            Session->>Session: bytesSent에 송신량 누적
+        else 쓰기 가능 상태를 기다려야 할 때
+            Session->>ConnectedSocket: waitWritableUntil(deadline)
+            ConnectedSocket->>SocketSelector: waitWritable(remaining)
+            SocketSelector-->>ConnectedSocket: 쓰기 가능한 소켓 목록
+        end
+    end
 ```
 
 ## 환경 설정

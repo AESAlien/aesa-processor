@@ -101,7 +101,8 @@ TEST(KalmanControllerTest, PreservesGeneratedIdAndReportsFilteredCoordinatesInst
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         )
     );
     controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
@@ -142,7 +143,8 @@ TEST(KalmanControllerTest, SelectsTheBestPlotInsideThePredictedCovarianceGateAnd
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         )
     );
     controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
@@ -186,7 +188,8 @@ TEST(KalmanControllerTest, LearnsThreeAxisAccelerationFromNoisyPlotsAndKeepsFore
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(10_mps2, 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         )
     );
     controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
@@ -280,7 +283,8 @@ TEST(KalmanControllerTest, InjectedAccelerationUncertaintyControlsRecoveryGateAn
             AssociationConfig(1000_mps, 30_mps, 11.345),
             MeasurementConfig(7_m),
             TrackingConfig(math::LinearAcceleration::fromMetersPerSecondSquared(accelerationSigma), 0_mps2),
-            TrackManagementConfig(100ms, 1000ms, 3, 100)
+            TrackLifecycleConfig(100ms, 1000ms, 3),
+            TrackReportingConfig(100)
         );
         auto controller = TargetController(config);
         controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));

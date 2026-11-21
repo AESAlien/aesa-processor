@@ -2,7 +2,8 @@ add_library(target STATIC
     src/config/association_config.cpp
     src/config/measurement_config.cpp
     src/config/tracking_config.cpp
-    src/config/track_management_config.cpp
+    src/config/track_lifecycle_config.cpp
+    src/config/track_reporting_config.cpp
     src/config/target_config.cpp
     src/controller/target_controller.cpp
     src/service/detection_handler.cpp
@@ -20,7 +21,7 @@ add_library(target STATIC
     src/domain/confirmed_track.cpp
     src/domain/factory/observation_factory.cpp
     src/domain/factory/detection_result_factory.cpp
-    src/domain/track_factory.cpp
+    src/domain/factory/track_factory.cpp
     src/dto/factory/track_event_factory.cpp
     src/domain/track_prediction.cpp
     src/domain/track_state.cpp
@@ -38,6 +39,13 @@ if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     include(GoogleTest)
 
+    add_executable(target_track_factory_test test/unit/domain/factory/track_factory_test.cpp)
+    target_include_directories(target_track_factory_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_link_libraries(target_track_factory_test PRIVATE target GTest::gtest_main)
+    gtest_discover_tests(target_track_factory_test)
+
     add_executable(target_track_repository_test test/unit/repository/track_repository_test.cpp)
     target_include_directories(target_track_repository_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -48,6 +56,7 @@ if(BUILD_TESTING)
     add_executable(target_detection_handler_test test/integration/service/detection_handler_test.cpp)
     target_include_directories(target_detection_handler_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test/support"
     )
     target_link_libraries(target_detection_handler_test PRIVATE target GTest::gtest_main)
     gtest_discover_tests(target_detection_handler_test)
@@ -70,6 +79,7 @@ if(BUILD_TESTING)
     add_executable(target_lifecycle_test test/integration/controller/target_lifecycle_test.cpp)
     target_include_directories(target_lifecycle_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test/support"
     )
     target_link_libraries(target_lifecycle_test PRIVATE target GTest::gtest_main)
     gtest_discover_tests(target_lifecycle_test)
@@ -100,6 +110,7 @@ if(BUILD_TESTING)
     add_executable(target_tracking_state_test test/integration/domain/tracking_state_test.cpp)
     target_include_directories(target_tracking_state_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test/support"
     )
     target_link_libraries(target_tracking_state_test PRIVATE target GTest::gtest_main)
     gtest_discover_tests(target_tracking_state_test)

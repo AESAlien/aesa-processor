@@ -46,7 +46,7 @@ std::optional<TrackingResult> ConstantVelocityAlgorithm::update(
     const Observation& observation
 ) const {
     const auto& currentState = current.state();
-    const auto previousTime = currentState->timestamp();
+    const auto previousTime = currentState.timestamp();
     const auto time = observation.observationTime();
     if (time <= previousTime)
     {
@@ -56,7 +56,7 @@ std::optional<TrackingResult> ConstantVelocityAlgorithm::update(
     const auto position = observation.sphericalPosition().toCartesian();
     // 시각이 큰 경우에도 짧은 간격을 보존하도록 먼저 뺀 뒤 초 단위로 변환한다.
     const auto elapsed = std::chrono::duration<double>(time - previousTime);
-    const auto velocity = (position - currentState->position()) / elapsed;
+    const auto velocity = (position - currentState.position()) / elapsed;
 
     auto state = TrackState(
         observation.sphericalPosition(),
@@ -75,13 +75,12 @@ std::optional<TrackPrediction> ConstantVelocityAlgorithm::predict(
 ) const {
     using namespace math::literals;
 
-    const auto& currentState = current.state();
-    if (!currentState || time < currentState->timestamp())
+    const auto& state = current.state();
+    if (time < state.timestamp())
     {
         return std::nullopt;
     }
 
-    const auto& state = *currentState;
     const auto& velocity = state.velocity();
     if (velocity.x == 0_mps && velocity.y == 0_mps && velocity.z == 0_mps)
     {

@@ -44,7 +44,7 @@ std::optional<TrackPrediction> IPositionUncertainty::predict(
     {
         return track.predict(time);
     }
-    if (time < track.lastObservationTime())
+    if (time < track.state().timestamp())
     {
         return std::nullopt;
     }

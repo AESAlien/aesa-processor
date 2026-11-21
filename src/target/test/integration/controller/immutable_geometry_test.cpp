@@ -1,5 +1,5 @@
 #include "domain/tracking/constant_velocity_algorithm.hpp"
-#include "domain/track_factory.hpp"
+#include "domain/factory/track_factory.hpp"
 #include "repository/track_repository.hpp"
 #include <target/config/target_config.hpp>
 #include "target/controller/target_controller.hpp"
@@ -25,39 +25,36 @@ math::SphericalPosition position(math::Length range)
 TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
 {
     const auto algorithm = std::make_shared<target::ConstantVelocityAlgorithm>();
-    target::TrackFactory factory(algorithm);
+    target::TrackFactory factory(algorithm, target::TrackLifecycleConfig(100ms, 1000ms, 3));
     target::TrackRepository repository;
     const auto firstId = repository.add(
         factory.createTentative(
-            repository.nextId(),
             target::Observation(position(100_m), 1_mps, 1.0f, 0ms)
         )
     );
     const auto middleId = repository.add(
         factory.createTentative(
-            repository.nextId(),
             target::Observation(position(200_m), 1_mps, 1.0f, 0ms)
         )
     );
     const auto lastId = repository.add(
         factory.createTentative(
-            repository.nextId(),
             target::Observation(position(300_m), 1_mps, 1.0f, 0ms)
         )
     );
 
-    auto confirmedLastTrack = repository.findTentativeTrack(lastId)->confirm(target::Observation(position(301_m), 1_mps, 1.0f, 1000ms));
+    auto confirmedLastTrack = repository.findTentativeById(lastId)->confirm(target::Observation(position(301_m), 1_mps, 1.0f, 1000ms));
     ASSERT_TRUE(confirmedLastTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedLastTrack).value()));
-    auto* tracked = repository.findConfirmedTrack(lastId);
+    auto* tracked = repository.findConfirmedById(lastId);
     ASSERT_TRUE(tracked->update(target::Observation(position(302_m), 1_mps, 1.0f, 2000ms)));
-    EXPECT_EQ(tracked->state()->position().x, 0_m);
-    EXPECT_EQ(tracked->state()->position().y, 302_m);
-    EXPECT_EQ(tracked->state()->velocity().x, 0_mps);
-    EXPECT_EQ(tracked->state()->velocity().y, 1_mps);
+    EXPECT_EQ(tracked->state().position().x, 0_m);
+    EXPECT_EQ(tracked->state().position().y, 302_m);
+    EXPECT_EQ(tracked->state().velocity().x, 0_mps);
+    EXPECT_EQ(tracked->state().velocity().y, 1_mps);
 
-    EXPECT_FALSE(repository.remove(0));
-    ASSERT_TRUE(repository.remove(middleId));
+    EXPECT_FALSE(repository.removeById(0));
+    ASSERT_TRUE(repository.removeById(middleId));
     ASSERT_EQ(repository.tracks().size(), 2u);
     EXPECT_EQ(
         std::visit(
@@ -79,17 +76,16 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
         ),
         lastId
     );
-    EXPECT_EQ(repository.findConfirmedTrack(middleId), nullptr);
-    tracked = repository.findConfirmedTrack(lastId);
-    ASSERT_TRUE(tracked->state());
-    EXPECT_EQ(tracked->state()->position().y, 302_m);
+    EXPECT_EQ(repository.findConfirmedById(middleId), nullptr);
+    tracked = repository.findConfirmedById(lastId);
+    EXPECT_EQ(tracked->state().position().y, 302_m);
     ASSERT_TRUE(tracked->update(target::Observation(position(303_m), 1_mps, 1.0f, 3000ms)));
-    EXPECT_EQ(tracked->state()->position().y, 303_m);
+    EXPECT_EQ(tracked->state().position().y, 303_m);
 
-    EXPECT_TRUE(repository.remove(firstId));
-    EXPECT_TRUE(repository.remove(lastId));
+    EXPECT_TRUE(repository.removeById(firstId));
+    EXPECT_TRUE(repository.removeById(lastId));
     EXPECT_TRUE(repository.tracks().empty());
-    EXPECT_FALSE(repository.remove(lastId));
+    EXPECT_FALSE(repository.removeById(lastId));
 }
 
 TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
@@ -102,7 +98,8 @@ TEST(ImmutableGeometryTest, ReportsStationaryAndMovingTargetSpeed)
                 target::AssociationConfig(1000_mps, 30_mps, 11.345),
                 target::MeasurementConfig(7_m),
                 target::TrackingConfig(10_mps2, 0_mps2),
-                target::TrackManagementConfig(100ms, 1000ms, 3, 100)
+                target::TrackLifecycleConfig(100ms, 1000ms, 3),
+                target::TrackReportingConfig(100)
             )
         );
         const auto confirmation = controller.handleDetection(
@@ -146,7 +143,8 @@ TEST(ImmutableGeometryTest, ReportsNormalizedWestboundHeadingAndSignedFlightPath
                 target::AssociationConfig(1000_mps, 30_mps, 11.345),
                 target::MeasurementConfig(7_m),
                 target::TrackingConfig(10_mps2, 0_mps2),
-                target::TrackManagementConfig(100ms, 1000ms, 3, 100)
+                target::TrackLifecycleConfig(100ms, 1000ms, 3),
+                target::TrackReportingConfig(100)
             )
         );
         controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));

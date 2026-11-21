@@ -192,18 +192,19 @@ target::TargetConfig ConfigAssembler::createTargetConfig()
             initialAccelerationDeviation,
             processAccelerationDeviation
         );
-        auto trackManagementConfig = target::TrackManagementConfig(
+        auto trackLifecycleConfig = target::TrackLifecycleConfig(
             confirmationDelay,
             trackingInterval,
-            maxConsecutiveTrackingMisses,
-            maxReportedTrackCount
+            maxConsecutiveTrackingMisses
         );
+        auto trackReportingConfig = target::TrackReportingConfig(maxReportedTrackCount);
 
         return target::TargetConfig(
             std::move(associationConfig),
             std::move(measurementConfig),
             std::move(trackingConfig),
-            std::move(trackManagementConfig)
+            std::move(trackLifecycleConfig),
+            std::move(trackReportingConfig)
         );
     }
     catch (const std::invalid_argument& error)

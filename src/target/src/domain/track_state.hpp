@@ -37,6 +37,7 @@ public:
     const math::LinearVelocity& dopplerVelocity() const noexcept;
     float power_db() const noexcept;
     std::chrono::milliseconds timestamp() const noexcept;
+
     // 위치, 속도, 가속도는 안테나 고정 좌표계의 성분이다.
     // 방위각 0°는 y축, +90°는 x축, 위쪽은 z축이다.
     const math::CartesianPosition& position() const noexcept;
@@ -51,6 +52,7 @@ private:
     math::CartesianPosition _position;
     math::CartesianVelocity _velocity;
     math::CartesianAcceleration _acceleration;
+    
     void validate() const;
 };
 

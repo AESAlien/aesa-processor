@@ -2,8 +2,8 @@
 
 #include <pose/domain/enu_geo_transform.hpp>
 #include <target/dto/track_event.hpp>
+#include <target/config/track_reporting_config.hpp>
 
-#include <cstddef>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -18,7 +18,7 @@ class TrackReporter
 public:
     TrackReporter(
         std::shared_ptr<const TrackRepository> repository,
-        std::size_t maxReportedTrackCount
+        TrackReportingConfig config
     );
 
     void setEnuGeoTransform(pose::EnuGeoTransform enuGeoTransform);
@@ -26,7 +26,7 @@ public:
 
 private:
     std::shared_ptr<const TrackRepository> _trackRepository;
-    std::size_t _maxReportedTrackCount;
+    TrackReportingConfig _config;
     std::optional<pose::EnuGeoTransform> _enuGeoTransform;
 };
 

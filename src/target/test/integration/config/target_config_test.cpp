@@ -41,7 +41,7 @@ DetectionEvent detection(beam::BeamType type, std::uint32_t id, std::chrono::mil
 
 TEST(TargetConfigTest, BuilderRequiresEveryComponent)
 {
-    for (unsigned int mask = 0; mask < 15; ++mask)
+    for (unsigned int mask = 0; mask < 31; ++mask)
     {
         SCOPED_TRACE(mask);
         TargetConfig::Builder builder;
@@ -59,7 +59,11 @@ TEST(TargetConfigTest, BuilderRequiresEveryComponent)
         }
         if (mask & 8)
         {
-            builder.trackManagementConfig(TrackManagementConfig(100ms, 1000ms, 3, 100));
+            builder.trackLifecycleConfig(TrackLifecycleConfig(100ms, 1000ms, 3));
+        }
+        if (mask & 16)
+        {
+            builder.trackReportingConfig(TrackReportingConfig(100));
         }
         EXPECT_THROW(builder.build(), std::logic_error);
     }
@@ -133,12 +137,12 @@ TEST(TrackingConfigTest, BuilderRequiresBothValuesAndValidatesNoise)
     );
 }
 
-TEST(TrackManagementConfigTest, BuilderRequiresEveryValueAndValidatesReportLimit)
+TEST(TrackLifecycleConfigTest, BuilderRequiresEveryValue)
 {
-    for (unsigned int mask = 0; mask < 15; ++mask)
+    for (unsigned int mask = 0; mask < 7; ++mask)
     {
         SCOPED_TRACE(mask);
-        TrackManagementConfig::Builder builder;
+        TrackLifecycleConfig::Builder builder;
         if (mask & 1)
         {
             builder.confirmationDelay(100ms);
@@ -151,21 +155,40 @@ TEST(TrackManagementConfigTest, BuilderRequiresEveryValueAndValidatesReportLimit
         {
             builder.maxConsecutiveTrackingMisses(3);
         }
-        if (mask & 8)
-        {
-            builder.maxReportedTrackCount(100);
-        }
         EXPECT_THROW(builder.build(), std::logic_error);
     }
+}
+
+TEST(TrackLifecycleConfigTest, ValidatesDurationsAndMissLimitAndDerivesResponseTimeout)
+{
+    EXPECT_THROW(TrackLifecycleConfig(0ms, 1000ms, 3), std::invalid_argument);
+    EXPECT_THROW(TrackLifecycleConfig(-1ms, 1000ms, 3), std::invalid_argument);
+    EXPECT_THROW(TrackLifecycleConfig(100ms, 0ms, 3), std::invalid_argument);
+    EXPECT_THROW(TrackLifecycleConfig(100ms, -1ms, 3), std::invalid_argument);
+    EXPECT_THROW(TrackLifecycleConfig(100ms, 1000ms, 0), std::invalid_argument);
+    const auto config = TrackLifecycleConfig::Builder()
+        .confirmationDelay(250ms)
+        .trackingInterval(400ms)
+        .maxConsecutiveTrackingMisses(2)
+        .build();
+    EXPECT_EQ(config.confirmationDelay(), 250ms);
+    EXPECT_EQ(config.trackingInterval(), 400ms);
+    EXPECT_EQ(config.maxConsecutiveTrackingMisses(), 2u);
+    EXPECT_EQ(config.responseTimeout(), 800ms);
+}
+
+TEST(TrackReportingConfigTest, BuilderRequiresCountAndValidatesReportLimit)
+{
+    EXPECT_THROW(TrackReportingConfig::Builder().build(), std::logic_error);
+    EXPECT_THROW(TrackReportingConfig::Builder().maxReportedTrackCount(0).build(), std::invalid_argument);
     EXPECT_THROW(
-        TrackManagementConfig::Builder()
-            .confirmationDelay(100ms)
-            .trackingInterval(1000ms)
-            .maxConsecutiveTrackingMisses(3)
+        TrackReportingConfig::Builder()
             .maxReportedTrackCount(101)
             .build(),
         std::invalid_argument
     );
+    EXPECT_EQ(TrackReportingConfig::Builder().maxReportedTrackCount(1).build().maxReportedTrackCount(), 1u);
+    EXPECT_EQ(TrackReportingConfig::Builder().maxReportedTrackCount(100).build().maxReportedTrackCount(), 100u);
 }
 
 TEST(TargetConfigTest, BuildersAcceptExplicitZeroValuesAndFeedTheController)
@@ -185,14 +208,14 @@ TEST(TargetConfigTest, BuildersAcceptExplicitZeroValuesAndFeedTheController)
                 .processAccelerationStandardDeviation(0_mps2)
                 .build()
         )
-        .trackManagementConfig(
-            TrackManagementConfig::Builder()
+        .trackLifecycleConfig(
+            TrackLifecycleConfig::Builder()
                 .confirmationDelay(100ms)
                 .trackingInterval(1000ms)
                 .maxConsecutiveTrackingMisses(3)
-                .maxReportedTrackCount(1)
                 .build()
         )
+        .trackReportingConfig(TrackReportingConfig::Builder().maxReportedTrackCount(1).build())
         .build();
     auto controller = TargetController(config);
     controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
@@ -218,14 +241,16 @@ TEST(TargetConfigTest, ControllerKeepsSnapshotsWhenComponentsAreReplaced)
         AssociationConfig(1000_mps, 30_mps, 11.345),
         MeasurementConfig(7_m),
         TrackingConfig(10_mps2, 0_mps2),
-        TrackManagementConfig(100ms, 1000ms, 3, 100)
+        TrackLifecycleConfig(100ms, 1000ms, 3),
+        TrackReportingConfig(100)
     );
     auto controller = TargetController(config);
     controller.setEnuGeoTransform(pose::SetEnuGeoTransformCommand(pose::EnuGeoTransform(pose::GeoPosition(math::TiltAngle(0_deg), math::CircularAngle(0_deg), 100_m))));
     config.association = AssociationConfig(0_mps, 0_mps, 0.0);
     config.measurement = MeasurementConfig(1_m);
     config.tracking = TrackingConfig(1_mps2, 100_mps2);
-    config.trackManagement = TrackManagementConfig(1ms, 1ms, 1, 1);
+    config.trackLifecycle = TrackLifecycleConfig(1ms, 1ms, 1);
+    config.trackReporting = TrackReportingConfig(1);
 
     const auto confirmation = controller.handleDetection(detection(beam::BeamType::SEARCH, 0, 0ms, 1000_m));
     ASSERT_TRUE(confirmation);

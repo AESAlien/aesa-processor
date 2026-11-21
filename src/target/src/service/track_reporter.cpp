@@ -13,9 +13,9 @@ namespace target
 
 TrackReporter::TrackReporter(
     std::shared_ptr<const TrackRepository> repository,
-    std::size_t maxReportedTrackCount
+    TrackReportingConfig config
 ) : _trackRepository(std::move(repository)),
-    _maxReportedTrackCount(maxReportedTrackCount)
+    _config(std::move(config))
 {
     if (!_trackRepository)
     {
@@ -35,12 +35,12 @@ std::vector<TrackEvent> TrackReporter::getTrackEvents() const
         return {};
     }
 
-    const auto confirmedTracks = _trackRepository->confirmedTracks(_maxReportedTrackCount);
+    const auto confirmedTracks = _trackRepository->confirmedTracks(_config.maxReportedTrackCount());
     std::vector<TrackEvent> events;
     events.reserve(confirmedTracks.size());
     for (const auto* confirmedTrack : confirmedTracks)
     {
-        const auto position = _enuGeoTransform->enuToGeo(confirmedTrack->state()->position());
+        const auto position = _enuGeoTransform->enuToGeo(confirmedTrack->state().position());
         events.push_back(TrackEventFactory::from(*confirmedTrack, position));
     }
     return events;

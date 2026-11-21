@@ -22,7 +22,7 @@ ConfirmedTrack stationaryTrack(std::shared_ptr<const ITrackingAlgorithm> algorit
     const auto state = TrackState(
         position.toSpherical(), 0_mps, -10.0f, 100ms, position, math::CartesianVelocity(0_mps, 0_mps, 0_mps)
     );
-    return ConfirmedTrack(1, 0ms, state, std::move(algorithm));
+    return ConfirmedTrack(1, 0ms, state, TrackLifecycleConfig(100ms, 1000ms, 3), std::move(algorithm));
 }
 
 TEST(NdsAlgorithmTest, AppliesTravelAllowanceBeforeScoringPositions)

@@ -46,7 +46,9 @@ flowchart TB
     waitForShutdownRequest -->|SIGINT 또는 SIGTERM| exit
 ```
 
-## 워커 클래스 구성
+## 클래스 다이어그램
+
+[Notion 원문](https://app.notion.com/p/419261646eaa8098ad03fcb817618db3?source=copy_link)
 
 ```mermaid
 classDiagram

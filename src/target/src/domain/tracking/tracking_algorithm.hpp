@@ -25,6 +25,7 @@ public:
         const Observation& second
     ) const = 0;
 
+    // 상태 시각으로부터의 경과 시간으로 계산한다. 미탐을 포함한 결과 처리 순서와 반영 여부는 트랙이 판단한다.
     virtual std::optional<TrackingResult> update(
         const ConfirmedTrack& current,
         const Observation& observation

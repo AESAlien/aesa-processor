@@ -1,7 +1,6 @@
 #include "track_repository.hpp"
 
 #include <algorithm>
-#include <limits>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -11,28 +10,21 @@ namespace target
 namespace
 {
 
-constexpr std::uint32_t MAX_TRACK_ID = std::numeric_limits<std::uint16_t>::max();
-
-std::uint32_t trackId(const Track& track)
-{
-    return std::visit(
-        [](const auto& value)
-        {
-            return value.id();
-        },
-        track
-    );
-}
-
 template <typename Tracks>
-auto findTrackById(Tracks& tracks, std::uint32_t id)
+auto findById(Tracks& tracks, std::uint32_t id)
 {
     return std::find_if(
         tracks.begin(),
         tracks.end(),
         [id](const Track& track)
         {
-            return trackId(track) == id;
+            return std::visit(
+                [id](const auto& value)
+                {
+                    return value.id() == id;
+                },
+                track
+            );
         }
     );
 }
@@ -57,15 +49,6 @@ std::vector<const TrackType*> tracksOfType(const std::list<Track>& tracks, std::
 
 } // namespace
 
-std::uint32_t TrackRepository::nextId() const
-{
-    if (_nextId > MAX_TRACK_ID)
-    {
-        throw std::overflow_error("Track ID exceeds the console ID range");
-    }
-    return _nextId;
-}
-
 std::uint32_t TrackRepository::add(TentativeTrack tentativeTrack)
 {
     return add(Track(std::move(tentativeTrack)));
@@ -78,47 +61,36 @@ std::uint32_t TrackRepository::add(ConfirmedTrack confirmedTrack)
 
 std::uint32_t TrackRepository::add(Track track)
 {
-    const auto id = trackId(track);
-    if (id > MAX_TRACK_ID)
-    {
-        throw std::overflow_error("Track ID exceeds the console ID range");
-    }
-    if (findTrackById(_tracks, id) != _tracks.end())
+    const auto id = std::visit(
+        [](const auto& value)
+        {
+            return value.id();
+        },
+        track
+    );
+    if (findById(_tracks, id) != _tracks.end())
     {
         throw std::invalid_argument("Track ID is already registered");
     }
     _tracks.emplace_back(std::move(track));
-    _nextId = std::max(_nextId, id + 1);
     return id;
 }
 
-TentativeTrack* TrackRepository::findTentativeTrack(std::uint32_t id)
+TentativeTrack* TrackRepository::findTentativeById(std::uint32_t id)
 {
-    const auto track = findTrackById(_tracks, id);
+    const auto track = findById(_tracks, id);
     return track != _tracks.end() ? std::get_if<TentativeTrack>(&*track) : nullptr;
 }
 
-const TentativeTrack* TrackRepository::findTentativeTrack(std::uint32_t id) const
+ConfirmedTrack* TrackRepository::findConfirmedById(std::uint32_t id)
 {
-    const auto track = findTrackById(_tracks, id);
-    return track != _tracks.end() ? std::get_if<TentativeTrack>(&*track) : nullptr;
-}
-
-ConfirmedTrack* TrackRepository::findConfirmedTrack(std::uint32_t id)
-{
-    const auto track = findTrackById(_tracks, id);
-    return track != _tracks.end() ? std::get_if<ConfirmedTrack>(&*track) : nullptr;
-}
-
-const ConfirmedTrack* TrackRepository::findConfirmedTrack(std::uint32_t id) const
-{
-    const auto track = findTrackById(_tracks, id);
+    const auto track = findById(_tracks, id);
     return track != _tracks.end() ? std::get_if<ConfirmedTrack>(&*track) : nullptr;
 }
 
 bool TrackRepository::replace(ConfirmedTrack confirmedTrack)
 {
-    const auto track = findTrackById(_tracks, confirmedTrack.id());
+    const auto track = findById(_tracks, confirmedTrack.id());
     if (track == _tracks.end())
     {
         return false;
@@ -129,9 +101,9 @@ bool TrackRepository::replace(ConfirmedTrack confirmedTrack)
     return true;
 }
 
-bool TrackRepository::remove(std::uint32_t id)
+bool TrackRepository::removeById(std::uint32_t id)
 {
-    const auto track = findTrackById(_tracks, id);
+    const auto track = findById(_tracks, id);
     if (track == _tracks.end())
     {
         return false;

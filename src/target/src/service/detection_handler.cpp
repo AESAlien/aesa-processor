@@ -26,7 +26,7 @@ beam::RequestBeamCommand trackingCommandFrom(std::uint32_t requestId, const Trac
 } // namespace
 
 DetectionHandler::DetectionHandler(
-    TrackManagementConfig config,
+    TrackLifecycleConfig config,
     std::shared_ptr<TrackRepository> repository,
     TrackFactory trackFactory,
     std::unique_ptr<const TentativeSelector> tentativeSelector,
@@ -74,7 +74,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     }
 
     const auto transmitTime = result.transmitTime + _config.confirmationDelay();
-    const auto id = _trackRepository->add(_trackFactory.createTentative(_trackRepository->nextId(), *candidate));
+    const auto id = _trackRepository->add(_trackFactory.createTentative(*candidate));
     _lastSearchResultTimes.insert_or_assign(result.requestId, result.transmitTime);
 
     return beam::RequestBeamCommand(
@@ -88,8 +88,8 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
 std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     const ConfirmationDetectionResult& result
 ) {
-    const auto* tentativeTrack = _trackRepository->findTentativeTrack(result.requestId);
-    if (!tentativeTrack || result.transmitTime <= tentativeTrack->lastResultTime())
+    const auto* tentativeTrack = _trackRepository->findTentativeById(result.requestId);
+    if (!tentativeTrack || !tentativeTrack->canProcessResult(result.transmitTime))
     {
         return std::nullopt;
     }
@@ -101,7 +101,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     );
     if (!observation)
     {
-        _trackRepository->remove(result.requestId);
+        _trackRepository->removeById(result.requestId);
         return std::nullopt;
     }
 
@@ -109,7 +109,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     auto confirmedTrack = tentativeTrack->confirm(*observation);
     if (!confirmedTrack)
     {
-        _trackRepository->remove(result.requestId);
+        _trackRepository->removeById(result.requestId);
         return std::nullopt;
     }
     // 기존 저장 위치에서 잠정 트랙을 확정 트랙으로 바꿔 ID와 등록 순서를 보존한다.
@@ -118,12 +118,12 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
         return std::nullopt;
     }
 
-    const auto* storedTrack = _trackRepository->findConfirmedTrack(result.requestId);
+    const auto* storedTrack = _trackRepository->findConfirmedById(result.requestId);
     // 확인 관측으로 초기화한 상태를 다음 추적 빔의 송신 시각까지 예측해 조향 방향을 구한다.
     const auto prediction = storedTrack->predict(transmitTime);
     if (!prediction)
     {
-        _trackRepository->remove(result.requestId);
+        _trackRepository->removeById(result.requestId);
         return std::nullopt;
     }
 
@@ -133,8 +133,8 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
 std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     const TrackingDetectionResult& result
 ) {
-    auto* confirmedTrack = _trackRepository->findConfirmedTrack(result.requestId);
-    if (!confirmedTrack || result.transmitTime <= confirmedTrack->lastResultTime())
+    auto* confirmedTrack = _trackRepository->findConfirmedById(result.requestId);
+    if (!confirmedTrack || !confirmedTrack->canProcessResult(result.transmitTime))
     {
         return std::nullopt;
     }
@@ -145,10 +145,9 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
         result.observations
     );
     // 연관된 관측이 없고 이번 미탐으로 한도에 도달하면 다음 빔을 계산하기 전에 만료한다.
-    if (!observation &&
-        confirmedTrack->consecutiveMissCount() >= _config.maxConsecutiveTrackingMisses() - 1)
+    if (!observation && confirmedTrack->willExpireOnNextMiss())
     {
-        _trackRepository->remove(result.requestId);
+        _trackRepository->removeById(result.requestId);
         return std::nullopt;
     }
 
@@ -158,9 +157,9 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     {
         // 마지막 유효 상태는 보존하고 결과 시각과 연속 미탐 횟수를 갱신한다.
         confirmedTrack->recordTrackingMiss(result.transmitTime);
-        if (confirmedTrack->consecutiveMissCount() >= _config.maxConsecutiveTrackingMisses())
+        if (confirmedTrack->hasReachedMissLimit())
         {
-            _trackRepository->remove(result.requestId);
+            _trackRepository->removeById(result.requestId);
             return std::nullopt;
         }
     }
@@ -169,7 +168,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     const auto prediction = confirmedTrack->predict(transmitTime);
     if (!prediction)
     {
-        _trackRepository->remove(result.requestId);
+        _trackRepository->removeById(result.requestId);
         return std::nullopt;
     }
 
