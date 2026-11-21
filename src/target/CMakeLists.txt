@@ -21,7 +21,7 @@ add_library(target STATIC
     src/domain/confirmed_track.cpp
     src/domain/factory/observation_factory.cpp
     src/domain/factory/detection_result_factory.cpp
-    src/domain/track_factory.cpp
+    src/domain/factory/track_factory.cpp
     src/dto/factory/track_event_factory.cpp
     src/domain/track_prediction.cpp
     src/domain/track_state.cpp
@@ -39,7 +39,7 @@ if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     include(GoogleTest)
 
-    add_executable(target_track_factory_test test/unit/domain/track_factory_test.cpp)
+    add_executable(target_track_factory_test test/unit/domain/factory/track_factory_test.cpp)
     target_include_directories(target_track_factory_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )

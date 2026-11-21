@@ -4,7 +4,7 @@
 #include "domain/tracking/constant_acceleration_algorithm.hpp"
 #include "domain/association/nds_algorithm.hpp"
 #include "domain/factory/detection_result_factory.hpp"
-#include "domain/track_factory.hpp"
+#include "domain/factory/track_factory.hpp"
 #include "repository/track_repository.hpp"
 #include "service/detection_handler.hpp"
 #include "service/track_reporter.hpp"

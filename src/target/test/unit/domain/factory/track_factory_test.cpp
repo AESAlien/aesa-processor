@@ -1,4 +1,4 @@
-#include "domain/track_factory.hpp"
+#include "domain/factory/track_factory.hpp"
 #include "domain/tracking/constant_velocity_algorithm.hpp"
 
 #include <gtest/gtest.h>

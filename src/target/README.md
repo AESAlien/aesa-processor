@@ -22,7 +22,8 @@ target/
 └── test/
     ├── unit/                # 단위 테스트
     │   ├── domain/
-    │   │   └── association/
+    │   │   ├── association/
+    │   │   └── factory/
     │   └── repository/
     ├── integration/         # 통합 테스트
     │   ├── config/

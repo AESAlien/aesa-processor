@@ -3,7 +3,7 @@
 #include "association_selection_helpers.hpp"
 #include "domain/tracking/constant_velocity_algorithm.hpp"
 #include "domain/tentative_track.hpp"
-#include "domain/track_factory.hpp"
+#include "domain/factory/track_factory.hpp"
 #include "repository/track_repository.hpp"
 
 #include <target/config/target_config.hpp>
