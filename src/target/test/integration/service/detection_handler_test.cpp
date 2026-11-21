@@ -45,11 +45,10 @@ class DetectionHandlerTest : public ::testing::Test
 {
 protected:
     std::shared_ptr<TrackRepository> _repository = std::make_shared<TrackRepository>();
-    TrackFactory _factory{std::make_shared<ConstantVelocityAlgorithm>()};
     DetectionHandler _handler = DetectionHandler(
         TrackManagementConfig(100ms, 1000ms, 3, 100),
         _repository,
-        _factory,
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()),
         std::make_unique<TentativeSelector>(
             AssociationConfig(1000_mps, 30_mps, 11.345),
             std::make_unique<NdsAlgorithm>(MeasurementConfig(7_m))
@@ -157,8 +156,9 @@ TEST_F(DetectionHandlerTest, EmptySearchesAdvanceHistoryWithoutConsumingIdentity
 
 TEST_F(DetectionHandlerTest, PreexistingTargetsDoNotCollideWithNewRegistrations)
 {
-    const auto existing = Observation(math::SphericalPosition(9000_m, 0_deg, 0_deg), 0_mps, -10.0f, 0ms);
-    ASSERT_EQ(_repository->add(_factory.createTentative(_repository->nextId(), existing)), 1u);
+    const auto existing = _handler.handle(result(BeamType::SEARCH, 4, 0ms, 9000_m));
+    ASSERT_TRUE(existing);
+    ASSERT_EQ(existing->requestId, 1u);
     const auto* original = _repository->findTentativeTrack(1);
 
     const auto registered = _handler.handle(result(BeamType::SEARCH, 5, 0ms));

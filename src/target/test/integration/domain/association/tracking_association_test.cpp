@@ -214,7 +214,7 @@ protected:
             algorithm = _algorithm;
         }
         const auto id = _repository.add(
-            TrackFactory(std::move(algorithm)).createTentative(_repository.nextId(), observation(firstRange, 0ms))
+            TentativeTrack(_nextTrackId++, observation(firstRange, 0ms), std::move(algorithm))
         );
         auto confirmedTrack = _repository.findTentativeTrack(id)->confirm(observation(secondRange, 100ms));
         EXPECT_TRUE(confirmedTrack);
@@ -224,6 +224,7 @@ protected:
 
     const std::shared_ptr<const ITrackingAlgorithm> _algorithm = std::make_shared<ConstantVelocityAlgorithm>();
     TrackRepository _repository;
+    std::uint32_t _nextTrackId = 1;
     TrackSelector _selector = TrackSelector(
         AssociationConfig(1000_mps, 30_mps, 11.345), std::make_unique<NdsAlgorithm>(MeasurementConfig(7_m))
     );
@@ -243,13 +244,13 @@ TEST_F(TrackingAssociationTest, ReturnsSquaredCartesianDistanceScore)
 TEST(TentativeSelectorTest, UsesOnlyTheSuppliedTracksWithoutARepository)
 {
     const auto selector = TentativeSelector(AssociationConfig(1000_mps, 30_mps, 11.345), std::make_unique<NdsAlgorithm>(MeasurementConfig(7_m)));
-    const auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
+    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
     const auto observation = [](math::Length range, Time time)
     {
         return Observation(position(range), 0_mps, -10.0f, time);
     };
-    const auto tentative = factory.createTentative(1, observation(1000_m, 0ms));
-    const auto confirmed = factory.createTentative(2, observation(2000_m, 0ms)).confirm(observation(2000_m, 100ms));
+    const auto tentative = factory.createTentative(observation(1000_m, 0ms));
+    const auto confirmed = factory.createTentative(observation(2000_m, 0ms)).confirm(observation(2000_m, 100ms));
     ASSERT_TRUE(confirmed);
     auto tracks = std::list<Track>{tentative, *confirmed};
     const auto candidates = std::vector<Observation>{
@@ -300,7 +301,7 @@ TEST_F(TrackingAssociationTest, SelectorsUseInjectedScoresForEveryComparisonMode
     EXPECT_FALSE(tentativeSelector.selectNewCandidate({observation(1020_m, 50ms)}, _repository.tracks()));
     EXPECT_EQ(counts->states, 1);
 
-    const auto tentative = TrackFactory(_algorithm).createTentative(_repository.nextId(), observation(1000_m, 0ms));
+    const auto tentative = TentativeTrack(_nextTrackId++, observation(1000_m, 0ms), _algorithm);
     const auto confirmation = trackSelector.selectConfirmationObservation(
         tentative, 100ms, {observation(1000_m, 100ms), observation(1020_m, 100ms)}
     );
@@ -513,7 +514,7 @@ TEST_F(TrackingAssociationTest, ValidatesCovarianceProvidedForPrediction)
 TEST_F(TrackingAssociationTest, RejectsStaleOrDuplicateResults)
 {
     const auto tentativeId = _repository.add(
-        TrackFactory(_algorithm).createTentative(_repository.nextId(), observation(1000_m, 0ms))
+        TentativeTrack(_nextTrackId++, observation(1000_m, 0ms), _algorithm)
     );
     EXPECT_EQ(_repository.findConfirmedTrack(tentativeId), nullptr);
 

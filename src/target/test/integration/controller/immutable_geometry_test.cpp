@@ -29,19 +29,16 @@ TEST(ImmutableGeometryTest, ReplacesTrackingStateAndRemovesTargetsInOrder)
     target::TrackRepository repository;
     const auto firstId = repository.add(
         factory.createTentative(
-            repository.nextId(),
             target::Observation(position(100_m), 1_mps, 1.0f, 0ms)
         )
     );
     const auto middleId = repository.add(
         factory.createTentative(
-            repository.nextId(),
             target::Observation(position(200_m), 1_mps, 1.0f, 0ms)
         )
     );
     const auto lastId = repository.add(
         factory.createTentative(
-            repository.nextId(),
             target::Observation(position(300_m), 1_mps, 1.0f, 0ms)
         )
     );

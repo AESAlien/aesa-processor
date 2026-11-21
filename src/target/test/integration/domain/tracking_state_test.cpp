@@ -120,7 +120,7 @@ TEST(TrackingStateTest, ExistingConstructorAndConstantVelocityUseZeroAcceleratio
 
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).createTentative(repository.nextId(), observation(1000_m, 0ms))
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).createTentative(observation(1000_m, 0ms))
     );
     auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
@@ -171,7 +171,7 @@ TEST(TrackingStateTest, StoresAlgorithmStateAcrossUpdatesAndPreservesItDuringMis
 {
     const auto algorithm = std::make_shared<EnrichedAlgorithm>();
     TrackRepository repository;
-    const auto id = repository.add(TrackFactory(algorithm).createTentative(repository.nextId(), observation(1000_m, 0ms)));
+    const auto id = repository.add(TrackFactory(algorithm).createTentative(observation(1000_m, 0ms)));
     auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
@@ -206,7 +206,7 @@ TEST(TrackingStateTest, RejectedUpdatesPreserveAccelerationStrategyDataAndMissHi
 {
     const auto algorithm = std::make_shared<EnrichedAlgorithm>();
     TrackRepository repository;
-    const auto id = repository.add(TrackFactory(algorithm).createTentative(repository.nextId(), observation(1000_m, 0ms)));
+    const auto id = repository.add(TrackFactory(algorithm).createTentative(observation(1000_m, 0ms)));
     auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(1010_m, 100ms));
     ASSERT_TRUE(confirmedTrack);
     ASSERT_TRUE(repository.replace(std::move(confirmedTrack).value()));
@@ -248,19 +248,16 @@ TEST(TrackingStateTest, RemovingTracksPreservesRemainingAccelerationAndStrategyD
     TrackRepository repository;
     const auto firstId = repository.add(
         factory.createTentative(
-            repository.nextId(),
             observation(1000_m, 0ms)
         )
     );
     const auto middleId = repository.add(
         factory.createTentative(
-            repository.nextId(),
             observation(2000_m, 0ms)
         )
     );
     const auto lastId = repository.add(
         factory.createTentative(
-            repository.nextId(),
             observation(3000_m, 0ms)
         )
     );

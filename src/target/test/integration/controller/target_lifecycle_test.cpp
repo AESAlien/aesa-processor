@@ -174,8 +174,8 @@ TEST(DetectionResultTest, RejectsInvalidPlotInEveryResultType)
 TEST(TrackRepositoryTest, ReplacementRequiresAnExistingIdentity)
 {
     TrackRepository repository;
-    const auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
-    const auto tentative = factory.createTentative(repository.nextId(), observation(0ms));
+    auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
+    const auto tentative = factory.createTentative(observation(0ms));
     auto track = tentative.confirm(observation(100ms, 1001_m));
     ASSERT_TRUE(track);
 
@@ -222,7 +222,7 @@ TEST(TrackRepositoryTest, RejectsDuplicateIdsAcrossBothTrackTypes)
 {
     TrackRepository repository;
     auto factory = TrackFactory(std::make_shared<ConstantVelocityAlgorithm>());
-    const auto tentative = factory.createTentative(repository.nextId(), observation(0ms));
+    const auto tentative = factory.createTentative(observation(0ms));
     const auto track = tentative.confirm(observation(100ms, 1001_m));
     ASSERT_TRUE(track);
     ASSERT_EQ(repository.add(tentative), tentative.id());
@@ -240,7 +240,7 @@ TEST(TrackRepositoryTest, RejectsDuplicateIdsAcrossBothTrackTypes)
     EXPECT_EQ(repository.tracks().size(), 1u);
     EXPECT_EQ(repository.findConfirmedTrack(tentative.id()), stored);
     EXPECT_EQ(stored->state(), track->state());
-    EXPECT_EQ(repository.add(factory.createTentative(repository.nextId(), observation(200ms))), 2u);
+    EXPECT_EQ(repository.add(factory.createTentative(observation(200ms))), 2u);
 }
 
 TEST(TrackFactoryTest, TargetRetainsAlgorithmAfterFactoryIsDestroyed)
@@ -250,8 +250,8 @@ TEST(TrackFactoryTest, TargetRetainsAlgorithmAfterFactoryIsDestroyed)
     {
         const auto injectedAlgorithm = std::make_shared<ConstantVelocityAlgorithm>();
         algorithm = injectedAlgorithm;
-        const auto factory = TrackFactory(injectedAlgorithm);
-        return factory.createTentative(1, observation(0ms));
+        auto factory = TrackFactory(injectedAlgorithm);
+        return factory.createTentative(observation(0ms));
     }();
 
     EXPECT_FALSE(algorithm.expired());
@@ -273,8 +273,8 @@ TEST(TrackFactoryTest, TrackRetainsAlgorithmAfterFactoryAndTentativeAreDestroyed
         {
             const auto injectedAlgorithm = std::make_shared<ConstantVelocityAlgorithm>();
             algorithm = injectedAlgorithm;
-            const auto factory = TrackFactory(injectedAlgorithm);
-            const auto tentative = factory.createTentative(1, observation(10ms));
+            auto factory = TrackFactory(injectedAlgorithm);
+            const auto tentative = factory.createTentative(observation(10ms));
             return tentative.confirm(observation(110ms, 1001_m));
         }();
 
@@ -299,9 +299,9 @@ TEST(TargetLifecycleTest, ConfirmationPreservesIdentityAndRegistrationOrder)
     TrackRepository repository;
     const auto algorithm = std::make_shared<ConstantVelocityAlgorithm>();
     auto factory = TrackFactory(algorithm);
-    const auto first = repository.add(factory.createTentative(repository.nextId(), observation(0ms)));
-    const auto second = repository.add(factory.createTentative(repository.nextId(), observation(0ms, 2000_m)));
-    const auto third = repository.add(factory.createTentative(repository.nextId(), observation(0ms, 3000_m)));
+    const auto first = repository.add(factory.createTentative(observation(0ms)));
+    const auto second = repository.add(factory.createTentative(observation(0ms, 2000_m)));
+    const auto third = repository.add(factory.createTentative(observation(0ms, 3000_m)));
     auto thirdTrack = repository.findTentativeTrack(third)->confirm(observation(100ms, 3001_m));
     ASSERT_TRUE(thirdTrack);
     ASSERT_TRUE(repository.replace(std::move(thirdTrack).value()));
@@ -320,7 +320,7 @@ TEST(TargetLifecycleTest, ConfirmationPreservesIdentityAndRegistrationOrder)
     EXPECT_TRUE(repository.removeById(second));
     EXPECT_EQ(repository.findTentativeTrack(second), nullptr);
     EXPECT_EQ(repository.findConfirmedTrack(third)->id(), third);
-    const auto fourth = repository.add(factory.createTentative(repository.nextId(), observation(200ms, 4000_m)));
+    const auto fourth = repository.add(factory.createTentative(observation(200ms, 4000_m)));
     EXPECT_GT(fourth, third);
 }
 
@@ -347,7 +347,7 @@ TEST(TargetLifecycleTest, StaleAndFailedInitializationPreserveTentative)
 
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(std::make_shared<NoInitializationAlgorithm>()).createTentative(repository.nextId(), observation(100ms))
+        TrackFactory(std::make_shared<NoInitializationAlgorithm>()).createTentative(observation(100ms))
     );
     const auto* tentative = repository.findTentativeTrack(id);
     for (auto time : {0ms, 100ms, 200ms})
@@ -366,7 +366,7 @@ TEST(TargetLifecycleTest, ConfirmationSelectorRanksPlotsAndRejectsStaleObservati
     const auto targetConfig = config();
     auto selector = TrackSelector(targetConfig.association, std::make_unique<NdsAlgorithm>(targetConfig.measurement));
     const auto id = repository.add(
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).createTentative(repository.nextId(), observation(0ms))
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).createTentative(observation(0ms))
     );
     const auto observations = std::vector<Observation>({observation(100ms, 1030_m), observation(100ms, 1005_m), Observation(math::SphericalPosition(1005_m, 0_deg, 0_deg), 0_mps, -20.0f, 100ms)});
     const auto selected = selector.selectConfirmationObservation(*repository.findTentativeTrack(id), 100ms, observations);

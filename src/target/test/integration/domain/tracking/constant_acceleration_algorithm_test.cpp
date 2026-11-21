@@ -125,7 +125,7 @@ ConfirmedTrack seededTarget(
         std::move(state), covariance ? KalmanStateAccess::makeState(std::move(*covariance)) : std::any{}
     );
     TrackRepository repository;
-    const auto id = repository.add(TrackFactory(algorithm).createTentative(repository.nextId(), observation(point, 0ms)));
+    const auto id = repository.add(TrackFactory(algorithm).createTentative(observation(point, 0ms)));
     auto confirmedTrack = repository.findTentativeTrack(id)->confirm(observation(point, time));
     EXPECT_TRUE(confirmedTrack);
     EXPECT_TRUE(repository.replace(std::move(confirmedTrack).value()));
@@ -150,7 +150,6 @@ protected:
         TrackRepository repository;
         const auto id = repository.add(
             TrackFactory(algorithm).createTentative(
-                repository.nextId(),
                 observation(first, firstTime)
             )
         );
@@ -827,7 +826,6 @@ TEST(ConstantAccelerationConfigTest, UsesInjectedInitialAccelerationUncertainty)
     );
     const auto algorithm = std::make_shared<ConstantAccelerationAlgorithm>(config.tracking, config.measurement);
     const auto tentative = TrackFactory(algorithm).createTentative(
-        1,
         observation(position(0.0, 1000.0, 0.0), 0ms)
     );
     const auto state = tentative.initialize(

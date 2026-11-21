@@ -74,7 +74,7 @@ std::optional<beam::RequestBeamCommand> DetectionHandler::handle(
     }
 
     const auto transmitTime = result.transmitTime + _config.confirmationDelay();
-    const auto id = _trackRepository->add(_trackFactory.createTentative(_trackRepository->nextId(), *candidate));
+    const auto id = _trackRepository->add(_trackFactory.createTentative(*candidate));
     _lastSearchResultTimes.insert_or_assign(result.requestId, result.transmitTime);
 
     return beam::RequestBeamCommand(

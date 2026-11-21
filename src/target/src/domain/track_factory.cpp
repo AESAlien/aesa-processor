@@ -1,5 +1,6 @@
 #include "track_factory.hpp"
 
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
@@ -15,9 +16,15 @@ TrackFactory::TrackFactory(
     }
 }
 
-TentativeTrack TrackFactory::createTentative(std::uint32_t id, Observation observation) const
+TentativeTrack TrackFactory::createTentative(Observation observation)
 {
-    return TentativeTrack(id, std::move(observation), _trackingAlgorithm);
+    if (_nextId > std::numeric_limits<std::uint16_t>::max())
+    {
+        throw std::overflow_error("Track ID exceeds the console ID range");
+    }
+    auto track = TentativeTrack(_nextId, std::move(observation), _trackingAlgorithm);
+    ++_nextId;
+    return track;
 }
 
 } // namespace target

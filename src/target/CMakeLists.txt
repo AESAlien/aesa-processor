@@ -38,6 +38,13 @@ if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     include(GoogleTest)
 
+    add_executable(target_track_factory_test test/unit/domain/track_factory_test.cpp)
+    target_include_directories(target_track_factory_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_link_libraries(target_track_factory_test PRIVATE target GTest::gtest_main)
+    gtest_discover_tests(target_track_factory_test)
+
     add_executable(target_track_repository_test test/unit/repository/track_repository_test.cpp)
     target_include_directories(target_track_repository_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"

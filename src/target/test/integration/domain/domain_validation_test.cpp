@@ -248,8 +248,8 @@ TEST(ConfirmedTrackTest, OwnsValidatedStateWithoutFactoryAccess)
 TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingTheFirstObservation)
 {
     const auto algorithm = std::make_shared<FaultAlgorithm>();
-    const auto factory = TrackFactory(algorithm);
-    const auto tentative = factory.createTentative(1, observation(100ms));
+    auto factory = TrackFactory(algorithm);
+    const auto tentative = factory.createTentative(observation(100ms));
     EXPECT_FALSE(tentative.initialize(observation(0ms)));
     EXPECT_FALSE(tentative.initialize(observation(100ms)));
     EXPECT_EQ(algorithm->initializationCount(), 0u);
@@ -280,7 +280,7 @@ TEST(TentativeTrackTest, DelegatesInitializationOncePerAttemptWithoutChangingThe
 TEST(TentativeTrackTest, InitializationFailuresPreserveTheSourceAndAllowRetry)
 {
     const auto algorithm = std::make_shared<FaultAlgorithm>();
-    const auto tentative = TrackFactory(algorithm).createTentative(1, observation(0ms));
+    const auto tentative = TrackFactory(algorithm).createTentative(observation(0ms));
     algorithm->fault = FaultAlgorithm::Fault::NO_RESULT;
     EXPECT_FALSE(tentative.initialize(observation(100ms)));
     EXPECT_EQ(algorithm->initializationCount(), 1u);
@@ -307,7 +307,6 @@ TEST(DomainValidationTest, RejectedInitializationPreservesTentativeAndCanBeRetri
     TrackRepository repository;
     const auto id = repository.add(
         TrackFactory(algorithm).createTentative(
-            repository.nextId(),
             observation(0ms, 1000_m, 0_mps)
         )
     );
@@ -330,8 +329,8 @@ TEST(DomainValidationTest, RejectedInitializationPreservesTentativeAndCanBeRetri
 TEST(TrackFactoryTest, RejectedCreationPreservesTentativeForRetry)
 {
     const auto algorithm = std::make_shared<FaultAlgorithm>();
-    const auto factory = TrackFactory(algorithm);
-    const auto tentative = factory.createTentative(1, observation(0ms));
+    auto factory = TrackFactory(algorithm);
+    const auto tentative = factory.createTentative(observation(0ms));
 
     for (auto fault : {FaultAlgorithm::Fault::INVALID_STATE, FaultAlgorithm::Fault::WRONG_TIME})
     {
@@ -360,7 +359,6 @@ TEST(DomainValidationTest, RejectedUpdatePreservesStateAndMissHistory)
     TrackRepository repository;
     const auto id = repository.add(
         TrackFactory(algorithm).createTentative(
-            repository.nextId(),
             observation(0ms, 1000_m, 0_mps)
         )
     );
@@ -392,7 +390,6 @@ TEST(DomainValidationTest, PredictionContractErrorsThrowAndComputationFailuresRe
     TrackRepository repository;
     const auto id = repository.add(
         TrackFactory(algorithm).createTentative(
-            repository.nextId(),
             observation(0ms, 1000_m, 0_mps)
         )
     );
@@ -480,7 +477,7 @@ TEST(TargetConfigTest, SelectorsUseInjectedSpeedDopplerNoiseAndGate)
 {
     TrackRepository repository;
     const auto id = repository.add(
-        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).createTentative(repository.nextId(), observation())
+        TrackFactory(std::make_shared<ConstantVelocityAlgorithm>()).createTentative(observation())
     );
     const auto& tentative = *repository.findTentativeTrack(id);
     const auto association = AssociationConfig(1000_mps, 30_mps, 11.345);

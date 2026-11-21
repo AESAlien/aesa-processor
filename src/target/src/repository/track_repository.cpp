@@ -57,15 +57,6 @@ std::vector<const TrackType*> tracksOfType(const std::list<Track>& tracks, std::
 
 } // namespace
 
-std::uint32_t TrackRepository::nextId() const
-{
-    if (_nextId > MAX_TRACK_ID)
-    {
-        throw std::overflow_error("Track ID exceeds the console ID range");
-    }
-    return _nextId;
-}
-
 std::uint32_t TrackRepository::add(TentativeTrack tentativeTrack)
 {
     return add(Track(std::move(tentativeTrack)));
@@ -88,7 +79,6 @@ std::uint32_t TrackRepository::add(Track track)
         throw std::invalid_argument("Track ID is already registered");
     }
     _tracks.emplace_back(std::move(track));
-    _nextId = std::max(_nextId, id + 1);
     return id;
 }
 

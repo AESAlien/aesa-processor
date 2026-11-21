@@ -43,7 +43,7 @@ private:
 
     const TrackManagementConfig _config;
     std::shared_ptr<TrackRepository> _trackRepository;
-    const TrackFactory _trackFactory;
+    TrackFactory _trackFactory;
     std::unique_ptr<const TentativeSelector> _tentativeSelector;
     std::unique_ptr<const TrackSelector> _trackSelector;
     std::unordered_map<std::uint32_t, std::chrono::milliseconds> _lastSearchResultTimes;

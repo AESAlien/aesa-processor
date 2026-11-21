@@ -136,10 +136,9 @@ sequenceDiagram
     TentativeSelector-->>DetectionHandler: 후보 관측 또는 후보 없음
 
     alt 새 후보가 있음
-        DetectionHandler->>TrackRepository: nextId()
-        TrackRepository-->>DetectionHandler: id
-        DetectionHandler->>TrackFactory: createTentative(id, candidate)
-        TrackFactory-->>DetectionHandler: TentativeTrack
+        DetectionHandler->>TrackFactory: createTentative(candidate)
+        Note over TrackFactory: 새 ID를 발급해 잠정 트랙 생성
+        TrackFactory-->>DetectionHandler: ID가 부여된 TentativeTrack
         DetectionHandler->>TrackRepository: add(tentativeTrack)
         TrackRepository-->>DetectionHandler: id
         Note over DetectionHandler: 마지막 탐색 결과 시각 기록<br/>transmitTime + confirmationDelay에 확인 빔 요청
