@@ -1,4 +1,5 @@
 #include "dto/beam_input.hpp"
+#include "dto/operation_input.hpp"
 #include "dto/pose_input.hpp"
 #include "queue/message_queue.hpp"
 #include "dto/target_input.hpp"
@@ -168,7 +169,8 @@ int main()
         app::MessageQueue<app::ConsoleInput> consoleQueue;
         app::MessageQueue<app::SimulatorInput> simulatorQueue;
         app::MessageQueue<app::PoseInput> poseQueue;
-        mainLogger->info("[6/12] Five worker input queues initialized");
+        app::MessageQueue<app::OperationInput> operationQueue;
+        mainLogger->info("[6/12] Six worker input queues initialized");
 
         // 7. 설정과 로거를 주입해 컨트롤러를 생성한다.
         beam::BeamController beamController(
@@ -190,9 +192,11 @@ int main()
 
         // 8. 컨트롤러와 입력 큐를 연결하는 워커를 생성한다.
         app::TickWorker tickWorker(
+            operationQueue,
             beamQueue,
             targetQueue,
-            tickLogger
+            tickLogger,
+            operationLogger
         );
         app::BeamWorker beamWorker(
             beamController,
@@ -211,7 +215,7 @@ int main()
         );
         app::CommReceiveWorker commReceiveWorker(
             commController,
-            beamQueue,
+            operationQueue,
             targetQueue,
             poseQueue,
             commLogger

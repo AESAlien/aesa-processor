@@ -33,6 +33,23 @@ TEST(MessageQueueTest, ReadsDifferentMessageTypesInWriteOrder)
     EXPECT_EQ(std::get<beam::SetOperationStateCommand>(input.read()).powerState, beam::OperationState::OFF);
 }
 
+TEST(MessageQueueTest, TryReadReturnsMessagesInWriteOrderWithoutWaiting)
+{
+    MessageQueue<BeamInput> input;
+    EXPECT_FALSE(input.tryRead().has_value());
+
+    input.write(beam::SetOperationStateCommand{beam::OperationState::ON});
+    input.write(TickEvent{std::chrono::milliseconds{10}});
+
+    const auto first = input.tryRead();
+    const auto second = input.tryRead();
+    ASSERT_TRUE(first.has_value());
+    ASSERT_TRUE(second.has_value());
+    EXPECT_EQ(std::get<beam::SetOperationStateCommand>(*first).powerState, beam::OperationState::ON);
+    EXPECT_EQ(std::get<TickEvent>(*second).currentTime.count(), 10);
+    EXPECT_FALSE(input.tryRead().has_value());
+}
+
 TEST(MessageQueueTest, ConcurrentProducersDoNotLoseOrReorderTheirMessages)
 {
     MessageQueue<BeamInput> input;
@@ -119,6 +136,7 @@ TEST(MessageQueueTest, ClosingInputWakesReaderAndRejectsWrites)
     ASSERT_EQ(received.wait_for(std::chrono::seconds{2}), std::future_status::ready);
     EXPECT_THROW(received.get(), std::runtime_error);
     EXPECT_THROW(input.write(TickEvent{}), std::runtime_error);
+    EXPECT_THROW(input.tryRead(), std::runtime_error);
 }
 
 TEST(MessageQueueTest, DifferentWorkersHaveIndependentInputs)

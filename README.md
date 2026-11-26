@@ -94,14 +94,15 @@ block-beta
 
     CommReceiveWorker -- "위치 + 자세" --> PoseWorker
     CommReceiveWorker -- "탐지" --> TargetWorker
+    CommReceiveWorker -- "운용 명령" --> TickWorker
     PoseWorker -- "위치 + 자세" --> ConsoleSendWorker
     PoseWorker -- "자세" --> BeamWorker
     PoseWorker -- "위치" --> TargetWorker
     TargetWorker -- "트랙" --> ConsoleSendWorker
     TargetWorker -- "빔 요청" --> BeamWorker
     BeamWorker -- "빔 명령" --> SimulatorSendWorker
-    TickWorker -- "10ms 틱" --> BeamWorker
-    TickWorker -- "10ms 틱" --> TargetWorker
+    TickWorker -- "운용 명령 + 10ms 틱" --> BeamWorker
+    TickWorker -- "운용 명령 + 10ms 틱" --> TargetWorker
 
     classDef external fill:#FEF3C7,stroke:#D97706,color:#92400E,stroke-width:2px
     classDef communication fill:#DCFCE7,stroke:#16A34A,color:#166534,stroke-width:2px
