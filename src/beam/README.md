@@ -38,7 +38,6 @@ beam/
 
 ```mermaid
 flowchart LR
-    CommReceiveWorker[수신<br/>스레드]
     PoseWorker[레이더 포즈<br/>스레드]
     TargetWorker[타겟 추적<br/>스레드]
     TickWorker[틱<br/>스레드]
@@ -51,7 +50,7 @@ flowchart LR
         nextBeamCommand["nextBeamCommand()"]
     end
 
-    CommReceiveWorker -->|ON → OFF| reset
+    TickWorker -->|운용 상태 전환| reset
     PoseWorker -->|자세 좌표계 변환| setAntEnuTransform
     TargetWorker -->|빔 요청| requestBeam
     TickWorker -->|10ms 틱| nextBeamCommand
@@ -62,7 +61,7 @@ flowchart LR
     classDef utility fill:#F3E8FF,stroke:#9333EA,color:#6B21A8,stroke-width:2px
     classDef control fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-width:2px
 
-    class CommReceiveWorker,SimulatorSendWorker communication
+    class SimulatorSendWorker communication
     class TargetWorker processing
     class PoseWorker utility
     class TickWorker control

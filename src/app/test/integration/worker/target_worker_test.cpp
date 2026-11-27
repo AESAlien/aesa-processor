@@ -190,32 +190,49 @@ TEST_F(TargetWorkerTest, RepeatedOffKeepsStoppedUntilTurnedOnAgain)
     EXPECT_TRUE(noBeamWasRequested());
 
     step(operation(OperationState::ON));
-    const auto id = confirmTrack(1000ms);
+    const auto id = confirmTrack(0ms);
 
-    const auto reports = reportAt(1100ms);
+    const auto reports = reportAt(100ms);
     ASSERT_EQ(reports.size(), 1u);
     EXPECT_EQ(reports.front().id, id);
 }
 
-// ON/OFF를 연속으로 바꿔도 이전 트랙이 남지 않고, ON마다 새 탐지부터 다음 ID로 추적한다.
+// ON/OFF를 연속으로 바꿔도 이전 트랙이 남지 않고, ON마다 시각이 0부터 다시 시작해도 새 탐지부터 다음 ID로 추적한다.
 TEST_F(TargetWorkerTest, RestartsFromNewDetectionsOnEveryTurnOn)
 {
     std::uint32_t previousId = 0;
     for (int cycle = 0; cycle < 3; ++cycle)
     {
-        const auto base = Time(10000 * cycle);
         step(operation(OperationState::ON));
-        const auto id = confirmTrack(base);
+        const auto id = confirmTrack(0ms);
         EXPECT_GT(id, previousId) << "cycle " << cycle;
         previousId = id;
 
-        const auto reports = reportAt(base + 100ms);
+        const auto reports = reportAt(100ms);
         ASSERT_EQ(reports.size(), 1u) << "cycle " << cycle;
         EXPECT_EQ(reports.front().id, id) << "cycle " << cycle;
 
         step(operation(OperationState::OFF));
-        EXPECT_TRUE(reportAt(base + 200ms).empty()) << "cycle " << cycle;
+        EXPECT_TRUE(reportAt(10000ms).empty()) << "cycle " << cycle;
     }
+}
+
+// ON으로 시각이 0부터 다시 시작된 뒤, OFF 전에 보낸 빔의 늦은 탐지는 버리고 새 탐지로만 추적한다.
+TEST_F(TargetWorkerTest, DropsLateDetectionSentBeforeTurnOn)
+{
+    step(operation(OperationState::ON));
+    reportAt(5000ms);
+    step(operation(OperationState::OFF));
+    step(operation(OperationState::ON));
+
+    step(detection(beam::BeamType::SEARCH, 1, 4990ms));
+    EXPECT_TRUE(noBeamWasRequested());
+
+    reportAt(0ms);
+    const auto id = confirmTrack(0ms);
+    const auto reports = reportAt(100ms);
+    ASSERT_EQ(reports.size(), 1u);
+    EXPECT_EQ(reports.front().id, id);
 }
 
 } // namespace

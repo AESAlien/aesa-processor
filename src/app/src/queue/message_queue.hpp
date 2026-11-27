@@ -2,6 +2,7 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <stdexcept>
 #include <utility>
@@ -44,6 +45,27 @@ public:
         if (_closed)
         {
             throw std::runtime_error("Input is closed");
+        }
+
+        T message = std::move(_queue.front());
+        _queue.pop();
+
+        return message;
+    }
+
+    // 기다리지 않고 읽는다. 메시지가 없으면 std::nullopt를 반환한다.
+    std::optional<T> tryRead()
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+
+        if (_closed)
+        {
+            throw std::runtime_error("Input is closed");
+        }
+
+        if (_queue.empty())
+        {
+            return std::nullopt;
         }
 
         T message = std::move(_queue.front());

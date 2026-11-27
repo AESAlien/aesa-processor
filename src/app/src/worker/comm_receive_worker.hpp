@@ -2,7 +2,7 @@
 
 #include "worker/worker.hpp"
 
-#include "dto/beam_input.hpp"
+#include "dto/operation_input.hpp"
 #include "dto/pose_input.hpp"
 #include "dto/target_input.hpp"
 #include "queue/message_queue.hpp"
@@ -22,7 +22,7 @@ class CommReceiveWorker final : public Worker<std::monostate, CommReceiveOutput>
 public:
     CommReceiveWorker(
         comm::CommController& controller,
-        MessageQueue<BeamInput>& beamQueue,
+        MessageQueue<OperationInput>& operationQueue,
         MessageQueue<TargetInput>& targetQueue,
         MessageQueue<PoseInput>& poseQueue,
         std::shared_ptr<spdlog::logger> logger
@@ -34,7 +34,7 @@ private:
     void writeOutput(CommReceiveOutput output) override;
 
     comm::CommController& _controller;
-    MessageQueue<BeamInput>& _beamQueue;
+    MessageQueue<OperationInput>& _operationQueue;
     MessageQueue<TargetInput>& _targetQueue;
     MessageQueue<PoseInput>& _poseQueue;
 };

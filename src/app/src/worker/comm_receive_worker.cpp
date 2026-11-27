@@ -7,13 +7,13 @@ namespace app
 {
 CommReceiveWorker::CommReceiveWorker(
     comm::CommController& controller,
-    MessageQueue<BeamInput>& beamQueue,
+    MessageQueue<OperationInput>& operationQueue,
     MessageQueue<TargetInput>& targetQueue,
     MessageQueue<PoseInput>& poseQueue,
     std::shared_ptr<spdlog::logger> logger
 ) : Worker(std::move(logger)),
     _controller(controller),
-    _beamQueue(beamQueue),
+    _operationQueue(operationQueue),
     _targetQueue(targetQueue),
     _poseQueue(poseQueue)
 {
@@ -37,9 +37,8 @@ void CommReceiveWorker::writeOutput(CommReceiveOutput output)
     }
     else if (auto* command = std::get_if<beam::SetOperationStateCommand>(&output))
     {
-        // 빔과 타겟이 각자 자기 큐 순서대로 운용 상태를 반영하도록 양쪽에 보낸다.
-        _beamQueue.write(*command);
-        _targetQueue.write(std::move(*command));
+        // 틱 워커가 시간 기준을 반영한 뒤 틱과 같은 순서로 빔·타겟에 전달한다.
+        _operationQueue.write(std::move(*command));
     }
     else if (auto* event = std::get_if<target::DetectionEvent>(&output))
     {

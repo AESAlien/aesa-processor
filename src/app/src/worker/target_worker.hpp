@@ -11,6 +11,7 @@
 #include <vector>
 #include <beam/dto/request_beam_command.hpp>
 #include <target/dto/track_event.hpp>
+#include <chrono>
 #include <variant>
 #include <optional>
 
@@ -44,5 +45,7 @@ private:
     MessageQueue<ConsoleInput>& _consoleQueue;
     std::shared_ptr<spdlog::logger> _operationLogger;
     OperationStateGate _operationState;
+    // 마지막으로 받은 틱의 시각. ON으로 전환되면 틱 워커가 시각을 0부터 다시 세므로 0으로 맞춘다.
+    std::chrono::milliseconds _currentTime{0};
 };
 } // namespace app
